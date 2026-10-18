@@ -1,6 +1,6 @@
 // Non-Steam shortcuts
-#ifndef NOTPROTON_FEATS_USERSHORTCUTS_H
-#define NOTPROTON_FEATS_USERSHORTCUTS_H
+#ifndef CARTOUCHE_FEATS_USERSHORTCUTS_H
+#define CARTOUCHE_FEATS_USERSHORTCUTS_H
 
 #include <mach-o/loader.h>
 #include <stdbool.h>
@@ -15,4 +15,4 @@ int np_usershortcuts_bind(const struct mach_header_64 *mh, intptr_t slide,
 // Linux Steam runs these with the default compatibility tool.
 bool np_usershortcuts_runs_exe(const void *user, uint32_t appid);
 
-#endif // NOTPROTON_FEATS_USERSHORTCUTS_H
+#endif // CARTOUCHE_FEATS_USERSHORTCUTS_H

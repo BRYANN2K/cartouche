@@ -416,7 +416,7 @@ enum PrefixStore {
     }
 
     private static func lockPath(of prefix: WinePrefix) -> String {
-        prefix.root.appending(path: ".notproton-prefix.lock").path(percentEncoded: false)
+        prefix.root.appending(path: ".cartouche-prefix.lock").path(percentEncoded: false)
     }
 
     private static func locked(_ fd: Int32) -> Bool {

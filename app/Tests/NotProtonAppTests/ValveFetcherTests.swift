@@ -186,7 +186,7 @@ struct ValveFetcherTests {
 
         let landed = try files.contentsOfDirectory(atPath: bridge.path(percentEncoded: false))
         #expect(
-            !landed.contains { $0.contains("notproton-pending") },
+            !landed.contains { $0.contains("cartouche-pending") },
             "a staging file was left in the bridge: \(landed)"
         )
     }

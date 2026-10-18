@@ -20,9 +20,11 @@ let package = Package(
         .package(url: "https://github.com/sparkle-project/Sparkle", exact: "2.10.0"),
     ],
     targets: [
+        // The folder names the app, the dylib and the run script share
+        .target(name: "CartoucheIdentity", path: "Sources/CartoucheIdentity"),
         .executableTarget(
             name: "NotProtonApp",
-            dependencies: [.product(name: "Sparkle", package: "Sparkle")],
+            dependencies: ["CartoucheIdentity", .product(name: "Sparkle", package: "Sparkle")],
             path: "Sources/NotProtonApp",
             resources: (hasPayload ? [.copy("Resources/payload")] : []) + [
                 .process("Resources/Localization"),

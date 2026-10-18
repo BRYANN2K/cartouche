@@ -25,27 +25,29 @@ struct UninstallOutcome: Sendable {
     let restoredValveSignature: Bool
     let removed: [String]
     var unreachableSteam: [URL] = []
+    // Another tool also injects Steam, so only Cartouche's own entries were taken out
+    var leftSteamForOtherTool = false
 
     var steamNeedsRedownload: Bool { steamInstalled && !restoredValveSignature }
 
     var partialRemoval: String? {
         guard !unreachableSteam.isEmpty else { return nil }
         return unreachableSteam.map {
-            String(localized: "NotProton has been partially removed, because Steam at \($0.path(percentEncoded: false)) cannot be found. Delete that copy of Steam and reinstall it to fully remove NotProton.")
+            String(localized: "Cartouche has been partially removed, because Steam at \($0.path(percentEncoded: false)) cannot be found. Delete that copy of Steam and reinstall it to fully remove Cartouche.")
         }.joined(separator: "\n\n")
     }
 }
 
 enum Uninstall {
-    static let step = String(localized: "Remove NotProton")
+    static let step = String(localized: "Remove Cartouche")
 
     static func confirmation(modifications: SteamModifications = .shared) -> String {
         let missing = ((try? modifications.paths()) ?? []).filter { SupportPaths.Steam.isUnreachable($0) }
         guard !missing.isEmpty else {
-            return String(localized: "Steam is restored to its unmodified state and NotProton is removed, including the compatibility tool that lives inside the Steam folder. Windows games and Steam Play prefixes are not removed.")
+            return String(localized: "Steam is restored to its unmodified state and Cartouche is removed, including the compatibility tool that lives inside the Steam folder. Windows games and Steam Play prefixes are not removed.")
         }
         return missing.map {
-            String(localized: "Steam at \($0.path(percentEncoded: false)) isn't connected, so NotProton can't be removed from it. All other NotProton data is removed, except for Windows Games and prefixes.")
+            String(localized: "Steam at \($0.path(percentEncoded: false)) isn't connected, so Cartouche can't be removed from it. All other Cartouche data is removed, except for Windows Games and prefixes.")
         }.joined(separator: "\n\n")
     }
 
@@ -58,9 +60,10 @@ enum Uninstall {
         innerPlist: URL = SupportPaths.Steam.innerInfoPlist,
         updateBlocks: [URL] = UpdateBlock.paths,
         legacyCompat: URL = SupportPaths.Steam.legacyCompat,
-        compatTools: [URL] = SupportPaths.Steam.notprotonTools(),
+        compatTools: [URL] = SupportPaths.Steam.cartoucheTools(),
         directories: [URL] = [
             SupportPaths.support,
+            SupportPaths.logs,
             SupportPaths.packageDownloads.deletingLastPathComponent(),
         ],
         libraries: [SteamLibrary] = PrefixStore.libraries(),
@@ -83,6 +86,10 @@ enum Uninstall {
         var restored = true
         var missing: [URL] = []
         var failures: [any Error] = []
+        // The other injector uses the same Steam, insert keys, update block and legacycompat folder.
+        // When it is there, Steam is not restored and none of those shared parts are touched.
+        let shared = targets.contains { !SteamBundle.otherInjection(in: $0).isEmpty }
+            || !SteamBundle.foreignInserts(at: innerPlist).isEmpty
 
         for target in targets {
             do {
@@ -98,6 +105,14 @@ enum Uninstall {
                     }
                     continue
                 case .modified: break
+                }
+                if shared {
+                    let own = try detachOwn(from: target) { try stop(target) { report(.stoppingClient) } }
+                    stopped = own.stopped || stopped
+                    checkedClient = checkedClient || own.stopped
+                    detached = own.detached || detached
+                    if tracked.contains(target) { try modifications.forget(target) }
+                    continue
                 }
                 try modifications.mark(target)
                 stopped = try stop(target) { report(.stoppingClient) } || stopped
@@ -137,12 +152,12 @@ enum Uninstall {
             stopped = try stop(app) { report(.stoppingClient) }
         }
         _ = try SteamRepair.clearInsert(at: innerPlist)
-        _ = try UpdateBlock.remove(from: updateBlocks)
+        if !shared { _ = try UpdateBlock.remove(from: updateBlocks) }
         report(.removing)
         var removed = try remove(
-            legacyCompat: legacyCompat, compatTools: compatTools, directories: directories
+            legacyCompat: shared ? nil : legacyCompat, compatTools: compatTools, directories: directories
         )
-        removed += try removeSteamDLLLinks(to: legacyCompat, in: libraries)
+        if !shared { removed += try removeSteamDLLLinks(to: legacyCompat, in: libraries) }
         let templateFailures = RunnerInstaller.removePrefixTemplates(
             keeping: [], libraries: libraries, removingFolder: true)
         if !templateFailures.isEmpty {
@@ -155,7 +170,8 @@ enum Uninstall {
             steamInstalled: steamInstalled,
             restoredValveSignature: restored,
             removed: removed,
-            unreachableSteam: missing
+            unreachableSteam: missing,
+            leftSteamForOtherTool: shared
         )
     }
 
@@ -190,11 +206,30 @@ enum Uninstall {
         return true
     }
 
-    static func remove(legacyCompat: URL, compatTools: [URL], directories: [URL]) throws -> [String] {
+    // Takes Cartouche's dylib and insert entry out of a Steam that another tool also injects,
+    // leaving that tool's dylib, insert entry and controller key in place.
+    static func detachOwn(from app: URL, stop: () throws -> Bool) throws -> (stopped: Bool, detached: Bool) {
+        let files = FileManager.default
+        let plist = app.appending(path: "Contents/Info.plist")
+        let dylib = app.appending(path: "Contents/MacOS/\(SupportPaths.dylibName)")
+        let ownInsert = (SteamBundle.currentInsert(at: plist) ?? "").split(separator: ":")
+            .contains { URL(filePath: String($0)).lastPathComponent == SupportPaths.dylibName }
+        let ownDylib = files.fileExists(atPath: dylib.path(percentEncoded: false))
+        guard ownInsert || ownDylib else { return (false, false) }
+
+        let stopped = try stop()
+        _ = try SteamRepair.clearInsert(at: plist)
+        if ownDylib { try WriteRefused.catching(dylib) { try files.removeItem(at: dylib) } }
+        try SteamInstaller.adHocSign(app.appending(path: "Contents/MacOS/steam_osx"), step: step)
+        try SteamInstaller.adHocSign(app, step: step)
+        return (stopped, true)
+    }
+
+    static func remove(legacyCompat: URL?, compatTools: [URL], directories: [URL]) throws -> [String] {
         let files = FileManager.default
         var removed: [String] = []
 
-        for target in [legacyCompat] + compatTools + directories {
+        for target in [legacyCompat].compactMap({ $0 }) + compatTools + directories {
             let path = target.path(percentEncoded: false)
             guard files.fileExists(atPath: path) else { continue }
             try WriteRefused.catching(path) { try files.removeItem(at: target) }

@@ -122,7 +122,7 @@ enum CompatToolList {
             for: builds, legacy: holder, fexAvailable: fexAvailable, keeping: kept))
     }
 
-    // 1.0.x used the single 'notproton' tool name and wrote no tool list, so the
+    // 1.0.x used the single 'cartouche-proton' tool name and wrote no tool list, so the
     // runners/current symlink is the record of which version of CrossOver was deployed.
     static func legacyHolder(
         builds: [RunnerBuild], listed: String?, runners: URL = SupportPaths.runners
@@ -181,7 +181,7 @@ enum CompatToolList {
     // Old run scripts read runners/current and bridge/wine/<arch>. Steam keeps running them
     // until it restarts, so those paths have to keep working until then.
     static func legacyLayoutInUse(compatTools: URL = SupportPaths.Steam.compatTools) -> Bool {
-        SupportPaths.Steam.notprotonTools(in: compatTools).contains { tool in
+        SupportPaths.Steam.cartoucheTools(in: compatTools).contains { tool in
             let run = try? String(contentsOf: tool.appending(path: "run"), encoding: .utf8)
             return run?.contains("/runners/current") == true
         }

@@ -30,16 +30,17 @@ struct PrefixToolsTests {
     @Test("Log paths match where compat_run.sh writes them")
     func logPathsMatchRunScript() throws {
         let source = try Self.compatSource()
-        #expect(source.contains(#"log="$STEAM_COMPAT_DATA_PATH/notproton-run.log""#))
-        #expect(source.contains(#"loader_root="$HOME/Library/Application Support/notproton/launchers/$app_id""#))
-        #expect(source.contains(#"wine_log="$loader_root/notproton-wine.log""#))
+        #expect(source.contains(#"log="$STEAM_COMPAT_DATA_PATH/cartouche-run.log""#))
+        #expect(source.contains(#"np_support="$HOME/Library/Application Support/Cartouche""#))
+        #expect(source.contains(#"loader_root="$np_support/launchers/$app_id""#))
+        #expect(source.contains(#"wine_log="$loader_root/cartouche-wine.log""#))
 
         let prefix = samplePrefix()
         let launchers = URL(filePath: "/tmp/launchers")
-        #expect(PrefixLog.launch.url(for: prefix, launchers: launchers) == prefix.root.appending(path: "notproton-run.log"))
+        #expect(PrefixLog.launch.url(for: prefix, launchers: launchers) == prefix.root.appending(path: "cartouche-run.log"))
         #expect(PrefixLog.wine.url(for: prefix, launchers: launchers).path(percentEncoded: false)
-            == "/tmp/launchers/1574480/notproton-wine.log")
-        #expect(SupportPaths.launchers.path(percentEncoded: false).hasSuffix("Application Support/notproton/launchers"))
+            == "/tmp/launchers/1574480/cartouche-wine.log")
+        #expect(SupportPaths.launchers.path(percentEncoded: false).hasSuffix("Application Support/Cartouche/launchers"))
     }
 
     @Test("The runner variables are the ones RUN_SCRIPT exports")
@@ -68,7 +69,7 @@ struct PrefixToolsTests {
             ("x86_64-unix", "wine", "wineserver-x86"),
         ] {
             let runner = URL(filePath: NSTemporaryDirectory())
-                .appending(path: "notproton-layout-\(UUID().uuidString)")
+                .appending(path: "cartouche-layout-\(UUID().uuidString)")
             defer { try? fm.removeItem(at: runner) }
 
             for path in ["lib/wine/\(arch)/\(loaderTail)", "bin/\(serverName)"] {
@@ -137,7 +138,7 @@ struct PrefixToolsTests {
 
         #expect(PrefixTools.syncBackend(prefix: prefix) == "0")
 
-        let marker = prefix.root.appending(path: "notproton-msync")
+        let marker = prefix.root.appending(path: "cartouche-msync")
         for (recorded, expected) in [("1", "1"), ("0", "0"), ("1\n", "1"), ("", "0"), ("yes", "0")] {
             try recorded.write(to: marker, atomically: true, encoding: .utf8)
             #expect(
@@ -444,7 +445,7 @@ struct PrefixToolsTests {
         try Data("stale system".utf8).write(to: pfx.appending(path: "system.reg"))
         try fm.createSymbolicLink(
             at: pfx.appending(path: "drive_c/users/crossover/Documents"), withDestinationURL: home)
-        try Data("0".utf8).write(to: library.compatdata.appending(path: "1574480/notproton-msync"))
+        try Data("0".utf8).write(to: library.compatdata.appending(path: "1574480/cartouche-msync"))
         return try #require(PrefixStore.all(libraries: [library]).first)
     }
 
@@ -456,7 +457,7 @@ struct PrefixToolsTests {
         let home = dir.appending(path: "home")
         try fm.createDirectory(at: home, withIntermediateDirectories: true)
         let prefix = try usedPrefix(in: dir, home: home)
-        let lock = prefix.root.appending(path: ".notproton-prefix.lock").path(percentEncoded: false)
+        let lock = prefix.root.appending(path: ".cartouche-prefix.lock").path(percentEncoded: false)
         let launched = dir.appending(path: "launched")
         let runner = try fakeRunner(
             in: dir, home: home,
@@ -510,7 +511,7 @@ struct PrefixToolsTests {
 
         #expect(!fm.fileExists(
             atPath: prefix.root.appending(path: "pfx.rebuild").path(percentEncoded: false)))
-        #expect(fm.fileExists(atPath: prefix.root.appending(path: "notproton-msync").path(percentEncoded: false)))
+        #expect(fm.fileExists(atPath: prefix.root.appending(path: "cartouche-msync").path(percentEncoded: false)))
 
         let kept = try #require(PrefixStore.backups(of: prefix).first)
         #expect(PrefixStore.backups(of: prefix).count == 1)
@@ -1112,7 +1113,7 @@ struct PrefixToolsTests {
         let entry = library.compatdata.appending(path: "1574480")
         try FileManager.default.createDirectory(
             at: entry.appending(path: "pfx/drive_c"), withIntermediateDirectories: true)
-        try Data("log".utf8).write(to: entry.appending(path: "notproton-run.log"))
+        try Data("log".utf8).write(to: entry.appending(path: "cartouche-run.log"))
 
         let prefix = try #require(PrefixStore.all(libraries: [library]).first)
         try PrefixTools.delete(prefix)
@@ -1550,13 +1551,13 @@ struct PrefixLastBuildTests {
             to: prefix.root.appending(path: PrefixTools.buildRecordName), atomically: true, encoding: .utf8)
 
         let fexOnly = [InstalledTool(
-            tool: CompatTool(name: "notproton", flavor: .fex, display: "CrossOver Preview (FEX)"),
+            tool: CompatTool(name: "cartouche-proton", flavor: .fex, display: "CrossOver Preview (FEX)"),
             build: Self.preview)]
         #expect(PrefixTools.tool(for: prefix, among: fexOnly, runners: runners) == nil)
 
         let fex = try #require(SupportedRunners.all.first { $0.id == Self.preview })
         let both = SupportedRunners.tools(for: [fex])
-        #expect(PrefixTools.tool(for: prefix, among: both, runners: runners)?.name == "notproton-fex-rosetta")
+        #expect(PrefixTools.tool(for: prefix, among: both, runners: runners)?.name == "cartouche-proton-fex-rosetta")
     }
 
     @Test("A prefix another CrossOver updated gets no tool, so nothing runs over it")

@@ -1,6 +1,6 @@
 // Pointer validation helpers
-#ifndef NOTPROTON_UTIL_PTR_H
-#define NOTPROTON_UTIL_PTR_H
+#ifndef CARTOUCHE_UTIL_PTR_H
+#define CARTOUCHE_UTIL_PTR_H
 
 #include <stdint.h>
 
@@ -16,4 +16,4 @@ static inline int np_plausible_ptr(uint64_t v) {
     return 1;
 }
 
-#endif // NOTPROTON_UTIL_PTR_H
+#endif // CARTOUCHE_UTIL_PTR_H

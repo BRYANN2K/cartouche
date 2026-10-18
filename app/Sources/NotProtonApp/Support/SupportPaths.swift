@@ -1,11 +1,15 @@
-// Path construction for the NotProton support directory and Steam
+// Path construction for the Cartouche support directory and Steam
 
+import CartoucheIdentity
 import Foundation
 
 enum SupportPaths {
 
-    static let supportDirName = "notproton"
-    static let dylibName = "notproton.dylib"
+    // Shared with the dylib through cartouche_identity.h
+    static let supportDirName = CARTOUCHE_DIR_NAME
+    static let dylibName = CARTOUCHE_DYLIB_NAME
+    static let steamPrefix = CARTOUCHE_STEAM_PREFIX
+    static let toolPrefix = CARTOUCHE_TOOL_PREFIX
 
     static var home: URL {
         URL(filePath: NSHomeDirectory())
@@ -15,9 +19,14 @@ enum SupportPaths {
         home.appending(path: "Library/Application Support")
     }
 
-    // ~/Library/Application Support/notproton
+    // ~/Library/Application Support/Cartouche
     static var support: URL {
         applicationSupport.appending(path: supportDirName)
+    }
+
+    // ~/Library/Logs/Cartouche
+    static var logs: URL {
+        home.appending(path: "Library/Logs/\(supportDirName)")
     }
 
     static var bridge: URL { support.appending(path: "bridge") }
@@ -67,7 +76,7 @@ enum SupportPaths {
         library.compatdata.appending(path: prefixTemplateFolder).appending(path: "crossover-\(build)-\(flavor.unixDir)")
     }
 
-    static let prefixTemplateFolder = "notproton-template"
+    static let prefixTemplateFolder = "\(steamPrefix)-template"
     static let bridgeCacheFolder = "bridge"
 
     enum Steam {
@@ -108,11 +117,11 @@ enum SupportPaths {
 
         static var compatTools: URL { userData.appending(path: "compatibilitytools.d") }
 
-        static func notprotonTools(in directory: URL = compatTools) -> [URL] {
+        static func cartoucheTools(in directory: URL = compatTools) -> [URL] {
             let entries = (try? FileManager.default.contentsOfDirectory(
                 at: directory, includingPropertiesForKeys: nil
             )) ?? []
-            return entries.filter { $0.lastPathComponent.hasPrefix("notproton") }
+            return entries.filter { $0.lastPathComponent.hasPrefix(SupportPaths.toolPrefix) }
         }
 
         static var libraryFoldersVDF: URL { userData.appending(path: "steamapps/libraryfolders.vdf") }

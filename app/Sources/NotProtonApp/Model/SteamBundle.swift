@@ -1,5 +1,6 @@
 // Steam app bundle patching component
 
+import CartoucheIdentity
 import Foundation
 
 enum SteamDeployment: Sendable, Equatable {
@@ -18,7 +19,7 @@ enum SteamBundle {
     static let controllerBlockKey = "SDL_JOYSTICK_BLACKLIST_DEVICES"
     static let controllerBlockValue = "0x05ac/0x0004"
 
-    static let plistBackupName = "Info.plist.before-notproton"
+    static let plistBackupName = "Info.plist.before-cartouche"
     static let environmentKey = "LSEnvironment"
 
     static var isPresent: Bool {
@@ -55,6 +56,25 @@ enum SteamBundle {
         guard let deployed = deployedVersion(at: versionFile) else { return .installed(version: nil) }
         if deployed == bundledVersion { return .installed(version: deployed) }
         return .outdated(deployed: deployed, bundled: bundledVersion)
+    }
+
+    // The other injector named in cartouche_identity.h. Cartouche reports it and never removes it.
+    static let otherDylibName = CARTOUCHE_OTHER_DYLIB_NAME
+
+    // Insert entries that are not Cartouche's dylib
+    static func foreignInserts(at plist: URL) -> [String] {
+        (currentInsert(at: plist) ?? "").split(separator: ":").map(String.init)
+            .filter { URL(filePath: $0).lastPathComponent != SupportPaths.dylibName }
+    }
+
+    // Another tool's insert entries in this bundle, and the other injector's dylib even when nothing loads it
+    static func otherInjection(in app: URL) -> [String] {
+        var found = foreignInserts(at: SupportPaths.Steam.infoPlist(inBundle: app))
+        let other = app.appending(path: "Contents/MacOS/\(otherDylibName)").path(percentEncoded: false)
+        if FileManager.default.fileExists(atPath: other), !found.contains(other) {
+            found.append(other)
+        }
+        return found
     }
 
     static func currentInsert(at url: URL = SupportPaths.Steam.infoPlist) -> String? {

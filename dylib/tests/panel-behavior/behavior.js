@@ -85,13 +85,13 @@ for (const form of Object.keys(FORMS)) {
        'controller hiding is on unless the game says otherwise');
   written.length = 0;
   nodes('').find(x => x.props.label === 'Disable hidraw').props.onChange(true);
-  t.ok(last().trim() === 'NOTPROTON_DISABLE_HIDRAW=1 %command%', `hidraw (${last()})`);
+  t.ok(last().trim() === 'CARTOUCHE_DISABLE_HIDRAW=1 %command%', `hidraw (${last()})`);
   written.length = 0;
   raw('').props.onChange(true);
-  t.ok(last().trim() === 'NOTPROTON_RAW_CONTROLLERS=1 %command%', `the controller row writes its flag (${last()})`);
-  t.ok(raw('NOTPROTON_RAW_CONTROLLERS=1').props.checked === true, 'the controller row reads its flag');
+  t.ok(last().trim() === 'CARTOUCHE_RAW_CONTROLLERS=1 %command%', `the controller row writes its flag (${last()})`);
+  t.ok(raw('CARTOUCHE_RAW_CONTROLLERS=1').props.checked === true, 'the controller row reads its flag');
   written.length = 0;
-  raw('NOTPROTON_RAW_CONTROLLERS=1 WINEMSYNC=1').props.onChange(false);
+  raw('CARTOUCHE_RAW_CONTROLLERS=1 WINEMSYNC=1').props.onChange(false);
   t.ok(last().trim() === 'WINEMSYNC=1 %command%', `turning the controller row off removes its flag (${last()})`);
   const css = nodes('').filter(x => x.type === 'style');
   t.ok(css.length === 1 && css[0].props.children.includes('.MSCXPanel .MSCXRow{'),

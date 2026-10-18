@@ -15,7 +15,7 @@ struct CleanTests {
         defer { try? FileManager.default.removeItem(at: dir) }
 
         let live = dir.appending(path: "ntdll.dll")
-        let backup = dir.appending(path: "ntdll.dll.notproton-orig")
+        let backup = dir.appending(path: "ntdll.dll.cartouche-orig")
         try Data([1]).write(to: live)
         try Data([2]).write(to: backup)
 
@@ -39,13 +39,13 @@ struct CleanTests {
         defer { try? FileManager.default.removeItem(at: dir) }
 
         let live = dir.appending(path: "ntdll.dll")
-        let backup = dir.appending(path: "ntdll.dll.notproton-orig")
+        let backup = dir.appending(path: "ntdll.dll.cartouche-orig")
         try Data([1]).write(to: live)
         try Data([2]).write(to: backup)
 
-        // A rule built on deletingPathExtension would look for ntdll.notproton-orig
+        // A rule built on deletingPathExtension would look for ntdll.cartouche-orig
         // and silently fall through to the patched file.
-        #expect(Clean.copy(of: live).lastPathComponent == "ntdll.dll.notproton-orig")
+        #expect(Clean.copy(of: live).lastPathComponent == "ntdll.dll.cartouche-orig")
     }
 }
 
@@ -74,7 +74,7 @@ struct PatchInputTests {
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         try live.write(to: dir.appending(path: "ntdll.dll"))
         if let backup {
-            try backup.write(to: dir.appending(path: "ntdll.dll.notproton-orig"))
+            try backup.write(to: dir.appending(path: "ntdll.dll.cartouche-orig"))
         }
         return root
     }

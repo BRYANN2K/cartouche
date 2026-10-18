@@ -1,5 +1,6 @@
 // File/Path Helpers.
 #include "file.h"
+#include "cartouche_identity.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,10 +57,17 @@ const char *np_home_dir(void) {
     return NULL;
 }
 
-void np_support_path(char *buf, size_t bufsz, const char *home, const char *rel) {
-    static const char base[] = "/Library/Application Support/notproton";
+static void np_home_path(char *buf, size_t bufsz, const char *home, const char *base, const char *rel) {
     if (rel && rel[0])
-        snprintf(buf, bufsz, "%s%s/%s", home, base, rel);
+        snprintf(buf, bufsz, "%s/%s/%s", home, base, rel);
     else
-        snprintf(buf, bufsz, "%s%s", home, base);
+        snprintf(buf, bufsz, "%s/%s", home, base);
+}
+
+void np_support_path(char *buf, size_t bufsz, const char *home, const char *rel) {
+    np_home_path(buf, bufsz, home, CARTOUCHE_SUPPORT_DIR, rel);
+}
+
+void np_logs_path(char *buf, size_t bufsz, const char *home, const char *rel) {
+    np_home_path(buf, bufsz, home, CARTOUCHE_LOGS_DIR, rel);
 }

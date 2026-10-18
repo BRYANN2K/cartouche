@@ -56,7 +56,7 @@ int np_log_first_hit(const void *anchor, unsigned long tag) {
 }
 
 static void log_open(int may_rotate) {
-    const char *want = getenv("NOTPROTON_LOG_LEVEL");
+    const char *want = getenv("CARTOUCHE_LOG_LEVEL");
     if (want && want[0]) {
         int parsed = atoi(want);
         if (parsed >= NP_LVL_ERR && parsed <= NP_LVL_DBG)
@@ -72,9 +72,9 @@ static void log_open(int may_rotate) {
 
     char folder[512];
     char logpath[512];
-    np_support_path(folder, sizeof(folder), home, NULL);
+    np_logs_path(folder, sizeof(folder), home, NULL);
     mkdir(folder, 0755);
-    snprintf(logpath, sizeof(logpath), "%s/notproton.log", folder);
+    snprintf(logpath, sizeof(logpath), "%s/dylib.log", folder);
 
     struct stat info;
     int oversize = (may_rotate && stat(logpath, &info) == 0

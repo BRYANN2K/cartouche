@@ -2,7 +2,7 @@ import Foundation
 
 enum Clean {
 
-    static let backupSuffix = "notproton-orig"
+    static let backupSuffix = "cartouche-orig"
 
     static func copy(of file: URL) -> URL {
         let backup = file.appendingPathExtension(backupSuffix)

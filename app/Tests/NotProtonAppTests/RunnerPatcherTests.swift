@@ -15,7 +15,7 @@ struct RunnerPatcherTests {
         let live = SupportPaths.clonedRoot(forBuild: build.id)
 
         let scratch = URL(filePath: NSTemporaryDirectory())
-            .appending(path: "notproton-runner-\(UUID().uuidString)")
+            .appending(path: "cartouche-runner-\(UUID().uuidString)")
         let copied = try Shell.run("/bin/cp", [
             "-c", "-R", live.path(percentEncoded: false), scratch.path(percentEncoded: false),
         ])
@@ -145,7 +145,7 @@ struct RunnerPatcherTests {
     @Test("Loader discovery finds both the bare and the bundled layout")
     func loaderDiscoveryCoversBothLayouts() throws {
         let fm = FileManager.default
-        let root = URL(filePath: NSTemporaryDirectory()).appending(path: "notproton-loaders-\(UUID().uuidString)")
+        let root = URL(filePath: NSTemporaryDirectory()).appending(path: "cartouche-loaders-\(UUID().uuidString)")
         defer { try? fm.removeItem(at: root) }
 
         let bundled = root.appending(path: "lib/wine/aarch64-unix/wine.app/Contents/MacOS/wine")
@@ -171,7 +171,7 @@ struct RunnerPatcherTests {
     @Test("The unix builtin follows the loader RUN_SCRIPT picks")
     func unixBuiltinFollowsTheLoader() throws {
         let fm = FileManager.default
-        let root = URL(filePath: NSTemporaryDirectory()).appending(path: "notproton-unixarch-\(UUID().uuidString)")
+        let root = URL(filePath: NSTemporaryDirectory()).appending(path: "cartouche-unixarch-\(UUID().uuidString)")
         defer { try? fm.removeItem(at: root) }
 
         func write(_ path: String) throws {

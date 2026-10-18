@@ -12,7 +12,7 @@ struct TemplateCleanupTests {
         var library: SteamLibrary { SteamLibrary(root: root.appending(path: "library")) }
         var folder: URL { library.compatdata.appending(path: SupportPaths.prefixTemplateFolder) }
         var template: URL { SupportPaths.prefixTemplates(forBuild: "26.3.0.39832", in: library)[0] }
-        var lock: URL { library.compatdata.appending(path: ".notproton-template.lock") }
+        var lock: URL { library.compatdata.appending(path: ".cartouche-template.lock") }
 
         init() throws {
             root = try scratchDirectory("template-cleanup")

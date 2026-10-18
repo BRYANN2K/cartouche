@@ -253,7 +253,7 @@ struct PrefixStoreTests {
         defer { try? FileManager.default.removeItem(at: dir) }
         let prefix = try prefix(in: dir)
         let root = dir.appending(path: "sockets")
-        let lock = prefix.root.appending(path: ".notproton-prefix.lock")
+        let lock = prefix.root.appending(path: ".cartouche-prefix.lock")
         #expect(!PrefixStore.isInUse(prefix, root: root))
         #expect(!FileManager.default.fileExists(atPath: lock.path))
         let fd = open(lock.path, O_RDWR | O_CREAT | O_NOFOLLOW | O_CLOEXEC, 0o600)
@@ -295,7 +295,7 @@ struct PrefixStoreTests {
         let outside = dir.appending(path: "outside")
         try Data("keep".utf8).write(to: outside)
         try FileManager.default.createSymbolicLink(
-            at: prefix.root.appending(path: ".notproton-prefix.lock"), withDestinationURL: outside)
+            at: prefix.root.appending(path: ".cartouche-prefix.lock"), withDestinationURL: outside)
 
         #expect(PrefixStore.isInUse(prefix, root: dir.appending(path: "sockets")))
         #expect(try String(contentsOf: outside, encoding: .utf8) == "keep")
@@ -309,7 +309,7 @@ struct PrefixStoreTests {
         let fm = FileManager.default
 
         let entry = library.compatdata.appending(path: "1574480")
-        for folder in ["pfx", "pfx.rebuild", "notproton-msync",
+        for folder in ["pfx", "pfx.rebuild", "cartouche-msync",
                        "pfx.previous-20260101-120000", "pfx.previous-20260102-133000"] {
             try fm.createDirectory(
                 at: entry.appending(path: folder), withIntermediateDirectories: true)

@@ -21,7 +21,7 @@ function grab(src, re, what) {
 const english = () => { globalThis.document = { documentElement: { lang: 'en' } }; };
 
 function filter(src) {
-  const head = grab(src, /case"notprotonWindows":return\(0,([\w$]+)\.Pr\)\(\)&&\(window\.__NOTPROTON_NATIVE_PLATFORM__\.windows\.has\(([\w$]+)\.appid\)/,
+  const head = grab(src, /case"cartoucheWindows":return\(0,([\w$]+)\.Pr\)\(\)&&\(window\.__CARTOUCHE_NATIVE_PLATFORM__\.windows\.has\(([\w$]+)\.appid\)/,
                     'filter fix');
   const apple = grab(src.slice(head.index), /;case ([\w$]+)\.([\w$]+):return /, 'Apple case');
   const end = src.indexOf('.is_invalid_os_type;', head.index + apple.index + apple[0].length);
@@ -51,7 +51,7 @@ function check(file, name, t) {
     ({ appid, is_available_on_current_platform: available, is_invalid_os_type: false,
        most_available_per_client_data: { is_invalid_os_type: old } });
   const apple = (a, os = mac) => run('Apple', win, os, a);
-  const wonly = (a, os = mac) => run('notprotonWindows', win, os, a);
+  const wonly = (a, os = mac) => run('cartoucheWindows', win, os, a);
 
   t(apple(app(1)) && !wonly(app(1)), 'a Mac game is under Apple only');
   t(!apple(app(2)) && wonly(app(2)), 'a Windows game is under Windows only');
@@ -98,7 +98,7 @@ function check(file, name, t) {
   t(registered.join() === '10,11', 'each shortcut asked for its details once');
   delete win.appDetailsStore;
 
-  if (!src.includes('SelectCollectionsAppFilterOption("notprotonWindows"')) return;
+  if (!src.includes('SelectCollectionsAppFilterOption("cartoucheWindows"')) return;
 
   grab(src, /filterGroups:\[([\w$]+)\(!0,([\w$]+)&&\2\.filterGroups\[0\]\),\1\(!1,\2&&\2\.filterGroups\[1\]\)/,
        "Steam's default intersection for the state group");
@@ -111,7 +111,7 @@ function check(file, name, t) {
     const test = (options, windowsOn, a, union = false) => {
       const state = [{ rgOptions: [], bAcceptUnion: true }, { rgOptions: options, bAcceptUnion: union }];
       const before = JSON.stringify(state);
-      const result = evaluate.call({ m_filterSpec: { notprotonWindows: windowsOn } }, matches, state,
+      const result = evaluate.call({ m_filterSpec: { cartoucheWindows: windowsOn } }, matches, state,
         { W6: 1, Pu: 'Apple' }, a => key => key === 'installed' ? !!a.installed : run(key, win, mac, a), a);
       t(JSON.stringify(state) === before, 'matching leaves the saved filter unchanged');
       return result;
@@ -130,27 +130,27 @@ function check(file, name, t) {
     t(test(['installed'], true, { ...app(1), installed: true }, true), 'other union options still admit games');
   }
 
-  const saved = grab(src, /notprotonWindows:(!!([\w$]+)\?\.notprotonWindows),/, 'saved flag');
+  const saved = grab(src, /cartoucheWindows:(!!([\w$]+)\?\.cartoucheWindows),/, 'saved flag');
   const restore = new Function(saved[2], `return ${saved[1]}`);
-  t(restore(undefined) === false && restore({}) === false && restore({ notprotonWindows: true }) === true,
+  t(restore(undefined) === false && restore({}) === false && restore({ cartoucheWindows: true }) === true,
     'a saved filter brings the Windows button back');
 
-  const select = grab(src, /SelectOption\(([\w$]+),([\w$]+),([\w$]+)\)\{(if\(\1==="notprotonWindows"\)\{this\.m_filterSpec\.notprotonWindows=!!\3;return\})/,
+  const select = grab(src, /SelectOption\(([\w$]+),([\w$]+),([\w$]+)\)\{(if\(\1==="cartoucheWindows"\)\{this\.m_filterSpec\.cartoucheWindows=!!\3;return\})/,
                       'option setter');
   const set = new Function(select[1], select[2], select[3], `${select[4]}return"steam"`);
-  const self = { m_filterSpec: { notprotonWindows: false } };
-  const r1 = set.call(self, 'notprotonWindows', null, true);
-  const was = self.m_filterSpec.notprotonWindows;
-  set.call(self, 'notprotonWindows', null, false);
-  t(r1 === undefined && was === true && self.m_filterSpec.notprotonWindows === false &&
+  const self = { m_filterSpec: { cartoucheWindows: false } };
+  const r1 = set.call(self, 'cartoucheWindows', null, true);
+  const was = self.m_filterSpec.cartoucheWindows;
+  set.call(self, 'cartoucheWindows', null, false);
+  t(r1 === undefined && was === true && self.m_filterSpec.cartoucheWindows === false &&
     set.call(self, 0, 'Apple', true) === 'steam', 'the Windows option toggles the flag and nothing else');
 
-  t(/Reset\(\)\{this\.m_filterSpec\.notprotonWindows=!1,/.test(src), 'Reset turns the Windows button off');
-  t(/get bIsEmpty\(\)\{return!this\.m_filterSpec\.notprotonWindows&&/.test(src),
+  t(/Reset\(\)\{this\.m_filterSpec\.cartoucheWindows=!1,/.test(src), 'Reset turns the Windows button off');
+  t(/get bIsEmpty\(\)\{return!this\.m_filterSpec\.cartoucheWindows&&/.test(src),
     'a filter with only Windows on does not count as empty');
 
   english();
-  const summary = grab(src, /if\(([\w$]+)==="notprotonWindows"\)return (.*?);if\(\1==/, 'summary');
+  const summary = grab(src, /if\(([\w$]+)==="cartoucheWindows"\)return (.*?);if\(\1==/, 'summary');
   t(new Function(`return ${summary[2]}`)() === 'Runs on Windows, no Mac OS version',
     'the filter summary names the Windows filter');
 
@@ -171,7 +171,7 @@ function check(file, name, t) {
   };
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   const lit = press({ active: true });
-  t(same(press().calls, [['notprotonWindows', null, true]]) && same(lit.calls, [['notprotonWindows', null, false]]),
+  t(same(press().calls, [['cartoucheWindows', null, true]]) && same(lit.calls, [['cartoucheWindows', null, false]]),
     'a click toggles the Windows button');
   t(lit.node.p.className === 'box on' && press().node.p.className === 'box' &&
     lit.node.p.children[1].type === 'Windows' && lit.node.p.nDelayShowMS === 240 &&

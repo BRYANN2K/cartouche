@@ -18,10 +18,12 @@ enum RemoveEverythingCommand {
                 output.say(phase.label)
             }
             output.say(
-                result.partialRemoval ?? (result.steamNeedsRedownload
-                    ? "NotProton has been removed. Steam could not be restored. "
+                result.partialRemoval ?? (result.leftSteamForOtherTool
+                    ? "Cartouche has been removed. Steam was left as it is, because another tool also uses it."
+                    : result.steamNeedsRedownload
+                    ? "Cartouche has been removed. Steam could not be restored. "
                         + "Reinstall Steam from steampowered.com before using it again."
-                    : "NotProton has been removed.")
+                    : "Cartouche has been removed.")
             )
             return result.partialRemoval == nil ? 0 : 1
         } catch {

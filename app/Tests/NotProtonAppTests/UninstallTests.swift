@@ -34,9 +34,9 @@ struct UninstallTests {
         let caches: URL
 
         var compatTools: [URL] {
-            SupportPaths.Steam.notprotonTools(in: compatTool.deletingLastPathComponent())
+            SupportPaths.Steam.cartoucheTools(in: compatTool.deletingLastPathComponent())
         }
-        var secondTool: URL { compatTool.deletingLastPathComponent().appending(path: "notproton-26.3") }
+        var secondTool: URL { compatTool.deletingLastPathComponent().appending(path: "cartouche-proton-26.3") }
         var foreignTool: URL { compatTool.deletingLastPathComponent().appending(path: "GE-Proton9-1") }
 
         var outerPlist: URL { app.appending(path: "Contents/Info.plist") }
@@ -54,13 +54,13 @@ struct UninstallTests {
         let macOS = app.appending(path: "Contents/MacOS")
         let inner = root.appending(path: "inner")
         let legacyCompat = inner.appending(path: "legacycompat")
-        let compatTool = root.appending(path: "compatibilitytools.d/notproton")
-        let support = root.appending(path: "notproton")
+        let compatTool = root.appending(path: "compatibilitytools.d/cartouche-proton")
+        let support = root.appending(path: "cartouche")
         let caches = root.appending(path: "valve-packages")
 
         let tools = compatTool.deletingLastPathComponent()
         for dir in [macOS, inner, legacyCompat, compatTool, support, caches,
-                    tools.appending(path: "notproton-26.3"), tools.appending(path: "GE-Proton9-1")] {
+                    tools.appending(path: "cartouche-proton-26.3"), tools.appending(path: "GE-Proton9-1")] {
             try files.createDirectory(at: dir, withIntermediateDirectories: true)
         }
 
@@ -455,7 +455,7 @@ struct UninstallTests {
 
         for template in templates { #expect(!FileManager.default.fileExists(atPath: template.path)) }
         #expect(try String(contentsOf: unrelated, encoding: .utf8) == "keep")
-        #expect(FileManager.default.fileExists(atPath: library.compatdata.appending(path: ".notproton-template.lock").path))
+        #expect(FileManager.default.fileExists(atPath: library.compatdata.appending(path: ".cartouche-template.lock").path))
     }
 
     @Test("Uninstall removes the Steam.dll links it made and leaves any other Steam.dll")

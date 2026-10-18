@@ -92,14 +92,14 @@ enum SupportedRunners {
 
     // First entry is what windows-only games get when Steam has no mapping.
     static let toolPreference = [
-        legacyToolName, "notproton-fex", "notproton-fex-rosetta", "notproton-preview",
-        "notproton-fex-41069", "notproton-fex-rosetta-41069", "notproton-preview-41069",
-        "notproton-fex-41073", "notproton-fex-rosetta-41073", "notproton-preview-41073", "notproton-26.3",
+        legacyToolName, "cartouche-proton-fex", "cartouche-proton-fex-rosetta", "cartouche-proton-preview",
+        "cartouche-proton-fex-41069", "cartouche-proton-fex-rosetta-41069", "cartouche-proton-preview-41069",
+        "cartouche-proton-fex-41073", "cartouche-proton-fex-rosetta-41073", "cartouche-proton-preview-41073", "cartouche-proton-26.3",
     ]
 
-    static let legacyToolName = "notproton"
+    static let legacyToolName = SupportPaths.toolPrefix
 
-    // The only builds that can own the 'notproton' tool name.
+    // The only builds that can own the bare 'cartouche-proton' tool name.
     static let legacyHolders = ["27.0.0.40921-fex", "27.0.0.40921", "27.0.0.41069-fex", "27.0.0.41069"]
 
     enum LegacyHolder: Equatable, Sendable {
@@ -147,7 +147,7 @@ enum SupportedRunners {
                 .i386Windows: "e641d7b2e81ee13877823494679ba2d87e0d61b8a87e8a1ce92b4fe73631ae74",
             ],
             tools: [
-                CompatTool(name: "notproton-26.3", flavor: .rosetta, display: "CrossOver 26.3"),
+                CompatTool(name: "cartouche-proton-26.3", flavor: .rosetta, display: "CrossOver 26.3"),
             ],
             rebuilds: [
                 // crossoverchina.com
@@ -178,7 +178,7 @@ enum SupportedRunners {
                 .i386Windows: "25bfde1f50ee96485763968ef10b9d9ad35e38214232f17ebdc009b098af44a0",
             ],
             tools: [
-                CompatTool(name: "notproton-preview", flavor: .rosetta, display: "CrossOver 2026 08 21-X86 - Rosetta"),
+                CompatTool(name: "cartouche-proton-preview", flavor: .rosetta, display: "CrossOver 2026 08 21-X86 - Rosetta"),
             ]
         ),
         RunnerBuild(
@@ -197,8 +197,8 @@ enum SupportedRunners {
                 .aarch64Windows: "f40810193a5ef2520774288f354a8604f5ba91828315f643b3ee6688b873dc3f",
             ],
             tools: [
-                CompatTool(name: "notproton-fex", flavor: .fex, display: "CrossOver 2026 08 21-ARM64 - FEX"),
-                CompatTool(name: "notproton-fex-rosetta", flavor: .rosetta, display: "CrossOver 2026 08 21-ARM64 - Rosetta"),
+                CompatTool(name: "cartouche-proton-fex", flavor: .fex, display: "CrossOver 2026 08 21-ARM64 - FEX"),
+                CompatTool(name: "cartouche-proton-fex-rosetta", flavor: .rosetta, display: "CrossOver 2026 08 21-ARM64 - Rosetta"),
             ]
         ),
         RunnerBuild(
@@ -215,7 +215,7 @@ enum SupportedRunners {
                 .i386Windows: "0d8e3ebb57b3173f675eef5e3a0950052c592efa10a7a10193b0beb811b55ea5",
             ],
             tools: [
-                CompatTool(name: "notproton-preview-41069", flavor: .rosetta, display: "CrossOver 2026 10 06-X86 - Rosetta"),
+                CompatTool(name: "cartouche-proton-preview-41069", flavor: .rosetta, display: "CrossOver 2026 10 06-X86 - Rosetta"),
             ]
         ),
         RunnerBuild(
@@ -234,8 +234,8 @@ enum SupportedRunners {
                 .aarch64Windows: "7623c0b33350f511b431d39c7ec0c0d4f5def4183acef0eee5d4a5c694898956",
             ],
             tools: [
-                CompatTool(name: "notproton-fex-41069", flavor: .fex, display: "CrossOver 2026 10 06-ARM64 - FEX"),
-                CompatTool(name: "notproton-fex-rosetta-41069", flavor: .rosetta, display: "CrossOver 2026 10 06-ARM64 - Rosetta"),
+                CompatTool(name: "cartouche-proton-fex-41069", flavor: .fex, display: "CrossOver 2026 10 06-ARM64 - FEX"),
+                CompatTool(name: "cartouche-proton-fex-rosetta-41069", flavor: .rosetta, display: "CrossOver 2026 10 06-ARM64 - Rosetta"),
             ]
         ),
         RunnerBuild(
@@ -252,7 +252,7 @@ enum SupportedRunners {
                 .i386Windows: "7d3df0ee9dd61693293ba74a8d2c588b4dce26fb7f7a78c0c5ed5bdc58869e14",
             ],
             tools: [
-                CompatTool(name: "notproton-preview-41073", flavor: .rosetta, display: "CrossOver 2026 10 15-X86 - Rosetta"),
+                CompatTool(name: "cartouche-proton-preview-41073", flavor: .rosetta, display: "CrossOver 2026 10 15-X86 - Rosetta"),
             ]
         ),
         RunnerBuild(
@@ -271,8 +271,8 @@ enum SupportedRunners {
                 .aarch64Windows: "2efb13f3303adc2c8ee61b93e027e4e94730a2e6b0162c7e6aebd4104200f07c",
             ],
             tools: [
-                CompatTool(name: "notproton-fex-41073", flavor: .fex, display: "CrossOver 2026 10 15-ARM64 - FEX"),
-                CompatTool(name: "notproton-fex-rosetta-41073", flavor: .rosetta, display: "CrossOver 2026 10 15-ARM64 - Rosetta"),
+                CompatTool(name: "cartouche-proton-fex-41073", flavor: .fex, display: "CrossOver 2026 10 15-ARM64 - FEX"),
+                CompatTool(name: "cartouche-proton-fex-rosetta-41073", flavor: .rosetta, display: "CrossOver 2026 10 15-ARM64 - Rosetta"),
             ]
         ),
     ]

@@ -743,7 +743,7 @@ struct PrefixesModelTests {
 
     // The prefix lock keeps this test out of Wine's real socket directory.
     private func hold(_ prefix: WinePrefix) throws -> () -> Void {
-        let lock = prefix.root.appending(path: ".notproton-prefix.lock")
+        let lock = prefix.root.appending(path: ".cartouche-prefix.lock")
         let fd = open(lock.path, O_RDWR | O_CREAT | O_NOFOLLOW | O_CLOEXEC, 0o600)
         try #require(fd >= 0)
         do {

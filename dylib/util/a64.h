@@ -1,6 +1,6 @@
 // arm64 instruction decoders
-#ifndef NOTPROTON_UTIL_A64_H
-#define NOTPROTON_UTIL_A64_H
+#ifndef CARTOUCHE_UTIL_A64_H
+#define CARTOUCHE_UTIL_A64_H
 
 #include <stdint.h>
 
@@ -43,4 +43,4 @@ static inline int a64_bl(uintptr_t pc, uint32_t w, uintptr_t *target) {
     return 1;
 }
 
-#endif // NOTPROTON_UTIL_A64_H
+#endif // CARTOUCHE_UTIL_A64_H

@@ -1,8 +1,15 @@
-NotProton licensing
+Cartouche licensing
 ===================
 
-NotProton has a complex licensing situation. The bulk of the project is licensed
-under GPLV3.
+Cartouche is a fork of NotProton (https://github.com/NotProtonNot/NotProton),
+created by NotProtonNot with the NotProton contributors. Most of the code in this
+repository comes from NotProton and keeps its authors' copyright and licenses.
+
+Cartouche is an independent project. It is not affiliated with NotProton, Valve, Apple or CodeWeavers.
+
+Cartouche, like NotProton, has a complex licensing situation. The bulk of the
+project is licensed under the GNU General Public License version 3 (GPL-3.0),
+see LICENSE.
 
 The parts that are modifications of Valve code are licensed under the license
 that Valve released them under.

@@ -33,7 +33,7 @@ static void wrong(const char *fmt, ...) {
 static void *rewrite_fallback(void *arg) {
     atomic_int *stop = arg;
     while (!atomic_load(stop))
-        np_webpatch_set_fallback_tool("notproton-fex");
+        np_webpatch_set_fallback_tool("cartouche-proton-fex");
     return NULL;
 }
 
@@ -42,7 +42,7 @@ static void check_fallback(void) {
         "return t?(0,i.jsx)(m.B,{feature:p.OK,label:(0,l.we)"
         "(\"#Settings_SteamPlay_DefaultTool\"),rgOptions:A,disabled:0==A.length,"
         "selectedOption:t,onChange:e=>g(e.data)}):null";
-    np_webpatch_set_fallback_tool("notproton-fex");
+    np_webpatch_set_fallback_tool("cartouche-proton-fex");
     atomic_int stop = 0;
     pthread_t writer;
     if (pthread_create(&writer, NULL, rewrite_fallback, &stop) != 0) {
@@ -56,8 +56,8 @@ static void check_fallback(void) {
         char *out = np_webpatch_transform((const uint8_t *)source, sizeof(source) - 1,
                                          &length, NULL);
         int ok = out && !memchr(out, '\0', length)
-            && strstr(out, "A.some(e=>e.data===\"notproton-fex\")")
-            && strstr(out, "selectedOption:t||\"notproton-fex\"");
+            && strstr(out, "A.some(e=>e.data===\"cartouche-proton-fex\")")
+            && strstr(out, "selectedOption:t||\"cartouche-proton-fex\"");
         free(out);
         if (!ok) {
             wrong("concurrent fallback writes changed a chunk's tool name");
@@ -70,9 +70,9 @@ static void check_fallback(void) {
 }
 
 static void check_fex_tools(void) {
-    np_webpatch_set_fex_tools((const char *[]){ "notproton-fex", "bad name", NULL, "",
-                                                "x\"y", "notproton-fex-41069" }, 6);
-    if (strcmp(g_fex_tools, "[\"notproton-fex\",\"notproton-fex-41069\"]") != 0)
+    np_webpatch_set_fex_tools((const char *[]){ "cartouche-proton-fex", "bad name", NULL, "",
+                                                "x\"y", "cartouche-proton-fex-41069" }, 6);
+    if (strcmp(g_fex_tools, "[\"cartouche-proton-fex\",\"cartouche-proton-fex-41069\"]") != 0)
         wrong("the FEX tool array is %s", g_fex_tools);
 
     np_webpatch_set_fex_tools(NULL, 0);
@@ -405,7 +405,7 @@ static void check_optional_drift(const np_ui_shape_t *S, size_t g, const uint8_t
 }
 
 static const char g_test_lists[] =
-    "window.__NOTPROTON_NATIVE_PLATFORM__={mac:new Set([1,4]),windows:new Set([2,4])};\n";
+    "window.__CARTOUCHE_NATIVE_PLATFORM__={mac:new Set([1,4]),windows:new Set([2,4])};\n";
 
 static char *library_transform(const char *src, size_t len, size_t *out_len) {
     int saved = np_log_level;
@@ -453,7 +453,7 @@ static void check_library(const char *path, const char *out_path, int literal_ve
     } else {
         if (strncmp(out, g_test_lists, sizeof(g_test_lists) - 1) != 0)
             wrong("%s does not start with the platform lists", path);
-        if (!strstr(out, "SelectCollectionsAppFilterOption(\"notprotonWindows\""))
+        if (!strstr(out, "SelectCollectionsAppFilterOption(\"cartoucheWindows\""))
             wrong("%s has no Windows button", path);
         for (size_t a = 0; a < NP_LIBRARY_ANCHORS; a++) {
             if (count_matches(out, out_len, library_anchor(a)->find))
@@ -473,7 +473,7 @@ static void check_library(const char *path, const char *out_path, int literal_ve
 
     g_platform_js = NULL;
     out = library_transform((const char *)buf, len, &out_len);
-    if (out && (strstr(out, "__NOTPROTON") || strstr(out, "notprotonWindows")))
+    if (out && (strstr(out, "__CARTOUCHE") || strstr(out, "cartoucheWindows")))
         wrong("%s got the Apple filter without platform lists", path);
     free(out);
 
@@ -491,7 +491,7 @@ static void check_library(const char *path, const char *out_path, int literal_ve
             i += used;
         }
         out = library_transform(copy, len, &out_len);
-        if (!out || strstr(out, "npWindows") || strstr(out, "m_filterSpec.notprotonWindows") ||
+        if (!out || strstr(out, "npWindows") || strstr(out, "m_filterSpec.cartoucheWindows") ||
             !strstr(out, ".mac.has("))
             wrong("drift in library anchor %zu of %s left a partial filter", g, path);
         free(out);
@@ -509,7 +509,7 @@ static void check_older_filter(const char *out_path) {
     size_t out_len = 0;
     char *out = library_transform(source, sizeof(source) - 1, &out_len);
     g_platform_js = NULL;
-    if (!out || !strstr(out, "case L.Pu:return (0,P.Pr)()&&window.__NOTPROTON_NATIVE_PLATFORM__.mac.has(e.appid)"))
+    if (!out || !strstr(out, "case L.Pu:return (0,P.Pr)()&&window.__CARTOUCHE_NATIVE_PLATFORM__.mac.has(e.appid)"))
         wrong("the older filter was not patched");
     else if (out_path && !write_file(out_path, out, out_len))
         wrong("cannot write %s", out_path);
@@ -536,8 +536,8 @@ int main(int argc, char **argv) {
         return g_wrong;
     }
 
-    np_webpatch_set_fallback_tool("notproton-fex");
-    np_webpatch_set_fex_tools((const char *[]){ "notproton-fex", "notproton-fex-41069" }, 2);
+    np_webpatch_set_fallback_tool("cartouche-proton-fex");
+    np_webpatch_set_fex_tools((const char *[]){ "cartouche-proton-fex", "cartouche-proton-fex-41069" }, 2);
 
     for (int i = 1; i < argc; i++) {
         size_t len = 0;

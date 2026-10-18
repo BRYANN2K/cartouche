@@ -364,7 +364,7 @@ struct NtdllPatcherTests {
     // a build's patches are checkable on a machine that could never run it.
     @Test("An input that is not the pinned build is refused before anything is written")
     func unpinnedInputRefused() throws {
-        let directory = URL(filePath: NSTemporaryDirectory()).appending(path: "notproton-patch-\(UUID().uuidString)")
+        let directory = URL(filePath: NSTemporaryDirectory()).appending(path: "cartouche-patch-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
 
@@ -387,7 +387,7 @@ struct NtdllPatcherTests {
 
     @Test("A missing input is refused by name")
     func missingInputRefused() throws {
-        let source = URL(filePath: NSTemporaryDirectory()).appending(path: "notproton-absent-\(UUID().uuidString)")
+        let source = URL(filePath: NSTemporaryDirectory()).appending(path: "cartouche-absent-\(UUID().uuidString)")
 
         var checked = 0
         for build in SupportedRunners.all {
@@ -429,7 +429,7 @@ struct NtdllPatcherTests {
     private static func expectStagingReproducesBridge(build: RunnerBuild, root: URL) throws {
         let fm = FileManager.default
 
-        let scratch = URL(filePath: NSTemporaryDirectory()).appending(path: "notproton-stage-\(UUID().uuidString)")
+        let scratch = URL(filePath: NSTemporaryDirectory()).appending(path: "cartouche-stage-\(UUID().uuidString)")
         defer { try? fm.removeItem(at: scratch) }
 
         try NtdllPatcher.stage(build: build, runnerRoot: root, bridge: scratch)
@@ -461,7 +461,7 @@ struct NtdllPatcherTests {
             guard let root = Self.cleanRunnerRoot(for: build) else { continue }
             let fm = FileManager.default
 
-            let scratch = URL(filePath: NSTemporaryDirectory()).appending(path: "notproton-stage-\(UUID().uuidString)")
+            let scratch = URL(filePath: NSTemporaryDirectory()).appending(path: "cartouche-stage-\(UUID().uuidString)")
             defer { try? fm.removeItem(at: scratch) }
 
             // One file per patch the build defines. A build pins the arches its loader can map,
@@ -476,7 +476,7 @@ struct NtdllPatcherTests {
 
     @Test("The clean source prefers the one time backup over a live file")
     func cleanSourcePrefersBackup() throws {
-        let root = URL(filePath: NSTemporaryDirectory()).appending(path: "notproton-root-\(UUID().uuidString)")
+        let root = URL(filePath: NSTemporaryDirectory()).appending(path: "cartouche-root-\(UUID().uuidString)")
         let directory = root.appending(path: "lib/wine/x86_64-windows")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }
@@ -485,7 +485,7 @@ struct NtdllPatcherTests {
         try Data([0x00]).write(to: live)
         #expect(NtdllPatcher.cleanSource(inRoot: root, arch: .x86_64Windows) == live)
 
-        let backup = directory.appending(path: "ntdll.dll.notproton-orig")
+        let backup = directory.appending(path: "ntdll.dll.cartouche-orig")
         try Data([0x00]).write(to: backup)
         #expect(NtdllPatcher.cleanSource(inRoot: root, arch: .x86_64Windows) == backup)
     }

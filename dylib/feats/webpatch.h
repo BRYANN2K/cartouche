@@ -1,6 +1,6 @@
 // Enables Steam Play in the UI/enables the Compatibility tab in game properties
-#ifndef NOTPROTON_FEATS_WEBPATCH_H
-#define NOTPROTON_FEATS_WEBPATCH_H
+#ifndef CARTOUCHE_FEATS_WEBPATCH_H
+#define CARTOUCHE_FEATS_WEBPATCH_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -29,4 +29,4 @@ void np_webpatch_set_fex_tools(const char *const *names, size_t count);
 char *np_webpatch_transform(const uint8_t *src, size_t src_len, size_t *out_len,
                             const char **out_shape);
 
-#endif // NOTPROTON_FEATS_WEBPATCH_H
+#endif // CARTOUCHE_FEATS_WEBPATCH_H

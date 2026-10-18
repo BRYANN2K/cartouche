@@ -10,7 +10,7 @@ here="$(cd "$(dirname "$0")" && pwd)"
 cd "$here"
 
 CX_ROOT="${CX_ROOT:-/Applications/CrossOver Preview.app/Contents/SharedSupport/CrossOver}"
-BRIDGE_DIR="${BRIDGE_DIR:-$HOME/Library/Application Support/notproton/bridge}"
+BRIDGE_DIR="${BRIDGE_DIR:-$HOME/Library/Application Support/Cartouche/bridge}"
 OUT="${OUT:-$here/build}"
 
 ROSETTA_CLEAN_X86_64=04c7200b6645decb7c2d1ba6b0195abc9af83257072558d11aa72cc067ac3377
@@ -65,7 +65,7 @@ command -v python3 >/dev/null || die "python3 not found"
 OBJCOPY=/opt/homebrew/opt/llvm/bin/llvm-objcopy
 
 flavor_of() {
-    for cand in "$CX_ROOT/lib/wine/aarch64-windows/ntdll.dll.notproton-orig" \
+    for cand in "$CX_ROOT/lib/wine/aarch64-windows/ntdll.dll.cartouche-orig" \
                 "$CX_ROOT/lib/wine/aarch64-windows/ntdll.dll"; do
         [ -f "$cand" ] || continue
         case "$(sha "$cand")" in
@@ -74,7 +74,7 @@ flavor_of() {
             "$FEX41073_CLEAN_AARCH64") echo fex-41073; return 0 ;;
         esac
     done
-    for cand in "$CX_ROOT/lib/wine/x86_64-windows/ntdll.dll.notproton-orig" \
+    for cand in "$CX_ROOT/lib/wine/x86_64-windows/ntdll.dll.cartouche-orig" \
                 "$CX_ROOT/lib/wine/x86_64-windows/ntdll.dll"; do
         [ -f "$cand" ] || continue
         case "$(sha "$cand")" in
@@ -118,7 +118,7 @@ echo "==> $FLAVOR flavor, reading $CX_ROOT/lib/wine"
 
 clean_for() {
     arch="$1"; want="$2"
-    for cand in "$CX_ROOT/lib/wine/$arch/ntdll.dll.notproton-orig" \
+    for cand in "$CX_ROOT/lib/wine/$arch/ntdll.dll.cartouche-orig" \
                 "$CX_ROOT/lib/wine/$arch/ntdll.dll"; do
         [ -f "$cand" ] || continue
         [ "$(sha "$cand")" = "$want" ] || continue
@@ -218,4 +218,4 @@ for arch in $ARCHES; do
     cp "$OUT/$arch/ntdll.dll" "$d/ntdll.dll"
     echo "==> installed $arch  $(sha "$d/ntdll.dll" | cut -c1-16)  $d/ntdll.dll"
 done
-echo "==> setting build $BUILD up in NotProton copies these into its runner clone"
+echo "==> setting build $BUILD up in Cartouche copies these into its runner clone"

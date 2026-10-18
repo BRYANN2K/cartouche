@@ -4,12 +4,18 @@ MIN_VER  := 15.0
 GLASS_SDK := 26.0
 AVAIL    := -Werror=unguarded-availability-new
 
+# cartouche_identity.h holds the names the app, the dylib and this file share
+IDENTITY_INC := app/Sources/CartoucheIdentity/include
+identity = $(shell sed -n 's/^\#define $(1) "\(.*\)"/\1/p' $(IDENTITY_INC)/cartouche_identity.h)
+DYLIB_NAME := $(call identity,CARTOUCHE_DYLIB_NAME)
+DYLIB_BASE := $(basename $(DYLIB_NAME))
+
 CFLAGS   := -arch $(ARCH) -mmacosx-version-min=$(MIN_VER) $(AVAIL) \
             -std=c17 -O2 -Wall -Wextra -Wno-unused-parameter \
             -fPIC -MMD -MP \
-            -Idylib -Ivendor -Ivendor/dobby/include
+            -Idylib -I$(IDENTITY_INC) -Ivendor -Ivendor/dobby/include
 LDFLAGS  := -arch $(ARCH) -mmacosx-version-min=$(MIN_VER) \
-            -dynamiclib -install_name @rpath/notproton.dylib
+            -dynamiclib -install_name @rpath/$(DYLIB_NAME)
 
 FRAMEWORKS := -framework CoreFoundation -framework CoreGraphics
 
@@ -52,15 +58,15 @@ SRCS := \
 
 OUT_DIR     := out
 TEST_CC     := $(CC) -arch $(ARCH) -mmacosx-version-min=$(MIN_VER) -std=c17 -g \
-	-Wall -Wextra -Wno-unused-parameter -Idylib
+	-Wall -Wextra -Wno-unused-parameter -Idylib -I$(IDENTITY_INC)
 
 GENERATED_DIR := $(OUT_DIR)/generated
 RUN_SCRIPT_H  := $(GENERATED_DIR)/compat_run.h
 CFLAGS += -I$(GENERATED_DIR)
 
-ARM64_DYLIB := $(OUT_DIR)/notproton.arm64.dylib
-X86_STUB    := $(OUT_DIR)/notproton.x86_64.dylib
-TARGET      := $(OUT_DIR)/notproton.dylib
+ARM64_DYLIB := $(OUT_DIR)/$(DYLIB_BASE).arm64.dylib
+X86_STUB    := $(OUT_DIR)/$(DYLIB_BASE).x86_64.dylib
+TARGET      := $(OUT_DIR)/$(DYLIB_NAME)
 
 OBJS := $(patsubst %.c,$(OUT_DIR)/%.o,$(SRCS))
 DEPS := $(OBJS:.o=.d)
@@ -209,7 +215,7 @@ CALLSCHECK_SRCS := dylib/tests/callscheck.c $(filter-out dylib/tests/anchorcheck
 $(CALLSCHECK): $(CALLSCHECK_SRCS)
 	@mkdir -p $(dir $@)
 	$(CC) -arch $(ARCH) -mmacosx-version-min=$(MIN_VER) -std=c17 -g -O1 \
-	  -Wall -Wextra -Wno-unused-parameter -Idylib -Ivendor \
+	  -Wall -Wextra -Wno-unused-parameter -Idylib -I$(IDENTITY_INC) -Ivendor \
 	  -fsanitize=address,undefined -fno-sanitize-recover=all \
 	  -o $@ $(CALLSCHECK_SRCS)
 
@@ -348,7 +354,7 @@ spawn-live: $(TARGET)
 		drv=$${spec%%:*}; rest=$${spec#*:}; kid=$${rest%%:*}; rest=$${rest#*:}; \
 		want=$${rest%%:*}; arg=$${rest#*:}; [ "$$arg" = "$$rest" ] && arg=""; \
 		got=$$(DYLD_INSERT_LIBRARIES=$$PWD/$(TARGET) "$$tmp/$$drv" "$$tmp/$$kid" $$arg 2>/dev/null \
-		       | grep -c "/notproton.dylib$$") || true; \
+		       | grep -c "/$(DYLIB_NAME)$$") || true; \
 		if [ "$$got" != "$$want" ]; then \
 			echo "$$drv $$arg -> $$kid: insert present $$got, wanted $$want"; fail=1; fi; \
 	done; \
@@ -397,7 +403,7 @@ $(ARM64_DYLIB): $(OBJS)
 $(X86_STUB): dylib/stub_x86_64.c
 	@mkdir -p $(dir $@)
 	$(CC) -arch x86_64 -mmacosx-version-min=$(MIN_VER) $(AVAIL) \
-		-dynamiclib -install_name @rpath/notproton.dylib \
+		-dynamiclib -install_name @rpath/$(DYLIB_NAME) \
 		-o $@ $<
 
 $(TARGET): $(ARM64_DYLIB) $(X86_STUB)
@@ -415,7 +421,7 @@ $(RUN_SCRIPT_H): dylib/feats/compat_run.sh dylib/embed_script.py
 
 $(OUT_DIR)/dylib/feats/compat.o: $(RUN_SCRIPT_H)
 
-SUPPORT_DIR        := $(HOME)/Library/Application Support/notproton
+SUPPORT_DIR        := $(HOME)/Library/Application Support/$(call identity,CARTOUCHE_DIR_NAME)
 OVERLAY_SHIM_SRC   := overlay-shim/overlay_shim.m
 OVERLAY_SHIM_ARM   := $(OUT_DIR)/overlay-shim.arm64.dylib
 OVERLAY_SHIM_X86   := $(OUT_DIR)/overlay-shim.x86_64.dylib
@@ -457,7 +463,7 @@ overlay-shim-tests: $(OVERLAY_SHIM)
 		for a in arm64 x86_64; do \
 			$(CC) -arch $$a $(OVERLAY_SHIM_TEST_FLAGS) -o $(OUT_DIR)/$$t.$$a \
 				$(OVERLAY_SHIM_TESTS)/$$t.m || exit 1; \
-			out=$$(NOTPROTON_OVERLAY_SHIM=$(OVERLAY_SHIM) $(OUT_DIR)/$$t.$$a 2>&1); rc=$$?; \
+			out=$$(CARTOUCHE_OVERLAY_SHIM=$(OVERLAY_SHIM) $(OUT_DIR)/$$t.$$a 2>&1); rc=$$?; \
 			case "$$rc" in \
 			0) ran=$$((ran+1)); echo "$$out" | sed "s/^/  $$t.$$a /" ;; \
 			3|126) skipped=$$((skipped+1)); \
@@ -520,9 +526,9 @@ dobby:
 		-G "Unix Makefiles"
 	$(MAKE) -C $(DOBBY_DIR) -j$(shell sysctl -n hw.ncpu)
 
-STEAM_APP    ?= $$(p=$$(defaults read com.notproton.NotProton steamAppPath 2>/dev/null); printf '%s' "$${p:-/Applications/Steam.app}")
-DEPLOY_DST    = $(STEAM_APP)/Contents/MacOS/notproton.dylib
-INSTALL_DST  := $(SUPPORT_DIR)/notproton.dylib
+STEAM_APP    ?= $$(p=$$(defaults read dev.bryann2k.cartouche steamAppPath 2>/dev/null); printf '%s' "$${p:-/Applications/Steam.app}")
+DEPLOY_DST    = $(STEAM_APP)/Contents/MacOS/$(DYLIB_NAME)
+INSTALL_DST  := $(SUPPORT_DIR)/$(DYLIB_NAME)
 
 dylib-install: $(TARGET)
 	$(call install_atomically,$(TARGET),$(INSTALL_DST))
@@ -533,7 +539,7 @@ sigdb-install:
 	cp -f signatures/macos.arm64/*.json "$(SUPPORT_DIR)/signatures/macos.arm64/"
 	@echo "==> Installed: $(SUPPORT_DIR)/signatures/macos.arm64"
 
-LAUNCHABLE_BUNDLES := $(HOME)/Desktop/NotProton.app /Applications/NotProton.app
+LAUNCHABLE_BUNDLES := $(HOME)/Desktop/Cartouche.app /Applications/Cartouche.app
 
 FONT_FILES := --include='*/' --include='*.ttf' --include='*.ttc' --exclude='*'
 
@@ -549,10 +555,10 @@ deploy: $(TARGET) dylib-install sigdb-install fonts-install helpers-install
 	$(call install_atomically,$(TARGET),$(DEPLOY_DST))
 	@echo "==> Deployed: $(DEPLOY_DST) (restart Steam to load)"
 	@for b in $(LAUNCHABLE_BUNDLES); do \
-		p=$$(find "$$b" -name notproton.dylib -type f 2>/dev/null | head -1); \
+		p=$$(find "$$b" -name $(DYLIB_NAME) -type f 2>/dev/null | head -1); \
 		[ -n "$$p" ] || continue; \
 		cmp -s "$$p" "$(DEPLOY_DST)" && continue; \
-		echo "==> warning: $$b carries a different notproton.dylib"; \
+		echo "==> warning: $$b carries a different $(DYLIB_NAME)"; \
 		echo "==> warning: launching it reverts this deploy, so rebuild it with 'make app'"; \
 	done
 
@@ -582,7 +588,7 @@ fonts:
 app-payload: $(TARGET) $(OVERLAY_SHIM) $(ICONMAKER) $(APPINFO)
 	@mkdir -p "$(APP_PAYLOAD)/signatures/macos.arm64"
 	@mkdir -p "$(APP_PAYLOAD)/bridge"
-	cp -f $(TARGET) "$(APP_PAYLOAD)/notproton.dylib"
+	cp -f $(TARGET) "$(APP_PAYLOAD)/$(DYLIB_NAME)"
 	cp -f $(OVERLAY_SHIM) "$(APP_PAYLOAD)/overlay-shim.dylib"
 	cp -f $(ICONMAKER) "$(APP_PAYLOAD)/iconmaker"
 	cp -f $(APPINFO) "$(APP_PAYLOAD)/appinfo"
@@ -602,32 +608,36 @@ app-payload: $(TARGET) $(OVERLAY_SHIM) $(ICONMAKER) $(APPINFO)
 	echo "$$stamp" > "$(APP_PAYLOAD)/build-time"
 	@echo "==> Staged app payload in $(APP_PAYLOAD)"
 
-APP_BUNDLE  := $(OUT_DIR)/NotProton.app
+APP_BUNDLE  := $(OUT_DIR)/Cartouche.app
 APP_BUNDLE_PAYLOAD := $(APP_BUNDLE)/Contents/Resources/NotProtonApp_NotProtonApp.bundle/Contents/Resources/payload
-APP_ZIP     := $(OUT_DIR)/NotProton.zip
-APP_VERSION := $(shell sed -n 's/^\#define NOTPROTON_VERSION "\(.*\)"/\1/p' dylib/version.h)
+APP_ZIP     := $(OUT_DIR)/Cartouche.zip
+APP_VERSION := $(shell sed -n 's/^\#define CARTOUCHE_VERSION "\(.*\)"/\1/p' dylib/version.h)
 
 APP_SIGN_ID ?= -
 
-ICONGEN  := $(OUT_DIR)/icongen
-ICON_DOC := $(OUT_DIR)/NotProton.icon
-ICON_DIR := $(OUT_DIR)/icon
-ICON_CAR := $(ICON_DIR)/Assets.car
+ICONGEN   := $(OUT_DIR)/make-icon
+ICON_SRC  := $(OUT_DIR)/icon-src
+ICON_DIR  := $(OUT_DIR)/icon
+ICON_CAR  := $(ICON_DIR)/Assets.car
+BRAND_DIR := mockup/brand
 
 icon: $(ICON_CAR)
 
-$(ICONGEN): helpers/icon.swift
+$(ICONGEN): tools/make-icon.swift
 	@mkdir -p $(OUT_DIR)
 	swiftc -O -o $@ $<
 	@echo "==> Built $@"
 
-$(ICON_CAR): $(ICONGEN)
-	rm -rf "$(ICON_DOC)" "$(ICON_DIR)"
-	$(ICONGEN) "$(ICON_DOC)"
+# Assets.car carries the Default and Dark icons and the menu bar glyph, the icns
+# is the same icon for Finder views that read CFBundleIconFile
+$(ICON_CAR): $(ICONGEN) $(wildcard $(BRAND_DIR)/*.svg)
+	rm -rf "$(ICON_SRC)" "$(ICON_DIR)"
+	$(ICONGEN) "$(BRAND_DIR)" "$(ICON_SRC)"
 	@mkdir -p "$(ICON_DIR)"
-	xcrun actool "$(ICON_DOC)" --compile "$(ICON_DIR)" --platform macosx \
-		--minimum-deployment-target 15.0 --app-icon NotProton \
+	xcrun actool "$(ICON_SRC)/Cartouche.icon" "$(ICON_SRC)/Glyphs.xcassets" --compile "$(ICON_DIR)" \
+		--platform macosx --minimum-deployment-target 15.0 --app-icon Cartouche \
 		--output-partial-info-plist "$(ICON_DIR)/partial.plist" >/dev/null
+	iconutil -c icns -o "$(ICON_DIR)/Cartouche.icns" "$(ICON_SRC)/Cartouche.iconset"
 	@echo "==> Built $@"
 
 app: app-payload $(ICON_CAR)
@@ -640,20 +650,20 @@ app: app-payload $(ICON_CAR)
 		"Set :CFBundleVersion $(APP_VERSION)" \
 		"$(APP_BUNDLE)/Contents/Info.plist"
 	cp "$$(swift build --package-path app -c release --show-bin-path)/NotProtonApp" \
-		"$(APP_BUNDLE)/Contents/MacOS/NotProtonApp"
+		"$(APP_BUNDLE)/Contents/MacOS/Cartouche"
 	@mkdir -p "$(APP_BUNDLE)/Contents/Frameworks"
 	ditto "$$(swift build --package-path app -c release --show-bin-path)/Sparkle.framework" \
 		"$(APP_BUNDLE)/Contents/Frameworks/Sparkle.framework"
 	install_name_tool -add_rpath @executable_path/../Frameworks \
-		"$(APP_BUNDLE)/Contents/MacOS/NotProtonApp"
+		"$(APP_BUNDLE)/Contents/MacOS/Cartouche"
 	xcrun vtool -set-build-version macos $(MIN_VER) "$$(xcrun --sdk macosx --show-sdk-version)" \
-		-replace -output "$(APP_BUNDLE)/Contents/MacOS/NotProtonApp" \
-		"$(APP_BUNDLE)/Contents/MacOS/NotProtonApp"
+		-replace -output "$(APP_BUNDLE)/Contents/MacOS/Cartouche" \
+		"$(APP_BUNDLE)/Contents/MacOS/Cartouche"
 	cp -R "$$(swift build --package-path app -c release --show-bin-path)/NotProtonApp_NotProtonApp.bundle" \
 		"$(APP_BUNDLE)/Contents/Resources/"
 	cp -R "$(APP_BUNDLE)/Contents/Resources/NotProtonApp_NotProtonApp.bundle/Contents/Resources/"*.lproj \
 		"$(APP_BUNDLE)/Contents/Resources/"
-	cp "$(ICON_DIR)/Assets.car" "$(ICON_DIR)/NotProton.icns" \
+	cp "$(ICON_DIR)/Assets.car" "$(ICON_DIR)/Cartouche.icns" \
 		"$(APP_BUNDLE)/Contents/Resources/"
 	@missing=$$(cd "$(APP_PAYLOAD)" && find . -type f ! -name '.DS_Store' | sed 's|^\./||' \
 		| while read -r rel; do \

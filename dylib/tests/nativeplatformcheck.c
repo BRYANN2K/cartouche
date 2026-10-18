@@ -50,9 +50,9 @@ int main(void) {
     mkdir(dir, 0755);
 
     expect("two lists", "[ \"$2\" = --platforms ] || exit 2\nprintf 'mac=20,30\\nwindows=10\\n'",
-           "window.__NOTPROTON_NATIVE_PLATFORM__={mac:new Set([20,30]),windows:new Set([10])};\n");
+           "window.__CARTOUCHE_NATIVE_PLATFORM__={mac:new Set([20,30]),windows:new Set([10])};\n");
     expect("empty lists", "printf 'mac=\\nwindows=\\n'",
-           "window.__NOTPROTON_NATIVE_PLATFORM__={mac:new Set([]),windows:new Set([])};\n");
+           "window.__CARTOUCHE_NATIVE_PLATFORM__={mac:new Set([]),windows:new Set([])};\n");
     expect("no helper", NULL, NULL);
     expect("a helper that fails", "printf 'mac=1\\nwindows=2\\n'; exit 1", NULL);
     expect("script in a list", "printf 'mac=1,2]);alert(1);//\\nwindows=\\n'", NULL);

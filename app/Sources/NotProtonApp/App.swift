@@ -2,7 +2,7 @@
 
 import SwiftUI
 
-struct NotProtonApp: App {
+struct CartoucheApp: App {
 
     @State private var status = SystemStatus()
     @State private var prefixes = PrefixesModel()
@@ -10,11 +10,13 @@ struct NotProtonApp: App {
     private let updater = AppUpdater()
 
     init() {
+        // The first launch claims Cartouche's own folder, even before anything is installed
+        try? FileManager.default.createDirectory(at: SupportPaths.support, withIntermediateDirectories: true)
         AppLog.start()
     }
 
     var body: some Scene {
-        Window("NotProton", id: "main") {
+        Window("Cartouche", id: "main") {
             RootView(pane: $pane)
                 .environment(status)
                 .environment(prefixes)
@@ -31,6 +33,10 @@ struct NotProtonApp: App {
     @CommandsBuilder
     private var menus: some Commands {
         CommandGroup(replacing: .newItem) {}
+
+        CommandGroup(replacing: .appInfo) {
+            Button("About Cartouche") { Attribution.showAboutPanel() }
+        }
 
         CommandGroup(after: .appInfo) {
             Button("Check for Updates…") { updater.check() }

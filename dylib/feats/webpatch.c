@@ -338,7 +338,7 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     "\"dxmt\"===b&&T([\"DXMT_ENABLE_NVEXT\"],\"DLSS\",\"1\")," \
     "!fex&&T([\"ROSETTA_ADVERTISE_AVX\"],npL(\"Advertise AVX2 to Rosetta\",\"向 Rosetta 声明 AVX2 支持\",\"Segnala AVX2 a Rosetta\"),\"1\",\"0\")," \
     "T([\"WINEMSYNC\"],\"MSync\",\"1\",\"0\")," \
-    "T([\"NOTPROTON_RETINA\"],npL(\"High Resolution\",\"高分辨率\",\"Alta risoluzione\"),\"1\",\"0\")" \
+    "T([\"CARTOUCHE_RETINA\"],npL(\"High Resolution\",\"高分辨率\",\"Alta risoluzione\"),\"1\",\"0\")" \
     "]},\"gfx\")," \
     "dx&&(0," RT ".jsx)(" BARREL ".XY," \
     "{label:npL(\"MetalFX Upscaling (Samples from the resolution the game is set to)\"," \
@@ -347,10 +347,10 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     "selectedOption:sw?(U.find(u=>u.data&&+u.data===fn)||{data:String(fn)}).data:\"\"," \
     "onChange:v=>s([[\"DXMT_METALFX_SPATIAL_SWAPCHAIN\",v.data?\"1\":\"\"],[\"DXMT_CONFIG\",fx(v.data)]])})},\"usf\")," \
     "(0," RT ".jsxs)(" BARREL ".XY,{label:npL(\"Controllers\",\"控制器\",\"Controller\"),children:[" \
-    "T([\"NOTPROTON_RAW_CONTROLLERS\"],npL(\"Let games read controllers directly (May break Steam Input. Not recommended)\"," \
+    "T([\"CARTOUCHE_RAW_CONTROLLERS\"],npL(\"Let games read controllers directly (May break Steam Input. Not recommended)\"," \
     "\"允许游戏直接读取控制器（可能导致 Steam Input 失效，不推荐）\"," \
     "\"Lascia che i giochi leggano direttamente i controller (pu\\u00f2 interferire con Steam Input, sconsigliato)\"),\"1\",\"\")," \
-    "T([\"NOTPROTON_DISABLE_HIDRAW\"],npL(\"Disable hidraw\",\"停用 hidraw\",\"Disable hidraw\"),\"1\",\"\")" \
+    "T([\"CARTOUCHE_DISABLE_HIDRAW\"],npL(\"Disable hidraw\",\"停用 hidraw\",\"Disable hidraw\"),\"1\",\"\")" \
     "]},\"ctl\")" \
     "]})})}"
 
@@ -372,7 +372,7 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
 #define NP_LAUNCH_MIGRATION_RULE \
     "o=>{const T=/(?:[^\\s\"'\\\\]|\\\\[^]|\"(?:[^\"\\\\]|\\\\[^])*\"|'[^']*')+/g," \
     "w=o.match(T)||[]," \
-    "k=x=>/^(CX_GRAPHICS|D3DM_|DXMT_|DXVK_|MTL_|NOTPROTON_|ROSETTA_|WINE)\\w*=/.test(x)," \
+    "k=x=>/^(CX_GRAPHICS|D3DM_|DXMT_|DXVK_|MTL_|CARTOUCHE_|ROSETTA_|WINE)\\w*=/.test(x)," \
     "e=w.filter(k);" \
     "if(/%command%/i.test(o)||o.replace(T,\"\").trim()||!e.length)return null;" \
     "return e.map(x=>{const i=x.indexOf(\"=\"),v=x.slice(i+1);" \
@@ -381,21 +381,21 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
 
 #define NP_LAUNCH_MIGRATION \
     "(async()=>{try{" \
-    "const K=\"NotProtonLaunchMigrated_\"+this.m_cm.steamid.GetAccountID();" \
+    "const K=\"CartoucheLaunchMigrated_\"+this.m_cm.steamid.GetAccountID();" \
     "if(localStorage.getItem(K))return;" \
     "const M=" NP_LAUNCH_MIGRATION_RULE ";" \
     "const A=[...window.appStore.m_mapApps.values()].filter(a=>a);let n=0;" \
     "for(let i=0;i<A.length;i+=20)await Promise.all(A.slice(i,i+20).map(async a=>{const id=a.appid;" \
     "const t=await Promise.race([window.appDetailsStore.RequestAppDetails(id)," \
     "new Promise(r=>setTimeout(r,5e3))]);" \
-    "if(!t){console.warn(\"NotProton: no details for app \"+id+\", its launch options were not moved\");return}" \
+    "if(!t){console.warn(\"Cartouche: no details for app \"+id+\", its launch options were not moved\");return}" \
     "if(!(id<2147483648&&(t.vecPlatforms||[]).indexOf(\"osx\")>=0&&!t.strCompatToolName)){" \
     "const r=M(t.strLaunchOptions||\"\");" \
     "if(r!==null){SteamClient.Apps.SetAppLaunchOptions(id,r);n++;" \
-    "console.log(\"NotProton: moved the launch options of app \"+id)}}}));" \
-    "console.log(\"NotProton: checked the launch options of \"+A.length+\" apps, moved \"+n);" \
+    "console.log(\"Cartouche: moved the launch options of app \"+id)}}}));" \
+    "console.log(\"Cartouche: checked the launch options of \"+A.length+\" apps, moved \"+n);" \
     "localStorage.setItem(K,\"1\")" \
-    "}catch(e){console.error(\"NotProton: launch options migration failed\",e)}})()"
+    "}catch(e){console.error(\"Cartouche: launch options migration failed\",e)}})()"
 
 static const np_gate_t g_gates_forcetool[] = {
     // SteamPlay settings section
@@ -478,7 +478,7 @@ static const np_gate_t g_gates_selecttool[] = {
       NP_COMPAT_HINT, 1, 0 },
 };
 
-#define NP_PLATFORM_LISTS "window.__NOTPROTON_NATIVE_PLATFORM__"
+#define NP_PLATFORM_LISTS "window.__CARTOUCHE_NATIVE_PLATFORM__"
 #define NP_MAC_64(APP) \
     "(" NP_PLATFORM_LISTS ".mac.has(" APP ".appid)&&!" APP ".most_available_per_client_data?.is_invalid_os_type)"
 #define NP_MAC_CHECK(OS, APP) \
@@ -487,7 +487,7 @@ static const np_gate_t g_gates_selecttool[] = {
     NP_WINDOWS(APP) "?!1:(0," OS ".Pr)()?" \
     APP ".is_available_on_current_platform&&!" APP ".most_available_per_client_data?.is_invalid_os_type:"
 // .exe shortcuts = Windows
-#define NP_RUNS_EXE "window.__NOTPROTON_RUNS_EXE__"
+#define NP_RUNS_EXE "window.__CARTOUCHE_RUNS_EXE__"
 #define NP_RUNS_EXE_JS \
     NP_RUNS_EXE "=a=>{if(!a.BIsShortcut?.())return!1;const s=window.appDetailsStore,e=s?.m_mapAppData?.get(a.appid);" \
     "s&&!e?.cRegistered&&queueMicrotask(()=>s.m_mapAppData.get(a.appid)?.cRegistered||s.RegisterForAppData(a.appid));" \
@@ -495,7 +495,7 @@ static const np_gate_t g_gates_selecttool[] = {
 #define NP_WINDOWS(APP) \
     "(" NP_PLATFORM_LISTS ".windows.has(" APP ".appid)||" NP_RUNS_EXE "(" APP "))"
 #define NP_WINDOWS_ONLY_CASE(OS, APP) \
-    "case\"notprotonWindows\":return(0," OS ".Pr)()&&" NP_WINDOWS(APP) "&&!" \
+    "case\"cartoucheWindows\":return(0," OS ".Pr)()&&" NP_WINDOWS(APP) "&&!" \
     NP_MAC_64(APP) ";"
 
 static const np_gate_t g_fixes[] = {
@@ -528,7 +528,7 @@ static const np_gate_t g_fixes[] = {
     // Pr means macOS, td means Windows.
     // Steam Play makes every game count as available, so the Apple filter goes by oslist.
     // Games missing from appinfo.vdf, and other platforms, keep Steam's check.
-    // NotProton forces is_invalid_os_type to false, so 32-bit Mac games are found through the per-client copy.
+    // Cartouche forces is_invalid_os_type to false, so 32-bit Mac games are found through the per-client copy.
     { "case " NP_C1 "." NP_C2 ":return!!(0," NP_C3 ".td)()||" NP_C4
       ".is_available_on_current_platform&&!" NP_C4 ".is_invalid_os_type;",
       NP_WINDOWS_ONLY_CASE(NP_C3, NP_C4) "case " NP_C1 "." NP_C2 ":return " NP_MAC_CHECK(NP_C3, NP_C4)
@@ -557,7 +557,7 @@ static const np_gate_t g_fixes[] = {
     NP_C1 "&&!" NP_C4 "&&" NP_C11 ".Xz0&&(0," NP_C2 ".jsxs)(" NP_C3 ".he,{direction:\"top\",nDelayShowMS:240," \
     "toolTipContent:" NP_LIBRARY_WINDOWS_HINT ",className:(0," NP_C5 ".A)(" NP_C6 "().CheckboxWithImage," \
     NP_C7 "&&" NP_C6 "().Disabled,npWindows&&" NP_C6 "().Active),onClick:()=>" NP_C7 \
-    "||npStore.SelectCollectionsAppFilterOption(\"notprotonWindows\",null,!npWindows)," \
+    "||npStore.SelectCollectionsAppFilterOption(\"cartoucheWindows\",null,!npWindows)," \
     "children:[(0," NP_C2 ".jsx)(\"style\",{children:\".\"+" NP_C6 "().CheckboxWithImage+" \
     "\" .SVGIcon_WindowsLogo{width:13px;height:13px}.\"+" NP_C6 "().CheckboxWithImage+" \
     "\" .SVGIcon_WindowsLogo rect{fill:inherit}\"}),(0," NP_C2 ".jsx)(" NP_C11 ".Xz0,{})]})"
@@ -565,33 +565,33 @@ static const np_gate_t g_fixes[] = {
 static const np_gate_t g_library_filters[] = {
     // Library list and search
     { "if(!" NP_C1 "(" NP_C2 "[" NP_C3 ".W6]," NP_C4 "(" NP_C5 "))||!" NP_C1 "(" NP_C2 "[" NP_C3 ".sc],",
-      "if(!(this.m_filterSpec.notprotonWindows?((npGroup,npCheck)=>{"
+      "if(!(this.m_filterSpec.cartoucheWindows?((npGroup,npCheck)=>{"
       "const npApple=npGroup.rgOptions.includes(" NP_C3 ".Pu);return " NP_C1 "({...npGroup,"
-      "rgOptions:[...npGroup.rgOptions.filter(npOption=>npOption!==" NP_C3 ".Pu),\"notprotonWindows\"]},"
-      "npOption=>npOption===\"notprotonWindows\"?npCheck(npOption)||npApple&&npCheck(" NP_C3 ".Pu):npCheck(npOption))"
+      "rgOptions:[...npGroup.rgOptions.filter(npOption=>npOption!==" NP_C3 ".Pu),\"cartoucheWindows\"]},"
+      "npOption=>npOption===\"cartoucheWindows\"?npCheck(npOption)||npApple&&npCheck(" NP_C3 ".Pu):npCheck(npOption))"
       "})(" NP_C2 "[" NP_C3 ".W6]," NP_C4 "(" NP_C5 ")):" NP_C1 "(" NP_C2 "[" NP_C3 ".W6]," NP_C4 "(" NP_C5 ")))||!"
       NP_C1 "(" NP_C2 "[" NP_C3 ".sc],", 2, 0 },
     // Saved library filter
     { ",strSearchText:" NP_C1 "&&" NP_C1 ".strSearchText||\"\",filterGroups:",
       ",strSearchText:" NP_C1 "&&" NP_C1 ".strSearchText||\"\","
-      "notprotonWindows:!!" NP_C1 "?.notprotonWindows,filterGroups:", 1, 0 },
+      "cartoucheWindows:!!" NP_C1 "?.cartoucheWindows,filterGroups:", 1, 0 },
     { "SelectOption(" NP_C1 "," NP_C2 "," NP_C3 "){let " NP_C4 "=this.m_filterSpec.filterGroups[" NP_C1 "].rgOptions;",
-      "SelectOption(" NP_C1 "," NP_C2 "," NP_C3 "){if(" NP_C1 "===\"notprotonWindows\"){"
-      "this.m_filterSpec.notprotonWindows=!!" NP_C3 ";return}let " NP_C4 "=this.m_filterSpec.filterGroups[" NP_C1 "].rgOptions;", 1, 0 },
+      "SelectOption(" NP_C1 "," NP_C2 "," NP_C3 "){if(" NP_C1 "===\"cartoucheWindows\"){"
+      "this.m_filterSpec.cartoucheWindows=!!" NP_C3 ";return}let " NP_C4 "=this.m_filterSpec.filterGroups[" NP_C1 "].rgOptions;", 1, 0 },
     { "Reset(){this.m_filterSpec.strSearchText=\"\",",
-      "Reset(){this.m_filterSpec.notprotonWindows=!1,this.m_filterSpec.strSearchText=\"\",", 1, 0 },
+      "Reset(){this.m_filterSpec.cartoucheWindows=!1,this.m_filterSpec.strSearchText=\"\",", 1, 0 },
     { "get bIsEmpty(){return this.searchText.length==0&&",
-      "get bIsEmpty(){return!this.m_filterSpec.notprotonWindows&&this.searchText.length==0&&", 1, 0 },
+      "get bIsEmpty(){return!this.m_filterSpec.cartoucheWindows&&this.searchText.length==0&&", 1, 0 },
     { "let " NP_C1 "=this.GetSelectedOptions(" NP_C2 ".W6);" NP_C1 ".length>0&&" NP_C3 ".push(" NP_C1 ".map("
       NP_C4 "=>{if(" NP_C4 "==" NP_C2 ".Pu){",
-      "let " NP_C1 "=this.GetSelectedOptions(" NP_C2 ".W6);this.m_filterSpec.notprotonWindows&&(" NP_C1 "=[..."
-      NP_C1 ",\"notprotonWindows\"]);" NP_C1 ".length>0&&" NP_C3 ".push(" NP_C1 ".map(" NP_C4 "=>{if(" NP_C4
-      "===\"notprotonWindows\")return " NP_LIBRARY_WINDOWS_SUMMARY ";if(" NP_C4 "==" NP_C2 ".Pu){", 1, 0 },
+      "let " NP_C1 "=this.GetSelectedOptions(" NP_C2 ".W6);this.m_filterSpec.cartoucheWindows&&(" NP_C1 "=[..."
+      NP_C1 ",\"cartoucheWindows\"]);" NP_C1 ".length>0&&" NP_C3 ".push(" NP_C1 ".map(" NP_C4 "=>{if(" NP_C4
+      "===\"cartoucheWindows\")return " NP_LIBRARY_WINDOWS_SUMMARY ";if(" NP_C4 "==" NP_C2 ".Pu){", 1, 0 },
     // Library toolbar
     { "," NP_C1 "=" NP_C2 ".n6.currentAppFilter.BIsSelected(" NP_C3 ".W6," NP_C3 ".Pu);return(0,"
       NP_C4 ".jsxs)(\"div\",{className:" NP_C5 "().Bar,",
       "," NP_C1 "=" NP_C2 ".n6.currentAppFilter.BIsSelected(" NP_C3 ".W6," NP_C3 ".Pu),npStore=" NP_C2 ".n6,"
-      "npWindows=!!" NP_C2 ".n6.currentAppFilter.m_filterSpec.notprotonWindows;return(0,"
+      "npWindows=!!" NP_C2 ".n6.currentAppFilter.m_filterSpec.cartoucheWindows;return(0,"
       NP_C4 ".jsxs)(\"div\",{className:" NP_C5 "().Bar,", 1, 0 },
     { "children:[" NP_PLATFORM_BUTTON(NP_PLATFORM_TIP), "children:[" NP_WINDOWS_BUTTON "," NP_PLATFORM_BUTTON(NP_PLATFORM_TIP), 1, 0 },
     // 1792192922 passes the tooltip through Steam's localize call.

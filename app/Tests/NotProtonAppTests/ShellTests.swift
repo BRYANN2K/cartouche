@@ -21,7 +21,7 @@ struct ShellTests {
 
         // Several megabytes against a 64K pipe buffer. A child filling the pipe while the parent
         // waits for it to exit cannot progress, so this hangs if the two reads stop overlapping.
-        let chunk = Data(String(repeating: "notproton ", count: 1024).utf8)
+        let chunk = Data(String(repeating: "cartouche ", count: 1024).utf8)
         var payload = Data()
         for _ in 0..<512 { payload.append(chunk) }
         try payload.write(to: file)

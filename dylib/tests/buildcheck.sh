@@ -25,7 +25,7 @@ clone() {
 }
 clone 26.3.0.39832 202607151200
 clone 27.0.0.40921-fex 202608211200
-printf 'notproton\t27.0.0.40921-fex\tfex\tCrossOver Preview (FEX)\nnotproton-26.3\t26.3.0.39832\trosetta\tCrossOver 26.3\n' \
+printf 'cartouche-proton\t27.0.0.40921-fex\tfex\tCrossOver Preview (FEX)\ncartouche-proton-26.3\t26.3.0.39832\trosetta\tCrossOver 26.3\n' \
 	> "$np_support/tools"
 mtime() { stat -f %m "$np_support/runners/crossover-$1/CrossOver/share/wine/wine.inf"; }
 
@@ -39,7 +39,7 @@ launch() {
 	data=$(mktemp -d "$work/compatdata.XXXXXX")
 	mkdir -p "$data/pfx"
 	[ -z "$updated" ] || printf '%s\r\n' "$updated" > "$data/pfx/.update-timestamp"
-	[ -z "$record" ] || printf '%s' "$record" > "$data/notproton-build"
+	[ -z "$record" ] || printf '%s' "$record" > "$data/cartouche-build"
 	(
 		STEAM_COMPAT_DATA_PATH=$data
 		np_build=$build
@@ -54,7 +54,7 @@ launch() {
 	) > "$data/out" 2>&1 && status=0 || status=$?
 	echo "status=$status"
 	grep -o 'last run by [^,]*' "$data/out" || true
-	[ ! -f "$data/notproton-build" ] || head -1 "$data/notproton-build"
+	[ ! -f "$data/cartouche-build" ] || head -1 "$data/cartouche-build"
 }
 
 echo "== prefixes from before the record =="
@@ -92,14 +92,14 @@ data=$(mktemp -d "$work/compatdata.XXXXXX")
 	verb=waitforexitandrun
 	# shellcheck disable=SC2329 # show_alert runs this in place of the real dialog
 	osascript() {
-		if /usr/bin/lockf -s -t 0 "$data/.notproton-prefix.lock" true; then
+		if /usr/bin/lockf -s -t 0 "$data/.cartouche-prefix.lock" true; then
 			echo free > "$data/during-alert"
 		else
 			echo held > "$data/during-alert"
 		fi
 	}
 	eval "$alert"
-	exec 8>> "$data/.notproton-prefix.lock"
+	exec 8>> "$data/.cartouche-prefix.lock"
 	/usr/bin/lockf -s -t 0 8
 	show_alert "title" "message"
 )

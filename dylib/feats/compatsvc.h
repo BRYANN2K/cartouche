@@ -1,10 +1,12 @@
 // CompatManager WebUI service.
-#ifndef NOTPROTON_FEATS_COMPATSVC_H
-#define NOTPROTON_FEATS_COMPATSVC_H
+#ifndef CARTOUCHE_FEATS_COMPATSVC_H
+#define CARTOUCHE_FEATS_COMPATSVC_H
 
 #include <stdint.h>
 #include <stddef.h>
 #include <mach-o/loader.h>
+
+#include "cartouche_identity.h"
 
 // Registers on first route lookup rather than at install time
 void np_compatsvc_register(const struct mach_header_64 *mh, intptr_t slide,
@@ -21,9 +23,9 @@ enum {
 int np_compatsvc_routes(void);
 
 // Sentinel name for "no tool".
-#define NP_COMPAT_TOOL_NONE "notproton.none"
+#define NP_COMPAT_TOOL_NONE CARTOUCHE_TOOL_PREFIX ".none"
 
 // Tells the page the mapping changed.
 void np_compatsvc_state_changed(void);
 
-#endif // NOTPROTON_FEATS_COMPATSVC_H
+#endif // CARTOUCHE_FEATS_COMPATSVC_H

@@ -11,14 +11,14 @@ if (!emit) { console.error('usage: shell.js <emit>'); process.exit(2); }
 const TOGGLES = {
   'Metal HUD': 'MTL_HUD_ENABLED',
   'MSync': 'WINEMSYNC',
-  'High Resolution': 'NOTPROTON_RETINA',
+  'High Resolution': 'CARTOUCHE_RETINA',
   'Advertise AVX2 to Rosetta': 'ROSETTA_ADVERTISE_AVX',
-  'Let games read controllers directly (May break Steam Input. Not recommended)': 'NOTPROTON_RAW_CONTROLLERS',
-  'Disable hidraw': 'NOTPROTON_DISABLE_HIDRAW',
+  'Let games read controllers directly (May break Steam Input. Not recommended)': 'CARTOUCHE_RAW_CONTROLLERS',
+  'Disable hidraw': 'CARTOUCHE_DISABLE_HIDRAW',
 };
 const PANEL_KEYS = ['CX_GRAPHICS_BACKEND', 'MTL_HUD_ENABLED', 'D3DM_ENABLE_METALFX', 'DXMT_ENABLE_NVEXT',
-  'DXMT_METALFX_SPATIAL_SWAPCHAIN', 'DXMT_CONFIG', 'ROSETTA_ADVERTISE_AVX', 'WINEMSYNC', 'NOTPROTON_RETINA',
-  'NOTPROTON_RAW_CONTROLLERS', 'NOTPROTON_DISABLE_HIDRAW'];
+  'DXMT_METALFX_SPATIAL_SWAPCHAIN', 'DXMT_CONFIG', 'ROSETTA_ADVERTISE_AVX', 'WINEMSYNC', 'CARTOUCHE_RETINA',
+  'CARTOUCHE_RAW_CONTROLLERS', 'CARTOUCHE_DISABLE_HIDRAW'];
 const OTHER_KEYS = ['WINEDEBUG', 'DXVK_HUD', 'FOO'];
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'np-shell-'));
@@ -103,8 +103,8 @@ const ACTIONS = [
     want: (v0, v1) => v1.toggles.MTL_HUD_ENABLED.props.checked === !v0.toggles.MTL_HUD_ENABLED.props.checked },
   { name: 'MSync', run: v => v.toggles.WINEMSYNC.props.onChange(!v.toggles.WINEMSYNC.props.checked),
     want: (v0, v1) => v1.toggles.WINEMSYNC.props.checked === !v0.toggles.WINEMSYNC.props.checked },
-  { name: 'raw controllers', run: v => v.toggles.NOTPROTON_RAW_CONTROLLERS.props.onChange(!v.toggles.NOTPROTON_RAW_CONTROLLERS.props.checked),
-    want: (v0, v1) => v1.toggles.NOTPROTON_RAW_CONTROLLERS.props.checked === !v0.toggles.NOTPROTON_RAW_CONTROLLERS.props.checked },
+  { name: 'raw controllers', run: v => v.toggles.CARTOUCHE_RAW_CONTROLLERS.props.onChange(!v.toggles.CARTOUCHE_RAW_CONTROLLERS.props.checked),
+    want: (v0, v1) => v1.toggles.CARTOUCHE_RAW_CONTROLLERS.props.checked === !v0.toggles.CARTOUCHE_RAW_CONTROLLERS.props.checked },
   { name: 'backend dxvk', run: v => v.backend.props.onChange({ data: 'dxvk' }),
     want: (v0, v1) => v1.backend.props.selectedOption === 'dxvk' },
   { name: 'backend automatic', run: v => v.backend.props.onChange({ data: '' }),

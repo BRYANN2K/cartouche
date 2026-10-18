@@ -164,7 +164,7 @@ char *np_nativeplatform_javascript(void) {
     char *js = malloc(cap);
     if (js)
         snprintf(js, cap,
-                 "window.__NOTPROTON_NATIVE_PLATFORM__={mac:new Set([%.*s]),windows:new Set([%.*s])};\n",
+                 "window.__CARTOUCHE_NATIVE_PLATFORM__={mac:new Set([%.*s]),windows:new Set([%.*s])};\n",
                  (int)mac_len, mac, (int)windows_len, windows);
     free(out);
     return js;

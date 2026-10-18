@@ -84,7 +84,7 @@ struct CrossOverSourceTests {
     @Test("A bundle whose loader is not a known build is refused, not called modified")
     func unknownLoaderIsUnsupported() throws {
         let fm = FileManager.default
-        let dir = URL(filePath: NSTemporaryDirectory()).appending(path: "notproton-cx-\(UUID().uuidString)")
+        let dir = URL(filePath: NSTemporaryDirectory()).appending(path: "cartouche-cx-\(UUID().uuidString)")
         let bundle = dir.appending(path: "CrossOver Preview.app")
         let loader = bundle.appending(path: "Contents/SharedSupport/CrossOver/lib/wine/x86_64-unix/wine")
         try fm.createDirectory(at: loader.deletingLastPathComponent(), withIntermediateDirectories: true)

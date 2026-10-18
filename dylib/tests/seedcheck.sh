@@ -206,9 +206,9 @@ for dir in "$WINEPREFIX" "$template_dir/pfx"; do
 done
 ln -s /library "$WINEPREFIX/dosdevices/s:"
 check test "$(prefix_is_bare && echo unsafe || echo refused)" = refused
-printf '/elsewhere\n' > "$STEAM_COMPAT_DATA_PATH/notproton-game-drive"
+printf '/elsewhere\n' > "$STEAM_COMPAT_DATA_PATH/cartouche-game-drive"
 check test "$(prefix_is_bare && echo unsafe || echo refused)" = refused
-printf '/library\n' > "$STEAM_COMPAT_DATA_PATH/notproton-game-drive"
+printf '/library\n' > "$STEAM_COMPAT_DATA_PATH/cartouche-game-drive"
 check prefix_is_bare
 copy_template_into_prefix
 check test -f "$WINEPREFIX/system.reg"
@@ -375,15 +375,15 @@ check test "$cache_status" -eq 0
 check test ! -e "$WINEPREFIX/system.reg"
 
 fixture
-: > "$case_root/.notproton-template.lock"
-chmod 400 "$case_root/.notproton-template.lock"
+: > "$case_root/.cartouche-template.lock"
+chmod 400 "$case_root/.cartouche-template.lock"
 cache_status=0
 env functions="$functions" /bin/sh -ec "
   eval \"\$functions\"
   eval \"\$fake_initializer\"
   seed_prefix_from_template
 " || cache_status=$?
-chmod 600 "$case_root/.notproton-template.lock"
+chmod 600 "$case_root/.cartouche-template.lock"
 check test "$cache_status" -eq 0
 check test ! -e "$WINEPREFIX/system.reg"
 

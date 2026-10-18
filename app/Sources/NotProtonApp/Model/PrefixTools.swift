@@ -33,13 +33,13 @@ enum PrefixLog: CaseIterable, Sendable {
 
     func url(for prefix: WinePrefix, launchers: URL = SupportPaths.launchers) -> URL {
         switch self {
-        case .launch: prefix.root.appending(path: "notproton-run.log")
-        case .wine: launchers.appending(path: prefix.appID).appending(path: "notproton-wine.log")
+        case .launch: prefix.root.appending(path: "cartouche-run.log")
+        case .wine: launchers.appending(path: prefix.appID).appending(path: "cartouche-wine.log")
         }
     }
 }
 
-// What compat_run.sh writes to notproton-build when a tool first runs a prefix.
+// What compat_run.sh writes to cartouche-build when a tool first runs a prefix.
 struct PrefixBuildRecord: Sendable, Equatable {
     let build: String
     let display: String?
@@ -47,7 +47,7 @@ struct PrefixBuildRecord: Sendable, Equatable {
 
 enum PrefixTools {
 
-    static let buildRecordName = "notproton-build"
+    static let buildRecordName = "cartouche-build"
 
     static func buildRecord(of prefix: WinePrefix) -> PrefixBuildRecord? {
         let file = prefix.root.appending(path: buildRecordName)
@@ -115,7 +115,7 @@ enum PrefixTools {
     }
 
     static func syncBackend(prefix: WinePrefix) -> String {
-        let marker = prefix.root.appending(path: "notproton-msync")
+        let marker = prefix.root.appending(path: "cartouche-msync")
         let recorded = try? String(contentsOf: marker, encoding: .utf8)
         return recorded?.trimmingCharacters(in: .whitespacesAndNewlines) == "1" ? "1" : "0"
     }
@@ -254,7 +254,7 @@ enum PrefixTools {
     // Wine truncates vc_redist's 1638 (newer runtime installed) to 102; Winetricks only accepts 236
     static let winetricksWine = #"""
         #!/bin/sh
-        "$NOTPROTON_WINE" "$@"
+        "$CARTOUCHE_WINE" "$@"
         status=$?
         case "$status:${1##*[\\/]}" in
           102:[Vv][Cc]*[Rr][Ee][Dd][Ii][Ss][Tt]*.[Ee][Xx][Ee]) exit 236 ;;
@@ -295,14 +295,14 @@ enum PrefixTools {
         // Under -q annihilate wipes the prefix and its saves without asking, prefix= switches to
         // another prefix, and options like --self-update change winetricks itself.
         if let refused = verbs.first(where: { $0 == "annihilate" || $0.hasPrefix("prefix=") || $0.hasPrefix("-") }) {
-            throw StepFailure(step: step, detail: String(localized: "NotProton does not run \(refused) with Winetricks."))
+            throw StepFailure(step: step, detail: String(localized: "Cartouche does not run \(refused) with Winetricks."))
         }
         guard let claim = PrefixStore.claim(prefix) else {
             throw StepFailure(step: step, detail: String(localized: "\(prefix.title) is running. Quit the game first."))
         }
         defer { claim.release() }
         let loader = try readyLoader(step: step, prefix: prefix, runner: runner, flavor: flavor)
-        let wrapper = script.deletingLastPathComponent().appending(path: "notproton-wine")
+        let wrapper = script.deletingLastPathComponent().appending(path: "cartouche-wine")
         do {
             try Data(winetricksWine.utf8).write(to: wrapper, options: .atomic)
             try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: wrapper.path(percentEncoded: false))
@@ -313,7 +313,7 @@ enum PrefixTools {
         // cabextract comes from the runner's bin, which environment() puts on PATH.
         var environment = environment(prefix: prefix, runner: runner, flavor: flavor)
         environment["WINE"] = wrapper.path(percentEncoded: false)
-        environment["NOTPROTON_WINE"] = loader.path(percentEncoded: false)
+        environment["CARTOUCHE_WINE"] = loader.path(percentEncoded: false)
         // Winetricks reads the architecture from WINE_BIN, which would otherwise be the wrapper.
         environment["WINE_BIN"] = loader.path(percentEncoded: false)
 

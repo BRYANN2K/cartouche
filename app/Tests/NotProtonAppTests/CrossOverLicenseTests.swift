@@ -194,11 +194,11 @@ struct CrossOverLicenseTests {
         let status = CrossOverLicense.check(
             crossOverRoot: fix.root,
             searchDirs: fix.searchDirs,
-            openssl: "/usr/bin/notproton-no-such-openssl"
+            openssl: "/usr/bin/cartouche-no-such-openssl"
         )
         #expect(!status.licensed)
         #expect(status.diagnostic.contains("could not run"))
-        #expect(status.diagnostic.contains("notproton-no-such-openssl"))
+        #expect(status.diagnostic.contains("cartouche-no-such-openssl"))
         #expect(status.detail == CrossOverLicense.notActivated)
     }
 

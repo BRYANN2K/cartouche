@@ -1,5 +1,5 @@
 #!/bin/sh
-# notproton CrossOver compatibility tool shim
+# cartouche CrossOver compatibility tool shim
 set -e
 
 verb="$1"
@@ -17,7 +17,7 @@ case "$verb" in
     ;;
 esac
 
-np_support="$HOME/Library/Application Support/notproton"
+np_support="$HOME/Library/Application Support/Cartouche"
 iconmaker="$np_support/iconmaker"
 
 find_client_root() {
@@ -101,13 +101,13 @@ resolve_icon() {
   fi
   icon_cache="$icon_root/game.icns"
   icon_status=1
-  if [ -n "$art" ] && [ -s "$icon_cache" ] &&   [ "$(cat "$icon_root/notproton-icon.source" 2>/dev/null)" =   "$icon_source" ]; then
+  if [ -n "$art" ] && [ -s "$icon_cache" ] &&   [ "$(cat "$icon_root/cartouche-icon.source" 2>/dev/null)" =   "$icon_source" ]; then
     icon_status=0
     echo "icon reused from $art" >> "$log" 2>&1 || true
   elif [ -n "$art" ] && [ -x "$iconmaker" ]; then
     if "$iconmaker" "$art" "$icon_cache" >> "$log" 2>&1; then
       icon_status=0
-      printf '%s\n' "$icon_source" > "$icon_root/notproton-icon.source"
+      printf '%s\n' "$icon_source" > "$icon_root/cartouche-icon.source"
       echo "icon built from $art" >> "$log" 2>&1 || true
     elif [ "$art" = "$ico" ]; then
       # A cached .ico that iconmaker rejects is corrupt and passes the size
@@ -194,14 +194,14 @@ export WINEDLLPATH="$CX_ROOT/lib/wine/x86_64-windows:$wine_unix${WINEDLLPATH:+:$
 export PATH="$CX_ROOT/bin:$PATH"
 
 if [ -n "$STEAM_COMPAT_DATA_PATH" ]; then
-  log="$STEAM_COMPAT_DATA_PATH/notproton-run.log"
+  log="$STEAM_COMPAT_DATA_PATH/cartouche-run.log"
 else
   log=/dev/null
 fi
 [ "$(stat -f %z "$log" 2>/dev/null || echo 0)" -gt 262144 ] \
   && : > "$log" || true
 {
-  echo "=== notproton run $(date) ==="
+  echo "=== cartouche run $(date) ==="
   echo "verb=$verb"
   echo "args:"; for a in "$@"; do printf '  [%s]\n' "$a"; done
   echo "cwd=$(pwd)"
@@ -312,8 +312,8 @@ refuse_foreign_prefix() {
   esac
   have=$(prefix_machine) || return 0
   [ "$have" = "$want" ] && return 0
-  echo "=== prefix ntdll is $have and this compatibility tool wants $want, rebuild the prefix in NotProton ===" >> "$log" 2>&1 || true
-  show_alert "This game needs its prefix rebuilt" "This game originally ran under $(tool_name "$have"), but $(tool_name "$want") is present now. The prefix needs to be rebuilt in NotProton in order to run the game. You will not lose game saves by rebuilding the prefix."
+  echo "=== prefix ntdll is $have and this compatibility tool wants $want, rebuild the prefix in Cartouche ===" >> "$log" 2>&1 || true
+  show_alert "This game needs its prefix rebuilt" "This game originally ran under $(tool_name "$have"), but $(tool_name "$want") is present now. The prefix needs to be rebuilt in Cartouche in order to run the game. You will not lose game saves by rebuilding the prefix."
   exit 1
 }
 
@@ -342,7 +342,7 @@ last_wine_build() {
 }
 
 refuse_other_build() {
-  record="$STEAM_COMPAT_DATA_PATH/notproton-build"
+  record="$STEAM_COMPAT_DATA_PATH/cartouche-build"
   had_build=""
   had_display=""
   if [ -r "$record" ]; then
@@ -354,17 +354,17 @@ refuse_other_build() {
     last_wine_build
   fi
   if [ -n "$had_build" ] && [ "$had_build" != "$np_build" ]; then
-    echo "=== prefix was last run by build $had_build and this compatibility tool runs $np_build, rebuild the prefix in NotProton ===" >> "$log" 2>&1 || true
+    echo "=== prefix was last run by build $had_build and this compatibility tool runs $np_build, rebuild the prefix in Cartouche ===" >> "$log" 2>&1 || true
     had_display=$(alert_safe "${had_display:-CrossOver build $had_build}")
-    show_alert "This game needs its prefix rebuilt" "This game's prefix was last run by $had_display, and this compatibility tool runs $(alert_safe "$np_display"). Rebuild the prefix in NotProton to run it here, or pick $had_display again in the game's Compatibility settings. You will not lose game saves by rebuilding the prefix."
+    show_alert "This game needs its prefix rebuilt" "This game's prefix was last run by $had_display, and this compatibility tool runs $(alert_safe "$np_display"). Rebuild the prefix in Cartouche to run it here, or pick $had_display again in the game's Compatibility settings. You will not lose game saves by rebuilding the prefix."
     exit 1
   fi
 }
 
 claim_prefix() {
-  [ -r "$STEAM_COMPAT_DATA_PATH/notproton-build" ] \
+  [ -r "$STEAM_COMPAT_DATA_PATH/cartouche-build" ] \
     || echo "=== prefix claimed by build $np_build ===" >> "$log" 2>&1 || true
-  printf '%s\n%s\n' "$np_build" "$np_display" > "$STEAM_COMPAT_DATA_PATH/notproton-build" 2>/dev/null \
+  printf '%s\n%s\n' "$np_build" "$np_display" > "$STEAM_COMPAT_DATA_PATH/cartouche-build" 2>/dev/null \
     || echo "=== could not record build $np_build in the prefix ===" >> "$log" 2>&1 || true
 }
 # Steam cloud related
@@ -566,7 +566,7 @@ write_owned_controllers() {
 # so Hidraw=0 hides those too. The Switch controllers get Hidraw=0 even when Steam Input
 # is off, to avoid silently breaking controller support in most games.
 plan_hidden_controllers() {
-  controllers_file="$STEAM_COMPAT_DATA_PATH/notproton-hidden-controllers"
+  controllers_file="$STEAM_COMPAT_DATA_PATH/cartouche-hidden-controllers"
   controllers_add=""
   controllers_remove=""
   controllers_wanted=""
@@ -577,7 +577,7 @@ plan_hidden_controllers() {
   [ ! -f "$WINEPREFIX/system.reg" ] || in_registry=$(tr '[:upper:]' '[:lower:]' < "$WINEPREFIX/system.reg" \
     | sed -n 's/^\[system\\\\controlset001\\\\services\\\\winebus\\\\devices\\\\\([0-9a-f]\{4\}\/[0-9a-f]\{4\}\)\].*/\1/p' \
     | sort -u)
-  if [ "$NOTPROTON_RAW_CONTROLLERS" != "1" ]; then
+  if [ "$CARTOUCHE_RAW_CONTROLLERS" != "1" ]; then
     controllers_wanted=$(ids_without "$(controller_ids "$SDL_GAMECONTROLLER_IGNORE_DEVICES")" \
       "$(controller_ids "$SDL_GAMECONTROLLER_IGNORE_DEVICES_EXCEPT")")
     controllers_wanted=$(printf '%s\n' "$controllers_wanted" 057e/2006 057e/2007 057e/2009 | sed '/^$/d' | sort -u)
@@ -594,16 +594,16 @@ $controllers_wanted"
 }
 
 # Sets Wine's DisableHidraw for games with "Disable hidraw" checked. When it's
-# unchecked, the value is removed only if NotProton set it.
+# unchecked, the value is removed only if Cartouche set it.
 plan_disable_hidraw() {
-  hidraw_file="$STEAM_COMPAT_DATA_PATH/notproton-disable-hidraw"
+  hidraw_file="$STEAM_COMPAT_DATA_PATH/cartouche-disable-hidraw"
   hidraw_value=""
   [ -n "$STEAM_COMPAT_DATA_PATH" ] && [ ! -L "$hidraw_file" ] || return 1
   hidraw_set=""
   [ ! -f "$WINEPREFIX/system.reg" ] || hidraw_set=$(tr '[:upper:]' '[:lower:]' < "$WINEPREFIX/system.reg" \
     | awk '/^\[/ { s = index($0, "[system\\\\controlset001\\\\services\\\\winebus]") == 1; next }
       s && $0 == "\"disablehidraw\"=dword:00000001" { print 1; exit }')
-  if [ "$NOTPROTON_DISABLE_HIDRAW" = "1" ]; then
+  if [ "$CARTOUCHE_DISABLE_HIDRAW" = "1" ]; then
     [ -n "$hidraw_set" ] || hidraw_value='"DisableHidraw"=dword:00000001'
   elif [ -f "$hidraw_file" ] && [ -n "$hidraw_set" ]; then
     hidraw_value='"DisableHidraw"=-'
@@ -616,7 +616,7 @@ winebus_lines() {
 }
 
 import_prefix_settings() {
-  if [ "$NOTPROTON_RETINA" = "1" ]; then
+  if [ "$CARTOUCHE_RETINA" = "1" ]; then
     retina_line='"RetinaMode"="y"'
   else
     retina_line='"RetinaMode"=-'
@@ -632,14 +632,14 @@ import_prefix_settings() {
   hidraw_planned=0
   if plan_disable_hidraw 2>/dev/null; then
     hidraw_planned=1
-    if [ "$NOTPROTON_DISABLE_HIDRAW" = "1" ] && [ -n "$hidraw_value" ]; then
+    if [ "$CARTOUCHE_DISABLE_HIDRAW" = "1" ] && [ -n "$hidraw_value" ]; then
       : > "$hidraw_file" 2>/dev/null || hidraw_value=""
     fi
   else
     hidraw_value=""
     echo "=== could not track DisableHidraw, leaving it as it is ===" >> "$log" 2>&1 || true
   fi
-  settings_file=$(mktemp "$WINEPREFIX/drive_c/notproton-settings.XXXXXX" 2>/dev/null) \
+  settings_file=$(mktemp "$WINEPREFIX/drive_c/cartouche-settings.XXXXXX" 2>/dev/null) \
     || settings_file=""
   if [ -z "$settings_file" ] || ! { printf '%s\r\n' \
       'Windows Registry Editor Version 5.00' '' \
@@ -662,7 +662,7 @@ import_prefix_settings() {
   without_lock_fds "$WINELOADER" reg import "C:\\${settings_file##*/}" >> "$log" 2>&1 \
     && import_status=0 || import_status=$?
   rm -f "$settings_file"
-  if [ "$import_status" -eq 0 ] && [ "$hidraw_planned" -eq 1 ] && [ "$NOTPROTON_DISABLE_HIDRAW" != "1" ]; then
+  if [ "$import_status" -eq 0 ] && [ "$hidraw_planned" -eq 1 ] && [ "$CARTOUCHE_DISABLE_HIDRAW" != "1" ]; then
     rm -f "$hidraw_file"
   fi
   if [ "$import_status" -eq 0 ] && [ -n "$controllers_add$controllers_remove$hidraw_value" ]; then
@@ -670,13 +670,13 @@ import_prefix_settings() {
     without_lock_fds "$WINESERVER" -k >> "$log" 2>&1 || true
     without_lock_fds "$WINESERVER" -w >> "$log" 2>&1 || true
   fi
-  if [ "$import_status" -eq 0 ] && [ "$hidraw_planned" -eq 1 ] && [ "$NOTPROTON_DISABLE_HIDRAW" = "1" ]; then
-    echo "controllers: hidraw disabled (NOTPROTON_DISABLE_HIDRAW=1)" >> "$log" 2>&1 || true
+  if [ "$import_status" -eq 0 ] && [ "$hidraw_planned" -eq 1 ] && [ "$CARTOUCHE_DISABLE_HIDRAW" = "1" ]; then
+    echo "controllers: hidraw disabled (CARTOUCHE_DISABLE_HIDRAW=1)" >> "$log" 2>&1 || true
   fi
   if [ "$import_status" -eq 0 ] && [ "$controllers_planned" -eq 1 ]; then
     write_owned_controllers "$controllers_wanted" 2>/dev/null || true
-    if [ "$NOTPROTON_RAW_CONTROLLERS" = "1" ]; then
-      echo "controllers: games read them directly (NOTPROTON_RAW_CONTROLLERS=1)" >> "$log" 2>&1 || true
+    if [ "$CARTOUCHE_RAW_CONTROLLERS" = "1" ]; then
+      echo "controllers: games read them directly (CARTOUCHE_RAW_CONTROLLERS=1)" >> "$log" 2>&1 || true
     elif [ -n "$controllers_wanted" ]; then
       echo "controllers: $(printf '%s\n' "$controllers_wanted" | grep -c .) kept off hidraw" \
         >> "$log" 2>&1 || true
@@ -688,8 +688,8 @@ import_prefix_settings() {
 
 stage_step="runner check"
 if [ -z "$np_build" ] || [ ! -d "$CX_ROOT/lib/wine" ]; then
-  echo "=== build ${np_build:-(none recorded)} behind this compatibility tool is not set up, set it up in NotProton ===" >> "$log" 2>&1 || true
-  show_alert "CrossOver is not set up" "The CrossOver build behind $(alert_safe "$np_display") is not set up. Set it up in NotProton, or pick another compatibility tool for this game."
+  echo "=== build ${np_build:-(none recorded)} behind this compatibility tool is not set up, set it up in Cartouche ===" >> "$log" 2>&1 || true
+  show_alert "CrossOver is not set up" "The CrossOver build behind $(alert_safe "$np_display") is not set up. Set it up in Cartouche, or pick another compatibility tool for this game."
   exit 1
 fi
 echo "runner: build $np_build ($np_display) at $CX_ROOT" >> "$log" 2>&1 || true
@@ -927,8 +927,8 @@ seed_prefix_from_template() {
   fi
   # Since a user can have more than one Steam library and libraries can be on different drives,
   # the template is stored alongside the Steam library to support APFS cloning.
-  template_cache="$(dirname "$STEAM_COMPAT_DATA_PATH")/notproton-template"
-  template_lock="$(dirname "$STEAM_COMPAT_DATA_PATH")/.notproton-template.lock"
+  template_cache="$(dirname "$STEAM_COMPAT_DATA_PATH")/cartouche-template"
+  template_lock="$(dirname "$STEAM_COMPAT_DATA_PATH")/.cartouche-template.lock"
   [ ! -L "$template_cache" ] && [ ! -L "$template_lock" ] || return 0
   [ ! -e "$template_lock" ] || [ -f "$template_lock" ] || return 0
   if ! { : >> "$template_lock"; } 2>/dev/null; then
@@ -979,7 +979,7 @@ seed_prefix_from_template() {
 
 prepare_prefix_directory() {
   mkdir -p "$STEAM_COMPAT_DATA_PATH" || return 1
-  prefix_lock="$STEAM_COMPAT_DATA_PATH/.notproton-prefix.lock"
+  prefix_lock="$STEAM_COMPAT_DATA_PATH/.cartouche-prefix.lock"
   [ ! -L "$prefix_lock" ] && { [ ! -e "$prefix_lock" ] || [ -f "$prefix_lock" ]; } || return 1
   exec 8>> "$prefix_lock"
   if ! /usr/bin/lockf -s -t 0 8; then
@@ -990,19 +990,19 @@ prepare_prefix_directory() {
   for interrupted in "$STEAM_COMPAT_DATA_PATH"/pfx.replaced.*; do
     [ -e "$interrupted" ] || [ -L "$interrupted" ] || continue
     echo "=== interrupted prefix replacement needs recovery: $interrupted ===" >> "$log" 2>&1 || true
-    show_alert "Prefix recovery required" "An interrupted prefix replacement may hold saved games. Do not delete this prefix. Check its notproton-run.log for the recovery folder."
+    show_alert "Prefix recovery required" "An interrupted prefix replacement may hold saved games. Do not delete this prefix. Check its cartouche-run.log for the recovery folder."
     exit 1
   done
   mkdir -p "$WINEPREFIX"
 }
 
 game_drive_record() {
-  record="$STEAM_COMPAT_DATA_PATH/notproton-game-drive"
+  record="$STEAM_COMPAT_DATA_PATH/cartouche-game-drive"
   [ -f "$record" ] && [ ! -L "$record" ] && cat "$record" 2>/dev/null
 }
 
 record_game_drive() {
-  record="$STEAM_COMPAT_DATA_PATH/notproton-game-drive"
+  record="$STEAM_COMPAT_DATA_PATH/cartouche-game-drive"
   [ "$(game_drive_record)" != "$1" ] && [ ! -L "$record" ] || return 0
   { printf '%s\n' "$1" > "$record.new" && mv -f "$record.new" "$record"; } 2>/dev/null \
     || rm -f "$record.new" 2>/dev/null || true
@@ -1017,7 +1017,7 @@ restart_for_drive() {
 unmap_game_drive() {
   [ -L "$drive" ] && [ "$(readlink "$drive")" = "$(game_drive_record)" ] || return 0
   rm -f "$drive" || return 0
-  rm -f "$STEAM_COMPAT_DATA_PATH/notproton-game-drive" 2>/dev/null || true
+  rm -f "$STEAM_COMPAT_DATA_PATH/cartouche-game-drive" 2>/dev/null || true
   echo "=== removed drive S:, the game is not in a Steam library ===" >> "$log" 2>&1 || true
   restart_for_drive
 }
@@ -1114,15 +1114,15 @@ if [ -n "$STEAM_COMPAT_DATA_PATH" ]; then
   stage_step="prefix lock"
   prepare_prefix_directory
   msync_from=environment
-  if [ -z "$WINEMSYNC" ] && [ -r "$STEAM_COMPAT_DATA_PATH/notproton-msync" ]; then
+  if [ -z "$WINEMSYNC" ] && [ -r "$STEAM_COMPAT_DATA_PATH/cartouche-msync" ]; then
     WINEMSYNC=$(tr -d ' \t\n' \
-      < "$STEAM_COMPAT_DATA_PATH/notproton-msync" 2>/dev/null || true)
+      < "$STEAM_COMPAT_DATA_PATH/cartouche-msync" 2>/dev/null || true)
     msync_from=carried-over
   fi
   [ -n "$WINEMSYNC" ] || msync_from=default
   export WINEMSYNC="${WINEMSYNC:-0}"
   printf '%s' "$WINEMSYNC" \
-    > "$STEAM_COMPAT_DATA_PATH/notproton-msync" 2>/dev/null || true
+    > "$STEAM_COMPAT_DATA_PATH/cartouche-msync" 2>/dev/null || true
   stage_step="prefix build check"
   refuse_other_build
   stage_step="prefix arch check"
@@ -1134,10 +1134,10 @@ if [ -n "$STEAM_COMPAT_DATA_PATH" ]; then
   seed_prefix_from_template
   stage_step="profile layout"
   if ! lay_out_proton_profile; then
-    show_alert "Saved-game folders need attention" "NotProton left the conflicting files in place. Open this prefix's notproton-run.log for details before trying again."
+    show_alert "Saved-game folders need attention" "Cartouche left the conflicting files in place. Open this prefix's cartouche-run.log for details before trying again."
     exit 1
   fi
-  echo "video: RetinaMode=${NOTPROTON_RETINA:-0}" >> "$log" 2>&1 || true
+  echo "video: RetinaMode=${CARTOUCHE_RETINA:-0}" >> "$log" 2>&1 || true
   stage_step="game drive"
   map_game_drive
   stage_step="prefix settings"
@@ -1153,7 +1153,7 @@ bridge_src="$np_support/bridge"
 prefix_steam="$WINEPREFIX/drive_c/Program Files (x86)/Steam"
 verify_runner() {
   if [ ! -d "$bridge_src/wine/$np_build" ]; then
-    echo "=== no patched ntdll for build $np_build in the bridge, set it up in NotProton ===" >> "$log" 2>&1 || true
+    echo "=== no patched ntdll for build $np_build in the bridge, set it up in Cartouche ===" >> "$log" 2>&1 || true
     return
   fi
   for arch in x86_64-windows i386-windows aarch64-windows; do
@@ -1161,9 +1161,9 @@ verify_runner() {
     live="$CX_ROOT/lib/wine/$arch/ntdll.dll"
     [ -f "$staged" ] || continue
     if [ ! -f "$live" ]; then
-      echo "=== runner has no $arch ntdll, set up the runner in NotProton ===" >> "$log" 2>&1 || true
+      echo "=== runner has no $arch ntdll, set up the runner in Cartouche ===" >> "$log" 2>&1 || true
     elif ! cmp -s "$staged" "$live"; then
-      echo "=== runner $arch ntdll is not the patched copy, set up the runner in NotProton ===" >> "$log" 2>&1 || true
+      echo "=== runner $arch ntdll is not the patched copy, set up the runner in Cartouche ===" >> "$log" 2>&1 || true
     fi
   done
   for arch in i386-windows x86_64-windows "${wine_unix##*/}"; do
@@ -1172,7 +1172,7 @@ verify_runner() {
       *) name="lsteamclient.dll" ;;
     esac
     [ -f "$CX_ROOT/lib/wine/$arch/$name" ] && continue
-    echo "=== runner is missing $arch/$name, set up the runner in NotProton ===" >> "$log" 2>&1 || true
+    echo "=== runner is missing $arch/$name, set up the runner in Cartouche ===" >> "$log" 2>&1 || true
   done
 }
 install_lsteamclient_trigger() {
@@ -1266,7 +1266,7 @@ if [ -d "$bridge_src" ] && [ -n "$WINEPREFIX" ]; then
   bridge_cache=""
   if [ -n "$STEAM_COMPAT_DATA_PATH" ] && ! same_volume "$bridge_src" "$STEAM_COMPAT_DATA_PATH" \
     && volume_clones "$STEAM_COMPAT_DATA_PATH"; then
-    bridge_cache="$(dirname "$STEAM_COMPAT_DATA_PATH")/notproton-template/bridge"
+    bridge_cache="$(dirname "$STEAM_COMPAT_DATA_PATH")/cartouche-template/bridge"
   fi
   bridge_matches=1
   for f in $bridge_files; do
@@ -1300,7 +1300,7 @@ if [ -d "$bridge_src" ] && [ -n "$WINEPREFIX" ]; then
       fi
     done
     if [ "$unstaged" -eq 1 ]; then
-      show_alert "Steam files could not be copied" "NotProton could not copy a file into this game's prefix. Open this prefix's notproton-run.log for details."
+      show_alert "Steam files could not be copied" "Cartouche could not copy a file into this game's prefix. Open this prefix's cartouche-run.log for details."
       exit 1
     fi
   fi
@@ -1313,7 +1313,7 @@ if [ -d "$bridge_src" ] && [ -n "$WINEPREFIX" ]; then
   done
   verify_runner
   if ! install_lsteamclient_trigger; then
-    show_alert "Steam files could not be copied" "NotProton could not copy a file into this game's prefix. Open this prefix's notproton-run.log for details."
+    show_alert "Steam files could not be copied" "Cartouche could not copy a file into this game's prefix. Open this prefix's cartouche-run.log for details."
     exit 1
   fi
   install_legacy_steam_dll
@@ -1384,7 +1384,7 @@ bundle_name=$(printf '%s' "$game_name" | tr -d '/:"`$\\')
 bundle_name=${bundle_name#"${bundle_name%%[!.]*}"}
 [ -n "$bundle_name" ] || bundle_name="Steam Game"
 game_name_xml=$(printf '%s' "$game_name" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g')
-loader_root="$HOME/Library/Application Support/notproton/launchers/$app_id"
+loader_root="$np_support/launchers/$app_id"
 mkdir -p "$loader_root"
 loader_app="$loader_root/$bundle_name.app"
 find "$loader_root" -maxdepth 1 -name '.build.*' -mmin +60 -exec rm -rf {} + 2>/dev/null || true
@@ -1403,9 +1403,9 @@ fi
 [ -n "$icon_arg" ] || echo "no icon resolved, launching without one" >> "$log" 2>&1 || true
 
 uielement_arg=""
-if [ "${NOTPROTON_HIDE_LAUNCHER_TILE:-0}" = "1" ]; then
+if [ "${CARTOUCHE_HIDE_LAUNCHER_TILE:-0}" = "1" ]; then
   uielement_arg="  <key>LSUIElement</key><true/>"
-  echo "launcher tile hidden by NOTPROTON_HIDE_LAUNCHER_TILE" >> "$log" 2>&1 || true
+  echo "launcher tile hidden by CARTOUCHE_HIDE_LAUNCHER_TILE" >> "$log" 2>&1 || true
 fi
 cat > "$loader_contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -1414,7 +1414,7 @@ cat > "$loader_contents/Info.plist" <<PLIST
 <dict>
   <key>CFBundleName</key><string>$game_name_xml</string>
   <key>CFBundleDisplayName</key><string>$game_name_xml</string>
-  <key>CFBundleIdentifier</key><string>com.notproton.launcher.$app_id</string>
+  <key>CFBundleIdentifier</key><string>dev.bryann2k.cartouche.launcher.$app_id</string>
   <key>CFBundleExecutable</key><string>launcher</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
@@ -1450,18 +1450,18 @@ fi
 cat > "$loader_macos/launcher" <<LAUNCHER
 #!/bin/sh
 export WINELOADER="$WINELOADER"
-wine_log="$loader_root/notproton-wine.log"
+wine_log="$loader_root/cartouche-wine.log"
 exec > "\$wine_log" 2>&1
-shim="$HOME/Library/Application Support/notproton/overlay-shim.dylib"
+shim="$np_support/overlay-shim.dylib"
 if [ -n "\$STEAM_DYLD_INSERT_LIBRARIES" ]; then
   if [ -f "\$shim" ]; then
     export DYLD_INSERT_LIBRARIES="\$shim:\$STEAM_DYLD_INSERT_LIBRARIES"
-    export NOTPROTON_OVERLAY_SHIM="\$shim"
+    export CARTOUCHE_OVERLAY_SHIM="\$shim"
   else
     export DYLD_INSERT_LIBRARIES="\$STEAM_DYLD_INSERT_LIBRARIES"
   fi
 fi
-[ -n "\$NOTPROTON_GAME_CWD" ] && cd "\$NOTPROTON_GAME_CWD"
+[ -n "\$CARTOUCHE_GAME_CWD" ] && cd "\$CARTOUCHE_GAME_CWD"
 "$WINELOADER" "\$@"
 exit \$?
 LAUNCHER
@@ -1582,7 +1582,7 @@ set -- \
   --env STEAM_COMPAT_CLIENT_INSTALL_PATH="$STEAM_COMPAT_CLIENT_INSTALL_PATH" \
   --env STEAM_COMPAT_APP_ID="$STEAM_COMPAT_APP_ID" \
   --env STEAM_DYLD_INSERT_LIBRARIES="$STEAM_DYLD_INSERT_LIBRARIES" \
-  --env NOTPROTON_GAME_CWD="$game_cwd" "$@"
+  --env CARTOUCHE_GAME_CWD="$game_cwd" "$@"
 lsregister="/System/Library/Frameworks/CoreServices.framework/Versions/A"
 lsregister="$lsregister/Frameworks/LaunchServices.framework/Support/lsregister"
 [ -x "$lsregister" ] && "$lsregister" -f "$loader_app" >> "$log" 2>&1 || true

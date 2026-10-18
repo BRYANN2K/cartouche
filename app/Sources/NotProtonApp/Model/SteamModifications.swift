@@ -5,7 +5,7 @@ struct SteamModifications: Sendable {
     let legacyRecord: URL
 
     static var shared: Self {
-        Self(file: SupportPaths.applicationSupport.appending(path: "notproton-steam-bundles.json"),
+        Self(file: SupportPaths.applicationSupport.appending(path: "\(SupportPaths.supportDirName)-steam-bundles.json"),
              legacyRecord: DeploymentContent.record(beside: SupportPaths.deployedVersion))
     }
 
@@ -41,6 +41,10 @@ struct SteamModifications: Sendable {
             try write(paths().filter { $0.path != app.standardizedFileURL.path })
             return true
         }
+    }
+
+    func forget(_ app: URL) throws {
+        try write(paths().filter { $0.path != app.standardizedFileURL.path })
     }
 
     private func write(_ paths: [URL]) throws {

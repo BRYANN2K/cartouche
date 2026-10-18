@@ -6,6 +6,6 @@ enum Launch {
         if CommandLine.arguments.dropFirst().contains(RemoveEverythingCommand.flag) {
             RemoveEverythingCommand.run()
         }
-        NotProtonApp.main()
+        CartoucheApp.main()
     }
 }

@@ -108,7 +108,7 @@ struct RunnerPrepareTests {
         #expect(toolList(runners) == CompatToolList.contents(
             SupportedRunners.tools(for: [Self.release, Self.fex])
         ))
-        #expect(toolList(runners)?.hasPrefix("notproton-fex\t27.0.0.40921-fex\tfex\t") == true)
+        #expect(toolList(runners)?.hasPrefix("cartouche-proton-fex\t27.0.0.40921-fex\tfex\t") == true)
 
         let again = try prepare(Self.release, runners: runners, calls: calls)
         #expect(!again.toolsChanged)
@@ -219,7 +219,7 @@ struct RunnerPrepareTests {
 
     private func holder(_ runners: URL) -> String? {
         toolList(runners)?.split(separator: "\n").map { $0.split(separator: "\t") }
-            .first { $0.first == "notproton" }.map { String($0[1]) }
+            .first { $0.first == "cartouche-proton" }.map { String($0[1]) }
     }
 
     @Test("A 1.0 install keeps the legacy name on the build runners/current pointed at")
@@ -237,7 +237,7 @@ struct RunnerPrepareTests {
 
         try sync(runners)
         #expect(holder(runners) == Self.rosetta.id)
-        #expect(toolList(runners)?.contains("notproton-fex\t\(Self.fex.id)\tfex\t") == true)
+        #expect(toolList(runners)?.contains("cartouche-proton-fex\t\(Self.fex.id)\tfex\t") == true)
     }
 
     @Test("Without FEX support a 1.0 FEX install keeps its legacy name")
@@ -278,8 +278,8 @@ struct RunnerPrepareTests {
         )
         try sync(runners)
         #expect(holder(runners) == Self.fex.id)
-        #expect(toolList(runners)?.contains("notproton-preview\t\(Self.rosetta.id)\t") == true)
-        #expect(toolList(runners)?.contains("notproton-fex-rosetta\t\(Self.fex.id)\t") == true)
+        #expect(toolList(runners)?.contains("cartouche-proton-preview\t\(Self.rosetta.id)\t") == true)
+        #expect(toolList(runners)?.contains("cartouche-proton-fex-rosetta\t\(Self.fex.id)\t") == true)
     }
 
     @Test("A fresh install gives the legacy name to nobody")
@@ -289,8 +289,8 @@ struct RunnerPrepareTests {
 
         try sync(runners)
         #expect(holder(runners) == nil)
-        #expect(toolList(runners)?.hasPrefix("notproton-fex-41069\t\(Self.fex41069.id)\tfex\t") == true)
-        #expect(toolList(runners)?.contains("notproton-preview-41069\t\(Self.preview41069.id)\t") == true)
+        #expect(toolList(runners)?.hasPrefix("cartouche-proton-fex-41069\t\(Self.fex41069.id)\tfex\t") == true)
+        #expect(toolList(runners)?.contains("cartouche-proton-preview-41069\t\(Self.preview41069.id)\t") == true)
     }
 
     @Test("A 1.0.3 install keeps the legacy name on 41069")
@@ -306,7 +306,7 @@ struct RunnerPrepareTests {
         #expect(holder(runners) == Self.preview41069.id)
         try sync(runners)
         #expect(holder(runners) == Self.preview41069.id)
-        #expect(toolList(runners)?.contains("notproton-fex-41069\t\(Self.fex41069.id)\tfex\t") == true)
+        #expect(toolList(runners)?.contains("cartouche-proton-fex-41069\t\(Self.fex41069.id)\tfex\t") == true)
     }
 
     @Test("A Preview listed under its own name does not take the legacy name later")
@@ -331,9 +331,9 @@ struct RunnerPrepareTests {
         try FileManager.default.createSymbolicLink(
             atPath: current, withDestinationPath: "crossover-\(Self.fex.id)/CrossOver"
         )
-        let run = runners.appending(path: "compatibilitytools.d/notproton/run")
+        let run = runners.appending(path: "compatibilitytools.d/cartouche-proton/run")
         try atomicReplace(
-            run, with: Data("CX_ROOT=\"$HOME/Library/Application Support/notproton/runners/current\"\n".utf8),
+            run, with: Data("CX_ROOT=\"$HOME/Library/Application Support/cartouche/runners/current\"\n".utf8),
             step: "test"
         )
 
@@ -619,7 +619,7 @@ struct RunnerRemovalTests {
         for template in gone { #expect(!fm.fileExists(atPath: template.path(percentEncoded: false))) }
     }
 
-    @Test("A template is named by the build and the unix arch, under notproton-template")
+    @Test("A template is named by the build and the unix arch, under cartouche-template")
     func templateNamesMatchTheScript() throws {
         let library = SteamLibrary(root: URL(filePath: "/L"))
         let repo = URL(filePath: #filePath)

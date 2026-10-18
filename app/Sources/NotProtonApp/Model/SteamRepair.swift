@@ -61,8 +61,14 @@ enum SteamRepair {
         guard let bundle = manifest.bundle else {
             throw StepFailure(
                 step: step,
-                detail: String(localized: "This copy of NotProton cannot repair Steam. Please reinstall NotProton.")
+                detail: String(localized: "This copy of Cartouche cannot repair Steam. Please reinstall Cartouche.")
             )
+        }
+
+        // Restoring Valve's bundle would delete another tool's dylib with it
+        let other = SteamBundle.otherInjection(in: app)
+        guard other.isEmpty else {
+            throw StepFailure(step: step, detail: otherToolRefusal(other))
         }
 
         let staged = try await stage(bundle, bases: manifest.bases, downloads: downloads, report: report)
@@ -216,14 +222,34 @@ enum SteamRepair {
         try? url.resourceValues(forKeys: [.volumeURLKey]).volume
     }
 
+    static func otherToolRefusal(_ other: [String]) -> String {
+        String(localized: "Steam also loads another tool's dylib (\(other.joined(separator: ", "))). Repair Steam would remove it, so Steam was left as it is. Remove that tool from Steam first.")
+    }
+
+    // Removes Cartouche's insert entry. Another tool's entries stay, and so does the
+    // controller key, which that tool sets too.
     static func clearInsert(at plist: URL) throws -> Bool {
         guard var dict = SteamBundle.readInfoPlist(at: plist),
               var environment = dict[SteamBundle.environmentKey] as? [String: Any]
         else { return false }
 
-        let removed = [SteamBundle.insertKey, SteamBundle.controllerBlockKey]
-            .compactMap { environment.removeValue(forKey: $0) }
-        guard !removed.isEmpty else { return false }
+        var changed = false
+        if let insert = environment[SteamBundle.insertKey] {
+            let entries = (insert as? String ?? "").split(separator: ":").map(String.init)
+            let others = entries.filter { URL(filePath: $0).lastPathComponent != SupportPaths.dylibName }
+            if others.isEmpty {
+                environment.removeValue(forKey: SteamBundle.insertKey)
+                changed = true
+            } else if others.count != entries.count {
+                environment[SteamBundle.insertKey] = others.joined(separator: ":")
+                changed = true
+            }
+        }
+        if environment[SteamBundle.insertKey] == nil,
+           environment.removeValue(forKey: SteamBundle.controllerBlockKey) != nil {
+            changed = true
+        }
+        guard changed else { return false }
         dict[SteamBundle.environmentKey] = environment
         try SteamBundle.writeInfoPlist(dict, at: plist)
         return true

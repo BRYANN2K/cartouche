@@ -64,7 +64,7 @@ rm -rf "$vc_work"
 echo "== Apple GPTK initialization and launcher environment =="
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
-np_support="$work/Application Support/notproton"
+np_support="$work/Application Support/Cartouche"
 np_build="test"
 library="$np_support/runners/crossover-$np_build/CrossOver/lib64/apple_gptk/external/libd3dshared.dylib"
 init=$(sed -n '/^CX_ROOT=/,/^wine_unix=/p' "$SRC")

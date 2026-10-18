@@ -1,4 +1,4 @@
-// NotProton payload manifest stuff
+// Cartouche payload manifest stuff
 
 import Foundation
 

@@ -4,18 +4,18 @@ import Foundation
 
 enum AppLog {
 
-    static var file: URL { SupportPaths.support.appending(path: "app.log") }
+    static var file: URL { SupportPaths.logs.appending(path: "app.log") }
 
     private static let sizeLimit = 512 * 1024
 
-    private static let queue = DispatchQueue(label: "notproton.applog")
+    private static let queue = DispatchQueue(label: "dev.bryann2k.cartouche.applog")
 
     private nonisolated(unsafe) static var isOn = false
 
     static func start() {
         queue.async {
             isOn = true
-            append("--- NotProton \(AppVersion.bundled) started ---\n")
+            append("--- Cartouche \(AppVersion.bundled) started ---\n")
         }
     }
 
@@ -93,7 +93,7 @@ enum AppLog {
     private static func append(_ line: String) {
         guard isOn else { return }
         let fm = FileManager.default
-        try? fm.createDirectory(at: SupportPaths.support, withIntermediateDirectories: true)
+        try? fm.createDirectory(at: SupportPaths.logs, withIntermediateDirectories: true)
 
         let path = file.path(percentEncoded: false)
         if let size = (try? fm.attributesOfItem(atPath: path))?[.size] as? Int, size > sizeLimit {

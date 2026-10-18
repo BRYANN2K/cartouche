@@ -226,7 +226,7 @@ struct SteamInstallerTests {
         try Shell.check("/usr/bin/xattr", [
             "-wx", "com.apple.FinderInfo", "0000000000000000040000000000000000000000000000000000000000000000", app,
         ])
-        try Shell.check("/usr/bin/xattr", ["-w", "com.notproton.keep", "1", app])
+        try Shell.check("/usr/bin/xattr", ["-w", "dev.bryann2k.cartouche.keep", "1", app])
         #expect(!(try Shell.run("/usr/bin/codesign", ["-f", "-s", "-", app])).succeeded)
 
         _ = try install(fixture)
@@ -236,7 +236,7 @@ struct SteamInstallerTests {
         let left = try Shell.run("/usr/bin/xattr", ["-lr", app]).stdout
         #expect(!left.contains("com.apple.FinderInfo"))
         #expect(!left.contains("com.apple.ResourceFork"))
-        #expect(left.contains("com.notproton.keep"))
+        #expect(left.contains("dev.bryann2k.cartouche.keep"))
     }
 
     @Test("An insert belonging to something else stops the install and is left alone")
@@ -252,7 +252,7 @@ struct SteamInstallerTests {
             _ = try install(fixture)
             Issue.record("an install over a foreign insert was allowed")
         } catch let failure as StepFailure {
-                #expect(failure.detail.contains("Repair your Steam install"))
+                #expect(failure.detail.contains("another tool's dylib (\(foreign))"))
         }
 
         #expect(SteamBundle.currentInsert(at: fixture.plist) == foreign, "the foreign insert was modified")
@@ -318,7 +318,7 @@ struct SteamInstallerTests {
 
         _ = try install(fixture)
 
-        let backup = fixture.backups.appending(path: "Info.plist.before-notproton")
+        let backup = fixture.backups.appending(path: "Info.plist.before-cartouche")
         let saved = try #require(SteamBundle.readInfoPlist(at: backup))
         let environment = try #require(saved[SteamBundle.environmentKey] as? [String: Any])
         #expect(environment[SteamBundle.insertKey] == nil, "the backup already carries an insert")
@@ -551,7 +551,7 @@ struct SteamInstallerTests {
 
         let error = try #require(throws: StepFailure.self) { try install(fixture, calls: calls, stopped: true) }
 
-        #expect(error.detail.contains("newer NotProton"))
+        #expect(error.detail.contains("newer Cartouche"))
         #expect(try Data(contentsOf: fixture.deployedDylib) == before)
         #expect(try DeploymentContent.readBuild(at: record) == newer)
         #expect(calls.registrations.isEmpty)

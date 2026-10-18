@@ -100,8 +100,8 @@ static void np_activate_image_added(const struct mach_header *mh, intptr_t slide
 }
 
 void np_hooks_activate_install(void) {
-    if (np_hooks_env_lists_label("NOTPROTON_DISABLE", "activate")) {
-        NP_WARN("[activate] DISABLED via NOTPROTON_DISABLE");
+    if (np_hooks_env_lists_label("CARTOUCHE_DISABLE", "activate")) {
+        NP_WARN("[activate] DISABLED via CARTOUCHE_DISABLE");
         return;
     }
 

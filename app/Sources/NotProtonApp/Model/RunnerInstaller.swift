@@ -1,4 +1,4 @@
-// Clones CrossOver's Wine runtime into ~/Library/Application Support/notproton/runners
+// Clones CrossOver's Wine runtime into ~/Library/Application Support/Cartouche/runners
 
 import Darwin
 import Foundation
@@ -132,7 +132,7 @@ enum RunnerInstaller {
                     if errno == ENOENT { continue }
                     throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
                 }
-                let lock = openat(parent, ".notproton-template.lock", O_RDWR | O_CREAT | O_NOFOLLOW | O_CLOEXEC, 0o600)
+                let lock = openat(parent, ".\(SupportPaths.prefixTemplateFolder).lock", O_RDWR | O_CREAT | O_NOFOLLOW | O_CLOEXEC, 0o600)
                 guard lock >= 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
                 defer { FileLock.release(lock) }
                 var lockInfo = stat()
