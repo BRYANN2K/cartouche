@@ -28,7 +28,7 @@ private func tempFolder(_ files: [String: String]) throws -> URL {
 
 @Test func parsesManifestInSubfolderWithWindowsPaths() throws {
     let dir = try tempFolder([
-        "MD5/game-bins.md5": "; some parts are optional downloads\r\nd8396f99cb7a7f3fbd9369b0720823f8 *..\\data-01.bin\r\n",
+        "MD5/checksums.md5": "; some parts are optional downloads\r\nd8396f99cb7a7f3fbd9369b0720823f8 *..\\data-01.bin\r\n",
         "data-01.bin": "x",
     ])
     let manifest = try #require(Checksums.findManifest(in: dir))
@@ -71,7 +71,7 @@ private func tempFolder(_ files: [String: String]) throws -> URL {
 }
 
 @Test(arguments: [
-    ("CarX Street [Multi5]", "CarX Street"),
+    ("CarX Street [Offline Installer]", "CarX Street"),
     ("The Witcher 3 Wild Hunt GOTY (Offline Installer) v4.04 + 2 DLCs", "The Witcher 3 Wild Hunt GOTY"),
     ("Hollow_Knight_v1.5.78-GOG", "Hollow Knight"),
 ])

@@ -5,7 +5,7 @@ import Foundation
 
 public enum GameName {
 
-    // "CarX Street [Multi5]" → "CarX Street"
+    // "CarX Street [Offline Installer]" → "CarX Street"
     // "The Witcher 3 Wild Hunt GOTY (Offline Installer) v4.04 + 2 DLCs" → "The Witcher 3 Wild Hunt GOTY"
     public static func clean(_ folder: String) -> String {
         var s = folder.replacingOccurrences(of: "_", with: " ").replacingOccurrences(of: ".", with: " ")

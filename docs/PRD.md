@@ -1,0 +1,200 @@
+# Cartouche product requirements
+
+What Cartouche is, who it is for, and what the first release (v0.1.0) must do. Read by the maintainer and contributors before they write a spec.
+
+Status: draft for the maintainer to approve. Date: 2026-10-19. Phases (P0 to P18) are defined in `docs/ROADMAP.md`.
+
+## Problem
+
+Windows games on an Apple silicon Mac are hard to run.
+
+- Steam on Mac only offers the games that have a Mac build.
+- Wine wrappers run an exe and leave the user alone with the errors.
+- Existing launchers do not tell the user whether a game will run on their own Mac.
+- Installing a multi-part Windows installer fails often and silently.
+- Good runners (CrossOver) cost money, and free ones are scattered.
+
+## Users
+
+- **Mac player with a Steam library.** Wants Windows games from Steam to just play.
+- **Player with games outside Steam.** Has Epic, GOG or Amazon games, or Windows installers of games they own.
+- **Retro player.** Has game files of their own for older consoles.
+- **Tinkerer.** Wants to pick the runner, the graphics backend and the CPU translation per game.
+- **Agent user.** Wants Claude or another MCP client to install, tune and repair games.
+
+## Goals
+
+- One native Mac app that shows every game in one library and says what it takes to play it.
+- Steam Play from inside the Mac Steam client, with free runners and a per-game choice of graphics backend.
+- A Windows installer flow that checks files first, shows real progress and ends with a playable game.
+- An estimate of rating, FPS and settings for the user's own Mac, from community reports.
+- No cost, no server, no account with Cartouche.
+- Safe for agents: clear access levels and approval for risky actions.
+
+## Non-goals
+
+- No DRM circumvention, no cracks, no Steam emulators, no piracy-specific features or wording.
+- No downloading or linking to ROM, BIOS or game files. Cartouche works on the user's own files.
+- No redistribution of D3DMetal or any Apple Game Porting Toolkit file.
+- No server run by the project.
+- No notarization, no Mac App Store.
+- No support for macOS older than 15.
+- No claim that online play with anti-cheat works on a Mac.
+- No pull requests to NotProton upstream. Cartouche is an independent fork.
+
+## Scope
+
+There is one scope. Everything planned (P0 to P18) is built before the first public release, which is v0.1.0. Later versions follow semver 0.x until the maintainer declares 1.0.
+
+Source: the maintainer's scope decisions of 2026-10-19, recorded in `docs/ROADMAP.md`.
+
+| Area | Phases | What the user gets |
+|---|---|---|
+| Identity, runners, backends | P0 to P3 | Own identity, runner model, free runners, per-game graphics backends |
+| Data and library | P4, P5 | Compatibility data with the per-Mac estimate, SwiftUI library with PC and Consoles sections, Steam import |
+| Installer and activity | P6, P7 | Windows installer, activity slot, notifications |
+| Performance and release | P8, P9 | FPS tracking, release pipeline, updates |
+| Stores and agents | P10, P11 | Epic, GOG and Amazon. MCP server for agents (PC and console tools) |
+| Consoles | P12, P13, P14 | Bundled RetroArch, console library, console extras (netplay, RetroAchievements account linking, screen translation, Coach mode, iCloud save states) |
+| Controls | P15 | Controller status, remapping, Mac keyboard and mouse options, couch mode |
+| Standalone emulators | P16 | Detection and launch of Dolphin, PCSX2, PPSSPP, Azahar, xemu, Ryubing and others |
+| Mac permissions | P17 | Each macOS permission asked when its feature is used, explained first, listed in Settings with a way to fix it |
+| Onboarding | P18 | Install a non-notarized app (Open Anyway), then a five-step, skippable first launch that ends on a playable game |
+
+P16 has no OpenSpec change yet.
+
+## Key user flows
+
+### Library
+
+1. The user opens Cartouche. The library lists every Steam game, installed or not, read from the running Steam client.
+2. Games not installed show in black and white. Selecting one shows it in color.
+3. The user searches, favorites or hides games.
+4. The game panel answers three questions: can I play it, how fast, with which setup.
+5. When Steam is closed, the library shows the last import and installed status from Steam's local files.
+6. When Steam is not installed, the Steam source offers Download Steam, Install with Homebrew (only if Homebrew is present) and Locate Steam.
+
+### Steam Play
+
+1. The user picks a setup for a game: runner, graphics backend, CPU translation.
+2. Cartouche writes the choice to Steam, so Properties > Compatibility in Steam shows the same tool.
+3. The user presses Play. Steam starts the game through Cartouche's compatibility tool.
+4. For a game with a Mac build, the user chooses Mac version or Windows version.
+5. After a crash, the panel suggests another backend to try.
+
+### Windows installer
+
+1. The user drops a folder or a setup.exe on Cartouche.
+2. Cartouche analyses it without running anything: parts, missing parts, checksums, installer type, game name, space needed.
+3. The user reviews the result. A missing required part blocks Install. A part the manifest calls optional only warns.
+4. Cartouche installs in a fresh prefix under Rosetta, with real progress. The user can continue in the background.
+5. On failure, Cartouche names the likely cause and offers retries (verify files, fewer threads, less memory, short path, other runner).
+6. The user confirms which exe starts the game. Redistributables are replaced by winetricks equivalents.
+7. Installer files are deleted only when the user asks, and go to the Trash.
+
+### Stores
+
+1. The user signs in to Epic, GOG or Amazon on the store's own page. Cartouche keeps only the token, in the Keychain.
+2. The store's games appear in the library.
+3. They install, update, verify and launch with the same setup, estimate and FPS features as Steam games.
+4. Each store page lists honestly what the bundled client supports.
+
+### Consoles through RetroArch
+
+1. The user opens Add Consoles, or drops game files or a folder in the + sheet. Cartouche identifies each file by checksum. Folders set in Settings > Library are watched and new games are added automatically.
+2. Cartouche downloads only the core for each console the user added, and checks the BIOS files the user must supply.
+3. The library has a Consoles section with one entry per console, and covers from the libretro thumbnails.
+4. The console game panel shows Continue From (save states with pictures), the achievements count, the look (Original, CRT, LCD), input lag, hardcore mode, discs and BIOS status.
+5. Play starts Cartouche's own bundled RetroArch with a CRT power-on effect. Cartouche drives it over MCP stdio.
+6. The user can choose another RetroArch version in Settings > Consoles.
+
+### Console extras
+
+1. Netplay with friends through RetroArch's lobby.
+2. Linking a RetroAchievements account.
+3. Screen translation, which needs a translation service set up by the user.
+4. Coach mode (experimental), which reads game memory through RetroArch's MCP tools.
+5. iCloud save states.
+
+### Controls
+
+1. The game panel shows the connected controller and who handles the layout: Steam Input, Cartouche or RetroArch.
+2. The user customizes the layout. Steam games use Steam Input, other PC games use `SDL_GAMECONTROLLERCONFIG`, console games use RetroArch remap files.
+3. Mac keyboard and mouse options for Wine games: Cmd as Ctrl, Option as Alt, mouse locking, precise scrolling.
+4. A keyboard-only game can be played with a controller.
+5. Couch mode lets the user navigate Cartouche with a controller.
+6. A virtual controller for the whole system is not possible with free signing. A virtual pad inside Wine is possible and is the riskiest part.
+
+### Standalone emulators
+
+1. Cartouche detects installed emulators such as Dolphin, PCSX2, PPSSPP, Azahar, xemu and Ryubing.
+2. It launches them with the user's game files. It does not bundle them.
+
+### Agents
+
+1. The user adds the server with `claude mcp add cartouche -- cartouche-mcp`.
+2. The agent reads the library, logs and crash reports, and diagnoses a failure.
+3. The agent has PC tools and console tools. It proposes or applies a fix within the access level the user set (Read only, Standard, Full).
+4. Anything that installs, deletes or runs an exe waits for the user's approval in the app.
+5. The user sees every agent action in Settings > Agents and can undo configuration changes.
+
+## Success measures
+
+Each measure comes from a scenario in an OpenSpec change. A phase is done only when every scenario has evidence.
+
+| Measure | Target | Phase |
+|---|---|---|
+| Bundle ID and name | `app.cartouche.Cartouche`, `Cartouche` | P0 |
+| NotProton files touched by a first launch | 0 (modification times unchanged) | P0 |
+| Existing tests after the runner refactor | All pass, none removed or skipped | P1 |
+| Free runner download | SHA-256 matches manifest; `winecfg` window within 60 s | P2 |
+| Apple files in repository and release assets | 0 matches in the CI scan | P2 |
+| Backend applied at launch | Log shows the chosen d3d11 library only | P3 |
+| Nightly compatibility file | Valid against the schema, under 25 MB gzip, dated that night | P4 |
+| Offline use | Cached data shown; age shown when older than 3 days | P4 |
+| Steam import | N games shown within 10 s of a signed-in Steam | P5 |
+| Installer analysis of a two-part, 11 GB installer | Done within 30 s on an M4, nothing executed | P6 |
+| Reveal shader | 60 fps on an M1 with app CPU use under 5% | P7 |
+| FPS accuracy | 60 plus or minus 1 fps on a locked 60 fps scene, per backend | P8 |
+| Measurement overhead | Under 1% FPS difference | P8 |
+| Data sent by default | No request carries play data | P8 |
+| Update delivery | Offered within 24 h, installs without a Gatekeeper prompt | P9 |
+| Signing identity | Same designated requirement across two releases | P9 |
+| Console game added by checksum | Identified and shown with its cover in the Consoles section | P13 |
+| Store sign-in | No password field in Cartouche; games listed within 15 s | P10 |
+| Agent access | Calls above the access level fail with an error naming the level | P11 |
+| Secret leakage through MCP | 0 matches in the response scan | P11 |
+
+## Legal line
+
+- Cartouche is a launcher and a compatibility helper. It runs software the user already owns.
+- It has no feature that bypasses DRM. It does not detect, copy or apply cracks. It does not emulate Steam.
+- Nothing in the app, README, docs or website uses piracy wording. The installer feature is called "Install from a Windows installer".
+- It never links to ROM, BIOS or game download sites. Missing BIOS files are reported by name, with the text "Dump it from your own console".
+- UI copy for consoles says "your own game dumps".
+- Cartouche does not ship D3DMetal or Game Porting Toolkit files. It detects the user's own copy.
+- Anti-cheat is shown as Linux data from ProtonDB and AreWeAntiCheatYet. It is never presented as a Mac verdict.
+- The project is not affiliated with NotProton, Valve, Apple or CodeWeavers.
+- Community data keeps its licenses and is credited in the app: AppleGamingWiki (CC BY-NC-SA 3.0), ProtonDB export (ODbL), AreWeAntiCheatYet (MIT), MacGamingDB (MIT).
+
+## Interface rules
+
+From `FORK-PLAN.md` ("Règles d'interface"). Full rules will live in `docs/DESIGN.md` (P5).
+
+- A game panel answers: can I play, how fast, with which setup. The rest goes behind Details.
+- One performance number: the user's FPS if they played, else the estimate for their Mac.
+- No repeated information block. Sources are cited once, in Details.
+- A suggestion appears only when it changes something.
+- No section header for a single item.
+- No decoration without a role: no gradients, badges, star ratings or colors that carry no state.
+
+## Not decided
+
+- Which GitHub organization and repository host the appcast and releases.
+- Name of the personal Homebrew tap.
+- Channel used to export the Steam library from the injected Steam code (file or local route).
+- Default core per console, and whether RetroArch playlists are only imported or also written back.
+- Whether a controller mapping screen is built or RetroArch autoconfig is enough.
+- List view, real sorting, a full-screen game page, several Steam accounts on one Mac, keyboard navigation of the grid.
+- Success measures for P12 and P13: their OpenSpec changes are being written.
+- Whether the single scope stays as set on 2026-10-19.
