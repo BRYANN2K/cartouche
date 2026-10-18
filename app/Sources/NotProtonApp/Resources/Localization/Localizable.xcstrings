@@ -1,0 +1,6803 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    " NotProton can be deployed, but the CrossOver compatibility tool cannot be installed without a valid license." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " NotProton può essere installato, ma lo strumento di compatibilità di CrossOver non può essere installato senza una licenza valida."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " 可以部署 NotProton，但没有有效许可证时无法安装 CrossOver 兼容工具。"
+          }
+        }
+      }
+    },
+    " with %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " con %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "（使用 %@）"
+          }
+        }
+      }
+    },
+    "%@ and %@ both come from %@ but pin different hashes." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ e %2$@ vengono entrambi da %3$@ ma fissano hash diversi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 和 %@ 均来自 %@，但指定了不同的哈希值。"
+          }
+        }
+      }
+    },
+    "%@ at %@ spans %lld bytes, past the end of a %lld byte file." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ a %2$@ occupa %3$lld byte, oltre la fine di un file di %4$lld byte."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$@ 处的%1$@占用 %3$lld 字节，超出了文件的 %4$lld 字节长度。"
+          }
+        }
+      }
+    },
+    "%@ carries no entitlements to extend." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ non ha entitlement da estendere."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 不包含可扩展的授权项。"
+          }
+        }
+      }
+    },
+    "%@ could not be copied out of the prefix. The prefix has been left as it was and nothing has been lost. Check free space and permissions, then try again." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non è stato possibile copiare %@ fuori dal prefisso. Il prefisso è rimasto com'era e non è andato perso nulla. Controlla lo spazio libero e i permessi, poi riprova."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法从容器中复制 %@。容器保持原样，未丢失任何内容。请检查剩余空间和权限，然后重试。"
+          }
+        }
+      }
+    },
+    "%@ could not be read as a property list." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile leggere %@ come property list."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法将 %@ 读取为属性列表。"
+          }
+        }
+      }
+    },
+    "%@ could not be read. %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile leggere %1$@. %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法读取 %@。%@"
+          }
+        }
+      }
+    },
+    "%@ could not be signed. " : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile firmare %@. "
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法对 %@ 签名。"
+          }
+        }
+      }
+    },
+    "%@ could not be written. " : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile scrivere %@. "
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法写入 %@。"
+          }
+        }
+      }
+    },
+    "%@ did not contain %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ non conteneva %2$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 中不包含 %@。"
+          }
+        }
+      }
+    },
+    "%@ does not appear to have a prefix to back up." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ non sembra avere un prefisso di cui fare il backup."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 似乎没有可备份的游戏容器。"
+          }
+        }
+      }
+    },
+    "%@ does not verify against its own signature. " : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ non corrisponde alla propria firma. "
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 未通过自身签名验证。"
+          }
+        }
+      }
+    },
+    "%@ failed with status %d." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ non è riuscito (stato %2$d)."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 执行失败，状态码为 %d。"
+          }
+        }
+      }
+    },
+    "%@ failed with status %d: %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ non è riuscito (stato %2$d): %3$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 执行失败，状态码为 %d：%@"
+          }
+        }
+      }
+    },
+    "%@ has a broken signature" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ha una firma danneggiata"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 的签名损坏"
+          }
+        }
+      }
+    },
+    "%@ has no prefix at %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ non ha un prefisso in %2$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 在 %@ 处没有游戏容器。"
+          }
+        }
+      }
+    },
+    "%@ is already listed." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ è già nell'elenco."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 已在列表中。"
+          }
+        }
+      }
+    },
+    "%@ is left from a rebuild that did not finish and may hold the only copy of the saves. Move it somewhere safe, then try again." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ è rimasto da una ricostruzione non completata e potrebbe contenere l'unica copia dei salvataggi. Spostalo in un posto sicuro, poi riprova."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 是上次未完成重建留下的文件，可能保存着唯一的游戏存档。请先将其移到安全位置，然后重试。"
+          }
+        }
+      }
+    },
+    "%@ is missing the dyld entitlement" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A %@ manca l'entitlement dyld"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 缺少 dyld 授权项"
+          }
+        }
+      }
+    },
+    "%@ is not Steam." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ non è Steam."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 不是 Steam。"
+          }
+        }
+      }
+    },
+    "%@ is not a Windows program. Pick an exe, msi, bat or cmd file." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ non è un programma Windows. Scegli un file exe, msi, bat o cmd."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 不是 Windows 程序。请选择 exe、msi、bat 或 cmd 文件。"
+          }
+        }
+      }
+    },
+    "%@ is not a supported build. Supported: %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ non è una build supportata. Supportate: %2$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不支持构建版本 %@。支持的版本：%@。"
+          }
+        }
+      }
+    },
+    "%@ is not a valid copy of CrossOver." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ non è una copia valida di CrossOver."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 不是有效的 CrossOver 应用。"
+          }
+        }
+      }
+    },
+    "%@ is not signed by Valve. Expected TeamIdentifier=%@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ non è firmato da Valve. Atteso TeamIdentifier=%2$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 并非由 Valve 签名。预期 TeamIdentifier=%@。"
+          }
+        }
+      }
+    },
+    "%@ is not the Steam bundle. Expected Identifier=%@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ non è il bundle di Steam. Atteso Identifier=%2$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 不是 Steam 应用包。预期 Identifier=%@。"
+          }
+        }
+      }
+    },
+    "%@ is not there, so there is nothing to install into." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ non c'è, quindi non c'è niente in cui installare."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 不存在，无法安装。"
+          }
+        }
+      }
+    },
+    "%@ is running. Quit the game first." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ è in esecuzione. Esci prima dal gioco."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 正在运行。请先退出游戏。"
+          }
+        }
+      }
+    },
+    "%@ names the package %@, which is not declared. Declared: %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ indica il pacchetto %2$@, che non è dichiarato. Dichiarati: %3$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 指定了未声明的软件包 %@。已声明：%@。"
+          }
+        }
+      }
+    },
+    "%@ templates %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modelli %1$@ %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 模板 %@"
+          }
+        }
+      }
+    },
+    "%@ was last run by %@, which is no longer set up. Rebuild the prefix first." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ è stato avviato l'ultima volta con %2$@, che non è più configurato. Ricostruisci prima il prefisso."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 上次使用 %@ 运行，但该兼容工具已不可用。请先重建游戏容器。"
+          }
+        }
+      }
+    },
+    "%@ was re-signed without the dyld entitlement." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ è stato rifirmato senza l'entitlement dyld."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 重新签名后缺少 dyld 授权项。"
+          }
+        }
+      }
+    },
+    "%@, %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$@"
+          }
+        }
+      },
+      "shouldTranslate" : false
+    },
+    "%@, %@ private size" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, dimensione %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@，独占空间 %@"
+          }
+        }
+      }
+    },
+    "%@.%@ is missing from the app's resources." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@.%2$@ manca dalle risorse dell'app."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "应用资源中缺少 %@.%@。"
+          }
+        }
+      }
+    },
+    "%@.bin could not be read. %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile leggere %1$@.bin. %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法读取 %@.bin。%@"
+          }
+        }
+      }
+    },
+    "%@.bin hashes %@ and should hash %@, so the shipped detour is not the one that was built." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'hash di %1$@.bin è %2$@ e dovrebbe essere %3$@: il detour incluso non è quello compilato."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@.bin 的哈希值为 %@，预期为 %@；附带的跳转补丁与构建结果不一致。"
+          }
+        }
+      }
+    },
+    "%@.bin is missing from the app's resources." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@.bin manca dalle risorse dell'app."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "应用资源中缺少 %@.bin。"
+          }
+        }
+      }
+    },
+    "%@/%@ is missing" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@/%2$@ manca"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缺少 %@/%@"
+          }
+        }
+      }
+    },
+    "%@/%@ is not in the bridge. Install NotProton first." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@/%2$@ non è nel bridge. Installa prima NotProton."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "桥接组件中没有 %@/%@。请先安装 NotProton。"
+          }
+        }
+      }
+    },
+    "%@/%@ is not the build %@ copy. Expected %@, found %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@/%2$@ non è la copia della build %3$@. Atteso %4$@, trovato %5$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@/%@ 不属于构建版本 %@。预期为 %@，实际为 %@。"
+          }
+        }
+      }
+    },
+    "%@/%@ is out of date" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@/%2$@ non è aggiornato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@/%@ 已过期"
+          }
+        }
+      }
+    },
+    "%@/ntdll.dll is missing" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@/ntdll.dll manca"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缺少 %@/ntdll.dll"
+          }
+        }
+      }
+    },
+    "%@/ntdll.dll is missing from %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@/ntdll.dll manca da %2$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$@ 中缺少 %1$@/ntdll.dll。"
+          }
+        }
+      }
+    },
+    "%@/ntdll.dll is not the patched copy" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@/ntdll.dll non è la copia con la patch"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@/ntdll.dll 不是已修补的副本"
+          }
+        }
+      }
+    },
+    "%lld backups" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld backup"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 个备份"
+          }
+        }
+      }
+    },
+    ", copy damaged" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ", copia danneggiata"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "，副本已损坏"
+          }
+        }
+      }
+    },
+    ", not patched" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ", patch non applicata"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "，尚未修补"
+          }
+        }
+      }
+    },
+    ", not set up" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ", non configurata"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "，尚未设置"
+          }
+        }
+      }
+    },
+    ", not set up or activated" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ", non configurata né attivata"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "，尚未设置或激活"
+          }
+        }
+      }
+    },
+    ", not supported" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ", non supportata"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "，不受支持"
+          }
+        }
+      }
+    },
+    "1 backup" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 backup"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 个备份"
+          }
+        }
+      }
+    },
+    "A Steam client update may break NotProton." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un aggiornamento del client Steam potrebbe rendere NotProton inutilizzabile."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 客户端更新可能导致 NotProton 无法使用。"
+          }
+        }
+      }
+    },
+    "A game or Wine tool is running on build %@. Quit it before updating NotProton." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un gioco o uno strumento di Wine è in esecuzione sulla build %@. Chiudilo prima di aggiornare NotProton."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有游戏或 Wine 工具正在使用构建版本 %@。请先退出，再更新 NotProton。"
+          }
+        }
+      }
+    },
+    "A game or Wine tool is running. Quit it before updating NotProton." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un gioco o uno strumento di Wine è in esecuzione. Chiudilo prima di aggiornare NotProton."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有游戏或 Wine 工具正在运行。请先退出，再更新 NotProton。"
+          }
+        }
+      }
+    },
+    "A game or Wine tool is still running on build %@. Quit it first." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un gioco o uno strumento di Wine è ancora in esecuzione sulla build %@. Chiudilo prima."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仍有游戏或 Wine 工具正在使用构建版本 %@。请先退出。"
+          }
+        }
+      }
+    },
+    "A header field" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un campo dell'intestazione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "头字段"
+          }
+        }
+      }
+    },
+    "A hook site of %lld bytes cannot hold a branch and link." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un punto di aggancio di %lld byte non può contenere un branch and link."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 字节的挂钩位置无法容纳分支链接指令。"
+          }
+        }
+      }
+    },
+    "A hook site of %lld bytes cannot hold a relative jump." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un punto di aggancio di %lld byte non può contenere un salto relativo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 字节的挂钩位置无法容纳相对跳转指令。"
+          }
+        }
+      }
+    },
+    "A newer NotProton build is installed. Use that build to update or repair the installed files." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "È installata una build più recente di NotProton. Usa quella build per aggiornare o riparare i file installati."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已安装较新的 NotProton 版本。请使用该版本更新或修复已安装的文件。"
+          }
+        }
+      }
+    },
+    "A newer build is installed." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "È installata una build più recente."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已安装较新的版本。"
+          }
+        }
+      }
+    },
+    "A prefix appears here once a Windows game has been launched through NotProton." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un prefisso compare qui dopo che un gioco Windows è stato avviato tramite NotProton."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通过 NotProton 启动 Windows 游戏后，对应的游戏容器就会显示在这里。"
+          }
+        }
+      }
+    },
+    "Add" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加"
+          }
+        }
+      }
+    },
+    "Add CrossOver…" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi CrossOver…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加 CrossOver…"
+          }
+        }
+      }
+    },
+    "Add a copy of CrossOver from another folder." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi una copia di CrossOver da un'altra cartella."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从其他文件夹添加 CrossOver 应用。"
+          }
+        }
+      }
+    },
+    "Allow Client Updates" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consenti aggiornamenti del client"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许客户端更新"
+          }
+        }
+      }
+    },
+    "Allowing Steam client updates" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riattivazione degli aggiornamenti del client Steam"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在允许 Steam 客户端更新"
+          }
+        }
+      }
+    },
+    "Another dylib is present." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "È presente un'altra dylib."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "检测到其他动态库。"
+          }
+        }
+      }
+    },
+    "Another dylib is present. Repair your Steam install before installing NotProton." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "È presente un'altra dylib. Ripara l'installazione di Steam prima di installare NotProton."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "检测到其他动态库。请先修复 Steam，再安装 NotProton。"
+          }
+        }
+      }
+    },
+    "Another installation operation is changing files here. Wait for it to finish." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un'altra operazione di installazione sta modificando questi file. Attendi che finisca."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "另一项安装操作正在修改此处的文件。请等待该操作完成。"
+          }
+        }
+      }
+    },
+    "Any data in it will be lost." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tutti i dati che contiene andranno persi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其中的所有数据都将丢失。"
+          }
+        }
+      }
+    },
+    "Any data in them will be lost." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tutti i dati che contengono andranno persi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这些备份中的所有数据都将丢失。"
+          }
+        }
+      }
+    },
+    "App %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "应用 %@"
+          }
+        }
+      }
+    },
+    "App ID" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ID app"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "应用 ID"
+          }
+        }
+      }
+    },
+    "Are you sure you want to back up these prefixes?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vuoi davvero fare il backup di questi prefissi?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确定要备份这些游戏容器吗？"
+          }
+        }
+      }
+    },
+    "Are you sure you want to back up this prefix?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vuoi davvero fare il backup di questo prefisso?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确定要备份此游戏容器吗？"
+          }
+        }
+      }
+    },
+    "Are you sure you want to delete these %lld backups?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vuoi davvero eliminare questi %lld backup?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确定要删除这 %lld 个备份吗？"
+          }
+        }
+      }
+    },
+    "Are you sure you want to delete this backup?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vuoi davvero eliminare questo backup?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确定要删除此备份吗？"
+          }
+        }
+      }
+    },
+    "Are you sure you want to do this?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vuoi davvero procedere?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确定要继续吗？"
+          }
+        }
+      }
+    },
+    "Back Up %lld Prefixes" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup di %lld prefissi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "备份 %lld 个游戏容器"
+          }
+        }
+      }
+    },
+    "Back Up Prefix" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup del prefisso"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "备份游戏容器"
+          }
+        }
+      }
+    },
+    "Back Up and Rebuild" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup e ricostruzione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "备份并重建"
+          }
+        }
+      }
+    },
+    "Back Up and Rebuild %lld Prefixes" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup e ricostruzione di %lld prefissi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "备份并重建 %lld 个游戏容器"
+          }
+        }
+      }
+    },
+    "Back up %lld prefixes?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fare il backup di %lld prefissi?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "备份 %lld 个游戏容器？"
+          }
+        }
+      }
+    },
+    "Back up prefix" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup del prefisso"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "备份游戏容器"
+          }
+        }
+      }
+    },
+    "Back up prefix?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fare il backup del prefisso?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "备份游戏容器？"
+          }
+        }
+      }
+    },
+    "Back up the prefix for %@?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fare il backup del prefisso di %@?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "备份“%@”的游戏容器？"
+          }
+        }
+      }
+    },
+    "Backed up" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup eseguito"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "备份时间"
+          }
+        }
+      }
+    },
+    "Backed up %lld prefixes." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup di %lld prefissi eseguito."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已备份 %lld 个游戏容器。"
+          }
+        }
+      }
+    },
+    "Backed up the prefix for %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup del prefisso di %@ eseguito."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已备份“%@”的游戏容器。"
+          }
+        }
+      }
+    },
+    "Block Client Updates" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blocca aggiornamenti del client"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "阻止客户端更新"
+          }
+        }
+      }
+    },
+    "Block Steam client updates" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blocca gli aggiornamenti del client Steam"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "阻止 Steam 客户端更新"
+          }
+        }
+      }
+    },
+    "Block Steam client updates?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bloccare gli aggiornamenti del client Steam?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "阻止 Steam 客户端更新？"
+          }
+        }
+      }
+    },
+    "Block Updates" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blocca aggiornamenti"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "阻止更新"
+          }
+        }
+      }
+    },
+    "Block client updates" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blocco degli aggiornamenti del client"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "阻止客户端更新"
+          }
+        }
+      }
+    },
+    "Blocking Steam client updates" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blocco degli aggiornamenti del client Steam"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在阻止 Steam 客户端更新"
+          }
+        }
+      }
+    },
+    "Build %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Build %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "构建版本 %@"
+          }
+        }
+      }
+    },
+    "Build %@ has not been set up." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La build %@ non è stata configurata."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未设置构建版本 %@。"
+          }
+        }
+      }
+    },
+    "Build %@ is not set up." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La build %@ non è configurata."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未设置构建版本 %@。"
+          }
+        }
+      }
+    },
+    "Build %@ records no %@ ntdll hashes." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La build %1$@ non registra hash ntdll %2$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "构建版本 %@ 未记录 %@ ntdll 的哈希值。"
+          }
+        }
+      }
+    },
+    "Calculating…" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Calcolo in corso…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在计算…"
+          }
+        }
+      }
+    },
+    "Cancel" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annulla"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消"
+          }
+        }
+      }
+    },
+    "Check for Updates…" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controlla aggiornamenti…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "检查更新…"
+          }
+        }
+      }
+    },
+    "Check installed files" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controllo dei file installati"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "检查已安装的文件"
+          }
+        }
+      }
+    },
+    "Check permissions, make sure your user owns the folder." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controlla i permessi: la cartella deve appartenere al tuo utente."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请检查权限，确认当前用户拥有该文件夹。"
+          }
+        }
+      }
+    },
+    "Checking" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controllo in corso"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在检查"
+          }
+        }
+      }
+    },
+    "Checking Steam" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controllo di Steam"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在检查 Steam"
+          }
+        }
+      }
+    },
+    "Choose" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择"
+          }
+        }
+      }
+    },
+    "Choose a Windows program to run in %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli un programma Windows da eseguire in %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择要在“%@”中运行的 Windows 程序。"
+          }
+        }
+      }
+    },
+    "Choose…" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择…"
+          }
+        }
+      }
+    },
+    "Cleaning up" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulizia"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在清理"
+          }
+        }
+      }
+    },
+    "Clear Steam's controller permission so macOS asks for it again." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Azzera il permesso dei controller di Steam, così macOS lo chiede di nuovo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除 Steam 的控制器权限，让 macOS 重新询问授权。"
+          }
+        }
+      }
+    },
+    "Clone CrossOver" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copia di CrossOver"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制 CrossOver"
+          }
+        }
+      }
+    },
+    "Close Steam before continuing." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chiudi Steam prima di continuare."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先关闭 Steam，再继续。"
+          }
+        }
+      }
+    },
+    "Compatibility Tool" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strumento di compatibilità"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "兼容工具"
+          }
+        }
+      }
+    },
+    "Compatibility tool is already set up." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lo strumento di compatibilità è già configurato."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "兼容工具已设置，无需重复操作。"
+          }
+        }
+      }
+    },
+    "Compatibility tool ready." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strumento di compatibilità pronto."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "兼容工具已就绪。"
+          }
+        }
+      }
+    },
+    "Compatibility tool ready. %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strumento di compatibilità pronto. %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "兼容工具已就绪。%@"
+          }
+        }
+      }
+    },
+    "Component list unreadable." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elenco dei componenti illeggibile."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法读取组件列表。"
+          }
+        }
+      }
+    },
+    "Components" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Componenti"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "组件"
+          }
+        }
+      }
+    },
+    "Configuring Steam" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurazione di Steam"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在配置 Steam"
+          }
+        }
+      }
+    },
+    "Continue Anyway" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continua comunque"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仍然继续"
+          }
+        }
+      }
+    },
+    "Controller permission" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permesso dei controller"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "控制器权限"
+          }
+        }
+      }
+    },
+    "Controller permission reset. Restart Steam so macOS asks again." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permesso dei controller azzerato. Riavvia Steam perché macOS lo chieda di nuovo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "控制器权限已重置。请重启 Steam，让 macOS 重新询问权限。"
+          }
+        }
+      }
+    },
+    "Controller permission reset. macOS asks again when Steam starts." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permesso dei controller azzerato. macOS lo chiederà di nuovo all'avvio di Steam."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "控制器权限已重置。下次启动 Steam 时，macOS 将重新询问权限。"
+          }
+        }
+      }
+    },
+    "Copies on other drives %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copie su altri dischi %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其他磁盘上的副本 %@"
+          }
+        }
+      }
+    },
+    "Copy %@ again." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copia di nuovo %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新复制 %@。"
+          }
+        }
+      }
+    },
+    "Copy %@ and set up its compatibility tool." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copia %@ e configura il suo strumento di compatibilità."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制 %@ 并设置其兼容工具。"
+          }
+        }
+      }
+    },
+    "Copy the built bridge files" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copia dei file del bridge"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制已构建的桥接文件"
+          }
+        }
+      }
+    },
+    "Copying %@ failed. %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La copia di %1$@ non è riuscita. %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制 %@ 失败。%@"
+          }
+        }
+      }
+    },
+    "Copying CrossOver" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copia di CrossOver"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在复制 CrossOver"
+          }
+        }
+      }
+    },
+    "Could not check installed files." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile controllare i file installati."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法检查已安装的文件。"
+          }
+        }
+      }
+    },
+    "Could not clean prefix templates at %@: %@ Refresh to retry." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile pulire i modelli di prefisso in %1$@: %2$@ Aggiorna per riprovare."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法清理 %@ 处的容器模板：%@ 请刷新后重试。"
+          }
+        }
+      }
+    },
+    "Could not lock the installation at %@: %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile bloccare l'installazione in %1$@: %2$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法锁定 %@ 处的安装：%@。"
+          }
+        }
+      }
+    },
+    "Could not remove prefix template %@: %@ Refresh to retry." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile rimuovere il modello di prefisso %1$@: %2$@ Aggiorna per riprovare."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法移除容器模板 %@：%@ 请刷新后重试。"
+          }
+        }
+      }
+    },
+    "Could not write files." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile scrivere i file."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法写入文件。"
+          }
+        }
+      }
+    },
+    "CrossOver" : {
+      "shouldTranslate" : false
+    },
+    "CrossOver app not found." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App CrossOver non trovata."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未找到 CrossOver 应用。"
+          }
+        }
+      }
+    },
+    "CrossOver does not appear to be activated." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CrossOver non sembra attivato."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CrossOver 似乎尚未激活。"
+          }
+        }
+      }
+    },
+    "CrossOver is activated." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CrossOver è attivato."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CrossOver 已激活。"
+          }
+        }
+      }
+    },
+    "CrossOver itself is not removed." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CrossOver non viene rimosso."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不会移除 CrossOver 原应用。"
+          }
+        }
+      }
+    },
+    "Delete" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elimina"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除"
+          }
+        }
+      }
+    },
+    "Delete %lld Backups" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elimina %lld backup"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除 %lld 个备份"
+          }
+        }
+      }
+    },
+    "Delete %lld Prefixes" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elimina %lld prefissi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除 %lld 个游戏容器"
+          }
+        }
+      }
+    },
+    "Delete %lld backups?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminare %lld backup?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除 %lld 个备份？"
+          }
+        }
+      }
+    },
+    "Delete %lld prefixes?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminare %lld prefissi?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除 %lld 个游戏容器？"
+          }
+        }
+      }
+    },
+    "Delete All" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elimina tutti"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部删除"
+          }
+        }
+      }
+    },
+    "Delete Backup" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elimina backup"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除备份"
+          }
+        }
+      }
+    },
+    "Delete NotProton's copy of this build." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elimina la copia di NotProton di questa build."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除 NotProton 保存的此版本副本。"
+          }
+        }
+      }
+    },
+    "Delete Prefix" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elimina prefisso"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除游戏容器"
+          }
+        }
+      }
+    },
+    "Delete backup?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminare il backup?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除备份？"
+          }
+        }
+      }
+    },
+    "Delete every backup that rebuilds have kept." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elimina tutti i backup conservati dalle ricostruzioni."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除重建时保留的所有备份。"
+          }
+        }
+      }
+    },
+    "Delete prefix" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminazione del prefisso"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除游戏容器"
+          }
+        }
+      }
+    },
+    "Delete prefix?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminare il prefisso?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除游戏容器？"
+          }
+        }
+      }
+    },
+    "Delete the backup for %@?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminare il backup di %@?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除“%@”的备份？"
+          }
+        }
+      }
+    },
+    "Delete the prefix for %@?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminare il prefisso di %@?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除“%@”的游戏容器？"
+          }
+        }
+      }
+    },
+    "Delete the selected backups." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elimina i backup selezionati."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除所选备份。"
+          }
+        }
+      }
+    },
+    "Deleted %lld backups across %lld prefixes." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminati %1$lld backup di %2$lld prefissi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已删除 %2$lld 个游戏容器的 %1$lld 个备份。"
+          }
+        }
+      }
+    },
+    "Deleted %lld backups for %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminati %1$lld backup di %2$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已删除“%2$@”的 %1$lld 个备份。"
+          }
+        }
+      }
+    },
+    "Deleted %lld prefixes. Steam will make a new prefix if a game is launched again." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminati %lld prefissi. Steam creerà un nuovo prefisso se un gioco viene riavviato."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已删除 %lld 个游戏容器。下次启动游戏时，Steam 将创建新容器。"
+          }
+        }
+      }
+    },
+    "Deleted the backup for %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminato il backup di %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已删除“%@”的备份。"
+          }
+        }
+      }
+    },
+    "Deleted the prefix for %@. Steam will make a new prefix if the game is launched again." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminato il prefisso di %@. Steam creerà un nuovo prefisso se il gioco viene riavviato."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已删除“%@”的游戏容器。下次启动该游戏时，Steam 将创建新容器。"
+          }
+        }
+      }
+    },
+    "Detaching from Steam" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Distacco da Steam"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在解除与 Steam 的关联"
+          }
+        }
+      }
+    },
+    "Done" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fatto"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已完成"
+          }
+        }
+      }
+    },
+    "Download missing Valve binaries." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scarica i binari di Valve mancanti."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载缺失的 Valve 组件。"
+          }
+        }
+      }
+    },
+    "Downloaded missing components." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Componenti mancanti scaricati."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已下载缺失的组件。"
+          }
+        }
+      }
+    },
+    "Downloading from %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download da %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在从 %@ 下载"
+          }
+        }
+      }
+    },
+    "Downloading missing components" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download dei componenti mancanti"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在下载缺失的组件"
+          }
+        }
+      }
+    },
+    "Enter at least one verb, like vcrun2022." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserisci almeno un verbo, ad esempio vcrun2022."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请至少输入一个组件，例如 vcrun2022。"
+          }
+        }
+      }
+    },
+    "Enter the Winetricks verbs to install in %@, separated by spaces." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserisci i verbi di Winetricks da installare in %@, separati da spazi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入要安装到“%@”中的 Winetricks 组件，用空格分隔。"
+          }
+        }
+      }
+    },
+    "Extracting" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estrazione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在解压"
+          }
+        }
+      }
+    },
+    "Failed" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non riuscito"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "操作失败"
+          }
+        }
+      }
+    },
+    "Fetch Valve Binaries" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scarica binari di Valve"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载 Valve 组件"
+          }
+        }
+      }
+    },
+    "Fetch the Valve binaries" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download dei binari di Valve"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载 Valve 组件"
+          }
+        }
+      }
+    },
+    "Find NotProton's components" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ricerca dei componenti di NotProton"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查找 NotProton 组件"
+          }
+        }
+      }
+    },
+    "Finishing up" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completamento"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在完成收尾工作"
+          }
+        }
+      }
+    },
+    "Game" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gioco"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "游戏"
+          }
+        }
+      }
+    },
+    "If NotProton is installed there, it will stay installed. Continue anyway?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se NotProton è installato lì, resterà installato. Continuare comunque?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果 NotProton 安装在那里，它将保持安装状态。仍要继续吗？"
+          }
+        }
+      }
+    },
+    "Install" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installa"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装"
+          }
+        }
+      }
+    },
+    "Install NotProton" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installazione di NotProton"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装 NotProton"
+          }
+        }
+      }
+    },
+    "Install NotProton into Steam." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installa NotProton in Steam."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将 NotProton 安装到 Steam。"
+          }
+        }
+      }
+    },
+    "Installation is blocked. Refresh Status and use the NotProton app that installed this build." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'installazione è bloccata. Aggiorna lo Stato e usa l'app NotProton che ha installato questa build."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装已被阻止。请刷新“状态”页面，并使用此前安装此版本的 NotProton 应用。"
+          }
+        }
+      }
+    },
+    "Installed" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已安装"
+          }
+        }
+      }
+    },
+    "Installed content could not be verified. Refresh the Status view for the files that still need attention." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non è stato possibile verificare il contenuto installato. Aggiorna la vista Stato per vedere i file che richiedono ancora attenzione."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法验证已安装的内容。请刷新“状态”页面，查看仍需处理的文件。"
+          }
+        }
+      }
+    },
+    "Installed files differ from this build." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I file installati sono diversi da questa build."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已安装的文件与此版本不一致。"
+          }
+        }
+      }
+    },
+    "Installing" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installazione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在安装"
+          }
+        }
+      }
+    },
+    "Installing compatibility tool" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installazione dello strumento di compatibilità"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在安装兼容工具"
+          }
+        }
+      }
+    },
+    "Installing components" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installazione dei componenti"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在安装组件"
+          }
+        }
+      }
+    },
+    "Installing signatures" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installazione delle firme"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在安装签名数据库"
+          }
+        }
+      }
+    },
+    "It will replace the DLLs used by CrossOver with ones that match your compatibility tool." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sostituisce le DLL usate da CrossOver con quelle adatte al tuo strumento di compatibilità."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "它会将 CrossOver 使用的 DLL 替换为与当前兼容工具匹配的版本。"
+          }
+        }
+      }
+    },
+    "Its output was still open when it exited, so none was captured." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il suo output era ancora aperto quando è uscito, quindi non è stato registrato nulla."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "进程退出后输出通道仍未关闭，因此未能捕获输出。"
+          }
+        }
+      }
+    },
+    "Keeping the shipped %@ failed. " : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conservare %@ incluso non è riuscito. "
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法保留随附的 %@。"
+          }
+        }
+      }
+    },
+    "Last used" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ultimo uso"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上次使用"
+          }
+        }
+      }
+    },
+    "Launch Log" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log di avvio"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启动日志"
+          }
+        }
+      }
+    },
+    "Library" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Libreria"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "游戏库"
+          }
+        }
+      }
+    },
+    "Line %lld %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riga %1$lld %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第 %lld 行：%@"
+          }
+        }
+      }
+    },
+    "Line %lld has an unknown origin %@. Known: %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La riga %1$lld ha un'origine sconosciuta %2$@. Note: %3$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第 %lld 行包含未知来源 %@。已知来源：%@。"
+          }
+        }
+      }
+    },
+    "Line %lld is not an origin and a path: %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La riga %1$lld non è un'origine con un percorso: %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第 %lld 行不是有效的来源和路径：%@"
+          }
+        }
+      }
+    },
+    "Line %lld repeats %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La riga %1$lld ripete %2$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第 %lld 行重复声明了 %@。"
+          }
+        }
+      }
+    },
+    "List the backups again and update their sizes." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rielenca i backup e aggiorna le loro dimensioni."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新列出备份并更新大小。"
+          }
+        }
+      }
+    },
+    "List the prefixes again and update their sizes." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rielenca i prefissi e aggiorna le loro dimensioni."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新列出游戏容器并更新大小。"
+          }
+        }
+      }
+    },
+    "Location" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Posizione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "位置"
+          }
+        }
+      }
+    },
+    "Looking for backups" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ricerca dei backup"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在查找备份"
+          }
+        }
+      }
+    },
+    "Looking for prefixes" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ricerca dei prefissi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在查找游戏容器"
+          }
+        }
+      }
+    },
+    "Missing components: %@. Run make app-payload and build the app again." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Componenti mancanti: %@. Esegui make app-payload e compila di nuovo l'app."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缺少组件：%@。请运行 make app-payload，然后重新构建应用。"
+          }
+        }
+      }
+    },
+    "Missing." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mancante."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缺失。"
+          }
+        }
+      }
+    },
+    "Missing: %@. Install to restore these files for your macOS user." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mancano: %@. Installa per ripristinare questi file per il tuo utente macOS."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缺少：%@。请点击“安装”，为当前 macOS 用户恢复这些文件。"
+          }
+        }
+      }
+    },
+    "More" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Altro"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更多"
+          }
+        }
+      }
+    },
+    "More actions" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Altre azioni"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更多操作"
+          }
+        }
+      }
+    },
+    "More actions, %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Altre azioni, %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更多操作，%@"
+          }
+        }
+      }
+    },
+    "Needs rebuilding" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Da ricostruire"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要重建"
+          }
+        }
+      }
+    },
+    "Never" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mai"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从未使用"
+          }
+        }
+      }
+    },
+    "No Backups" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun backup"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无备份"
+          }
+        }
+      }
+    },
+    "No Prefixes" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun prefisso"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无游戏容器"
+          }
+        }
+      }
+    },
+    "No compatibility tool at %@. Use Set Up Compatibility Tool first." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessuno strumento di compatibilità in %@. Usa prima Configura strumento di compatibilità."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 处没有兼容工具。请先执行“设置兼容工具”。"
+          }
+        }
+      }
+    },
+    "No compatibility tool is set up." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessuno strumento di compatibilità configurato."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未设置兼容工具。"
+          }
+        }
+      }
+    },
+    "No file at %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun file in %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 处没有文件。"
+          }
+        }
+      }
+    },
+    "No longer installed" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non più installato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已卸载"
+          }
+        }
+      }
+    },
+    "No supported copy of CrossOver found." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessuna copia supportata di CrossOver trovata."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未找到受支持的 CrossOver 应用。"
+          }
+        }
+      }
+    },
+    "None" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessuno"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无"
+          }
+        }
+      }
+    },
+    "Not found. Supported: %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non trovato. Supportati: %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未找到。支持的版本：%@。"
+          }
+        }
+      }
+    },
+    "Not installed." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non installato."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未安装。"
+          }
+        }
+      }
+    },
+    "Not yet deployed." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non ancora installati."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未部署。"
+          }
+        }
+      }
+    },
+    "NotProton" : {
+      "shouldTranslate" : false
+    },
+    "NotProton Components" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Componenti di NotProton"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NotProton 组件"
+          }
+        }
+      }
+    },
+    "NotProton cannot use Steam from a folder with a colon in its name." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NotProton non può usare Steam da una cartella con i due punti nel nome."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NotProton 无法使用名称中含有冒号的文件夹中的 Steam。"
+          }
+        }
+      }
+    },
+    "NotProton carries no components." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NotProton non contiene componenti."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NotProton 未包含任何组件。"
+          }
+        }
+      }
+    },
+    "NotProton could not download the files it needs from %@. Please try again later." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NotProton non è riuscito a scaricare da %@ i file che gli servono. Riprova più tardi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NotProton 无法从 %@ 下载所需文件。请稍后重试。"
+          }
+        }
+      }
+    },
+    "NotProton could not reach %@'s servers. Please check your internet connection and try again." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NotProton non è riuscito a raggiungere i server di %@. Controlla la connessione a internet e riprova."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NotProton 无法连接 %@ 服务器。请检查网络连接，然后重试。"
+          }
+        }
+      }
+    },
+    "NotProton does not run %@ with Winetricks." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NotProton non esegue %@ con Winetricks."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NotProton 不会通过 Winetricks 运行 %@。"
+          }
+        }
+      }
+    },
+    "NotProton has been partially removed, because Steam at %@ cannot be found. Delete that copy of Steam and reinstall it to fully remove NotProton." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NotProton è stato rimosso solo in parte, perché Steam in %@ non si trova. Elimina quella copia di Steam e reinstallala per rimuovere del tutto NotProton."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NotProton 仅被部分移除，因为找不到位于 %@ 的 Steam。请删除该 Steam 并重新安装，以完全移除 NotProton。"
+          }
+        }
+      }
+    },
+    "NotProton has been removed." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NotProton è stato rimosso."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NotProton 已移除。"
+          }
+        }
+      }
+    },
+    "NotProton has been removed. Steam could not be restored. Reinstall Steam from steampowered.com before using it again." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NotProton è stato rimosso. Non è stato possibile ripristinare Steam: reinstallalo da steampowered.com prima di usarlo di nuovo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NotProton 已移除，但需要重新下载 Steam。请联网后再次执行“修复 Steam”。"
+          }
+        }
+      }
+    },
+    "NotProton is installed in %@. Use Repair Steam to remove it before choosing another copy of Steam." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NotProton è installato in %@. Usa Ripara Steam per rimuoverlo prima di scegliere un'altra copia di Steam."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NotProton 已安装在 %@ 中。请先使用“修复 Steam”将其移除，再选择另一份 Steam。"
+          }
+        }
+      }
+    },
+    "NotProton needs the App Management permission." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NotProton ha bisogno del permesso Gestione app."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NotProton 需要“App 管理”权限。"
+          }
+        }
+      }
+    },
+    "NotProton successfully installed." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NotProton installato correttamente."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NotProton 安装成功。"
+          }
+        }
+      }
+    },
+    "OK" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "好"
+          }
+        }
+      }
+    },
+    "Open %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apertura di %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开%@"
+          }
+        }
+      }
+    },
+    "Open CrossOver to activate it." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri CrossOver per attivarlo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请打开 CrossOver 完成激活。"
+          }
+        }
+      }
+    },
+    "Open Log" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri il log"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开日志"
+          }
+        }
+      }
+    },
+    "Open System Settings" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri Impostazioni di Sistema"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开系统设置"
+          }
+        }
+      }
+    },
+    "Opened %@ in %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aperto %1$@ in %2$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已在“%2$@”中打开%1$@。"
+          }
+        }
+      }
+    },
+    "Overlay shim" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shim dell'overlay"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "游戏叠加层适配组件"
+          }
+        }
+      }
+    },
+    "Patch ntdll" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Patch di ntdll"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "修补 ntdll"
+          }
+        }
+      }
+    },
+    "Patch the compatibility tool" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Patch dello strumento di compatibilità"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "修补兼容工具"
+          }
+        }
+      }
+    },
+    "Patched components are missing." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mancano componenti con la patch."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缺少已修补的组件。"
+          }
+        }
+      }
+    },
+    "Patching" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Applicazione della patch"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在应用补丁"
+          }
+        }
+      }
+    },
+    "Please run CrossOver and try again." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avvia CrossOver e riprova."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先运行 CrossOver，然后重试。"
+          }
+        }
+      }
+    },
+    "Prefix" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prefisso"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "游戏容器"
+          }
+        }
+      }
+    },
+    "Prefix Backups" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup dei prefissi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "容器备份"
+          }
+        }
+      }
+    },
+    "Prefixes" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prefissi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "游戏容器"
+          }
+        }
+      }
+    },
+    "Preparing" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparazione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在准备"
+          }
+        }
+      }
+    },
+    "Private Size" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimensione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "独占空间"
+          }
+        }
+      }
+    },
+    "RVA %@ falls in no mapped section of the %@ ntdll, so the %@ cannot be located." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'RVA %1$@ non cade in nessuna sezione mappata dell'ntdll %2$@, quindi non si trova %3$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RVA %@ 不在 %@ ntdll 的任何已映射节内，无法定位%@。"
+          }
+        }
+      }
+    },
+    "Read the Valve file list" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lettura dell'elenco dei file di Valve"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "读取 Valve 文件列表"
+          }
+        }
+      }
+    },
+    "Read the component list" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lettura dell'elenco dei componenti"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "读取组件列表"
+          }
+        }
+      }
+    },
+    "Ready." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pronti."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已就绪。"
+          }
+        }
+      }
+    },
+    "Rebuild %lld Prefixes" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ricostruisci %lld prefissi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重建 %lld 个游戏容器"
+          }
+        }
+      }
+    },
+    "Rebuild %lld Prefixes Without Backing Up" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ricostruisci %lld prefissi senza backup"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不备份，直接重建 %lld 个游戏容器"
+          }
+        }
+      }
+    },
+    "Rebuild %lld prefixes%@?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ricostruire %1$lld prefissi%2$@?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重建 %lld 个游戏容器%@？"
+          }
+        }
+      }
+    },
+    "Rebuild Prefix" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ricostruisci prefisso"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重建游戏容器"
+          }
+        }
+      }
+    },
+    "Rebuild Without Backing Up" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ricostruisci senza backup"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不备份，直接重建"
+          }
+        }
+      }
+    },
+    "Rebuild prefix%@?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ricostruire il prefisso%@?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重建游戏容器%@？"
+          }
+        }
+      }
+    },
+    "Rebuild the prefix for %@%@?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ricostruire il prefisso di %1$@%2$@?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重建“%@”的游戏容器%@？"
+          }
+        }
+      }
+    },
+    "Rebuilt %lld prefixes." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ricostruiti %lld prefissi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已重建 %lld 个游戏容器。"
+          }
+        }
+      }
+    },
+    "Rebuilt %lld prefixes. Each original is kept beside the game's prefix. Check that your saves are present in the games, then delete the backups to save space." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ricostruiti %lld prefissi. Ogni originale è conservato accanto al prefisso del gioco. Controlla che i salvataggi siano presenti nei giochi, poi elimina i backup per liberare spazio."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已重建 %lld 个游戏容器。各原容器均保存在对应游戏容器旁。请先进入游戏确认存档正常，再删除备份以释放空间。"
+          }
+        }
+      }
+    },
+    "Rebuilt the prefix for %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ricostruito il prefisso di %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已重建“%@”的游戏容器。"
+          }
+        }
+      }
+    },
+    "Rebuilt the prefix for %@. The original is at %@. Check that your save is present in the game, then delete the backup to save space." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ricostruito il prefisso di %1$@. L'originale è in %2$@. Controlla che il salvataggio sia presente nel gioco, poi elimina il backup per liberare spazio."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已重建“%@”的游戏容器。原容器保存在 %@。请先进入游戏确认存档正常，再删除备份以释放空间。"
+          }
+        }
+      }
+    },
+    "Record prefix build" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registra la build del prefisso"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "记录容器版本"
+          }
+        }
+      }
+    },
+    "Recreate prefix" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ricostruzione del prefisso"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重建游戏容器"
+          }
+        }
+      }
+    },
+    "Refresh" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiorna"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刷新"
+          }
+        }
+      }
+    },
+    "Registry Editor" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Editor del Registro"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "注册表编辑器"
+          }
+        }
+      }
+    },
+    "Reinstall" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reinstalla"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新安装"
+          }
+        }
+      }
+    },
+    "Remove" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rimuovi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除"
+          }
+        }
+      }
+    },
+    "Remove Copy" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rimuovi copia"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除副本"
+          }
+        }
+      }
+    },
+    "Remove Copy…" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rimuovi copia…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除副本…"
+          }
+        }
+      }
+    },
+    "Remove Everything" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rimuovi tutto"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部移除"
+          }
+        }
+      }
+    },
+    "Remove NotProton" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rimozione di NotProton"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除 NotProton"
+          }
+        }
+      }
+    },
+    "Remove NotProton and restore Steam to its original state." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rimuovi NotProton e riporta Steam allo stato originale."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除 NotProton 并将 Steam 恢复原状。"
+          }
+        }
+      }
+    },
+    "Remove build" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rimozione della build"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除构建版本"
+          }
+        }
+      }
+    },
+    "Remove everything NotProton has created?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rimuovere tutto ciò che NotProton ha creato?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除 NotProton 创建的所有内容？"
+          }
+        }
+      }
+    },
+    "Remove from List" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rimuovi dall'elenco"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从列表中移除"
+          }
+        }
+      }
+    },
+    "Remove the %@ copy?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rimuovere la copia di %@?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除 %@ 的副本？"
+          }
+        }
+      }
+    },
+    "Removed build %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Build %@ rimossa."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已移除构建版本 %@。"
+          }
+        }
+      }
+    },
+    "Remove…" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rimuovi…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除…"
+          }
+        }
+      }
+    },
+    "Removing files" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rimozione dei file"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在移除文件"
+          }
+        }
+      }
+    },
+    "Repair" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ripara"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "修复"
+          }
+        }
+      }
+    },
+    "Repair Steam" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ripara Steam"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "修复 Steam"
+          }
+        }
+      }
+    },
+    "Repair your Steam install before installing NotProton." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ripara l'installazione di Steam prima di installare NotProton."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先修复 Steam，再安装 NotProton。"
+          }
+        }
+      }
+    },
+    "Replace Steam" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sostituisci Steam"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "替换 Steam"
+          }
+        }
+      }
+    },
+    "Replace Steam with Valve's bundle?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sostituire Steam con il bundle di Valve?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 Valve 原版应用包替换 Steam？"
+          }
+        }
+      }
+    },
+    "Replacing %@ failed. %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La sostituzione di %1$@ non è riuscita. %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "替换 %@ 失败。%@"
+          }
+        }
+      }
+    },
+    "Reset" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Azzera"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重置"
+          }
+        }
+      }
+    },
+    "Reset controller permission" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Azzeramento del permesso dei controller"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重置控制器权限"
+          }
+        }
+      }
+    },
+    "Resetting Steam's controller permission" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Azzeramento del permesso dei controller di Steam"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在重置 Steam 的控制器权限"
+          }
+        }
+      }
+    },
+    "Restart Steam to update its list of compatibility tools." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riavvia Steam per aggiornare il suo elenco di strumenti di compatibilità."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请重启 Steam，以更新兼容工具列表。"
+          }
+        }
+      }
+    },
+    "Restore Steam to its original state." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riporta Steam allo stato originale."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将 Steam 恢复原状。"
+          }
+        }
+      }
+    },
+    "Restore the files included with this app." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ripristina i file inclusi in questa app."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用此应用附带的文件恢复安装。"
+          }
+        }
+      }
+    },
+    "Restoring Steam" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ripristino di Steam"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在恢复 Steam"
+          }
+        }
+      }
+    },
+    "Reveal Log in Finder" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra il log nel Finder"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在访达中显示日志"
+          }
+        }
+      }
+    },
+    "Reveal in Finder" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra nel Finder"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在访达中显示"
+          }
+        }
+      }
+    },
+    "Run" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esegui"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "运行"
+          }
+        }
+      }
+    },
+    "Run %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esecuzione di %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "运行 %@"
+          }
+        }
+      }
+    },
+    "Run Program…" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esegui programma…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "运行程序…"
+          }
+        }
+      }
+    },
+    "Run Winetricks" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esegui Winetricks"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "运行 Winetricks"
+          }
+        }
+      }
+    },
+    "Run a program or open a Wine tool in the selected prefix." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esegui un programma o apri uno strumento di Wine nel prefisso selezionato."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在所选游戏容器中运行程序或打开 Wine 工具。"
+          }
+        }
+      }
+    },
+    "Runner %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Runner %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "运行环境 %@"
+          }
+        }
+      }
+    },
+    "Select a copy of CrossOver." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seleziona una copia di CrossOver."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请选择一份 CrossOver 应用。"
+          }
+        }
+      }
+    },
+    "Select your copy of Steam." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seleziona la tua copia di Steam."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请选择你的 Steam 应用。"
+          }
+        }
+      }
+    },
+    "Set Up" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configura"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设置"
+          }
+        }
+      }
+    },
+    "Set Up Compatibility Tool" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configura strumento di compatibilità"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设置兼容工具"
+          }
+        }
+      }
+    },
+    "Set up compatibility tool" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurazione dello strumento di compatibilità"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设置兼容工具"
+          }
+        }
+      }
+    },
+    "Set up the compatibility tool again." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configura di nuovo lo strumento di compatibilità."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新设置兼容工具。"
+          }
+        }
+      }
+    },
+    "Setting up compatibility tool" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurazione dello strumento di compatibilità"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在设置兼容工具"
+          }
+        }
+      }
+    },
+    "Setup" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurazione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装与设置"
+          }
+        }
+      }
+    },
+    "Show in Finder" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra nel Finder"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在访达中显示"
+          }
+        }
+      }
+    },
+    "Show the selected backup in the Finder." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra il backup selezionato nel Finder."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在访达中显示所选备份。"
+          }
+        }
+      }
+    },
+    "Show the selected prefix in the Finder." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra il prefisso selezionato nel Finder."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在访达中显示所选游戏容器。"
+          }
+        }
+      }
+    },
+    "Signature database" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Database delle firme"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "签名数据库"
+          }
+        }
+      }
+    },
+    "Signing" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Firma"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在签名"
+          }
+        }
+      }
+    },
+    "Something is wrong with the downloaded files. Please check for a NotProton update." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "C'è un problema con i file scaricati. Controlla se c'è un aggiornamento di NotProton."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载的文件存在问题。请检查是否有新版 NotProton。"
+          }
+        }
+      }
+    },
+    "Staging components" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparazione dei componenti"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在准备组件"
+          }
+        }
+      }
+    },
+    "Started %@ in %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avviato %1$@ in %2$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已在“%2$@”中启动 %1$@。"
+          }
+        }
+      }
+    },
+    "Status" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "状态"
+          }
+        }
+      }
+    },
+    "Steam" : {
+      "shouldTranslate" : false
+    },
+    "Steam at %@ isn't connected, so NotProton can't be removed from it. All other NotProton data is removed, except for Windows Games and prefixes." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam in %@ non è collegato, quindi NotProton non può esserne rimosso. Tutti gli altri dati di NotProton vengono rimossi, tranne i giochi Windows e i prefissi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "位于 %@ 的 Steam 未连接，因此无法从中移除 NotProton。其他所有 NotProton 数据都会被移除，但 Windows 游戏及游戏容器除外。"
+          }
+        }
+      }
+    },
+    "Steam at %@ isn't connected." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam in %@ non è collegato."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "位于 %@ 的 Steam 未连接。"
+          }
+        }
+      }
+    },
+    "Steam client updates are allowed." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gli aggiornamenti del client Steam sono consentiti."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已允许 Steam 客户端更新。"
+          }
+        }
+      }
+    },
+    "Steam client updates are blocked." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gli aggiornamenti del client Steam sono bloccati."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已阻止 Steam 客户端更新。"
+          }
+        }
+      }
+    },
+    "Steam client updates may break NotProton." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gli aggiornamenti del client Steam potrebbero rendere NotProton inutilizzabile."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 客户端更新可能导致 NotProton 无法使用。"
+          }
+        }
+      }
+    },
+    "Steam client updates may break NotProton. If you don't want to wait for NotProton to be updated to be compatible with future Steam versions at the cost of not getting updates to the Steam client, you can stop the Steam client from updating itself." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gli aggiornamenti del client Steam potrebbero rendere NotProton inutilizzabile. Se non vuoi aspettare che NotProton venga aggiornato per le future versioni di Steam, puoi impedire al client Steam di aggiornarsi, rinunciando però ai suoi aggiornamenti."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 客户端更新可能导致 NotProton 无法使用。你可以阻止 Steam 自动更新，避免等待 NotProton 适配新版本，但这也意味着无法及时获得 Steam 客户端的功能改进和安全更新。"
+          }
+        }
+      }
+    },
+    "Steam could not be fully restored. Please run Repair Steam again." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non è stato possibile ripristinare completamente Steam. Esegui di nuovo Ripara Steam."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未能完全恢复 Steam。请再次执行“修复 Steam”。"
+          }
+        }
+      }
+    },
+    "Steam has a different copy of NotProton, installed by another account on this Mac. Update NotProton from that account, then try again." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam ha una copia diversa di NotProton, installata da un altro account su questo Mac. Aggiorna NotProton da quell'account, poi riprova."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 中的另一份 NotProton 是由本机其他账户安装的。请使用该账户更新 NotProton，然后重试。"
+          }
+        }
+      }
+    },
+    "Steam has not been set up for NotProton, and this account cannot change it. Install from the account that owns Steam." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam non è stato configurato per NotProton e questo account non può modificarlo. Installa dall'account a cui appartiene Steam."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 尚未配置 NotProton，当前账户无权修改。请使用安装 Steam 的账户执行安装。"
+          }
+        }
+      }
+    },
+    "Steam integration needs repair." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'integrazione con Steam va riparata."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 集成需要修复。"
+          }
+        }
+      }
+    },
+    "Steam is restored to its unmodified state and NotProton is removed, including the compatibility tool that lives inside the Steam folder. Windows games and Steam Play prefixes are not removed." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam viene riportato allo stato originale e NotProton viene rimosso, compreso lo strumento di compatibilità nella cartella di Steam. I giochi Windows e i prefissi di Steam Play non vengono rimossi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此操作会将 Steam 恢复为未修改的状态，并移除 NotProton（包括 Steam 文件夹内的兼容工具）。不会删除 Windows 游戏及 Steam Play 游戏容器。"
+          }
+        }
+      }
+    },
+    "Steam is running" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam è in esecuzione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 正在运行"
+          }
+        }
+      }
+    },
+    "Steam is running, please close Steam." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam è in esecuzione, chiudi Steam."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 正在运行，请先关闭 Steam。"
+          }
+        }
+      }
+    },
+    "Steam is set up to inject a different dylib. Please repair Steam before installing NotProton." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam è configurato per caricare una dylib diversa. Ripara Steam prima di installare NotProton."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 已配置为注入其他动态库。请先修复 Steam，再安装 NotProton。"
+          }
+        }
+      }
+    },
+    "Steam not found." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam non trovato."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未找到 Steam。"
+          }
+        }
+      }
+    },
+    "Steam restored to its original state." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam riportato allo stato originale."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 已恢复原状。"
+          }
+        }
+      }
+    },
+    "Steam was installed by another account on this Mac. Only that account can modify it. Log in to macOS with that account to reinstall NotProton." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam è stato installato da un altro account su questo Mac e solo quell'account può modificarlo. Accedi a macOS con quell'account per reinstallare NotProton."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 由这台 Mac 上的其他账户安装，只有该账户可以修改。请登录该账户，重新安装 NotProton。"
+          }
+        }
+      }
+    },
+    "Steam was stopped, so start it again." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam è stato chiuso: riavvialo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 已停止，请重新启动。"
+          }
+        }
+      }
+    },
+    "Steam's installed dylib does not match this account's build record. Finish or repair its installation with the NotProton app that last installed it." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La dylib installata in Steam non corrisponde alla build registrata per questo account. Completa o ripara l'installazione con l'app NotProton che l'ha installata per ultima."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 中已安装的动态库与当前账户的版本记录不一致。请使用上次执行安装的 NotProton 应用完成或修复安装。"
+          }
+        }
+      }
+    },
+    "Stopping Steam" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chiusura di Steam"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在停止 Steam"
+          }
+        }
+      }
+    },
+    "Task Manager" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gestione attività"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "任务管理器"
+          }
+        }
+      }
+    },
+    "Template cleanup incomplete" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulizia dei modelli incompleta"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "模板清理未完成"
+          }
+        }
+      }
+    },
+    "Templates %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modelli %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "模板 %@"
+          }
+        }
+      }
+    },
+    "The %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@"
+          }
+        }
+      }
+    },
+    "The %@ cave at %@ is not empty. This ntdll is either already patched or not the build its hash claimed." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La cave %1$@ a %2$@ non è vuota. Questo ntdll ha già la patch oppure non è la build indicata dal suo hash."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 在 %@ 处的代码空隙非空。此 ntdll 可能已修补，或并非哈希值所对应的版本。"
+          }
+        }
+      }
+    },
+    "The %@ detour goes to %@, below its cave at %@, so writing it would land in live code." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il detour %1$@ va a %2$@, sotto la sua cave a %3$@: scriverlo finirebbe nel codice in uso."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 跳转目标为 %@，位于 %@ 处的代码空隙之前；写入会覆盖现有代码，已拒绝操作。"
+          }
+        }
+      }
+    },
+    "The %@ detour is %lld bytes and the cave holds %lld, so writing it would overrun into live code." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il detour %1$@ è di %2$lld byte e la cave ne contiene %3$lld: scriverlo sconfinerebbe nel codice in uso."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 跳转补丁有 %lld 字节，但代码空隙仅容纳 %lld 字节；写入会覆盖现有代码，已拒绝操作。"
+          }
+        }
+      }
+    },
+    "The %@ hook site at %@ holds %@ instead of %@, so the offsets do not belong to this ntdll." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il punto di aggancio %1$@ a %2$@ contiene %3$@ invece di %4$@: gli offset non appartengono a questo ntdll."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 在 %@ 处的挂钩位置内容为 %@，而非 %@，偏移量与此 ntdll 不匹配。"
+          }
+        }
+      }
+    },
+    "The %@ ntdll at %@ hashes %@ and build %@ expects %@. It is already patched, or from another CrossOver build." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'hash dell'ntdll %1$@ in %2$@ è %3$@ e la build %4$@ si aspetta %5$@. Ha già la patch, oppure viene da un'altra build di CrossOver."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$@ 处的 %1$@ ntdll 的哈希值为 %3$@，但构建版本 %4$@ 预期为 %5$@。该文件可能已修补，或来自其他 CrossOver 版本。"
+          }
+        }
+      }
+    },
+    "The %@ ntdll file alignment %@ is not a power of two." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'allineamento dei file dell'ntdll %1$@ (%2$@) non è una potenza di due."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ntdll 的文件对齐值 %@ 不是 2 的幂。"
+          }
+        }
+      }
+    },
+    "The %@ ntdll has no PE header where its DOS stub points." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'ntdll %@ non ha un'intestazione PE dove punta il suo stub DOS."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ntdll 的 DOS 存根所指向的位置没有 PE 头。"
+          }
+        }
+      }
+    },
+    "The %@ ntdll has no free section header slot for the detour." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'ntdll %@ non ha uno spazio libero tra le intestazioni di sezione per il detour."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ntdll 没有可供跳转补丁使用的空闲节头槽位。"
+          }
+        }
+      }
+    },
+    "The %@ ntdll image ends at %@, and the detour section was pinned at %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'immagine dell'ntdll %1$@ finisce a %2$@, e la sezione del detour era fissata a %3$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ntdll 映像结束于 %@，但跳转补丁节固定在 %@。"
+          }
+        }
+      }
+    },
+    "The %@ ntdll is based at %@, and the detour was linked against %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'ntdll %1$@ ha base %2$@, e il detour è stato collegato per %3$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ntdll 的基址为 %@，但跳转补丁链接时使用的基址为 %@。"
+          }
+        }
+      }
+    },
+    "The %@ ntdll is machine %@, expected %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'ntdll %1$@ è per la macchina %2$@, attesa %3$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ntdll 的机器类型为 %@，预期为 %@。"
+          }
+        }
+      }
+    },
+    "The %@ ntdll optional header is %@, expected %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'intestazione opzionale dell'ntdll %1$@ è %2$@, attesa %3$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ntdll 的可选头为 %@，预期为 %@。"
+          }
+        }
+      }
+    },
+    "The Steam client will not update itself." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il client Steam non si aggiornerà da solo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 客户端将不会自动更新。"
+          }
+        }
+      }
+    },
+    "The Valve file list %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'elenco dei file di Valve %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valve 文件列表：%@"
+          }
+        }
+      }
+    },
+    "The bundled NotProton dylib is invalid." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il dylib di NotProton incluso non è valido."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "随附的 NotProton 动态库无效。"
+          }
+        }
+      }
+    },
+    "The cave" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La cave"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "代码空隙"
+          }
+        }
+      }
+    },
+    "The cave is %lld bytes from the hook site, which a relative jump cannot reach." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La cave è a %lld byte dal punto di aggancio, troppo lontana per un salto relativo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "代码空隙距挂钩位置 %lld 字节，超出相对跳转指令的范围。"
+          }
+        }
+      }
+    },
+    "The clone has no Wine loader at %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La copia non ha un loader di Wine in %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "副本的 %@ 处没有 Wine 加载器。"
+          }
+        }
+      }
+    },
+    "The cloned Wine loader at %@ does not match build %@. Expected %@, found %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il loader di Wine copiato in %1$@ non corrisponde alla build %2$@. Atteso %3$@, trovato %4$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制到 %@ 的 Wine 加载器与构建版本 %@ 不匹配。预期为 %@，实际为 %@。"
+          }
+        }
+      }
+    },
+    "The compatibility tool was not set up because CrossOver is not activated." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lo strumento di compatibilità non è stato configurato perché CrossOver non è attivato."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CrossOver 尚未激活，因此未能设置兼容工具。"
+          }
+        }
+      }
+    },
+    "The component list has no entries." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'elenco dei componenti è vuoto."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "组件列表为空。"
+          }
+        }
+      }
+    },
+    "The detour is %lld bytes from the hook site, which a branch and link cannot reach." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il detour è a %lld byte dal punto di aggancio, troppo lontano per un branch and link."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跳转补丁距挂钩位置 %lld 字节，超出分支链接指令的范围。"
+          }
+        }
+      }
+    },
+    "The game SAVE DATA inside the prefix WILL BE LOST." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I SALVATAGGI del gioco contenuti nel prefisso ANDRANNO PERSI."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "容器内的游戏存档将永久丢失！"
+          }
+        }
+      }
+    },
+    "The game SAVE DATA inside them WILL BE LOST." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I SALVATAGGI dei giochi contenuti nei prefissi ANDRANNO PERSI."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这些容器内的游戏存档将永久丢失！"
+          }
+        }
+      }
+    },
+    "The hook site" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il punto di aggancio"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "挂钩位置"
+          }
+        }
+      }
+    },
+    "The installed build record is invalid." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La registrazione della build installata non è valida."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已安装版本的记录无效。"
+          }
+        }
+      }
+    },
+    "The patched %@ ntdll has not been copied into place." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'ntdll %@ con la patch non è stato copiato al suo posto."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "修补后的 %@ ntdll 尚未复制到目标位置。"
+          }
+        }
+      }
+    },
+    "The patched %@ ntdll hashes %@ and build %@ expects %@. Nothing was written." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'hash dell'ntdll %1$@ con la patch è %2$@ e la build %3$@ si aspetta %4$@. Non è stato scritto nulla."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "修补后的 %@ ntdll 哈希值为 %@，但构建版本 %@ 预期为 %@。未写入任何内容。"
+          }
+        }
+      }
+    },
+    "The trial version is not supported." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La versione di prova non è supportata."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The trial version is not supported."
+          }
+        }
+      }
+    },
+    "There is no ntdll to patch at %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non c'è nessun ntdll da modificare in %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 处没有可修补的 ntdll。"
+          }
+        }
+      }
+    },
+    "These components are missing: %@. Run make app-payload and build the app again." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mancano questi componenti: %@. Esegui make app-payload e compila di nuovo l'app."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缺少以下组件：%@。请运行 make app-payload，然后重新构建应用。"
+          }
+        }
+      }
+    },
+    "These files did not update: %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questi file non sono stati aggiornati: %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以下文件未能更新：%@。"
+          }
+        }
+      }
+    },
+    "This app includes newer files than those installed for Steam." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questa app contiene file più recenti di quelli installati per Steam."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此应用包含的文件比 Steam 中已安装的文件更新。"
+          }
+        }
+      }
+    },
+    "This app includes updated files for Steam." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questa app contiene file aggiornati per Steam."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此应用包含适用于 Steam 的更新文件。"
+          }
+        }
+      }
+    },
+    "This build of NotProton carries no components at all." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questa build di NotProton non contiene nessun componente."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此版本的 NotProton 未包含任何组件。"
+          }
+        }
+      }
+    },
+    "This can also fix issues where a game previously started/worked and does not work now, even if you did not switch CrossOver types." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Può anche risolvere i casi in cui un gioco prima si avviava o funzionava e ora no, anche se non hai cambiato tipo di CrossOver."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "即使没有切换 CrossOver 类型，也可能修复游戏之前能运行、现在却无法运行的问题。"
+          }
+        }
+      }
+    },
+    "This copy of NotProton cannot repair Steam. Please reinstall NotProton." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questa copia di NotProton non può riparare Steam. Reinstalla NotProton."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此 NotProton 副本无法修复 Steam。请重新安装 NotProton。"
+          }
+        }
+      }
+    },
+    "This tool is intended to repair a prefix after switching between Rosetta/FEX CrossOver." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo strumento serve a riparare un prefisso dopo il passaggio tra CrossOver Rosetta e FEX."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此工具用于修复在 Rosetta 与 FEX 版 CrossOver 之间切换后的游戏容器。"
+          }
+        }
+      }
+    },
+    "This will DELETE the game's prefix." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il prefisso del gioco verrà ELIMINATO."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此操作将删除该游戏的容器。"
+          }
+        }
+      }
+    },
+    "This will DELETE the prefixes for %lld games." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I prefissi di %lld giochi verranno ELIMINATI."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此操作将删除 %lld 个游戏的容器。"
+          }
+        }
+      }
+    },
+    "This will restore Steam itself to its original state but does not remove the support components used by NotProton." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam verrà riportato allo stato originale, ma i componenti di supporto usati da NotProton non verranno rimossi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此操作会将 Steam 恢复原状，但不会移除 NotProton 使用的支持组件。"
+          }
+        }
+      }
+    },
+    "Tool" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strumento"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "兼容工具"
+          }
+        }
+      }
+    },
+    "Tools" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strumenti"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "工具"
+          }
+        }
+      }
+    },
+    "Unknown" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sconosciuto"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未知"
+          }
+        }
+      }
+    },
+    "Unpacking" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Decompressione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在解包"
+          }
+        }
+      }
+    },
+    "Update" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiorna"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新"
+          }
+        }
+      }
+    },
+    "Update available (%@)." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiornamento disponibile (%@)."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有可用更新（%@）。"
+          }
+        }
+      }
+    },
+    "Update available." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiornamento disponibile."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有可用更新。"
+          }
+        }
+      }
+    },
+    "Update compatibility tools" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiorna gli strumenti di compatibilità"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新兼容工具"
+          }
+        }
+      }
+    },
+    "Use a copy of Steam from another folder or drive." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa una copia di Steam da un'altra cartella o un altro disco."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用其他文件夹或磁盘中的 Steam。"
+          }
+        }
+      }
+    },
+    "Use the newer NotProton app to update or repair the installed files." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa l'app NotProton più recente per aggiornare o riparare i file installati."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请使用较新版的 NotProton 更新或修复已安装的文件。"
+          }
+        }
+      }
+    },
+    "Verify CrossOver" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifica di CrossOver"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "验证 CrossOver"
+          }
+        }
+      }
+    },
+    "Verify CrossOver license" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifica della licenza di CrossOver"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "验证 CrossOver 许可证"
+          }
+        }
+      }
+    },
+    "Verifying" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifica"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在验证"
+          }
+        }
+      }
+    },
+    "Version %@ not supported (supported: %@)" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versione %1$@ non supportata (supportate: %2$@)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不支持版本 %@（支持：%@）"
+          }
+        }
+      }
+    },
+    "Wine Configuration" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurazione di Wine"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wine 配置"
+          }
+        }
+      }
+    },
+    "Wine Log" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log di Wine"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wine 日志"
+          }
+        }
+      }
+    },
+    "Winetricks" : {
+      "shouldTranslate" : false
+    },
+    "Winetricks ran %@ in %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Winetricks ha eseguito %1$@ in %2$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Winetricks 已在“%2$@”中运行 %1$@。"
+          }
+        }
+      }
+    },
+    "Winetricks stopped with status %d. Its output is in %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Winetricks si è fermato con stato %1$d. Il suo output è in %2$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Winetricks 已停止，状态码为 %d。输出位于 %@。"
+          }
+        }
+      }
+    },
+    "Winetricks…" : {
+      "shouldTranslate" : false
+    },
+    "You will not lose saves by using this tool." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usando questo strumento non perderai i salvataggi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用此工具不会删除游戏存档。"
+          }
+        }
+      }
+    },
+    "a base and one URL" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "una base e un URL"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "base 字段和一个 URL"
+          }
+        }
+      }
+    },
+    "a bundle, a filename, a sha256, an inner archive and a bundle name" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "un bundle, un nome di file, uno sha256, un archivio interno e un nome di bundle"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "bundle 字段、文件名、SHA-256 值、内部归档和应用包名称"
+          }
+        }
+      }
+    },
+    "a file, a bridge path, a package id, an inner path and a sha256" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "un file, un percorso del bridge, un id di pacchetto, un percorso interno e uno sha256"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "file 字段、桥接路径、软件包 ID、内部路径和 SHA-256 值"
+          }
+        }
+      }
+    },
+    "a package, an id, a filename and a sha256" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "un pacchetto, un id, un nome di file e uno sha256"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "package 字段、ID、文件名和 SHA-256 值"
+          }
+        }
+      }
+    },
+    "another version of CrossOver" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "un'altra versione di CrossOver"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其他版本的 CrossOver"
+          }
+        }
+      }
+    },
+    "declares a second bundle. One is the most that can be installed." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "dichiara un secondo bundle. Se ne può installare al massimo uno."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "声明了第二个应用包，但最多只能安装一个。"
+          }
+        }
+      }
+    },
+    "declares the package %@, which no file row uses." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "dichiara il pacchetto %@, che nessuna riga di file usa."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "声明的软件包 %@ 未被任何文件行使用。"
+          }
+        }
+      }
+    },
+    "does not end in a lowercase 64 character sha256: %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "non finisce con uno sha256 di 64 caratteri minuscoli: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "末尾不是 64 位小写 SHA-256 值：%@"
+          }
+        }
+      }
+    },
+    "does not hold an https URL: %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "non contiene un URL https: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不包含有效的 HTTPS URL：%@"
+          }
+        }
+      }
+    },
+    "has an unknown row kind %@. Known: base, package, file, bundle." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ha un tipo di riga sconosciuto %@. Noti: base, package, file, bundle."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "包含未知行类型 %@。已知类型：base、package、file、bundle。"
+          }
+        }
+      }
+    },
+    "hook site" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "punto di aggancio"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "挂钩位置"
+          }
+        }
+      }
+    },
+    "is not %@: %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "non è %1$@: %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不符合格式“%@”：%@"
+          }
+        }
+      }
+    },
+    "macOS did not reset %@ for Steam." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS non ha azzerato %@ per Steam."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS 未能重置 Steam 的 %@ 权限。"
+          }
+        }
+      }
+    },
+    "names no CDN host to fetch from." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "non indica un host CDN da cui scaricare."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未指定下载所需的 CDN 主机。"
+          }
+        }
+      }
+    },
+    "names no file." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "non indica nessun file."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未指定任何文件。"
+          }
+        }
+      }
+    },
+    "names no package." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "non indica nessun pacchetto."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未指定任何软件包。"
+          }
+        }
+      }
+    },
+    "repeats the bridge path %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ripete il percorso del bridge %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重复声明了桥接路径 %@。"
+          }
+        }
+      }
+    },
+    "repeats the package id %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ripete l'id di pacchetto %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重复声明了软件包 ID %@。"
+          }
+        }
+      }
+    },
+    "vcrun2022 corefonts" : {
+      "shouldTranslate" : false
+    }
+  },
+  "version" : "1.0"
+}
