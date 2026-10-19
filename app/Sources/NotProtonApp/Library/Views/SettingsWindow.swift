@@ -159,6 +159,7 @@ struct LibrarySettingsView: View {
 
 struct AccountsSettingsView: View {
     let model: LibraryModel
+    @Environment(StoreCenter.self) private var stores: StoreCenter?
 
     var body: some View {
         Form {
@@ -171,17 +172,10 @@ struct AccountsSettingsView: View {
                     Text(steamLine).foregroundStyle(.secondary)
                 }
                 ForEach([GameSource.epic, .gog, .amazon]) { store in
-                    LabeledContent {
-                        Button("Sign In…") {}.disabled(true)
-                    } label: {
-                        Text(verbatim: store.name)
-                        Text(model.account(for: store).map { String(localized: "Signed in as \($0)") }
-                             ?? String(localized: "Not connected"))
-                            .foregroundStyle(.secondary)
-                    }
+                    StoreAccountRow(source: store, center: stores)
                 }
             } footer: {
-                Text("Epic Games, GOG and Amazon Games sign-in comes in a later version of Cartouche.")
+                Text("Login tokens are kept in your Keychain. You sign in on each store’s own page.")
             }
         }
         .formStyle(.grouped)

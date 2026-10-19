@@ -80,6 +80,11 @@ struct Game: Identifiable, Sendable, Equatable {
     var console: ConsoleGame?
     // Set for a Steam game that has a macOS build too: the version it runs (P3)
     var version: GameVersion?
+    // A store game's box art, as its store lists it (P10)
+    var artwork: URL?
+    // The Steam App ID the compatibility data knows a store game by, matched by name,
+    // for its estimate. Never used to start the game (P10)
+    var compatAppID: Int?
 
     var coverShape: CoverShape { source.isConsole ? .square : .portrait }
 

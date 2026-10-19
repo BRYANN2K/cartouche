@@ -57,7 +57,7 @@ struct CoverStore: Sendable {
             let mine = cached(appID, kind)
             if exists(mine) { return .image(mine) }
         }
-        if let store = storeArt(game, kind), exists(store) { return .image(store) }
+        if let store = storeArt(game, kind) ?? storeFile(game), exists(store) { return .image(store) }
         if let (system, name) = consoleName(game) {
             // A picture not tried yet comes before a fallback already here
             for art in Self.thumbnailKinds(kind) {
@@ -73,6 +73,7 @@ struct CoverStore: Sendable {
     func art(for game: Game, kind: ArtKind, override: URL?) async -> CoverArt {
         if let found = local(for: game, kind: kind, override: override) { return found }
         if let appID = game.steamAppID, let saved = await download(appID, kind) { return .image(saved) }
+        if let remote = game.artwork, let file = storeFile(game), let saved = await download(remote, to: file) { return .image(saved) }
         if let (system, name) = consoleName(game) {
             for art in Self.thumbnailKinds(kind) {
                 if let saved = await consoleThumbnails.image(system: system, kind: art, name: name) { return .image(saved) }
@@ -101,11 +102,20 @@ struct CoverStore: Sendable {
         cache.appending(path: "\(appID)/\(kind.rawValue).jpg")
     }
 
+    // A store game's art, one file for the grid and the panel (P10)
+    func storeFile(_ game: Game) -> URL? {
+        guard game.source.isStore, game.artwork != nil else { return nil }
+        return cache.appending(path: "store/\(game.source.id)/\(StoreFolders.safe(game.id)).img")
+    }
+
     private func download(_ appID: Int, _ kind: ArtKind) async -> URL? {
-        guard let (data, status) = try? await fetch(Self.cdn(appID, kind)), status == 200, Self.looksLikeImage(data) else {
+        await download(Self.cdn(appID, kind), to: cached(appID, kind))
+    }
+
+    private func download(_ url: URL, to file: URL) async -> URL? {
+        guard let (data, status) = try? await fetch(url), status == 200, Self.looksLikeImage(data) else {
             return nil
         }
-        let file = cached(appID, kind)
         do {
             try atomicReplace(file, with: data, step: "cover")
             return file

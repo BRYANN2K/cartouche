@@ -8,6 +8,7 @@ struct CartoucheApp: App {
 
     static let mainWindow = "main"
     static let setupWindow = "setup"
+    static let signInWindow = "store-sign-in"
 
     @State private var status = SystemStatus()
     @State private var prefixes = PrefixesModel()
@@ -26,6 +27,8 @@ struct CartoucheApp: App {
     @State private var relaunch = RelaunchService()
     @State private var onboarding: OnboardingModel?
     @State private var performance = PerformanceModel()
+    // Epic, GOG and Amazon (P10)
+    @State private var stores: StoreCenter
     @AppStorage(GeneralSettings.showInMenuBarKey) private var showInMenuBar = true
     @AppStorage(AfterLaunch.key) private var afterLaunch = AfterLaunch.hide
     private let updater = AppUpdater()
@@ -47,6 +50,7 @@ struct CartoucheApp: App {
         _library = State(initialValue: library)
         _consoles = State(initialValue: consoles)
         _consoleCenter = State(initialValue: ConsoleCenter(settings: consoles, cores: cores, library: library))
+        _stores = State(initialValue: StoreCenter.live(library: library))
     }
 
     private var actions: GameActionRunner {
@@ -60,7 +64,8 @@ struct CartoucheApp: App {
                 case .quit: NSApp.terminate(nil)
                 }
             },
-            playConsole: { [consoleCenter] game in Task { await consoleCenter.play(game.id, resume: true) } })
+            playConsole: { [consoleCenter] game in Task { await consoleCenter.play(game.id, resume: true) } },
+            stores: stores)
     }
 
     var body: some Scene {
@@ -76,6 +81,8 @@ struct CartoucheApp: App {
                     if let onboarding { OnboardingView(model: onboarding).interactiveDismissDisabled() }
                 }
                 .environment(performance)
+                .environment(stores)
+                .storeSignIn(stores)
                 .task { await start() }
                 // Onboarding may have added consoles and game folders
                 .onChange(of: onboarding?.isPresented ?? false) { _, shown in
@@ -102,12 +109,20 @@ struct CartoucheApp: App {
         }
         .defaultSize(width: 900, height: 760)
 
+        // The store's own sign-in page (P10)
+        Window("Sign In", id: Self.signInWindow) {
+            StoreSignInWindow(center: stores)
+        }
+        .defaultSize(width: 560, height: 760)
+
         Settings {
             SettingsWindow(model: library, permissions: permissions, consoles: consoles)
                 .environment(consoleCenter)
                 .environment(onboarding)
                 .environment(gameFolders)
+                .environment(stores)
                 .environment(controls)
+                .storeSignIn(stores)
         }
 
         MenuBarExtra(isInserted: $showInMenuBar) {
@@ -153,7 +168,16 @@ struct CartoucheApp: App {
         }
         await startActivity()
         await loadRunners()
+        startStores()
         await compat.refresh()
+    }
+
+    // Store accounts from the Keychain, then each store's list in the background (P10)
+    private func startStores() {
+        stores.afterLaunch = actions.afterLaunch
+        let index = TitleIndex()
+        stores.matchAppID = { [compat] title in index.appID(title, data: compat.data) }
+        Task { await stores.start(refresh: !library.isOffline) }
     }
 
     // The activity slot: Steam's downloads and running game, and the first finished

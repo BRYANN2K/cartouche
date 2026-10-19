@@ -14,6 +14,8 @@ enum GameAction: Hashable, Sendable {
     case showInFinder
     case showInSteam
     case verifyFiles
+    // A store game's update, through its store's client (P10)
+    case update
     case changeCover
     case resetCover
     case hide
@@ -54,10 +56,13 @@ enum GameMenu {
     static func items(for game: Game, in model: LibraryModel) -> [GameMenuItem] {
         let setup = model.setup(for: game.id)
         let steam = game.steamAppID != nil
+        // A store game downloads through its store, which needs the session (P10)
+        let store = game.source.isStore
+        let expired = model.isExpired(.source(game.source))
         var items: [GameMenuItem] = [
             game.installed
                 ? GameMenuItem(title: String(localized: "Play"), action: .play, shortcut: play)
-                : GameMenuItem(title: String(localized: "Install"), action: .install, disabled: model.isOffline),
+                : GameMenuItem(title: String(localized: "Install"), action: .install, disabled: model.isOffline || expired),
             .divider,
             GameMenuItem(title: model.isFavorite(game.id) ? String(localized: "Remove from Favorites")
                                                            : String(localized: "Add to Favorites"),
@@ -92,6 +97,11 @@ enum GameMenu {
             items.append(GameMenuItem(title: String(localized: "Show in Steam"), action: .showInSteam))
             items.append(GameMenuItem(title: String(localized: "Verify Files"), action: .verifyFiles, disabled: !game.installed))
         }
+        if store && game.installed {
+            let online = !model.isOffline && !expired
+            items.append(GameMenuItem(title: String(localized: "Check for Update"), action: .update, disabled: !online))
+            items.append(GameMenuItem(title: String(localized: "Verify Files"), action: .verifyFiles, disabled: !online))
+        }
         items.append(GameMenuItem(title: String(localized: "Change Cover…"), action: .changeCover))
         if model.coverOverride(for: game.id) != nil {
             items.append(GameMenuItem(title: String(localized: "Use the Original Cover"), action: .resetCover))
@@ -100,7 +110,7 @@ enum GameMenu {
         items.append(model.isHidden(game.id)
             ? GameMenuItem(title: String(localized: "Show Game"), action: .unhide)
             : GameMenuItem(title: String(localized: "Hide Game"), action: .hide))
-        if steam {
+        if steam || store {
             items.append(GameMenuItem(title: String(localized: "Uninstall…"), action: .uninstall,
                                       disabled: !game.installed, destructive: true))
         }
@@ -128,8 +138,22 @@ struct GameActionRunner {
     var afterLaunch: @MainActor () -> Void = {}
     // Console games start in RetroArch, through the console center
     var playConsole: @MainActor (Game) -> Void = { _ in }
+    // Epic, GOG and Amazon games go through their store's client (P10)
+    var stores: StoreCenter?
+    var confirmUninstall: @MainActor (Game) -> Bool = GameActionRunner.confirmUninstall
+
+    static func confirmUninstall(_ game: Game) -> Bool {
+        let alert = NSAlert()
+        alert.messageText = String(localized: "Uninstall \(game.name)?")
+        alert.informativeText = String(localized: "Its files and its prefix are deleted. Cloud saves stay with the store.")
+        alert.addButton(withTitle: String(localized: "Uninstall"))
+        alert.addButton(withTitle: String(localized: "Cancel"))
+        alert.buttons.first?.hasDestructiveAction = true
+        return alert.runModal() == .alertFirstButtonReturn
+    }
 
     func perform(_ action: GameAction, on game: Game) {
+        if game.source.isStore, let stores, performStore(action, on: game, stores) { return }
         switch action {
         case .play:
             if let id = game.steamAppID {
@@ -173,7 +197,25 @@ struct GameActionRunner {
             model.unhide(game.id)
         case .uninstall:
             if let id = game.steamAppID { open(URL(string: "steam://uninstall/\(id)")!) }
+        case .update:
+            break
         }
+    }
+
+    // True when the store handled the action
+    private func performStore(_ action: GameAction, on game: Game, _ stores: StoreCenter) -> Bool {
+        switch action {
+        case .play: stores.play(game)
+        case .install: stores.install(game)
+        case .update: stores.update(game)
+        case .verifyFiles: stores.verify(game)
+        case .uninstall:
+            if confirmUninstall(game) { Task { await stores.uninstall(game) } }
+        case .showInFinder:
+            if let record = stores.record(game.id) { reveal(record.install.path) }
+        default: return false
+        }
+        return true
     }
 
     static func chooseImage() -> URL? {

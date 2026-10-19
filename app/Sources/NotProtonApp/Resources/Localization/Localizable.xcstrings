@@ -33,6 +33,22 @@
         }
       }
     },
+    "%@ %@ can’t start Windows games yet. Choose another runner in the game’s setup." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@ non può ancora avviare i giochi Windows. Scegli un altro runner nella configurazione del gioco."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@ 目前还无法启动 Windows 游戏。请在该游戏的设置中选择其他运行器。"
+          }
+        }
+      }
+    },
     "%@ (this Mac)" : {
       "localizations" : {
         "it" : {
@@ -691,6 +707,22 @@
         }
       }
     },
+    "%@ is not pinned in this version of Cartouche." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questa versione di Cartouche non ha una versione bloccata di %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此版本的 Cartouche 未锁定 %@ 的版本。"
+          }
+        }
+      }
+    },
     "%@ is not signed by Valve. Expected TeamIdentifier=%@." : {
       "localizations" : {
         "it" : {
@@ -879,22 +911,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@画质"
-          }
-        }
-      }
-    },
-    "%@ support comes in a later version of Cartouche. You will sign in on %@’s own page, and Cartouche will keep only a login token, in your Keychain." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Il supporto di %1$@ arriverà in una versione successiva di Cartouche. Accederai dalla pagina di %2$@ e Cartouche conserverà solo un token di accesso, nel tuo portachiavi."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ 支持将在 Cartouche 的后续版本中推出。你将在 %@ 自己的页面上登录，Cartouche 只会在你的钥匙串中保存登录令牌。"
           }
         }
       }
@@ -2190,6 +2206,22 @@
         }
       }
     },
+    "Achievements and friends, through comet" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obiettivi e amici, tramite comet"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "成就与好友（通过 comet）"
+          }
+        }
+      }
+    },
     "Achievements, BIOS and files" : {
       "localizations" : {
         "it" : {
@@ -2442,6 +2474,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "从其他文件夹添加 CrossOver 应用。"
+          }
+        }
+      }
+    },
+    "Add games another launcher installed" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi i giochi installati da un altro launcher"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加其他启动器已安装的游戏"
           }
         }
       }
@@ -2718,6 +2766,22 @@
         }
       }
     },
+    "Already have games installed?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hai già dei giochi installati?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已经安装了游戏？"
+          }
+        }
+      }
+    },
     "Also adds %@ to your consoles, with %@." : {
       "localizations" : {
         "en" : {
@@ -2736,6 +2800,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "还会将 %1$@ 添加到你的主机，使用 %2$@。"
+          }
+        }
+      }
+    },
+    "Amazon did not accept the sign-in. Try again." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Amazon non ha accettato l’accesso. Riprova."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Amazon 未接受登录。请重试。"
           }
         }
       }
@@ -4039,6 +4119,22 @@
         }
       }
     },
+    "Cartouche couldn’t tell which game is in “%@”." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche non è riuscito a capire quale gioco c’è in “%@”."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 无法判断“%@”中是哪款游戏。"
+          }
+        }
+      }
+    },
     "Cartouche couldn’t use this image: %@" : {
       "localizations" : {
         "it" : {
@@ -4371,6 +4467,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "重新检查"
+          }
+        }
+      }
+    },
+    "Check for Update" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controlla aggiornamenti"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "检查更新"
           }
         }
       }
@@ -4835,6 +4947,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请先关闭 Steam，再继续。"
+          }
+        }
+      }
+    },
+    "Cloud saves" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salvataggi cloud"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "云存档"
           }
         }
       }
@@ -6330,6 +6458,22 @@
         }
       }
     },
+    "Depends on the game" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dipende dal gioco"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取决于游戏"
+          }
+        }
+      }
+    },
     "Detaching from Steam" : {
       "localizations" : {
         "it" : {
@@ -6458,6 +6602,22 @@
         }
       }
     },
+    "Download %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scarica %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载 %@"
+          }
+        }
+      }
+    },
     "Download Steam" : {
       "localizations" : {
         "it" : {
@@ -6550,6 +6710,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下载进度"
+          }
+        }
+      }
+    },
+    "Download, update and verify games" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scarica, aggiorna e verifica i giochi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载、更新和验证游戏"
           }
         }
       }
@@ -6938,18 +7114,18 @@
         }
       }
     },
-    "Epic Games, GOG and Amazon Games sign-in comes in a later version of Cartouche." : {
+    "Epic Games did not accept the sign-in. Try again." : {
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "L’accesso a Epic Games, GOG e Amazon Games arriverà in una versione successiva di Cartouche."
+            "value" : "Epic Games non ha accettato l’accesso. Riprova."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Epic Games、GOG 和 Amazon Games 登录将在 Cartouche 的后续版本中推出。"
+            "value" : "Epic Games 未接受登录。请重试。"
           }
         }
       }
@@ -7398,6 +7574,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "来自开始菜单快捷方式"
+          }
+        }
+      }
+    },
+    "GOG answered %lld." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GOG ha risposto con %lld."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GOG 返回了 %lld。"
+          }
+        }
+      }
+    },
+    "GOG did not accept the sign-in. Try again." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GOG non ha accettato l’accesso. Riprova."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GOG 未接受登录。请重试。"
           }
         }
       }
@@ -7946,6 +8154,54 @@
         }
       }
     },
+    "Import Games…" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importa giochi…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入游戏…"
+          }
+        }
+      }
+    },
+    "Import games from another launcher or folder" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importa i giochi da un altro launcher o da una cartella"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从其他启动器或文件夹导入游戏"
+          }
+        }
+      }
+    },
+    "Importing" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importazione in corso"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在导入"
+          }
+        }
+      }
+    },
     "In Use" : {
       "localizations" : {
         "it" : {
@@ -8470,6 +8726,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "它会将 CrossOver 使用的 DLL 替换为与当前兼容工具匹配的版本。"
+          }
+        }
+      }
+    },
+    "Its files and its prefix are deleted. Cloud saves stay with the store." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I suoi file e il suo prefisso vengono eliminati. I salvataggi cloud restano nel negozio."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其文件和游戏容器将被删除。云存档会保留在商店中。"
           }
         }
       }
@@ -9014,6 +9286,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "登录项"
+          }
+        }
+      }
+    },
+    "Login tokens are kept in your Keychain. You sign in on each store’s own page." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I token di accesso sono conservati nel tuo portachiavi. Accedi dalla pagina di ciascun negozio."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录令牌保存在你的钥匙串中。你需要在各商店自己的页面登录。"
           }
         }
       }
@@ -10442,6 +10730,22 @@
         }
       }
     },
+    "Not supported yet" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non ancora supportato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂不支持"
+          }
+        }
+      }
+    },
     "Not the expected file" : {
       "localizations" : {
         "it" : {
@@ -10630,6 +10934,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Linux 上联机失败：%lld/%lld 份报告"
+          }
+        }
+      }
+    },
+    "Online features" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Funzionalità online"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在线功能"
           }
         }
       }
@@ -13136,6 +13456,22 @@
         }
       }
     },
+    "Save the library" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salva la libreria"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存游戏库"
+          }
+        }
+      }
+    },
     "Saved as a RetroArch remap file for this game. Changes apply at the next launch." : {
       "localizations" : {
         "it" : {
@@ -13228,6 +13564,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "设置兼容工具"
+          }
+        }
+      }
+    },
+    "Set up a runner in Settings > Compatibility to play %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configura un runner in Impostazioni > Compatibilità per giocare a %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请在“设置 > 兼容性”中设置运行器，才能游玩 %@。"
           }
         }
       }
@@ -13616,6 +13968,38 @@
         }
       }
     },
+    "Sign In Again…" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi di nuovo…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新登录…"
+          }
+        }
+      }
+    },
+    "Sign In to %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi a %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录 %@"
+          }
+        }
+      }
+    },
     "Sign In with %@…" : {
       "localizations" : {
         "it" : {
@@ -13648,6 +14032,22 @@
         }
       }
     },
+    "Sign Out" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esci"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "退出登录"
+          }
+        }
+      }
+    },
     "Sign in" : {
       "localizations" : {
         "it" : {
@@ -13660,6 +14060,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "登录"
+          }
+        }
+      }
+    },
+    "Sign in first." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi prima."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先登录。"
+          }
+        }
+      }
+    },
+    "Sign in first: Cartouche checks the game is on your account." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi prima: Cartouche controlla che il gioco sia nel tuo account."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先登录：Cartouche 会检查该游戏是否在你的账户中。"
+          }
+        }
+      }
+    },
+    "Sign in once to see your %@ library here. Games download with %@, an open-source client, and run with the runner you choose." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi una volta per vedere qui la tua libreria %1$@. I giochi si scaricano con %2$@, un client open source, e girano con il runner che scegli."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录一次即可在这里看到你的 %1$@ 游戏库。游戏由开源客户端 %2$@ 下载，并使用你选择的运行器运行。"
           }
         }
       }
@@ -13696,6 +14144,22 @@
         }
       }
     },
+    "Sign-in didn’t finish" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesso non completato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录未完成"
+          }
+        }
+      }
+    },
     "Signature database" : {
       "localizations" : {
         "it" : {
@@ -13708,6 +14172,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "签名数据库"
+          }
+        }
+      }
+    },
+    "Signed in" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesso effettuato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已登录"
           }
         }
       }
@@ -14675,6 +15155,22 @@
         }
       }
     },
+    "Stopped" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interrotto"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已停止"
+          }
+        }
+      }
+    },
     "Stopping Steam" : {
       "localizations" : {
         "it" : {
@@ -14719,6 +15215,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "推荐出现在“下载”中的安装程序"
+          }
+        }
+      }
+    },
+    "Supported" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supportato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支持"
           }
         }
       }
@@ -15023,6 +15535,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ ntdll 的可选头为 %@，预期为 %@。"
+          }
+        }
+      }
+    },
+    "The Amazon sign-in took too long. Try again." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accesso ad Amazon ha richiesto troppo tempo. Riprova."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Amazon 登录耗时过长。请重试。"
           }
         }
       }
@@ -15347,6 +15875,38 @@
         }
       }
     },
+    "The game’s fuel.json file is missing. Verify its files." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il file fuel.json del gioco è mancante. Verifica i suoi file."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "该游戏的 fuel.json 文件缺失。请验证其文件。"
+          }
+        }
+      }
+    },
+    "The game’s goggame-%@.info file is missing. Verify its files." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il file goggame-%@.info del gioco è mancante. Verifica i suoi file."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "该游戏的 goggame-%@.info 文件缺失。请验证其文件。"
+          }
+        }
+      }
+    },
     "The hook site" : {
       "localizations" : {
         "it" : {
@@ -15503,6 +16063,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "该运行器无法运行此安装程序"
+          }
+        }
+      }
+    },
+    "The sign-in left no login token." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accesso non ha restituito alcun token di accesso."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录没有返回登录令牌。"
           }
         }
       }
@@ -15679,6 +16255,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此游戏无法读取键盘。请在系统设置的“输入监控”中允许。"
+          }
+        }
+      }
+    },
+    "This is %@’s own page. Cartouche keeps only the login token it gives back." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questa è la pagina ufficiale di %@. Cartouche conserva solo il token di accesso che restituisce."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这是 %@ 自己的页面。Cartouche 只保留它返回的登录令牌。"
           }
         }
       }
@@ -15955,6 +16547,38 @@
         }
       }
     },
+    "Uninstall" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disinstalla"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "卸载"
+          }
+        }
+      }
+    },
+    "Uninstall %@?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disinstallare %@?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "卸载“%@”？"
+          }
+        }
+      }
+    },
     "Uninstall…" : {
       "localizations" : {
         "it" : {
@@ -16179,6 +16803,22 @@
         }
       }
     },
+    "Updating" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiornamento in corso"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在更新"
+          }
+        }
+      }
+    },
     "Use" : {
       "localizations" : {
         "it" : {
@@ -16255,6 +16895,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用外置磁盘上的游戏吗？"
+          }
+        }
+      }
+    },
+    "Use the Keychain" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa il portachiavi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用钥匙串"
           }
         }
       }
@@ -16483,6 +17139,22 @@
         }
       }
     },
+    "Waiting for sign-in…" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In attesa dell’accesso…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在等待登录…"
+          }
+        }
+      }
+    },
     "Waiting for the other install to finish" : {
       "localizations" : {
         "it" : {
@@ -16639,6 +17311,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "欢迎使用 Cartouche"
+          }
+        }
+      }
+    },
+    "What works" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cosa funziona"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可用功能"
           }
         }
       }
@@ -16985,6 +17673,22 @@
         }
       }
     },
+    "You sign in on %@’s own page. Cartouche keeps only a login token, in your Keychain." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi dalla pagina di %@. Cartouche conserva solo un token di accesso, nel tuo portachiavi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你需要在 %@ 自己的页面上登录。Cartouche 只会在你的钥匙串中保存登录令牌。"
+          }
+        }
+      }
+    },
     "You were setting up %@. Your choices are kept." : {
       "localizations" : {
         "it" : {
@@ -17177,6 +17881,22 @@
         }
       }
     },
+    "Your session expired. Sign in again." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La sessione è scaduta. Accedi di nuovo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的会话已过期。请重新登录。"
+          }
+        }
+      }
+    },
     "You’re set" : {
       "localizations" : {
         "it" : {
@@ -17337,6 +18057,38 @@
         }
       }
     },
+    "gogdl did not leave the game where Cartouche asked." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "gogdl non ha lasciato il gioco dove Cartouche aveva chiesto."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "gogdl 未将游戏放在 Cartouche 指定的位置。"
+          }
+        }
+      }
+    },
+    "gogdl stopped with status %d." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "gogdl si è fermato con stato %d."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "gogdl 已停止，状态码为 %d。"
+          }
+        }
+      }
+    },
     "has an unknown row kind %@. Known: base, package, file, bundle." : {
       "localizations" : {
         "it" : {
@@ -17397,6 +18149,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "不符合格式“%@”：%@"
+          }
+        }
+      }
+    },
+    "legendary did not report where the game was installed." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "legendary non ha indicato dove è stato installato il gioco."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "legendary 未报告游戏的安装位置。"
+          }
+        }
+      }
+    },
+    "legendary did not say how to start the game." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "legendary non ha indicato come avviare il gioco."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "legendary 未说明如何启动游戏。"
+          }
+        }
+      }
+    },
+    "legendary returned a library Cartouche couldn’t read." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "legendary ha restituito una libreria che Cartouche non riesce a leggere."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "legendary 返回了 Cartouche 无法读取的游戏库。"
+          }
+        }
+      }
+    },
+    "legendary stopped with status %d." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "legendary si è fermato con stato %d."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "legendary 已停止，状态码为 %d。"
           }
         }
       }
@@ -17557,6 +18373,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未指定任何软件包。"
+          }
+        }
+      }
+    },
+    "nile could not prepare the Amazon sign-in." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nile non è riuscito a preparare l’accesso ad Amazon."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nile 无法准备 Amazon 登录。"
+          }
+        }
+      }
+    },
+    "nile did not report where the game was installed." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nile non ha indicato dove è stato installato il gioco."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nile 未报告游戏的安装位置。"
+          }
+        }
+      }
+    },
+    "nile returned a library Cartouche couldn’t read." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nile ha restituito una libreria che Cartouche non riesce a leggere."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nile 返回了 Cartouche 无法读取的游戏库。"
+          }
+        }
+      }
+    },
+    "nile stopped with status %d." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nile si è fermato con stato %d."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nile 已停止，状态码为 %d。"
           }
         }
       }

@@ -353,6 +353,11 @@ final class LibraryModel {
         }
     }
 
+    func isExpired(_ item: SidebarItem) -> Bool {
+        guard case .source(let source) = item, case .expired = stores[source] ?? .notConnected else { return false }
+        return true
+    }
+
     // MARK: Actions
 
     func select(_ id: String?) { selectedGameID = id }

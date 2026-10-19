@@ -17,8 +17,11 @@ extension LibraryModel {
     }
 
     func resolution(for game: Game) -> GameSetupResolver.Resolution {
-        GameSetupResolver.resolve(setup(for: game.id), defaults: setupDefaults, runners: runners,
-                                  availability: backendAvailability, hasMacBuild: hasMacBuild(game))
+        var choice = setup(for: game.id)
+        // Store games run under Rosetta, as Windows installs do (P10)
+        if game.source.isStore { choice.translation = .rosetta }
+        return GameSetupResolver.resolve(choice, defaults: setupDefaults, runners: runners,
+                                         availability: backendAvailability, hasMacBuild: hasMacBuild(game))
     }
 
     // What the Graphics menu lists for the game's runner and translation
@@ -30,7 +33,8 @@ extension LibraryModel {
 
     // FEX only where the runner serves it, so never on macOS 15
     func translationChoices(for game: Game) -> [GameSetupChoice.Translation] {
-        resolution(for: game).setup.runner.map(BackendSupport.translations(for:)) ?? []
+        if game.source.isStore { return [.rosetta] }
+        return resolution(for: game).setup.runner.map(BackendSupport.translations(for:)) ?? []
     }
 
     func withVersion(_ game: Game) -> Game {

@@ -69,7 +69,7 @@ struct CoverView: View {
                 Rectangle().fill(.quaternary)
             }
         }
-        .task(id: "\(game.id)|\(override?.path ?? "")|\(kind.rawValue)") {
+        .task(id: "\(game.id)|\(override?.path ?? "")|\(kind.rawValue)|\(game.artwork?.absoluteString ?? "")") {
             art = nil
             if covers.local(for: game, kind: kind, override: override) != nil { return }
             art = await covers.art(for: game, kind: kind, override: override)

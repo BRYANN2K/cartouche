@@ -216,6 +216,9 @@ struct IdentityTests {
             guard let text = try? String(contentsOf: file, encoding: .utf8) else { continue }
             for match in text.matches(of: folder) {
                 let found = String(match.output[1].substring ?? "")
+                // gogdl and comet keep their token under "heroic" inside the private HOME
+                // Cartouche gives them (StoreRecords.home), never the user's own folder
+                if found == "heroic", file.lastPathComponent == "GOGAdapter.swift" { continue }
                 if !allowed.contains(found) { offenders.append("\(file.lastPathComponent): \(found)") }
             }
         }

@@ -73,6 +73,7 @@ struct LibraryGrid: View {
 
 struct ExpiredBanner: View {
     let source: GameSource
+    @Environment(StoreCenter.self) private var stores: StoreCenter?
 
     var body: some View {
         HStack(spacing: 12) {
@@ -85,10 +86,11 @@ struct ExpiredBanner: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            // Store sign-in comes with P10
-            Button("Sign In Again") {}
-                .prominentButton()
-                .disabled(true)
+            Button("Sign In Again") {
+                if let stores { Task { await stores.beginSignIn(source) } }
+            }
+            .prominentButton()
+            .disabled(stores == nil)
         }
         .padding(14)
         .groupBackground()

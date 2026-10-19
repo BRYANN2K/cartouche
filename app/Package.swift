@@ -41,6 +41,7 @@ let package = Package(
                 .copy("Resources/compat.schema.json"),
                 .copy("Resources/runners.json"),
                 .copy("Resources/backends.json"),
+                .copy("Resources/store-clients.json"),
                 .copy("Resources/detour2.bin"),
                 .copy("Resources/detour2-fex.bin"),
                 .copy("Resources/detour32.bin"),

@@ -15,7 +15,7 @@ struct GamePanel: View {
     @Environment(ControlsCenter.self) private var controls: ControlsCenter?
 
     private var content: GamePanelContent {
-        GamePanelContent(game: game, compat: compat.panel(appID: game.steamAppID ?? -1, method: .wine),
+        GamePanelContent(game: game, compat: compat.panel(appID: game.steamAppID ?? game.compatAppID ?? -1, method: .wine),
                          setup: model.setup(for: game.id), play: performance?.play(appID: game.steamAppID))
     }
 
@@ -58,7 +58,7 @@ struct GamePanel: View {
         .transition(Motion(reduceMotion: reduceMotion).entrance)
         .task(id: game.id) {
             // Asks MacGamingDB for this game only, when its panel opens
-            if let appID = game.steamAppID { await compat.openGame(appID: appID) }
+            if let appID = game.steamAppID ?? game.compatAppID { await compat.openGame(appID: appID) }
             await performance?.refresh()
         }
         .sheet(isPresented: $showingDetails) {

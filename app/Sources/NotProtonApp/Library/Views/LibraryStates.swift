@@ -181,34 +181,13 @@ struct SteamInstallView: View {
     }
 }
 
-// A store that is not connected yet. Store sign-in arrives with P10.
+// A store that is not connected yet: its page and sign-in (P10)
 struct SignInView: View {
     let source: GameSource
+    @Environment(StoreCenter.self) private var stores: StoreCenter?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Image(systemName: "person.crop.circle")
-                .font(.system(size: 30))
-                .foregroundStyle(Color.accentColor)
-                .frame(width: 56, height: 56)
-                .groupBackground(radius: 14)
-                .accessibilityHidden(true)
-            Text("Connect \(source.name)").font(.largeTitle.weight(.bold))
-            Text("Sign in once to see your \(source.name) library here. Games then run with the runner you choose.")
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Button("Sign In with \(source.name)…") {}
-                .controlSize(.large)
-                .prominentButton()
-                .disabled(true)
-            Text("\(source.name) support comes in a later version of Cartouche. You will sign in on \(source.name)’s own page, and Cartouche will keep only a login token, in your Keychain.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: 520, alignment: .leading)
-        .padding(40)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        StorePage(source: source, center: stores)
     }
 }
 
