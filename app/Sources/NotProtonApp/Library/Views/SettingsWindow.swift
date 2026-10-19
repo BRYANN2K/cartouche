@@ -195,6 +195,8 @@ struct CompatibilitySettingsView: View {
 
     var body: some View {
         Form {
+            SetupDefaultsSection(model: model)
+            BackendDownloadsSection(model: model)
             Section("Runners") {
                 if model.runners.isEmpty {
                     Text("No runner found on this Mac yet").foregroundStyle(.secondary)

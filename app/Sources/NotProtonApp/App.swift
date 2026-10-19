@@ -92,6 +92,15 @@ struct CartoucheApp: App {
     private func loadRunners() async {
         let registry = await Task.detached { RunnerRegistry.refresh() }.value
         library.runners = registry.runners
+        // What each runner can pair with, which games have a Mac build, and Steam's own choices (P3)
+        let (availability, tools, platforms, mappings) = await Task.detached {
+            (BackendAvailability.current(registry: registry), RunnerRegistry.backendTools(),
+             SteamAppInfo.platforms(), (SteamCompatChoice.mappings(), SteamCompatChoice.modified()))
+        }.value
+        library.backendAvailability = availability
+        library.backendTools = tools
+        library.macBuilds = platforms?.both ?? []
+        library.adoptSteamChoices(mappings.0, written: mappings.1)
     }
 
     @CommandsBuilder

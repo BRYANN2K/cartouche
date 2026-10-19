@@ -673,6 +673,22 @@
         }
       }
     },
+    "%@ license, from %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Licenza %1$@, da %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 许可证，来自 %2$@"
+          }
+        }
+      }
+    },
     "%@ names the package %@, which is not declared. Declared: %@." : {
       "localizations" : {
         "it" : {
@@ -1416,6 +1432,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "仍有游戏或 Wine 工具正在使用构建版本 %@。请先退出。"
+          }
+        }
+      }
+    },
+    "A game uses these until you pick its own setup. A backend its runner cannot use is replaced by the first one it can." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un gioco usa queste impostazioni finché non scegli la sua configurazione. Un backend che il suo runner non può usare viene sostituito dal primo che può usare."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在你为游戏单独选择设置之前，游戏使用这些设置。运行器无法使用的后端会被替换为它能使用的第一个后端。"
           }
         }
       }
@@ -2991,6 +3023,22 @@
         }
       }
     },
+    "Cartouche couldn’t pass this setup to Steam: %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche non è riuscito a passare questa configurazione a Steam: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 无法将此设置传给 Steam：%@"
+          }
+        }
+      }
+    },
     "Cartouche couldn’t read your library" : {
       "localizations" : {
         "it" : {
@@ -4370,6 +4418,38 @@
         }
       }
     },
+    "Default graphics" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grafica predefinita"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "默认图形"
+          }
+        }
+      }
+    },
+    "Default runner" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Runner predefinito"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "默认运行器"
+          }
+        }
+      }
+    },
     "Delete" : {
       "localizations" : {
         "it" : {
@@ -4814,6 +4894,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已完成"
+          }
+        }
+      }
+    },
+    "Download" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scarica"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载"
           }
         }
       }
@@ -5330,6 +5426,22 @@
         }
       }
     },
+    "First Available" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il primo disponibile"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第一个可用项"
+          }
+        }
+      }
+    },
     "Found in %@" : {
       "localizations" : {
         "it" : {
@@ -5518,6 +5630,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "图形"
+          }
+        }
+      }
+    },
+    "Graphics Backends" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backend grafici"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "图形后端"
           }
         }
       }
@@ -5838,6 +5966,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "安装 Windows 游戏"
+          }
+        }
+      }
+    },
+    "Install graphics backend" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installa il backend grafico"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装图形后端"
           }
         }
       }
@@ -6626,6 +6770,22 @@
         }
       }
     },
+    "Mac Version" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versione Mac"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac 版本"
+          }
+        }
+      }
+    },
     "Mac reports are turned off in Settings > Privacy" : {
       "localizations" : {
         "it" : {
@@ -6638,6 +6798,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mac 报告已在“设置 > 隐私”中关闭"
+          }
+        }
+      }
+    },
+    "Mac version" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versione Mac"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac 版本"
           }
         }
       }
@@ -6926,6 +7102,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "从未使用"
+          }
+        }
+      }
+    },
+    "New Games" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuovi giochi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新游戏"
           }
         }
       }
@@ -9666,6 +9858,22 @@
         }
       }
     },
+    "Save the game’s setup" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salva la configurazione del gioco"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存游戏设置"
+          }
+        }
+      }
+    },
     "Search" : {
       "localizations" : {
         "it" : {
@@ -10549,6 +10757,22 @@
         }
       }
     },
+    "Steam downloads the Windows version and runs it with Steam Play. Useful when the Mac port lags behind." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam scarica la versione Windows e la esegue con Steam Play. Utile quando la versione per Mac è in ritardo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 会下载 Windows 版本并通过 Steam Play 运行。适用于 Mac 版更新滞后的情况。"
+          }
+        }
+      }
+    },
     "Steam games still run." : {
       "localizations" : {
         "it" : {
@@ -11205,6 +11429,22 @@
         }
       }
     },
+    "The Mac build, with no translation. Usually the fastest." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La versione per Mac, senza traduzione. Di solito la più veloce."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac 版本，无需转译。通常最快。"
+          }
+        }
+      }
+    },
     "The Steam client will not update itself." : {
       "localizations" : {
         "it" : {
@@ -11361,6 +11601,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "跳转补丁距挂钩位置 %lld 字节，超出分支链接指令的范围。"
+          }
+        }
+      }
+    },
+    "The download of %@ does not hold the files Cartouche expects." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il download di %@ non contiene i file che Cartouche si aspetta."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载的 %@ 不包含 Cartouche 所需的文件。"
           }
         }
       }
@@ -12629,6 +12885,22 @@
         }
       }
     },
+    "Windows Version" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versione Windows"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Windows 版本"
+          }
+        }
+      }
+    },
     "Windows games, for the keyboard in some games" : {
       "localizations" : {
         "it" : {
@@ -12641,6 +12913,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Windows 游戏，用于部分游戏中的键盘"
+          }
+        }
+      }
+    },
+    "Windows version" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versione Windows"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Windows 版本"
           }
         }
       }
@@ -12673,6 +12961,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wine 日志"
+          }
+        }
+      }
+    },
+    "Wine builds use these. CrossOver comes with its own. Each download is checked against its SHA-256 before use." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le build di Wine usano questi backend. CrossOver ha i propri. Ogni download viene verificato con il suo SHA-256 prima dell’uso."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wine 版本使用这些后端，CrossOver 自带其版本。每个下载在使用前都会核对其 SHA-256。"
           }
         }
       }

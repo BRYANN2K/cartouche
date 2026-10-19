@@ -67,17 +67,22 @@ enum GameMenu {
         ]
         if !game.source.isConsole {
             let runners = model.runners.filter(\.isOffered)
+            // Only the pairs this Mac can run; nothing to pick for the Mac version (P3)
+            let resolved = model.resolution(for: game).setup
+            let windows = resolved.version == .windows
             items.append(GameMenuItem(
                 title: String(localized: "Runner"),
-                disabled: runners.isEmpty,
+                disabled: runners.isEmpty || !windows,
                 children: runners.map {
                     GameMenuItem(title: "\($0.kind.name) \($0.displayVersion)", action: .runner($0.id),
-                                 checked: (setup.runnerID ?? runners.first?.id) == $0.id)
+                                 checked: resolved.runner?.id == $0.id)
                 }))
+            let backends = resolved.runner == nil ? GraphicsBackend.allCases : model.graphicsChoices(for: game)
             items.append(GameMenuItem(
                 title: String(localized: "Graphics"),
-                children: GraphicsBackend.allCases.map {
-                    GameMenuItem(title: $0.label, action: .graphics($0), checked: (setup.graphics ?? .d3dmetal) == $0)
+                disabled: resolved.runner == nil || !windows,
+                children: backends.map {
+                    GameMenuItem(title: $0.label, action: .graphics($0), checked: (resolved.backend ?? setup.graphics) == $0)
                 }))
             items.append(.divider)
         }

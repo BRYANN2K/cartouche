@@ -41,6 +41,9 @@ static bool hook_CCompatManager_BIsEnabled(void *self, uint32_t appid) {
     }
     np_compat_force_enable(self);
     np_compat_register_crossover(self);
+    // A game's tool chosen in Cartouche, so Properties > Compatibility shows it too
+    if (np_compat_apply_requests(self) > 0)
+        np_compatsvc_state_changed();
     return orig(self, appid);
 }
 

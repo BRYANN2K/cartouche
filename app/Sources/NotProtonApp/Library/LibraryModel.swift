@@ -87,6 +87,10 @@ final class LibraryModel {
     var consoles: [String] = []
     var stores: [GameSource: StoreConnection] = [:]
     var runners: [Runner] = []
+    // From the registry and Steam's appinfo cache, set by the app (P3)
+    var backendAvailability = BackendAvailability()
+    var backendTools: [BackendTool] = []
+    var macBuilds: Set<Int> = []
 
     var selection: SidebarItem = .all {
         didSet { if selection != oldValue { keepSelectionVisible() } }
@@ -167,7 +171,7 @@ final class LibraryModel {
 
     // MARK: Games
 
-    var allGames: [Game] { steam.games + otherGames }
+    var allGames: [Game] { (steam.games + otherGames).map(withVersion) }
 
     func game(_ id: String?) -> Game? {
         guard let id else { return nil }
@@ -392,8 +396,16 @@ final class LibraryModel {
 
     func setup(for id: String) -> GameSetupChoice { choices.setups[id] ?? GameSetupChoice() }
 
-    func setSetup(_ setup: GameSetupChoice, for id: String) {
+    func setSetup(_ setup: GameSetupChoice, for id: String, tellSteam: Bool = true) {
         choices.setups[id] = setup
+        persist()
+        if tellSteam { self.tellSteam(id) }
+    }
+
+    // Several setups at once, saved once, as Steam already has them (P3)
+    func adoptSetups(_ updates: [String: GameSetupChoice]) {
+        guard !updates.isEmpty else { return }
+        choices.setups.merge(updates) { _, new in new }
         persist()
     }
 

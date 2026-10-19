@@ -8,6 +8,10 @@ struct GameSetupChoice: Codable, Equatable, Sendable {
     var graphics: GraphicsBackend?
     var translation: Translation?
     var metalHUD: Bool?
+    // For a Steam game that also has a macOS build (P3)
+    var version: GameVersion?
+    // Extra variables for the game, checked by GameSetupResolver (P3)
+    var environment: [String: String]?
 
     enum Translation: String, Codable, Sendable, CaseIterable {
         case rosetta, fex

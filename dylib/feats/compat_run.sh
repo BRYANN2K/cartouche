@@ -172,6 +172,53 @@ if [ "$np_flavor" = rosetta ] || [ ! -x "$WINELOADER" ] || [ ! -x "$WINESERVER" 
 fi
 export WINELOADER WINESERVER
 
+# The graphics backend this tool was made for, one word in its folder. CrossOver
+# reads CX_GRAPHICS_BACKEND and loads its own copy. Any other Wine gets Cartouche's
+# pinned DXMT or DXVK first in WINEDLLPATH, as builtin DLLs.
+np_backend=""
+if [ -n "$np_tool_dir" ] && [ -r "$np_tool_dir/backend" ]; then
+  read -r np_backend < "$np_tool_dir/backend" || np_backend=""
+fi
+case "$np_backend" in d3dmetal|dxmt|dxvk|wined3d) ;; *) np_backend="" ;; esac
+np_backend_note=""
+np_backend_from=""
+np_backend_path=""
+np_backend_missing=""
+if [ -n "$np_backend" ]; then
+  if [ -n "${CX_GRAPHICS_BACKEND:-}" ] && [ "$CX_GRAPHICS_BACKEND" != "$np_backend" ]; then
+    np_backend_note="launch option CX_GRAPHICS_BACKEND=$CX_GRAPHICS_BACKEND replaced by this tool's $np_backend"
+  fi
+  export CX_GRAPHICS_BACKEND="$np_backend"
+  if [ -d "$CX_ROOT/share/crossover" ]; then
+    np_backend_from="CrossOver's own copy"
+  else
+    case "$np_backend" in
+      dxmt|dxvk)
+        np_backend_files="$np_support/backends/$np_backend"
+        if [ -r "$np_backend_files/.cartouche-backend.json" ] && [ -d "$np_backend_files/x86_64-windows" ]; then
+          np_backend_path="$np_backend_files/x86_64-windows"
+          for dir in i386-windows x86_64-unix; do
+            [ ! -d "$np_backend_files/$dir" ] || np_backend_path="$np_backend_path:$np_backend_files/$dir"
+          done
+          np_backend_from="$np_backend_files"
+        else
+          np_backend_missing=1
+        fi
+        ;;
+      # Only CrossOver or the user's Game Porting Toolkit carry D3DMetal
+      d3dmetal) np_backend_missing=1 ;;
+      wined3d) np_backend_from="Wine's own" ;;
+    esac
+    case "$np_backend" in
+      dxmt) np_backend_dlls="d3d11,dxgi,d3d10core" ;;
+      *) np_backend_dlls="d3d9,d3d10core,d3d11,dxgi" ;;
+    esac
+    # Last wins, so these outrank the same DLLs in the launch options
+    [ -n "$np_backend_missing" ] \
+      || export WINEDLLOVERRIDES="${WINEDLLOVERRIDES:+$WINEDLLOVERRIDES;}$np_backend_dlls=b"
+  fi
+fi
+
 np_dropped=""
 if [ "${wine_unix##*/}" = aarch64-unix ]; then
   if [ "${CX_GRAPHICS_BACKEND:-}" = d3dmetal ]; then
@@ -191,6 +238,8 @@ without_lock_fds() {
 
 # If two WINEDLLPATH directories have the same DLL, Wine uses the one listed first.
 export WINEDLLPATH="$CX_ROOT/lib/wine/x86_64-windows:$wine_unix${WINEDLLPATH:+:$WINEDLLPATH}"
+# Cartouche's DXMT or DXVK goes first, so it wins over Wine's own DLLs
+[ -z "$np_backend_path" ] || WINEDLLPATH="$np_backend_path:$WINEDLLPATH"
 export PATH="$CX_ROOT/bin:$PATH"
 
 if [ -n "$STEAM_COMPAT_DATA_PATH" ]; then
@@ -211,6 +260,8 @@ fi
   echo "-- steam env passed through --"
   env | grep -iE '^(Steam|SDL_)' | sort
   [ -z "$np_dropped" ] || echo "ignored on arm64 Wine: $np_dropped"
+  [ -z "$np_backend" ] || echo "graphics: $np_backend from ${np_backend_from:-nowhere, not set up}"
+  [ -z "$np_backend_note" ] || echo "graphics: $np_backend_note"
 } >> "$log" 2>&1 || true
 
 stage_step="startup"
@@ -236,6 +287,35 @@ case "$app_id" in ''|0) app_id="$SteamAppId" ;; esac
 case "$app_id" in ''|0) app_id=$(basename "$STEAM_COMPAT_DATA_PATH" 2>/dev/null) ;; esac
 case "$app_id" in ''|*[!0-9]*) app_id=0 ;; esac
 echo "app_id=$app_id (STEAM_COMPAT_APP_ID=$STEAM_COMPAT_APP_ID)" >> "$log" 2>&1 || true
+
+# The game's own variables from Cartouche, such as the Metal HUD. A launch option that
+# sets the same name wins. Only the names the game launcher forwards are read.
+read_game_setup() {
+  setup_env="$np_support/setups/$app_id.env"
+  [ "$app_id" != 0 ] && [ -f "$setup_env" ] && [ ! -L "$setup_env" ] || return 0
+  while IFS= read -r line || [ -n "$line" ]; do
+    name=${line%%=*}
+    value=${line#*=}
+    [ "$name" != "$line" ] || continue
+    case "$name" in
+      *[!A-Z0-9_]*) continue ;;
+      D3DM_?*|DXMT_?*|DXVK_?*|MTL_?*|ROSETTA_?*) ;;
+      *) echo "setup: $name is not a variable Cartouche sets, ignored"; continue ;;
+    esac
+    if [ "${wine_unix##*/}" = aarch64-unix ]; then
+      case "$name" in D3DM_*|ROSETTA_*) echo "setup: $name ignored on arm64 Wine"; continue ;; esac
+    fi
+    eval "already=\${$name+set}"
+    # shellcheck disable=SC2154 # eval assigns already on the line above
+    if [ -n "$already" ]; then
+      echo "setup: $name kept from the launch options"
+      continue
+    fi
+    export "$name=$value"
+    echo "setup: $name=$value"
+  done < "$setup_env"
+}
+read_game_setup >> "$log" 2>&1 || true
 
 # Steam gives every non-Steam shortcut a game ID ending in 0x02000000.
 shortcut_game_id() {
@@ -693,6 +773,11 @@ if [ -z "$np_build" ] || [ ! -d "$CX_ROOT/lib/wine" ]; then
   exit 1
 fi
 echo "runner: build $np_build ($np_display) at $CX_ROOT" >> "$log" 2>&1 || true
+if [ -n "$np_backend_missing" ]; then
+  echo "=== $np_backend for this tool is not in $np_support/backends, set it up in Cartouche ===" >> "$log" 2>&1 || true
+  show_alert "The graphics backend is not set up" "$(alert_safe "$np_display") needs $np_backend, which is not set up. Set it up in Cartouche, or pick another graphics backend for this game."
+  exit 1
+fi
 
 # Each CrossOver build needs its own template.
 # FEX builds need two, one for FEX/arm64 Wine and one for Rosetta/AMD64 Wine
@@ -1147,6 +1232,19 @@ if [ -n "$STEAM_COMPAT_DATA_PATH" ]; then
   # A prefix that Wine built just now only has dosdevices from this point on.
   stage_step="game drive"
   map_game_drive
+  # DXMT's install guide puts winemetal.dll in the prefix too, not only beside Wine
+  if [ "$np_backend" = dxmt ] && [ -n "$np_backend_path" ]; then
+    stage_step="graphics backend"
+    metal_src="$np_support/backends/dxmt/x86_64-windows/winemetal.dll"
+    metal_dst="$WINEPREFIX/drive_c/windows/system32/winemetal.dll"
+    if [ -f "$metal_src" ] && [ -d "${metal_dst%/*}" ] && ! cmp -s "$metal_src" "$metal_dst"; then
+      if cp -f "$metal_src" "$metal_dst" 2>> "$log"; then
+        echo "=== copied DXMT's winemetal.dll into the prefix ===" >> "$log" 2>&1 || true
+      else
+        echo "=== could not copy DXMT's winemetal.dll into the prefix ===" >> "$log" 2>&1 || true
+      fi
+    fi
+  fi
 fi
 
 bridge_src="$np_support/bridge"

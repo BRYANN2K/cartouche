@@ -128,6 +128,25 @@ enum CompatToolList {
         resolved(runners: runners, file: file).tools
     }
 
+    // The backend list sits beside the tool list, so a test's list gets its own
+    static func backendFile(beside file: URL) -> URL {
+        file.deletingLastPathComponent().appending(path: SupportPaths.backendToolList.lastPathComponent)
+    }
+
+    static func backendContents(_ tools: [BackendTool]) -> String {
+        tools.map { "\($0.name)\t\($0.build)\t\($0.flavor.rawValue)\t\($0.backend.rawValue)\t\($0.display)\n" }.joined()
+    }
+
+    // Each tool paired with every backend its CrossOver can serve
+    static func backendTools(for tools: [InstalledTool], runners: URL = SupportPaths.runners) -> [BackendTool] {
+        SupportedRunners.backendTools(for: tools) { tool in
+            let root = SupportPaths.clonedRoot(forBuild: tool.build, runners: runners)
+            return BackendSupport.crossOver(
+                translation: tool.tool.flavor == .fex ? .fex : .rosetta,
+                d3dMetal: RunnerRegistry.crossOverD3DMetal(inRoot: root) != nil)
+        }
+    }
+
     // legacyHolder reads runners/current, so this has to run before prune deletes that symlink.
     private static func resolved(
         runners: URL, file: URL, fexAvailable: Bool = CompatTool.Flavor.fexAvailable
@@ -176,7 +195,15 @@ enum CompatToolList {
         fexAvailable: Bool = CompatTool.Flavor.fexAvailable
     ) throws -> Bool {
         let (builds, listed, tools) = resolved(runners: runners, file: file, fexAvailable: fexAvailable)
-        let text = contents(tools)
+        var changed = try write(contents(tools), to: file, had: listed)
+        let pairs = backendFile(beside: file)
+        changed = try write(backendContents(backendTools(for: tools, runners: runners)), to: pairs,
+                            had: try? String(contentsOf: pairs, encoding: .utf8)) || changed
+        prune(keeping: Set(builds.map(\.id)), runners: runners, bridge: bridge, compatTools: compatTools)
+        return changed
+    }
+
+    private static func write(_ text: String, to file: URL, had listed: String?) throws -> Bool {
         let changed = !(listed == text || (listed == nil && text.isEmpty))
         if changed {
             try FileManager.default.createDirectory(
@@ -184,7 +211,6 @@ enum CompatToolList {
             )
             try atomicReplace(file, with: Data(text.utf8), step: String(localized: "Update compatibility tools"))
         }
-        prune(keeping: Set(builds.map(\.id)), runners: runners, bridge: bridge, compatTools: compatTools)
         return changed
     }
 

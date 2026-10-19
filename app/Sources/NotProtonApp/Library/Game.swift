@@ -75,6 +75,8 @@ struct Game: Identifiable, Sendable, Equatable {
     var collections: [String] = []
     // The executable the cover drawn from the name carries, when one is known
     var executable: URL?
+    // Set for a Steam game that has a macOS build too: the version it runs (P3)
+    var version: GameVersion?
 
     var coverShape: CoverShape { source.isConsole ? .square : .portrait }
 
@@ -82,8 +84,12 @@ struct Game: Identifiable, Sendable, Equatable {
         Game(id: "steam:\(appID)", source: .steam, name: name, steamAppID: appID, installed: installed)
     }
 
-    // "Played yesterday", "Not installed", "Installed"
+    // "Windows version", "Played yesterday", "Not installed", "Installed"
     func status(now: Date = Date()) -> String {
+        // An installed game with a Mac build says which version it runs, as the mockup does
+        if let version, installed {
+            return version == .windows ? String(localized: "Windows version") : String(localized: "Mac version")
+        }
         if let lastPlayed {
             return String(localized: "Played \(GameDates.relative(lastPlayed, now: now))")
         }

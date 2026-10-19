@@ -175,9 +175,34 @@ struct SetupRows: View {
 
     var body: some View {
         let setup = model.setup(for: game.id)
+        let resolved = model.resolution(for: game).setup
         let runners = model.runners.filter(\.isOffered)
+        // A game with a Mac build runs it unless the Windows version is picked (P3)
+        if model.hasMacBuild(game) {
+            Picker("Run", selection: Binding(
+                get: { resolved.version },
+                set: { var s = setup; s.version = $0; model.setSetup(s, for: game.id) }
+            )) {
+                ForEach(GameVersion.allCases) { Text($0.label).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            Text(resolved.version == .windows
+                 ? "Steam downloads the Windows version and runs it with Steam Play. Useful when the Mac port lags behind."
+                 : "The Mac build, with no translation. Usually the fastest.")
+                .font(.callout).foregroundStyle(.secondary)
+        }
+        if resolved.version == .windows {
+            windowsRows(setup, resolved, runners)
+        }
+    }
+
+    // Only pairs this Mac can run are offered: no D3DMetal without a copy of it, no FEX before macOS 26
+    @ViewBuilder
+    private func windowsRows(_ setup: GameSetupChoice, _ resolved: GameSetup, _ runners: [Runner]) -> some View {
+        let backends = resolved.runner == nil ? GraphicsBackend.allCases : model.graphicsChoices(for: game)
+        let translations = model.translationChoices(for: game)
         Picker("Runner", selection: Binding(
-            get: { setup.runnerID ?? runners.first?.id ?? "" },
+            get: { resolved.runner?.id ?? "" },
             set: { var s = setup; s.runnerID = $0; model.setSetup(s, for: game.id) }
         )) {
             if runners.isEmpty { Text("No runner set up").tag("") }
@@ -187,22 +212,22 @@ struct SetupRows: View {
         }
         .disabled(runners.isEmpty)
         Picker("Graphics", selection: Binding(
-            get: { setup.graphics ?? .d3dmetal },
+            get: { resolved.backend ?? backends.first ?? .d3dmetal },
             set: { var s = setup; s.graphics = $0; model.setSetup(s, for: game.id) }
         )) {
-            ForEach(GraphicsBackend.allCases) { Text(verbatim: $0.label).tag($0) }
+            ForEach(backends) { Text(verbatim: $0.label).tag($0) }
         }
-        // FEX runs only on macOS 26, so macOS 15 shows no choice
-        if CompatTool.Flavor.fexAvailable {
+        .disabled(resolved.runner == nil)
+        if translations.count > 1 {
             Picker("Translation", selection: Binding(
-                get: { setup.translation ?? .rosetta },
+                get: { resolved.translation },
                 set: { var s = setup; s.translation = $0; model.setSetup(s, for: game.id) }
             )) {
-                ForEach(GameSetupChoice.Translation.allCases, id: \.self) { Text(verbatim: $0.label).tag($0) }
+                ForEach(translations, id: \.self) { Text(verbatim: $0.label).tag($0) }
             }
             .pickerStyle(.segmented)
         }
-        if let suggestion {
+        if let suggestion, suggestion != resolved.backend, backends.contains(suggestion), resolved.runner != nil {
             HStack {
                 Text("Most players use \(suggestion.label)").foregroundStyle(.secondary)
                 Spacer()

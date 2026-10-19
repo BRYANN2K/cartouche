@@ -88,7 +88,26 @@ struct InstalledTool: Sendable, Hashable, Identifiable {
     var display: String { tool.display }
 }
 
+// One runner tool with a graphics backend forced, listed in Steam as "<runner> · <backend>"
+struct BackendTool: Sendable, Hashable, Identifiable {
+    let base: InstalledTool
+    let backend: GraphicsBackend
+
+    var name: String { "\(base.name)-\(backend.rawValue)" }
+    var display: String { "\(base.display) · \(backend.label)" }
+    var build: String { base.build }
+    var flavor: CompatTool.Flavor { base.tool.flavor }
+    var id: String { name }
+}
+
 enum SupportedRunners {
+
+    // Every tool paired with each backend it can serve, tools in their own order
+    static func backendTools(
+        for tools: [InstalledTool], backends: (InstalledTool) -> [GraphicsBackend]
+    ) -> [BackendTool] {
+        tools.flatMap { tool in backends(tool).map { BackendTool(base: tool, backend: $0) } }
+    }
 
     // First entry is what windows-only games get when Steam has no mapping.
     static let toolPreference = [

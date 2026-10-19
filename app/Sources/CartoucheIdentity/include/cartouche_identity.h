@@ -19,6 +19,14 @@
 // the prefix only for tools whose name contains "proton".
 #define CARTOUCHE_TOOL_PREFIX "cartouche-proton"
 
+// Files in the data folder the app writes and the dylib reads (P3): one Steam tool per
+// runner and graphics backend pair, and the per-game tool choices Steam is asked to make.
+// Backends and per-game variables sit in folders the run script reads.
+#define CARTOUCHE_BACKEND_TOOL_LIST "backend-tools"
+#define CARTOUCHE_COMPAT_REQUESTS "compat-requests"
+#define CARTOUCHE_BACKENDS_DIR "backends"
+#define CARTOUCHE_SETUPS_DIR "setups"
+
 // The dylib injected into Steam.app
 #define CARTOUCHE_DYLIB_NAME "cartouche.dylib"
 

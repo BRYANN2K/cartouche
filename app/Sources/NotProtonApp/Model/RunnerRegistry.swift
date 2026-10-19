@@ -102,6 +102,11 @@ extension RunnerRegistry {
         CompatToolList.installed(runners: runners, file: file)
     }
 
+    // One tool per runner tool and graphics backend pair, as Steam is offered them
+    static func backendTools(runners: URL = SupportPaths.runners, file: URL = SupportPaths.toolList) -> [BackendTool] {
+        CompatToolList.backendTools(for: CompatToolList.installed(runners: runners, file: file), runners: runners)
+    }
+
     static func tools(for builds: [RunnerBuild]) -> [InstalledTool] {
         SupportedRunners.tools(for: builds)
     }

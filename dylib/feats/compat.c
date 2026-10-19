@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <time.h>
 #include <unistd.h>
 
 // The client maps Cloud's Windows path roots into the compat prefix only when
@@ -341,6 +342,8 @@ typedef struct {
     char name[64];
     char build[64];
     char flavor[16];
+    // Empty for a runner tool, else the graphics backend the run script forces
+    char backend[16];
     char display[96];
     char dir[640];
 } tool_entry_t;
@@ -375,29 +378,43 @@ static int is_display(const char *s) {
     return 1;
 }
 
-static int parse_tool_line(char *line, tool_entry_t *out) {
-    char *field[4];
+static int is_backend(const char *s) {
+    static const char *const names[] = { "d3dmetal", "dxmt", "dxvk", "wined3d" };
+    for (size_t i = 0; i < sizeof(names) / sizeof(names[0]); i++)
+        if (strcmp(s, names[i]) == 0) return 1;
+    return 0;
+}
+
+// name, build, flavor, display; a backend list line has the backend before display
+static int parse_tool_line(char *line, tool_entry_t *out, int with_backend) {
+    char *field[5];
+    int want = with_backend ? 5 : 4;
     int n = 0;
     char *save = NULL;
-    for (char *tok = strtok_r(line, "\t", &save); tok && n < 4;
+    for (char *tok = strtok_r(line, "\t", &save); tok && n < want;
          tok = strtok_r(NULL, "\t", &save))
         field[n++] = tok;
-    if (n != 4) return 0;
+    if (n != want) return 0;
+    const char *display = field[want - 1];
 
     if (!is_tool_name(field[0]) || !is_token(field[1], ".-")
         || (strcmp(field[2], "fex") != 0 && strcmp(field[2], "rosetta") != 0)
-        || !is_display(field[3]))
+        || (with_backend && !is_backend(field[3]))
+        || !is_display(display))
         return 0;
     if (strlen(field[0]) >= sizeof(out->name) || strlen(field[1]) >= sizeof(out->build)
-        || strlen(field[3]) >= sizeof(out->display))
+        || strlen(display) >= sizeof(out->display))
         return 0;
 
     snprintf(out->name, sizeof(out->name), "%s", field[0]);
     snprintf(out->build, sizeof(out->build), "%s", field[1]);
     snprintf(out->flavor, sizeof(out->flavor), "%s", field[2]);
-    snprintf(out->display, sizeof(out->display), "%s", field[3]);
+    snprintf(out->backend, sizeof(out->backend), "%s", with_backend ? field[3] : "");
+    snprintf(out->display, sizeof(out->display), "%s", display);
     return 1;
 }
+
+static int read_tool_list(const char *path, const char *tools_dir, int with_backend);
 
 int np_compat_load_tool_list(const char *path, const char *tools_dir) {
     g_tool_count = 0;
@@ -409,7 +426,28 @@ int np_compat_load_tool_list(const char *path, const char *tools_dir) {
                 "until Cartouche sets one up", path);
         return 0;
     }
+    fclose(f);
     g_tool_list_present = 1;
+    return read_tool_list(path, tools_dir, 0);
+}
+
+// Appends the runner and backend pairs after the runner tools, which keep their order
+// and so stay the defaults. A missing list is a Cartouche without backend tools yet.
+int np_compat_load_backend_tool_list(const char *path, const char *tools_dir) {
+    FILE *f = fopen(path, "r");
+    if (!f) {
+        NP_LOG("np_compat_load_backend_tool_list: %s is missing, so no tool forces a "
+               "graphics backend", path);
+        return 0;
+    }
+    fclose(f);
+    return read_tool_list(path, tools_dir, 1);
+}
+
+static int read_tool_list(const char *path, const char *tools_dir, int with_backend) {
+    FILE *f = fopen(path, "r");
+    if (!f) return 0;
+    int added = 0;
 
     char line[512];
     int lineno = 0;
@@ -419,7 +457,7 @@ int np_compat_load_tool_list(const char *path, const char *tools_dir) {
         if (!line[0]) continue;
 
         tool_entry_t entry;
-        if (!parse_tool_line(line, &entry)) {
+        if (!parse_tool_line(line, &entry, with_backend)) {
             NP_WARN("np_compat_load_tool_list: %s line %d is not a tool, skipped",
                     path, lineno);
             continue;
@@ -447,9 +485,10 @@ int np_compat_load_tool_list(const char *path, const char *tools_dir) {
 
         snprintf(entry.dir, sizeof(entry.dir), "%s/%s", tools_dir, entry.name);
         g_tools[g_tool_count++] = entry;
+        added++;
     }
     fclose(f);
-    return g_tool_count;
+    return added;
 }
 
 static int tools_dir_path(char *out, size_t size) {
@@ -467,6 +506,9 @@ static void load_tool_list(void) {
     char path[512];
     snprintf(path, sizeof(path), "%s/" CARTOUCHE_SUPPORT_DIR "/tools", home);
     np_compat_load_tool_list(path, tools_dir);
+    if (!g_tool_list_present) return;
+    snprintf(path, sizeof(path), "%s/" CARTOUCHE_SUPPORT_DIR "/" CARTOUCHE_BACKEND_TOOL_LIST, home);
+    np_compat_load_backend_tool_list(path, tools_dir);
 }
 
 static void load_tool_list_once(void) {
@@ -521,6 +563,16 @@ static int write_tool(const tool_entry_t *tool) {
     if (write_file(path, line, 0) == 0) wrote++;
     else NP_WARN("np_compat_ensure_tool_manifest: failed to write %s", path);
 
+    // The run script forces this backend. A runner tool has none, and loses a stale one.
+    snprintf(path, sizeof(path), "%s/backend", tool->dir);
+    if (tool->backend[0]) {
+        snprintf(line, sizeof(line), "%s\n", tool->backend);
+        if (write_file(path, line, 0) == 0) wrote++;
+        else NP_WARN("np_compat_ensure_tool_manifest: failed to write %s", path);
+    } else {
+        unlink(path);
+    }
+
     if (wrote > 0)
         NP_LOG("np_compat_ensure_tool_manifest: wrote %d file(s) to %s", wrote, tool->dir);
 
@@ -552,7 +604,7 @@ static void remove_tool(const char *tools_dir, const char *name) {
     char path[768];
 
     static const char *const files[] = {
-        "compatibilitytool.vdf", "toolmanifest.vdf", "run", "flavor", "build",
+        "compatibilitytool.vdf", "toolmanifest.vdf", "run", "flavor", "build", "backend",
     };
 
     for (size_t i = 0; i < sizeof(files) / sizeof(files[0]); i++) {
@@ -760,6 +812,78 @@ void np_compat_map_tool(void *compat_mgr, uint32_t appid, const char *tool_name)
     g_set_mapping(compat_mgr, appid, tool_name, "",
                   appid ? COMPAT_MAPPING_PRIORITY_APP
                         : COMPAT_MAPPING_PRIORITY_GLOBAL);
+}
+
+// Cartouche asks for a game's tool by leaving "appid<TAB>tool" lines in its data folder,
+// an empty tool clearing the choice. The file is renamed before it is read, so a request
+// the app writes meanwhile waits for the next pass instead of being lost.
+#define REQUESTS_MAX_BYTES (64 * 1024)
+
+int np_compat_apply_requests_from(void *compat_mgr, const char *path) {
+    // Without the client's mapping function the requests wait for a build that has it
+    if (!compat_mgr || !path || !g_set_mapping) return 0;
+    char taken[600];
+    snprintf(taken, sizeof(taken), "%s.applying", path);
+    if (rename(path, taken) != 0) return 0;
+
+    FILE *f = fopen(taken, "r");
+    if (!f) {
+        unlink(taken);
+        return 0;
+    }
+    int applied = 0;
+    size_t read_bytes = 0;
+    char line[256];
+    while (fgets(line, sizeof(line), f)) {
+        read_bytes += strlen(line);
+        if (read_bytes > REQUESTS_MAX_BYTES) {
+            NP_WARN("np_compat_apply_requests: %s is over %d bytes, the rest is skipped",
+                    path, REQUESTS_MAX_BYTES);
+            break;
+        }
+        line[strcspn(line, "\r\n")] = '\0';
+        char *tab = strchr(line, '\t');
+        if (!tab) continue;
+        *tab = '\0';
+        const char *tool = tab + 1;
+        char *end = NULL;
+        unsigned long appid = strtoul(line, &end, 10);
+        if (!line[0] || *end || appid > UINT32_MAX || strlen(line) > 10) {
+            NP_WARN("np_compat_apply_requests: \"%s\" is not an app, skipped", line);
+            continue;
+        }
+        // App 0 is Steam's tool for every other Windows game, which is never cleared here
+        if (appid == 0 && !*tool) continue;
+        // Only Cartouche's own tools, or nothing to clear the choice
+        if (*tool && !is_tool_name(tool)) {
+            NP_WARN("np_compat_apply_requests: app %lu asks for %s, which is not a Cartouche "
+                    "tool, skipped", appid, tool);
+            continue;
+        }
+        np_compat_map_tool(compat_mgr, (uint32_t)appid, tool);
+        NP_LOG("np_compat_apply_requests: app %lu now maps to %s", appid,
+               *tool ? tool : "its default");
+        applied++;
+    }
+    fclose(f);
+    unlink(taken);
+    return applied;
+}
+
+// Called on every compat query, so the file is looked at no more than once a second
+int np_compat_apply_requests(void *compat_mgr) {
+    static _Atomic int64_t next_check;
+    struct timespec now;
+    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) return 0;
+    int64_t ms = (int64_t)now.tv_sec * 1000 + now.tv_nsec / 1000000;
+    int64_t due = atomic_load(&next_check);
+    if (ms < due || !atomic_compare_exchange_strong(&next_check, &due, ms + 1000)) return 0;
+
+    const char *home = np_home_dir();
+    if (!home) return 0;
+    char path[512];
+    snprintf(path, sizeof(path), "%s/" CARTOUCHE_SUPPORT_DIR "/" CARTOUCHE_COMPAT_REQUESTS, home);
+    return np_compat_apply_requests_from(compat_mgr, path);
 }
 
 typedef void (*fn_YldRegisterTool)(void *compat_mgr, void *tool);

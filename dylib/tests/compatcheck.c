@@ -538,6 +538,110 @@ static void stale_tool_cases(void) {
     rmdir(root);
 }
 
+static int read_back(const char *dir, const char *name, char *out, size_t size) {
+    char path[768];
+    snprintf(path, sizeof(path), "%s/%s", dir, name);
+    FILE *f = fopen(path, "r");
+    if (!f) return -1;
+    size_t got = fread(out, 1, size - 1, f);
+    out[got] = '\0';
+    fclose(f);
+    return 0;
+}
+
+// One tool per runner tool and graphics backend pair, after the runner tools
+static void backend_list_cases(void) {
+    static const char tools[] = "out/compatcheck-tools";
+    static const char pairs[] = "out/compatcheck-backend-tools";
+    FILE *f = fopen(tools, "w");
+    FILE *g = fopen(pairs, "w");
+    if (!f || !g) {
+        check(0, "the backend list fixtures can be written");
+        if (f) fclose(f);
+        if (g) fclose(g);
+        return;
+    }
+    fputs("cartouche-proton-26.3\t26.3.0.39832\trosetta\tCrossOver 26.3\n"
+          "cartouche-proton-fex-41073\t27.0.0.41073-fex\tfex\tCrossOver 2026 10 15-ARM64 - FEX\n", f);
+    fclose(f);
+    fputs("cartouche-proton-26.3-d3dmetal\t26.3.0.39832\trosetta\td3dmetal\tCrossOver 26.3 \xc2\xb7 D3DMetal\n"
+          "cartouche-proton-26.3-dxmt\t26.3.0.39832\trosetta\tdxmt\tCrossOver 26.3 \xc2\xb7 DXMT\n"
+          "cartouche-proton-fex-41073-dxvk\t27.0.0.41073-fex\tfex\tdxvk\tCrossOver 2026 10 15-ARM64 - FEX \xc2\xb7 DXVK\n"
+          "cartouche-proton-26.3-metal\t26.3.0.39832\trosetta\tmetal\tUnknown backend\n"
+          "cartouche-proton-26.3-four\t26.3.0.39832\trosetta\tNo backend field\n"
+          "cartouche-proton-26.3\t26.3.0.39832\trosetta\tdxmt\tTakes a runner tool's name\n"
+          "proton-other-dxmt\t1\trosetta\tdxmt\tForeign\n"
+          "cartouche-proton-26.3-wined3d\t26.3.0.39832\trosetta\twined3d\tCrossOver 26.3 \xc2\xb7 wined3d\n", g);
+    fclose(g);
+
+    int base = np_compat_load_tool_list(tools, "/tools");
+    int added = np_compat_load_backend_tool_list(pairs, "/tools");
+    check(base == 2 && added == 4 && g_tool_count == 6,
+          "four well-formed pairs follow the two runner tools, the rest are skipped");
+    check(strcmp(g_tools[0].name, "cartouche-proton-26.3") == 0 && !g_tools[0].backend[0]
+          && strcmp(np_compat_fallback_tool_name(), "cartouche-proton-26.3") == 0,
+          "a runner tool stays first and stays the default");
+    check(strcmp(g_tools[2].name, "cartouche-proton-26.3-d3dmetal") == 0
+          && strcmp(g_tools[2].backend, "d3dmetal") == 0
+          && strcmp(g_tools[2].display, "CrossOver 26.3 \xc2\xb7 D3DMetal") == 0
+          && strcmp(g_tools[2].dir, "/tools/cartouche-proton-26.3-d3dmetal") == 0,
+          "a pair carries its backend, its \"<runner> \xc2\xb7 <backend>\" name and its directory");
+    check(strcmp(g_tools[4].backend, "dxvk") == 0 && strcmp(g_tools[4].flavor, "fex") == 0,
+          "a FEX tool's pair keeps the FEX flavor");
+    check(strcmp(g_tools[5].backend, "wined3d") == 0, "lines after a bad one are still read");
+    const char *fex[4] = { NULL, NULL, NULL, NULL };
+    check(np_compat_fex_tools(fex, 4) == 2 && strcmp(fex[1], "cartouche-proton-fex-41073-dxvk") == 0,
+          "FEX pairs count as FEX tools");
+    check(np_compat_load_backend_tool_list("out/compatcheck-missing", "/tools") == 0 && g_tool_count == 6,
+          "a missing backend list adds nothing and keeps the runner tools");
+
+    char root[] = "out/compatcheck-pairs.XXXXXX";
+    if (!mkdtemp(root)) {
+        check(0, "the pair directory fixture can be made");
+        unlink(tools);
+        unlink(pairs);
+        return;
+    }
+    for (int i = 0; i < g_tool_count; i++)
+        snprintf(g_tools[i].dir, sizeof(g_tools[i].dir), "%s/%s", root, g_tools[i].name);
+    char text[64];
+    check(write_tool(&g_tools[3]) == 0 && read_back(g_tools[3].dir, "backend", text, sizeof(text)) == 0
+          && strcmp(text, "dxmt\n") == 0, "a pair's directory names its backend for the run script");
+    check(read_back(g_tools[3].dir, "build", text, sizeof(text)) == 0 && strcmp(text, "26.3.0.39832\n") == 0
+          && read_back(g_tools[3].dir, "flavor", text, sizeof(text)) == 0 && strcmp(text, "rosetta\n") == 0,
+          "a pair runs the same build and flavor as its runner tool");
+    char decl[512];
+    check(read_back(g_tools[3].dir, "compatibilitytool.vdf", decl, sizeof(decl)) == 0
+          && strstr(decl, "\"display_name\" \"CrossOver 26.3 \xc2\xb7 DXMT\"") != NULL,
+          "Steam's menu shows the pair as \"<runner> \xc2\xb7 <backend>\"");
+    // A tool that lost its backend loses the file too
+    mkdir(g_tools[0].dir, 0755);
+    put(g_tools[0].dir, "backend", "dxvk\n");
+    char stale[768];
+    snprintf(stale, sizeof(stale), "%s/backend", g_tools[0].dir);
+    check(write_tool(&g_tools[0]) == 0 && !exists(stale), "a runner tool has no backend file");
+
+    // Unlisting the pair removes every file it wrote, the backend file included
+    g_tool_count = 1;
+    remove_unlisted_tools(root);
+    check(!exists(g_tools[3].dir), "an unlisted pair is removed whole");
+    check(exists(g_tools[0].dir), "a listed tool stays");
+
+    static const char *const files[] = {
+        "compatibilitytool.vdf", "toolmanifest.vdf", "run", "flavor", "build", "backend",
+    };
+    for (size_t i = 0; i < sizeof(files) / sizeof(files[0]); i++) {
+        char path[768];
+        snprintf(path, sizeof(path), "%s/%s", g_tools[0].dir, files[i]);
+        unlink(path);
+    }
+    rmdir(g_tools[0].dir);
+    rmdir(root);
+    unlink(tools);
+    unlink(pairs);
+    g_tool_count = 0;
+}
+
 static uint32_t stub_platforms_value;
 static uint32_t stub_platforms(void *mgr, uint32_t appid) {
     (void)mgr; (void)appid;
@@ -812,6 +916,74 @@ static void shortcut_exe_cases(void) {
     free_world(&w);
 }
 
+static char mapped_tools[8][64];
+static uint32_t mapped_apps[8];
+static uint32_t mapped_priorities[8];
+static int mapped_count;
+static void record_mapping(void *mgr, uint32_t appid, const char *tool_name,
+                           const char *config, uint32_t priority) {
+    (void)mgr; (void)config;
+    if (mapped_count >= 8) return;
+    mapped_apps[mapped_count] = appid;
+    mapped_priorities[mapped_count] = priority;
+    snprintf(mapped_tools[mapped_count], sizeof(mapped_tools[0]), "%s", tool_name);
+    mapped_count++;
+}
+
+// The per-game choices Cartouche leaves for Steam
+static void request_cases(void) {
+    static const char path[] = "out/compatcheck-compat-requests";
+    uint8_t manager[16] = { 0 };
+    np_compat_set_mapping_fn((uintptr_t)record_mapping);
+    mapped_count = 0;
+
+    check(np_compat_apply_requests_from(manager, path) == 0 && mapped_count == 0,
+          "no request file maps nothing");
+
+    FILE *f = fopen(path, "w");
+    if (!f) {
+        check(0, "the request fixture can be written");
+        return;
+    }
+    fputs("1245620\tcartouche-proton-26.3-d3dmetal\n"
+          "413150\t\n"
+          "730\tproton_9\n"
+          "0\tcartouche-proton-26.3-dxmt\n"
+          "0\t\n"
+          "12x\tcartouche-proton-26.3-dxmt\n"
+          "99999999999\tcartouche-proton-26.3-dxmt\n"
+          "no tab here\n"
+          "570\tcartouche-proton-fex-41073-dxvk\r\n", f);
+    fclose(f);
+
+    // Without the client's mapping function nothing is applied and nothing is lost
+    np_compat_set_mapping_fn(0);
+    check(np_compat_apply_requests_from(manager, path) == 0 && exists(path),
+          "requests wait while the mapping function is missing");
+    np_compat_set_mapping_fn((uintptr_t)record_mapping);
+
+    int applied = np_compat_apply_requests_from(manager, path);
+    check(applied == 4 && mapped_count == 4, "four well-formed requests are applied, the rest skipped");
+    check(mapped_apps[0] == 1245620 && strcmp(mapped_tools[0], "cartouche-proton-26.3-d3dmetal") == 0
+          && mapped_priorities[0] == COMPAT_MAPPING_PRIORITY_APP,
+          "a game is mapped to the pair Cartouche chose, as a per-app choice");
+    check(mapped_apps[1] == 413150 && mapped_tools[1][0] == '\0',
+          "an empty tool clears the forced tool, back to the Mac version");
+    check(mapped_apps[2] == 0 && strcmp(mapped_tools[2], "cartouche-proton-26.3-dxmt") == 0
+          && mapped_priorities[2] == COMPAT_MAPPING_PRIORITY_GLOBAL,
+          "app 0 sets the default for every other Windows game, and is never cleared");
+    check(mapped_apps[3] == 570 && strcmp(mapped_tools[3], "cartouche-proton-fex-41073-dxvk") == 0,
+          "a CRLF line is read as its tool");
+    check(!exists(path) && !exists("out/compatcheck-compat-requests.applying"),
+          "the request file is consumed, so Steam's own later choice is not overridden");
+
+    mapped_count = 0;
+    check(np_compat_apply_requests_from(manager, path) == 0 && mapped_count == 0,
+          "a consumed file is not applied twice");
+    check(np_compat_apply_requests_from(NULL, path) == 0, "no manager, nothing applied");
+    np_compat_set_mapping_fn(0);
+}
+
 int main(void) {
     concurrent_fallback_cases();
     probe_cases();
@@ -822,6 +994,8 @@ int main(void) {
     tool_list_cases();
     tool_launch_cases();
     stale_tool_cases();
+    backend_list_cases();
+    request_cases();
     installed_fn_cases();
     shortcut_probe_cases();
     shortcut_exe_cases();

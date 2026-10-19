@@ -62,6 +62,10 @@ void np_compat_export_tools_path(void);
 // number of tools kept.
 int  np_compat_load_tool_list(const char *path, const char *tools_dir);
 
+// Appends the runner and graphics backend pairs (name, build, flavor, backend, display)
+// after the tools already loaded. Returns the number of tools added.
+int  np_compat_load_backend_tool_list(const char *path, const char *tools_dir);
+
 // Writes a directory for every tool in the app's list and removes the directories of tools
 // no longer in it.
 int  np_compat_ensure_tool_manifest(void);
@@ -106,6 +110,14 @@ const char *np_compat_app_mapping(void *compat_mgr, uint32_t appid);
 // to the client default. Appid zero sets the global default at lower priority.
 void np_compat_set_mapping_fn(uintptr_t set_compat_tool_mapping);
 void np_compat_map_tool(void *compat_mgr, uint32_t appid, const char *tool_name);
+
+// Maps each app Cartouche asked for ("appid<TAB>tool" lines, an empty tool clears it, app 0
+// is the default for every other Windows game) and removes the request file. Leaves the
+// file for later while the client's mapping function is unknown. Returns the apps mapped.
+int  np_compat_apply_requests_from(void *compat_mgr, const char *path);
+
+// The same for Cartouche's request file, looked at no more than once a second.
+int  np_compat_apply_requests(void *compat_mgr);
 
 // CCompatManager::YldRegisterTool, resolved at install time.
 void np_compat_set_register_fn(uintptr_t yld_register_tool);
