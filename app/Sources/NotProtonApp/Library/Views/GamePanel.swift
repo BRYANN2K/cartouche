@@ -12,6 +12,7 @@ struct GamePanel: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.activity) private var activity
     @Environment(ConsoleCenter.self) private var consoles: ConsoleCenter?
+    @Environment(ControlsCenter.self) private var controls: ControlsCenter?
 
     private var content: GamePanelContent {
         GamePanelContent(game: game, compat: compat.panel(appID: game.steamAppID ?? -1, method: .wine),
@@ -45,6 +46,9 @@ struct GamePanel: View {
                     }
                     ForEach(content.sections, id: \.self) { section in
                         block(section, content)
+                    }
+                    if let controls {
+                        group(String(localized: "Controls")) { ControlsRow(game: game, center: controls) }
                     }
                 }
                 .padding(16)
@@ -82,6 +86,7 @@ struct GamePanel: View {
                     }
                     .controlSize(.large)
                     .prominentButton()
+                    .couchRing(controls?.couch.ringsPlay == true)
                     .disabled(!game.installed && model.isOffline)
                     .help(!game.installed && model.isOffline ? Text("Connect to the internet to download") : Text(verbatim: ""))
                     Menu {

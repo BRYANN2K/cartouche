@@ -13,6 +13,7 @@ struct ConsolePanel: View {
 
     @State private var showingMore = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(ControlsCenter.self) private var controls: ControlsCenter?
 
     private var content: ConsolePanelContent? {
         guard let system = center.console(of: console) else { return nil }
@@ -66,6 +67,7 @@ struct ConsolePanel: View {
                 }
                 .controlSize(.large)
                 .prominentButton()
+                .couchRing(controls?.couch.ringsPlay == true)
                 .disabled(!content.canPlay)
                 Menu {
                     GameMenuContent(items: GameMenu.items(for: game, in: model)) { actions.perform($0, on: game) }
@@ -128,7 +130,7 @@ struct ConsolePanel: View {
             }
         case .controls:
             group(section.title) {
-                ControllerRow()
+                if let controls { ControlsRow(game: game, center: controls) } else { ControllerRow() }
             }
         case .more:
             HStack {

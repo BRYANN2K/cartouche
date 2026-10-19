@@ -6,6 +6,7 @@ struct LibraryGrid: View {
     let actions: GameActionRunner
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(ControlsCenter.self) private var controls: ControlsCenter?
     @State private var droppedCover: (game: Game, image: URL)?
 
     var body: some View {
@@ -39,6 +40,8 @@ struct LibraryGrid: View {
             // Games come and go with a spring, or with no animation under Reduce Motion
             .animation(motion.grid, value: sections)
         }
+        // Couch mode moves up and down by a row
+        .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { controls?.couch.gridWidth = $0 }
         .confirmationDialog(
             Text("Use this image as the cover of \(droppedCover?.game.name ?? "")?"),
             isPresented: Binding(get: { droppedCover != nil }, set: { if !$0 { droppedCover = nil } })

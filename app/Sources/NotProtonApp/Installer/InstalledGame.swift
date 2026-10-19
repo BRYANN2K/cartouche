@@ -64,6 +64,7 @@ enum GameLauncher {
             if let value = env[key] { lines.append("export \(key)=\(quote(value))") }
         }
         lines.append("export PATH=\(quote(wine.root.appending(path: "bin").path(percentEncoded: false))):\"$PATH\"")
+        lines += controlsBlock(folder: GameFolder(root: prefix.deletingLastPathComponent()))
         lines.append("cd \(quote(exe.deletingLastPathComponent().path(percentEncoded: false))) || exit 1")
         lines.append("exec \(quote(wine.loader.path(percentEncoded: false))) \(quote(exe.path(percentEncoded: false))) \"$@\"")
         return lines.joined(separator: "\n") + "\n"

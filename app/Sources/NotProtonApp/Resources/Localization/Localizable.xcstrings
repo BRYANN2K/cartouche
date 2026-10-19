@@ -2398,6 +2398,22 @@
         }
       }
     },
+    "Add Key" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi tasto"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加按键"
+          }
+        }
+      }
+    },
     "Add a Windows game or your own console games" : {
       "localizations" : {
         "it" : {
@@ -2868,6 +2884,22 @@
         }
       }
     },
+    "Applied to the game’s Wine prefix at the next launch." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Applicato al prefisso Wine del gioco al prossimo avvio."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下次启动时应用到游戏的 Wine 前缀。"
+          }
+        }
+      }
+    },
     "Are you sure you want to back up these prefixes?" : {
       "localizations" : {
         "it" : {
@@ -3284,6 +3316,22 @@
         }
       }
     },
+    "Battery %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Batteria %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "电量 %@"
+          }
+        }
+      }
+    },
     "Battery %lld%%" : {
       "localizations" : {
         "it" : {
@@ -3296,6 +3344,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "电量 %lld%%"
+          }
+        }
+      }
+    },
+    "Becomes" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diventa"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "变为"
           }
         }
       }
@@ -3536,6 +3600,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "由 Cartouche 使用 CodeWeavers 的开源代码构建"
+          }
+        }
+      }
+    },
+    "Built in" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Integrati"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "内建"
           }
         }
       }
@@ -3927,6 +4007,22 @@
         }
       }
     },
+    "Cartouche couldn’t save the controls: %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche non è riuscito a salvare i controlli: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 无法保存控制设置：%@"
+          }
+        }
+      }
+    },
     "Cartouche couldn’t save your library choices: %@" : {
       "localizations" : {
         "it" : {
@@ -4227,6 +4323,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "更改封面…"
+          }
+        }
+      }
+    },
+    "Change what keys do in %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambia cosa fanno i tasti in %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更改按键在 %@ 中的作用"
+          }
+        }
+      }
+    },
+    "Charging, battery %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In carica, batteria %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在充电，电量 %@"
           }
         }
       }
@@ -4707,6 +4835,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请先关闭 Steam，再继续。"
+          }
+        }
+      }
+    },
+    "Command acts as Control" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command fa da Control"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command 用作 Control"
           }
         }
       }
@@ -5223,6 +5367,22 @@
         }
       }
     },
+    "Controllers" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controller"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "控制器"
+          }
+        }
+      }
+    },
     "Controls" : {
       "localizations" : {
         "it" : {
@@ -5235,6 +5395,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "控制"
+          }
+        }
+      }
+    },
+    "Controls for %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controlli di %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 的控制"
           }
         }
       }
@@ -5319,6 +5495,22 @@
         }
       }
     },
+    "Copy, paste and shortcuts work like on Windows" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copia, incolla e scorciatoie funzionano come su Windows"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制、粘贴和快捷键与 Windows 上一致"
+          }
+        }
+      }
+    },
     "Copying" : {
       "localizations" : {
         "it" : {
@@ -5395,6 +5587,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下载已损坏"
+          }
+        }
+      }
+    },
+    "Couch mode" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modalità divano"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沙发模式"
           }
         }
       }
@@ -5578,6 +5786,86 @@
         }
       }
     },
+    "Customize…" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Personalizza…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自定…"
+          }
+        }
+      }
+    },
+    "D-pad Down" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Croce direzionale giù"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "方向键下"
+          }
+        }
+      }
+    },
+    "D-pad Left" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Croce direzionale sinistra"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "方向键左"
+          }
+        }
+      }
+    },
+    "D-pad Right" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Croce direzionale destra"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "方向键右"
+          }
+        }
+      }
+    },
+    "D-pad Up" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Croce direzionale su"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "方向键上"
+          }
+        }
+      }
+    },
     "D3DMetal is never bundled. It comes from your own Game Porting Toolkit or CrossOver." : {
       "localizations" : {
         "it" : {
@@ -5606,6 +5894,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已损坏"
+          }
+        }
+      }
+    },
+    "Default" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Predefinito"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "默认"
           }
         }
       }
@@ -6554,6 +6858,22 @@
         }
       }
     },
+    "Each button sends" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ogni tasto invia"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每个按钮发送"
+          }
+        }
+      }
+    },
     "Emulator" : {
       "localizations" : {
         "it" : {
@@ -6934,6 +7254,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "适用于所有 %@ 游戏。"
+          }
+        }
+      }
+    },
+    "For games that only take a keyboard: left stick to WASD, right stick to the mouse, buttons to keys" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per i giochi che accettano solo la tastiera: levetta sinistra su WASD, levetta destra sul mouse, pulsanti sui tasti"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "适用于只支持键盘的游戏：左摇杆对应 WASD，右摇杆对应鼠标，按钮对应按键"
           }
         }
       }
@@ -8170,6 +8506,22 @@
         }
       }
     },
+    "Keep the mouse inside the game" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tieni il mouse dentro il gioco"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将鼠标限制在游戏内"
+          }
+        }
+      }
+    },
     "Keeping the shipped %@ failed. " : {
       "localizations" : {
         "it" : {
@@ -8186,6 +8538,22 @@
         }
       }
     },
+    "Key" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tasto"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按键"
+          }
+        }
+      }
+    },
     "Keyboard" : {
       "localizations" : {
         "it" : {
@@ -8198,6 +8566,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "键盘"
+          }
+        }
+      }
+    },
+    "Keyboard and Mouse" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tastiera e mouse"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "键盘和鼠标"
+          }
+        }
+      }
+    },
+    "Keyboard and mouse" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tastiera e mouse"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "键盘和鼠标"
+          }
+        }
+      }
+    },
+    "Keyboard and trackpad" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tastiera e trackpad"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "键盘和触控板"
+          }
+        }
+      }
+    },
+    "Keyboard, mouse and controller." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tastiera, mouse e controller."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "键盘、鼠标和控制器。"
           }
         }
       }
@@ -8294,6 +8726,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "发行商的启动器"
+          }
+        }
+      }
+    },
+    "Layout" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disposizione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "布局"
+          }
+        }
+      }
+    },
+    "Layouts are saved for RetroArch." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le disposizioni vengono salvate per RetroArch."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "布局会为 RetroArch 保存。"
+          }
+        }
+      }
+    },
+    "Layouts come from Steam Input." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le disposizioni arrivano da Steam Input."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "布局来自 Steam Input。"
+          }
+        }
+      }
+    },
+    "Layouts, gyro and community configurations live in Steam." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disposizioni, giroscopio e configurazioni della community sono in Steam."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "布局、陀螺仪和社区配置都在 Steam 中。"
           }
         }
       }
@@ -8922,6 +9418,22 @@
         }
       }
     },
+    "Move around Cartouche with the controller: the D-pad picks a game, A opens it and plays, B goes back, L1 and R1 change the list." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muoviti in Cartouche con il controller: la croce direzionale sceglie un gioco, A lo apre e lo avvia, B torna indietro, L1 e R1 cambiano elenco."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用控制器操作 Cartouche：方向键选择游戏，A 打开并开始游戏，B 返回，L1 和 R1 切换列表。"
+          }
+        }
+      }
+    },
     "Move the installer files to the Trash?" : {
       "localizations" : {
         "it" : {
@@ -8982,6 +9494,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "原生"
+          }
+        }
+      }
+    },
+    "Needs Accessibility access for Cartouche, asked once." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Richiede l’accesso Accessibilità per Cartouche, chiesto una volta."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要为 Cartouche 开启辅助功能权限，只询问一次。"
           }
         }
       }
@@ -9222,6 +9750,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "尚未设置兼容工具。"
+          }
+        }
+      }
+    },
+    "No controller" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun controller"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无控制器"
+          }
+        }
+      }
+    },
+    "No controller connected" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun controller collegato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未连接控制器"
           }
         }
       }
@@ -10314,6 +10874,22 @@
         }
       }
     },
+    "Open in Steam" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri in Steam"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 Steam 中打开"
+          }
+        }
+      }
+    },
     "Opened %@ in %@." : {
       "localizations" : {
         "it" : {
@@ -10326,6 +10902,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已在“%2$@”中打开%1$@。"
+          }
+        }
+      }
+    },
+    "Option acts as Alt" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Option fa da Alt"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Option 用作 Alt"
           }
         }
       }
@@ -10422,6 +11014,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "PC 游戏"
+          }
+        }
+      }
+    },
+    "Pair one in System Settings > Bluetooth, or plug it in." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abbinane uno in Impostazioni di Sistema > Bluetooth, o collegalo con il cavo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在“系统设置”>“蓝牙”中配对，或用线缆连接。"
           }
         }
       }
@@ -10618,6 +11226,22 @@
         }
       }
     },
+    "Play with a controller" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gioca con un controller"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用控制器游玩"
+          }
+        }
+      }
+    },
     "Play with others on your network?" : {
       "localizations" : {
         "it" : {
@@ -10758,6 +11382,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请先运行 CrossOver，然后重试。"
+          }
+        }
+      }
+    },
+    "Precise scrolling" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scorrimento preciso"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "精确滚动"
           }
         }
       }
@@ -11542,6 +12182,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "重新启动 Cartouche 以完成"
+          }
+        }
+      }
+    },
+    "Remap keys for this game" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rimappa i tasti per questo gioco"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "为此游戏重新映射按键"
           }
         }
       }
@@ -12416,6 +13072,22 @@
         }
       }
     },
+    "Save the controller layout" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salva la disposizione del controller"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存控制器布局"
+          }
+        }
+      }
+    },
     "Save the game" : {
       "localizations" : {
         "it" : {
@@ -12432,6 +13104,22 @@
         }
       }
     },
+    "Save the game’s controls" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salva i controlli del gioco"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存游戏的控制设置"
+          }
+        }
+      }
+    },
     "Save the game’s setup" : {
       "localizations" : {
         "it" : {
@@ -12444,6 +13132,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "保存游戏设置"
+          }
+        }
+      }
+    },
+    "Saved as a RetroArch remap file for this game. Changes apply at the next launch." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salvato come file di rimappatura RetroArch per questo gioco. Le modifiche valgono dal prossimo avvio."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存为此游戏的 RetroArch 重映射文件。更改在下次启动时生效。"
           }
         }
       }
@@ -13136,6 +13840,38 @@
         }
       }
     },
+    "Southpaw" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mancino"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "左撇子"
+          }
+        }
+      }
+    },
+    "Space" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spazio"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "空格"
+          }
+        }
+      }
+    },
     "Space may run short" : {
       "localizations" : {
         "it" : {
@@ -13266,6 +14002,22 @@
     },
     "Steam" : {
       "shouldTranslate" : false
+    },
+    "Steam Input handles this game" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo gioco è gestito da Steam Input"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此游戏由 Steam Input 处理"
+          }
+        }
+      }
     },
     "Steam Play Setup" : {
       "localizations" : {
@@ -13971,6 +14723,22 @@
         }
       }
     },
+    "Swap A/B" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scambia A/B"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "交换 A/B"
+          }
+        }
+      }
+    },
     "Syncing Steam library…" : {
       "localizations" : {
         "it" : {
@@ -14559,6 +15327,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "这些容器内的游戏存档将永久丢失！"
+          }
+        }
+      }
+    },
+    "The game sees an Xbox controller. Changes apply at the next launch." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il gioco vede un controller Xbox. Le modifiche valgono dal prossimo avvio."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "游戏看到的是 Xbox 控制器。更改在下次启动时生效。"
           }
         }
       }
@@ -15875,6 +16659,22 @@
         }
       }
     },
+    "When the game holds the pointer, as shooters and strategy games do" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quando il gioco trattiene il puntatore, come fanno sparatutto e strategici"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当游戏锁定指针时生效，如射击和策略游戏"
+          }
+        }
+      }
+    },
     "When you open a game, Cartouche asks MacGamingDB for its Mac reports. MacGamingDB sees which game, but no account or Mac identifier." : {
       "localizations" : {
         "it" : {
@@ -16661,6 +17461,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "macOS 阻止了此更改。请在“App 管理”中允许 Cartouche，然后重试。"
+          }
+        }
+      }
+    },
+    "macOS did not let Cartouche read the keyboard. Check Input Monitoring in System Settings." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS non ha permesso a Cartouche di leggere la tastiera. Controlla Monitoraggio input in Impostazioni di Sistema."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS 未允许 Cartouche 读取键盘。请在“系统设置”中检查“输入监控”。"
           }
         }
       }

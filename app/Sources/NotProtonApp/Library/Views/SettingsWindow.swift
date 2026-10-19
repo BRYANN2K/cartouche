@@ -22,7 +22,7 @@ enum GeneralSettings {
 }
 
 enum SettingsTab: String, CaseIterable, Identifiable {
-    case general, library, accounts, compatibility, privacy, consoles
+    case general, library, accounts, compatibility, privacy, consoles, controllers
 
     var id: String { rawValue }
 
@@ -34,6 +34,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .compatibility: String(localized: "Compatibility")
         case .privacy: String(localized: "Privacy")
         case .consoles: String(localized: "Consoles")
+        case .controllers: String(localized: "Controllers")
         }
     }
 
@@ -45,6 +46,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .compatibility: "cpu"
         case .privacy: "hand.raised"
         case .consoles: "gamecontroller"
+        case .controllers: "gamecontroller.fill"
         }
     }
 }
@@ -55,6 +57,7 @@ struct SettingsWindow: View {
     let consoles: ConsolesSettingsModel
 
     @State private var tab: SettingsTab = .general
+    @Environment(ControlsCenter.self) private var controls: ControlsCenter?
     @Environment(ConsoleCenter.self) private var consoleCenter: ConsoleCenter?
 
     var body: some View {
@@ -77,6 +80,7 @@ struct SettingsWindow: View {
         case .compatibility: CompatibilitySettingsView(model: model)
         case .privacy: PrivacySettingsView(center: permissions)
         case .consoles: ConsolesSettingsView(model: consoles, emulators: consoleCenter?.emulators)
+        case .controllers: if let controls { ControllersSettingsView(center: controls) }
         }
     }
 

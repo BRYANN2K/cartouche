@@ -695,6 +695,20 @@ winebus_lines() {
   printf '%s\r\n' '[HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\WineBus]' "$hidraw_value" ''
 }
 
+# The Mac keyboard and mouse options from the game's Controls in Cartouche: Command as
+# Control, Option as Alt, pointer confinement and precise scrolling. Only those values,
+# set to y or n, are taken from the file.
+keyboard_lines() {
+  keyboard_file="$np_support/setups/$app_id.keyboard"
+  [ "${app_id:-0}" != 0 ] && [ -f "$keyboard_file" ] && [ ! -L "$keyboard_file" ] || return 0
+  keyboard_values=$(grep -E '^"((Left|Right)(CommandIsCtrl|OptionIsAlt)|UseConfinementCursorClipping|UsePreciseScrolling)"="[yn]"$' \
+    "$keyboard_file" | head -n 6)
+  [ -n "$keyboard_values" ] || return 0
+  printf '%s\r\n' '[HKEY_CURRENT_USER\Software\Wine\Mac Driver]'
+  printf '%s\n' "$keyboard_values" | while IFS= read -r line; do printf '%s\r\n' "$line"; done
+  printf '\r\n'
+}
+
 import_prefix_settings() {
   if [ "$CARTOUCHE_RETINA" = "1" ]; then
     retina_line='"RetinaMode"="y"'
@@ -731,7 +745,7 @@ import_prefix_settings() {
       '[HKEY_LOCAL_MACHINE\Software\Classes\steam\shell\open\command]' \
       '@="\"C:\\Program Files (x86)\\Steam\\steam.exe\" \"%1\""' '' \
       && hidraw_lines add "$controllers_add" && hidraw_lines remove "$controllers_remove" \
-      && winebus_lines; } \
+      && winebus_lines && keyboard_lines; } \
       > "$settings_file" 2>/dev/null; then
     [ -z "$settings_file" ] || rm -f "$settings_file"
     echo "=== could not write the prefix settings, launching without them ===" >> "$log" 2>&1 || true

@@ -186,9 +186,9 @@ struct LibraryWindowTests {
 @MainActor
 struct SettingsWindowTests {
 
-    @Test("Tabs: General, Library, Accounts, Compatibility, Privacy and Consoles")
+    @Test("Tabs: General, Library, Accounts, Compatibility, Privacy, Consoles and Controllers")
     func tabs() {
-        #expect(SettingsTab.allCases.map(\.title) == ["General", "Library", "Accounts", "Compatibility", "Privacy", "Consoles"])
+        #expect(SettingsTab.allCases.map(\.title) == ["General", "Library", "Accounts", "Compatibility", "Privacy", "Consoles", "Controllers"])
     }
 
     @Test("Each tab renders in light and dark")

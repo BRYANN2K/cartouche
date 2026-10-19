@@ -18,6 +18,7 @@ struct CartoucheApp: App {
     @State private var permissions: PermissionCenter
     // Hosts the explanation that comes before the notifications prompt (P17)
     @State private var permissionFlow: PermissionFlow
+    @State private var controls: ControlsCenter
     @State private var consoles: ConsolesSettingsModel
     @State private var consoleCenter: ConsoleCenter
     @State private var network = NetworkWatch()
@@ -37,6 +38,9 @@ struct CartoucheApp: App {
         _permissions = State(initialValue: permissions)
         _permissionFlow = State(initialValue: PermissionFlow(center: permissions))
         let library = LibraryModel()
+        // Controllers, layouts and the options that need a permission (P15)
+        _controls = State(initialValue: ControlsCenter(
+            permissions: permissions, files: ControlsFiles(retroArch: SettingsWindow.retroArchPaths)))
         // Settings > Consoles and the library share one core manager
         let cores = CoreManager(paths: SettingsWindow.retroArchPaths)
         let consoles = SettingsWindow.consolesModel(cores: cores)
@@ -63,6 +67,8 @@ struct CartoucheApp: App {
         Window("Cartouche", id: Self.mainWindow) {
             LibraryWindow(model: library, compat: compat, steamSetup: steamSetup, actions: actions)
                 .environment(consoleCenter)
+                .environment(controls)
+                .controlsSheet(controls)
                 .frame(minWidth: 900, minHeight: 560)
                 .permissionExplanations(permissionFlow)
                 .sheet(isPresented: Binding(get: { onboarding?.isPresented ?? false },
@@ -101,6 +107,7 @@ struct CartoucheApp: App {
                 .environment(consoleCenter)
                 .environment(onboarding)
                 .environment(gameFolders)
+                .environment(controls)
         }
 
         MenuBarExtra(isInserted: $showInMenuBar) {
@@ -115,12 +122,14 @@ struct CartoucheApp: App {
     }
 
     private func start() async {
+        var route: ScreenRoute?
         if onboarding == nil {
             // Before anything else: a copy outside Applications offers to move and relaunch
             guard MoveToApplications.check() else { return }
             let model = makeOnboarding()
             onboarding = model
-            if let route = relaunch.restore(), route.screen == "onboarding" {
+            route = relaunch.restore()
+            if let route, route.screen == "onboarding" {
                 model.reopen(on: route)
             } else {
                 model.presentIfDue()
@@ -134,6 +143,10 @@ struct CartoucheApp: App {
         await consoleCenter.reload()
         consoleCenter.folderList = gameFolders
         await consoleCenter.startWatching()
+        controls.couch.play = { [actions] game in actions.perform(game.installed ? .play : .install, on: game) }
+        await controls.start(relaunch: relaunch, library: library)
+        // A relaunch for Input Monitoring reopens the same game's Controls
+        if let route, route.screen == "controls" { await controls.reopen(route) }
         // A console game still running when Cartouche quits is quit and counted first
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main) {
             [consoleCenter] _ in MainActor.assumeIsolated { consoleCenter.endForTermination() }

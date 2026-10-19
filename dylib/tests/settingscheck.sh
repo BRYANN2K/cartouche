@@ -10,7 +10,7 @@ wrapper=$(sed -n '/^without_lock_fds() {$/,/^}$/p' "$SRC")
 [ -n "$wrapper" ] || { echo "FAIL: without_lock_fds not found in $SRC"; exit 1; }
 helpers=""
 for helper in controller_ids ids_without hidraw_lines write_owned_controllers plan_hidden_controllers \
-	plan_disable_hidraw winebus_lines; do
+	plan_disable_hidraw winebus_lines keyboard_lines; do
 	part=$(sed -n "/^$helper() {\$/,/^}\$/p" "$SRC")
 	[ -n "$part" ] || { echo "FAIL: $helper not found in $SRC"; exit 1; }
 	helpers="$helpers
@@ -79,6 +79,7 @@ run_in() {
 		SDL_GAMECONTROLLER_IGNORE_DEVICES="${IGNORE-}" \
 		SDL_GAMECONTROLLER_IGNORE_DEVICES_EXCEPT="${EXCEPT-}" \
 		CARTOUCHE_RAW_CONTROLLERS="${RAW-}" CARTOUCHE_DISABLE_HIDRAW="${HIDRAW-}" verb="${VERB-waitforexitandrun}" \
+		np_support="${SUPPORT-}" app_id="${APP_ID-0}" \
 		FAKE_STATUS="$2" FAKE_CALLS="$case_dir/calls" FAKE_IMPORTED="$case_dir/imported" \
 		log="$case_dir/log" body="$body" \
 		sh -ec 'eval "$body"; import_prefix_settings; echo returned' \
@@ -230,6 +231,32 @@ again "" 0
 { cat "$work/retina-off"; winebus '"DisableHidraw"=-'; } > "$work/expected"
 same_file "off" "$work/expected" "$case_dir/imported"
 unset HIDRAW
+
+echo "== Mac keyboard and mouse options (Controls)"
+macdrv() { printf '%s\r\n' '[HKEY_CURRENT_USER\Software\Wine\Mac Driver]' "$@" ''; }
+IGNORE='' EXCEPT='' RAW=''
+new_case
+in_registry 057e/2006 057e/2007 057e/2009
+printf '%s\n' 057e/2006 057e/2007 057e/2009 > "$case_dir/cartouche-hidden-controllers"
+SUPPORT="$case_dir/support" APP_ID=620
+mkdir -p "$SUPPORT/setups"
+printf '%s\n' '"LeftCommandIsCtrl"="y"' '"RightCommandIsCtrl"="y"' '"LeftOptionIsAlt"="n"' '"RightOptionIsAlt"="n"' \
+	'"UseConfinementCursorClipping"="y"' '"UsePreciseScrolling"="n"' '"RetinaMode"="y"' '"LeftCommandIsCtrl"="maybe"' \
+	'"WINEDLLOVERRIDES"="x"' > "$SUPPORT/setups/620.keyboard"
+again "" 0
+{ cat "$work/retina-off"; macdrv '"LeftCommandIsCtrl"="y"' '"RightCommandIsCtrl"="y"' '"LeftOptionIsAlt"="n"' \
+	'"RightOptionIsAlt"="n"' '"UseConfinementCursorClipping"="y"' '"UsePreciseScrolling"="n"'; } > "$work/expected"
+same_file "the game's keyboard options join the import, other lines are dropped" "$work/expected" "$case_dir/imported"
+is "the options alone do not restart the prefix" "reg import C:\\cartouche-settings.X" "$(calls)"
+APP_ID=730
+again "" 0
+same_file "another game's file is not read" "$work/retina-off" "$case_dir/imported"
+APP_ID=620
+mv "$SUPPORT/setups/620.keyboard" "$SUPPORT/setups/real.keyboard"
+ln -s real.keyboard "$SUPPORT/setups/620.keyboard"
+again "" 0
+same_file "a linked options file is not read" "$work/retina-off" "$case_dir/imported"
+unset SUPPORT APP_ID
 
 if [ "$fails" -eq 0 ]; then
 	echo "==> settingscheck: all assertions hold"
