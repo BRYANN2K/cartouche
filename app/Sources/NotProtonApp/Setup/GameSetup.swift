@@ -152,10 +152,11 @@ enum GameSetupResolver {
 
     static func resolve(
         _ choice: GameSetupChoice, defaults: SetupDefaults = SetupDefaults(), runners: [Runner],
-        availability: BackendAvailability, hasMacBuild: Bool = false
+        availability: BackendAvailability, hasMacBuild: Bool = false, offered: [Runner]? = nil
     ) -> Resolution {
         var problems: [Problem] = []
-        let offered = runners.filter(\.isOffered)
+        // The runners the game may use; installer games get their own eligible pool
+        let offered = offered ?? runners.filter(\.isOffered)
 
         let wanted = choice.runnerID ?? defaults.runnerID
         let runner = wanted.flatMap { id in offered.first { $0.id == id } } ?? offered.first

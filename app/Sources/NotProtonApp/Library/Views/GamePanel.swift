@@ -206,7 +206,8 @@ struct SetupRows: View {
     var body: some View {
         let setup = model.setup(for: game.id)
         let resolved = model.resolution(for: game).setup
-        let runners = model.runners.filter(\.isOffered)
+        // Installer games pick from the install runners: ready free Wine builds included
+        let runners = game.source == .installer ? model.installRunners : model.runners.filter(\.isOffered)
         // A game with a Mac build runs it unless the Windows version is picked (P3)
         if model.hasMacBuild(game) {
             Picker("Run", selection: Binding(
@@ -248,6 +249,11 @@ struct SetupRows: View {
             ForEach(backends) { Text(verbatim: $0.label).tag($0) }
         }
         .disabled(resolved.runner == nil)
+        // An older Wine than the one that last ran the prefix: noted, still allowed
+        if let notice = model.setupNotice {
+            Label(notice, systemImage: "exclamationmark.triangle")
+                .font(.callout).foregroundStyle(.secondary)
+        }
         if translations.count > 1 {
             Picker("Translation", selection: Binding(
                 get: { resolved.translation },

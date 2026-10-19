@@ -11,6 +11,13 @@ struct InstalledGame: Codable, Sendable, Equatable, Identifiable {
     var appID: Int?
     var gogID: String?
     var runnerID: String
+    // The graphics backend of the setup applied to the launcher (raw GraphicsBackend).
+    // Nil on records written before setups were changeable: read as wined3d.
+    var graphics: String?
+    // Version and kind of the runner that last ran the prefix, for the
+    // older-Wine warning when the setup is changed.
+    var wineVersion: String?
+    var wineRunnerKind: String?
     var prefix: String
     var exe: String
     var installedAt: Date
@@ -21,6 +28,9 @@ struct InstalledGame: Codable, Sendable, Equatable, Identifiable {
 
     var exeURL: URL { URL(filePath: exe) }
     var launcher: URL { URL(filePath: prefix).deletingLastPathComponent().appending(path: "launch") }
+
+    // The backend the launcher's setup applies; a plain install is wined3d
+    var backend: GraphicsBackend { graphics.flatMap(GraphicsBackend.init(rawValue:)) ?? .wined3d }
 }
 
 enum InstalledGames {
@@ -56,11 +66,18 @@ enum InstalledGames {
 enum GameLauncher {
 
     // A shell script with only the Wine variables the game needs, never the
-    // app's own environment.
-    static func script(exe: URL, prefix: URL, wine: WineRunner) -> String {
-        let env = WineInstall.environment(runner: wine, prefix: prefix, inputs: nil, base: [:])
+    // app's own environment. The backend and the game's own variables come from
+    // the setup the user chose, built the same way as store games.
+    static func script(
+        exe: URL, prefix: URL, wine: WineRunner,
+        backend: GraphicsBackend? = nil, environment: [String: String] = [:],
+        backends: URL = BackendInstaller.folder
+    ) -> String {
+        let env = SetupEnvironment.make(wine: wine, prefix: prefix, backend: backend,
+                                        environment: environment, backends: backends, base: [:])
         var lines = ["#!/bin/sh", "# Starts the game in its own prefix. Written by Cartouche."]
-        for key in ["CX_ROOT", "WINELOADER", "WINESERVER", "WINEDLLPATH", "WINEPREFIX", "WINEDEBUG"] {
+        for key in ["CX_ROOT", "WINELOADER", "WINESERVER", "WINEDLLPATH", "WINEPREFIX", "WINEDEBUG",
+                    "CX_GRAPHICS_BACKEND", "WINEDLLOVERRIDES"] + environment.keys.sorted() {
             if let value = env[key] { lines.append("export \(key)=\(quote(value))") }
         }
         lines.append("export PATH=\(quote(wine.root.appending(path: "bin").path(percentEncoded: false))):\"$PATH\"")
@@ -70,8 +87,13 @@ enum GameLauncher {
         return lines.joined(separator: "\n") + "\n"
     }
 
-    static func write(exe: URL, folder: GameFolder, wine: WineRunner) throws {
-        let text = script(exe: exe, prefix: folder.prefix, wine: wine)
+    static func write(
+        exe: URL, folder: GameFolder, wine: WineRunner,
+        backend: GraphicsBackend? = nil, environment: [String: String] = [:],
+        backends: URL = BackendInstaller.folder
+    ) throws {
+        let text = script(exe: exe, prefix: folder.prefix, wine: wine,
+                          backend: backend, environment: environment, backends: backends)
         try atomicReplace(folder.launcher, with: Data(text.utf8), step: String(localized: "Write the game's launcher"))
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: folder.launcher.path(percentEncoded: false))
     }

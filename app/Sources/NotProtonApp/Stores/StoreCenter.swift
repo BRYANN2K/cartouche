@@ -367,6 +367,12 @@ final class StoreCenter {
         }
     }
 
+    // Stops the running job the activity slot's card shows (P7's slot, P10)
+    func stop(_ activity: StoreActivity) {
+        guard let job = jobs.first(where: { $0.gameID == activity.gameID && $0.phase == .running }) else { return }
+        stop(job)
+    }
+
     func stop(_ job: StoreJob) {
         job.task?.cancel()
         if job.phase == .waiting {

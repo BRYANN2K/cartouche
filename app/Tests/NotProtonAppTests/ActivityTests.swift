@@ -77,38 +77,51 @@ final class RecordingControl: SteamDownloadControlling {
 let godOfWar = DownloadActivity(appID: 1_593_500, name: "God of War", state: .downloading,
                                 bytesDone: 16_082_000_000, bytesTotal: 47_300_000_000)
 let eldenRing = RunningGame(id: "steam:1245620", name: "Elden Ring", target: .steam(appID: 1_245_620), fps: 58)
+let epicDownload = StoreActivity(gameID: "epic:Fennec", title: "Sample Free Game",
+                                label: StoreJob.Kind.install.label, fraction: 0.34, waiting: 0)
 
 @Suite("Activity slot")
 struct ActivitySlotTests {
 
-    // Every combination of the four kinds: the first present one in the order wins
-    @Test("Playing beats installing beats downloads beats updates, for all 16 combinations")
+    // Every combination of the five kinds: the first present one in the order wins
+    @Test("Playing beats installing beats a store job beats downloads beats updates, for all 32 combinations")
     func priority() {
         let install = InstallActivity(title: "Sample Game", fraction: 0.4, stuck: false, waiting: 0)
         let update = UpdateActivity(id: "dxmt", title: "DXMT 0.80", kind: "Graphics")
-        for mask in 0..<16 {
+        for mask in 0..<32 {
             let playing = mask & 1 != 0 ? eldenRing : nil
             let installing = mask & 2 != 0 ? install : nil
-            let downloads = mask & 4 != 0 ? [godOfWar] : []
-            let updates = mask & 8 != 0 ? [update] : []
-            let slot = ActivitySlot.pick(playing: playing, install: installing, downloads: downloads, updates: updates)
+            let store = mask & 4 != 0 ? epicDownload : nil
+            let downloads = mask & 8 != 0 ? [godOfWar] : []
+            let updates = mask & 16 != 0 ? [update] : []
+            let slot = ActivitySlot.pick(playing: playing, install: installing, store: store,
+                                         downloads: downloads, updates: updates)
             let expected: ActivitySlot? =
                 if let playing { .playing(playing) }
                 else if let installing { .installing(installing) }
+                else if let store { .store(store) }
                 else if !downloads.isEmpty { .downloads(downloads) }
                 else if let first = updates.first { .update(first) }
                 else { nil }
             #expect(slot == expected, "mask \(mask)")
             // The status menu lists every kind present, whatever the slot shows
-            let kinds = ActivityMenuSection.all(playing: playing, install: installing, downloads: downloads, updates: updates).map(\.kind)
+            let kinds = ActivityMenuSection.all(playing: playing, install: installing, store: store,
+                                                downloads: downloads, updates: updates).map(\.kind)
             #expect(kinds.count == mask.nonzeroBitCount, "mask \(mask)")
         }
     }
 
+    @Test("A store job names the game and the job's own label and percent in the status menu")
+    func storeLine() {
+        let menu = ActivityMenuSection.all(playing: nil, install: nil, store: epicDownload, downloads: [], updates: [])
+        #expect(menu == [ActivityMenuSection(kind: .store, lines: [.init(title: "Sample Free Game", detail: "Downloading, 34%")])])
+        #expect(menu.first?.header == "Store")
+    }
+
     @Test("Nothing going on hides the slot")
     func nothing() {
-        #expect(ActivitySlot.pick(playing: nil, install: nil, downloads: [], updates: []) == nil)
-        #expect(ActivityMenuSection.all(playing: nil, install: nil, downloads: [], updates: []).isEmpty)
+        #expect(ActivitySlot.pick(playing: nil, install: nil, store: nil, downloads: [], updates: []) == nil)
+        #expect(ActivityMenuSection.all(playing: nil, install: nil, store: nil, downloads: [], updates: []).isEmpty)
     }
 
     @Test("The ring: average progress, paused only when all are, failed wins")
@@ -167,6 +180,27 @@ struct ActivityCenterTests {
         #expect(menu.map(\.kind) == [.playing, .downloads])
         #expect(menu[0].lines == [ActivityMenuSection.Line(title: "Elden Ring", detail: "58 fps")])
         #expect(menu[1].lines == [ActivityMenuSection.Line(title: "God of War", detail: "34%")])
+    }
+
+    @Test("A running store job takes the slot between an install and Steam downloads, and joins the status menu")
+    func storeJob() async throws {
+        let fixture = try DownloadFixture("store")
+        defer { fixture.remove() }
+        try fixture.manifest(1_593_500, "God of War", flags: 1026, done: 16_082_000_000, total: 47_300_000_000)
+        let center = center(fixture)
+        var stopped: [String] = []
+        center.storeSource = { epicDownload }
+        center.stopStore = { stopped.append($0.gameID) }
+        await center.refresh()
+
+        // A store job ranks over Steam's downloads but below a running game or an install
+        #expect(center.slot == .store(epicDownload))
+        let menu = center.menuSections
+        #expect(menu.map(\.kind) == [.store, .downloads])
+        #expect(menu.first?.lines == [.init(title: "Sample Free Game", detail: "Downloading, 34%")])
+        // The card's Stop goes to the source's stop (StoreCenter in the app)
+        center.stopStore(epicDownload)
+        #expect(stopped == ["epic:Fennec"])
     }
 
     @Test("Nothing to show: no game, download, install or update hides the slot")

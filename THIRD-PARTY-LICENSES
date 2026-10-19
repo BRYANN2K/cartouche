@@ -7,18 +7,19 @@ This file lists the components. Where a license text is in the repository, this
 file names the path.
 
 Cartouche is licensed under the GNU General Public License version 3 (GPL-3.0),
-see LICENSE. It is an independent fork of NotProton (GPL-3.0) and is not
-affiliated with NotProton, Valve, Apple or CodeWeavers.
+see LICENSE. It started as a fork of NotProton (GPL-3.0) by NotProtonNot and the
+NotProton contributors, and is now its own project, not built on NotProton. It
+is not affiliated with NotProton, Valve, Apple or CodeWeavers.
 
 Game Porting Toolkit and D3DMetal
 ---------------------------------
 
 Cartouche does not ship Apple's Game Porting Toolkit or D3DMetal, and no file
 from either is in the repository, in a release or in a download that Cartouche
-hosts. When the user has their own copy, the app copies it, at run time, from
-the user's install (a mounted Apple image, a Game Porting Toolkit app, a
-Homebrew keg or a folder the user picked) into the runners folder on the
-user's Mac. The release workflow scans the app and its zip, and the wine-crossover
+hosts. When the user has their own copy, the app either copies it, at run time,
+into the runners folder on the user's Mac, or reads it in place where the user
+installed it (a mounted Apple image, a Game Porting Toolkit app, a Homebrew keg
+or a folder the user picked). The release workflow scans the app and its zip, and the wine-crossover
 workflow its archive, for these files,
 by name, by SHA-256 and inside tar archives (packaging/redist-scan.sh,
 packaging/redist-hashes.txt).

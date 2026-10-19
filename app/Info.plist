@@ -60,7 +60,7 @@
 	<key>NSRemovableVolumesUsageDescription</key>
 	<string>Cartouche runs games from folders on external disks.</string>
 	<key>SUFeedURL</key>
-	<string>https://github.com/BRYANN2K/NotProton/releases/latest/download/appcast.xml</string>
+	<string>https://github.com/BRYANN2K/cartouche/releases/latest/download/appcast.xml</string>
 	<key>SURequireSignedFeed</key>
 	<true/>
 	<key>SUPublicEDKey</key>

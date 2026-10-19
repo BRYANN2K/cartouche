@@ -71,6 +71,7 @@ Steam (Mac client)
 - Backends (P3): D3DMetal, DXMT, DXVK, wined3d. DXMT and DXVK are downloaded pinned by version, size and SHA-256 in `Resources/backends.json` (DXMT 0.80 MIT, DXVK 1.10.3-20230507-repack zlib). D3DMetal comes only from the user's GPTK or CrossOver.
 - A game setup is runner, backend, CPU translation and environment variables. The choice is written to Steam's `CompatToolMapping` through `SpecifyCompatTool`.
 - Steam sees one compatibility tool per valid runner and backend pair, named `<runner> · <backend>`.
+- A game installed from a Windows installer gets the same setup picker, limited to the install runners. `SetupEnvironment` builds the launch environment for store and installer games alike; `GameLauncher` rewrites `installs/<slug>/launch` in place, so the game and its prefix are never copied. Its record keeps the Wine version that last ran the prefix: picking an older Wine warns that the game may not start, and still applies.
 
 ### InstallerKit (`installer/`)
 

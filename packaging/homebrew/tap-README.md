@@ -1,6 +1,6 @@
 # Homebrew tap for Cartouche
 
-Cartouche is a free game launcher that runs Windows games through Steam Play on Apple silicon Macs. Its source and releases are at https://github.com/BRYANN2K/NotProton.
+Cartouche is a free game launcher that runs Windows games through Steam Play on Apple silicon Macs. Its source and releases are at https://github.com/BRYANN2K/cartouche.
 
 ## Install
 
@@ -14,7 +14,7 @@ Cartouche is free and signed with its own certificate, not notarized by Apple, s
 2. Open System Settings > Privacy & Security, scroll down, click Open Anyway.
 3. Confirm with your password. Updates come through the app itself and do not ask again.
 
-The certificate does not remove this warning, but it keeps updates and the permissions you grant from resetting. The install script in the Cartouche README avoids the warning: https://github.com/BRYANN2K/NotProton#install
+The certificate does not remove this warning, but it keeps updates and the permissions you grant from resetting. The install script in the Cartouche README avoids the warning: https://github.com/BRYANN2K/cartouche#install
 
 ## How this tap is updated
 

@@ -3,7 +3,6 @@ import SwiftUI
 struct LibrarySidebar: View {
     @Bindable var model: LibraryModel
     @Environment(ConsoleCenter.self) private var consoles: ConsoleCenter?
-    @Environment(StoreCenter.self) private var stores: StoreCenter?
 
     var body: some View {
         List(selection: $model.selection) {
@@ -42,9 +41,6 @@ struct LibrarySidebar: View {
             }
         }
         .listStyle(.sidebar)
-        .safeAreaInset(edge: .bottom) {
-            if let stores, stores.activity != nil { StoreActivityRow(center: stores, model: model) }
-        }
         .navigationSplitViewColumnWidth(min: 190, ideal: 220, max: 280)
     }
 

@@ -59,6 +59,7 @@ extension LibraryModel {
 extension Game {
     init(installed game: InstalledGame) {
         self.init(id: "installer:\(game.id)", source: .installer, name: game.name, steamAppID: game.appID,
-                  installed: true, executable: game.exeURL)
+                  installed: true, executable: game.exeURL,
+                  installRunnerID: game.runnerID, installGraphics: game.backend)
     }
 }

@@ -197,6 +197,8 @@ final class ConsoleScene {
         folders = GameFolders(defaults: scratch.defaults)
         center.covers = covers
         center.folderList = folders
+        // The session record lives in the scene, never the user's support folder
+        center.sessions = SessionRecords(file: fixture.root.appending(path: "support/console-session.json"))
         // Standalone emulators (P16) are looked for in the scene, never in /Applications
         center.emulators.detector = EmulatorDetector(folders: [applications])
         var infos: [String: Data] = [:]

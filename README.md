@@ -2,7 +2,7 @@
 
 Cartouche is a free macOS game launcher for Apple silicon Macs. It runs Windows games through Steam Play inside the Mac Steam client, through Epic, GOG and Amazon, or from a Windows installer. It also plays console games through its own bundled RetroArch.
 
-Cartouche is a fork of [NotProton](https://github.com/NotProtonNot/NotProton) and is built on its code. Agent control through MCP is still planned (P11).
+Cartouche started as a fork of [NotProton](https://github.com/NotProtonNot/NotProton) and is now its own project; it is not built on NotProton. Agent control through MCP is still planned (P11).
 
 **Status: early development.** There is no release yet. Expect missing features and breaking changes.
 
@@ -13,14 +13,14 @@ Cartouche needs a Mac with Apple silicon and macOS 15 or later.
 ### Recommended: the install script
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/BRYANN2K/NotProton/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/BRYANN2K/cartouche/main/install.sh | sh
 ```
 
 The script downloads the latest release and checks it against the SHA-256 published with the release. It checks that the app is signed with Cartouche's own certificate. Then it installs Cartouche in /Applications and opens it. A file downloaded with curl carries no quarantine mark, so macOS opens Cartouche without the "Not Opened" warning and without Open Anyway. [install.sh](install.sh) is short: read it before you run it.
 
 ### Disk image
 
-Download `Cartouche-<version>.dmg` from the [latest release](https://github.com/BRYANN2K/NotProton/releases/latest) and drag Cartouche to Applications. The first time you open it, macOS 15 and 26 block it once:
+Download `Cartouche-<version>.dmg` from the [latest release](https://github.com/BRYANN2K/cartouche/releases/latest) and drag Cartouche to Applications. The first time you open it, macOS 15 and 26 block it once:
 
 1. macOS says it can't check Cartouche. Click Done.
 2. Open System Settings > Privacy & Security, scroll down, click Open Anyway.
@@ -72,7 +72,7 @@ lsteamclient is loaded. `tools/make-icon.swift` builds the app icon from `mockup
 
 ## Credits
 
-Cartouche is built on [NotProton](https://github.com/NotProtonNot/NotProton), created by NotProtonNot with the NotProton contributors. Most of the code in this repository is theirs.
+Cartouche started as a fork of [NotProton](https://github.com/NotProtonNot/NotProton), created by NotProtonNot with the NotProton contributors. Most of the code in this repository is theirs.
 
 The NotProton author also thanks the people who worked on similar ideas before it:
 
@@ -86,4 +86,4 @@ And everyone who has positively contributed to macOS gaming.
 
 Cartouche is free software, licensed under the GNU General Public License version 3 (GPL-3.0), like NotProton. See LICENSE. Some parts carry the licenses of their original authors (Valve, the Steamworks SDK, Sparkle, fonts and others); NOTICE and THIRD-PARTY-LICENSES list them. What Cartouche asks macOS for and what it sends over the network is in docs/PRIVACY.md.
 
-Cartouche is an independent project. It is not affiliated with NotProton, Valve, Apple or CodeWeavers.
+Cartouche is now its own project, not built on NotProton. It is not affiliated with NotProton, Valve, Apple or CodeWeavers.

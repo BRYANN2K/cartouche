@@ -57,6 +57,10 @@ enum SupportPaths {
 
     static var deployedVersion: URL { support.appending(path: "dylib.version") }
 
+    // The console session on record while a game runs; a killed Cartouche
+    // reads it at the next launch to pick the session back up or count it
+    static var consoleSession: URL { support.appending(path: "console-session.json") }
+
     // The socket the bundled cartouche-mcp helper connects to (P11); the agent
     // server binds it while Settings > Agents is on.
     static var agentSocket: URL { support.appending(path: CARTOUCHE_AGENT_SOCKET) }

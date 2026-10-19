@@ -1,6 +1,7 @@
 // What the Runners screen shows and does. The screen itself belongs to the library
 // app (P5); this is its model, reading runners only through RunnerRegistry.
 
+import CryptoKit
 import Foundation
 import Observation
 
@@ -11,6 +12,8 @@ final class RunnersModel {
     struct Row: Identifiable, Equatable, Sendable {
         enum Action: Equatable, Sendable {
             case download
+            // Copy or Use in Place, for a toolkit that was never set up
+            case setUp
             // Download or copy again, for a damaged runner
             case repair
             case none
@@ -31,10 +34,25 @@ final class RunnersModel {
         var link: Link?
     }
 
+    // What the one-time question asks when a Game Porting Toolkit is found
+    enum ToolkitPlacement: Sendable, Equatable {
+        case copy
+        case inPlace
+    }
+
+    struct ToolkitQuestion: Equatable, Sendable, Identifiable {
+        let install: PortingToolkitInstall
+        // What a copy needs on disk, so the question can show the size
+        let copySize: Int64
+        var id: String { install.id }
+    }
+
     private(set) var rows: [Row] = []
     private(set) var registry = RunnerRegistry()
     private(set) var manifest = RunnerManifest(format: RunnerManifest.format, revision: 0, builds: [])
     private(set) var toolkits: [PortingToolkitInstall] = []
+    // A toolkit that waits on its Copy / Use in Place answer
+    private(set) var toolkitQuestion: ToolkitQuestion?
     // The last failure, in words for the user
     private(set) var message: String?
     private(set) var busy: Set<String> = []
@@ -47,8 +65,12 @@ final class RunnersModel {
     // Where a newer runner manifest is published; nil checks nothing
     @ObservationIgnored let manifestFeed: URL?
     @ObservationIgnored let manifestCache: URL
+    // The key a remote manifest must be signed with (the Sparkle public key)
+    @ObservationIgnored let manifestKey: Curve25519.Signing.PublicKey?
     @ObservationIgnored let fetch: CompatibilityClient.Fetch
     @ObservationIgnored let defaults: UserDefaults
+    // How a view offers to copy a toolkit from a new location; nil shows nothing
+    @ObservationIgnored var chooseToolkitFolder: @MainActor () -> URL? = { nil }
 
     static let manifestCheckKey = "runnerManifestLastCheck"
 
@@ -61,11 +83,13 @@ final class RunnersModel {
         registry: @escaping @Sendable (URL, FreeRunnerScan) -> RunnerRegistry = { RunnerRegistry.refresh(runners: $0, free: $1) },
         manifestFeed: URL? = CompatibilityClient.feed.map(RunnerManifest.feed(fromCompatibilityFeed:)),
         manifestCache: URL = RunnerManifest.cacheFile,
+        manifestKey: Curve25519.Signing.PublicKey? = RunnerManifest.signingKey(),
         fetch: @escaping CompatibilityClient.Fetch = CompatibilityClient.download,
         defaults: UserDefaults = .standard
     ) {
         self.manifestFeed = manifestFeed
         self.manifestCache = manifestCache
+        self.manifestKey = manifestKey
         self.fetch = fetch
         self.defaults = defaults
         self.runnersFolder = runnersFolder
@@ -80,7 +104,7 @@ final class RunnersModel {
 
     var portingToolkitMissing: Bool { !registry.runners.contains { $0.kind == .portingToolkit } }
 
-    // Lists runners, and copies a toolkit the user installed since the last look
+    // Lists runners, and asks once how each newly found toolkit should be set up
     func refresh() async {
         await refreshManifestIfDue()
         let scan = self.scan, crossOver = self.crossOver, folder = runnersFolder
@@ -88,28 +112,57 @@ final class RunnersModel {
         manifest = scanned.manifest
         toolkits = scanned.toolkits
         registry = listed
-        for runner in registry.runners where runner.kind == .portingToolkit && runner.state == .available {
-            await copy(runner.id)
+        if toolkitQuestion == nil, let install = toolkits.first(where: unanswered) {
+            toolkitQuestion = ToolkitQuestion(
+                install: install, copySize: PortingToolkitSource.copySize(of: install.lib))
         }
         rows = makeRows()
     }
 
+    private func unanswered(_ install: PortingToolkitInstall) -> Bool {
+        registry.runner(id: install.id)?.state == .available
+            && !PortingToolkitSource.isAsked(version: install.version, defaults)
+    }
+
+    // Answers the question a found toolkit waits on; the answer sticks
+    func answerToolkit(_ placement: ToolkitPlacement) async {
+        guard let question = toolkitQuestion else { return }
+        toolkitQuestion = nil
+        PortingToolkitSource.markAsked(version: question.install.version, defaults)
+        await setUp(question.install, placement: placement)
+        rows = makeRows()
+    }
+
+    func dismissToolkitQuestion() {
+        guard let question = toolkitQuestion else { return }
+        toolkitQuestion = nil
+        PortingToolkitSource.markAsked(version: question.install.version, defaults)
+    }
+
+    // Shows the question again for a toolkit that was never set up
+    func askToolkit(_ id: String) {
+        guard let install = toolkits.first(where: { $0.id == id }) else { return }
+        toolkitQuestion = ToolkitQuestion(
+            install: install, copySize: PortingToolkitSource.copySize(of: install.lib))
+    }
+
     // At most once a day, like the compatibility data
     func refreshManifestIfDue(now: Date = .now) async {
-        guard let feed = manifestFeed else { return }
+        guard let feed = manifestFeed, DailyChecks.enabled(defaults) else { return }
         if let last = defaults.object(forKey: Self.manifestCheckKey) as? Date, now.timeIntervalSince(last) < 24 * 60 * 60 {
             return
         }
-        let outcome = await RunnerManifest.refresh(from: feed, cache: manifestCache, fetch: fetch)
+        let outcome = await RunnerManifest.refresh(from: feed, cache: manifestCache, fetch: fetch, key: manifestKey)
         if outcome != .unavailable { defaults.set(now, forKey: Self.manifestCheckKey) }
     }
 
     func perform(_ action: Row.Action, on id: String) async {
         guard action != .none, !busy.contains(id), let runner = registry.runner(id: id) else { return }
-        switch runner.kind {
-        case .wineBuild: await download(id)
-        case .portingToolkit: await copy(id)
-        case .crossOver: return
+        switch (runner.kind, action) {
+        case (.wineBuild, _): await download(id)
+        case (.portingToolkit, .setUp): askToolkit(id)
+        case (.portingToolkit, _): await copy(id)
+        case (.crossOver, _): return
         }
         rows = makeRows()
     }
@@ -131,14 +184,52 @@ final class RunnersModel {
         await refresh()
     }
 
+    // Copies a toolkit — the discovered one, or a folder the user picks as a new location
     private func copy(_ id: String) async {
-        guard let install = toolkits.first(where: { $0.id == id }), !busy.contains(id) else { return }
-        busy.insert(id)
+        let install = toolkits.first(where: { $0.id == id }) ?? pickedToolkit()
+        guard let install else {
+            message = String(localized: "No Game Porting Toolkit folder was found on this Mac.")
+            return
+        }
+        await setUp(install, placement: .copy)
+    }
+
+    // The damaged row's Choose… and a toolkit Cartouche never found: copy from a
+    // folder the user picks. A cancelled pick is silent; a wrong folder says so.
+    func copyPickedToolkit() async {
+        guard let picked = chooseToolkitFolder() else { return }
+        guard let install = toolkitInstall(at: picked) else {
+            message = String(localized: "The chosen folder does not contain a Game Porting Toolkit.")
+            return
+        }
+        await setUp(install, placement: .copy)
         rows = makeRows()
-        defer { busy.remove(id) }
+    }
+
+    private func pickedToolkit() -> PortingToolkitInstall? {
+        chooseToolkitFolder().flatMap(toolkitInstall(at:))
+    }
+
+    private func toolkitInstall(at folder: URL) -> PortingToolkitInstall? {
+        guard let lib = PortingToolkitSource.lib(in: folder),
+              let version = PortingToolkitSource.version(ofLib: lib) else { return nil }
+        PortingToolkitSource.addManualFolder(folder, defaults)
+        return PortingToolkitInstall(lib: lib, version: version, origin: folder)
+    }
+
+    private func setUp(_ install: PortingToolkitInstall, placement: ToolkitPlacement) async {
+        guard !busy.contains(install.id) else { return }
+        busy.insert(install.id)
+        rows = makeRows()
+        defer { busy.remove(install.id) }
         let folder = runnersFolder
         do {
-            _ = try await Task.detached { try PortingToolkitSource.copy(install, runners: folder) }.value
+            _ = try await Task.detached {
+                switch placement {
+                case .copy: return try PortingToolkitSource.copy(install, runners: folder)
+                case .inPlace: return try PortingToolkitSource.useInPlace(install, runners: folder)
+                }
+            }.value
         } catch let failure as StepFailure {
             message = failure.detail
         } catch {
@@ -190,10 +281,12 @@ final class RunnersModel {
 
         let status: String
         var action = Row.Action.none
+        var shown = detail
         switch runner.state {
         case .available:
             status = busy ? String(localized: "Copying") : String(localized: "Not installed")
             if runner.kind == .wineBuild { action = .download }
+            if runner.kind == .portingToolkit { action = .setUp }
         case .installing:
             status = runner.kind == .wineBuild ? String(localized: "Downloading") : String(localized: "Copying")
         case .ready:
@@ -201,11 +294,13 @@ final class RunnersModel {
         case .damaged:
             status = String(localized: "Damaged")
             if runner.kind != .crossOver { action = .repair }
+            // A toolkit folder that is gone says so here, next to the repair offer
+            if runner.kind == .portingToolkit, let reason = runner.reason { shown = reason }
         case .unsupported:
             status = String(localized: "Not supported")
         }
         return Row(
-            id: runner.id, kind: runner.kind, title: title, detail: detail, status: status, state: runner.state,
+            id: runner.id, kind: runner.kind, title: title, detail: shown, status: status, state: runner.state,
             action: busy ? .none : action
         )
     }

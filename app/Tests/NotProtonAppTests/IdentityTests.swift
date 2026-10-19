@@ -75,11 +75,11 @@ struct IdentityTests {
     func aboutCredits() {
         let credits = Attribution.credits
         #expect(credits.hasPrefix("https://cartouche.bryann2k.dev\n"))
-        #expect(credits.contains("built on NotProton"))
+        #expect(credits.contains("started as a fork of NotProton"))
         #expect(credits.contains("https://github.com/NotProtonNot/NotProton"))
         #expect(credits.contains("GNU General Public License version 3 (GPL-3.0)"))
         #expect(credits.contains(
-            "Cartouche is an independent project. It is not affiliated with NotProton, Valve, Apple or CodeWeavers."))
+            "Cartouche is now its own project, not built on NotProton. It is not affiliated with NotProton, Valve, Apple or CodeWeavers."))
     }
 
     @Test("README, NOTICE and LICENSE carry the attribution")

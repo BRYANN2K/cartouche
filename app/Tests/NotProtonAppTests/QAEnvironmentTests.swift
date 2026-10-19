@@ -91,8 +91,8 @@ struct QAEnvironmentTests {
             #expect(QAEnvironment.url(OfficialRelease.stable).absoluteString == "\(base)/stable/")
             // The Sparkle appcast keeps its release path, so the compat feed and
             // the runner manifest feed derive to mock addresses
-            #expect(QAEnvironment.url("https://github.com/BRYANN2K/NotProton/releases/latest/download/appcast.xml")?.absoluteString
-                == "\(base)/BRYANN2K/NotProton/releases/latest/download/appcast.xml")
+            #expect(QAEnvironment.url("https://github.com/BRYANN2K/cartouche/releases/latest/download/appcast.xml")?.absoluteString
+                == "\(base)/BRYANN2K/cartouche/releases/latest/download/appcast.xml")
         }
     }
 
@@ -253,7 +253,7 @@ struct QAEnvironmentTests {
         "app/Sources/NotProtonApp/Compatibility/CompatibilityCredits.swift": ["https://macgamingdb.app"],
         "app/Sources/NotProtonApp/Compatibility/MacGamingDB.swift": ["https://cartouche.bryann2k.dev"],
         "app/Sources/NotProtonApp/Runners/PortingToolkitSource.swift": ["https://developer.apple.com"],
-        "app/Info.plist": ["https://github.com/BRYANN2K/NotProton/"],
+        "app/Info.plist": ["https://github.com/BRYANN2K/cartouche/"],
         "retroarch/Sources/RetroArchKit/Settings/ConsolesSettingsView.swift": ["https://github.com/libretro/RetroArch"],
         "retroarch/Sources/RetroArchKit/Identify/ContentDatabase.swift": ["https://raw.githubusercontent.com/libretro/"],
         "retroarch/Sources/RetroArchKit/Library/Thumbnails.swift": ["https://thumbnails.libretro.com/"],

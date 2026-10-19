@@ -45,6 +45,7 @@ extension ConsoleCenter {
             // The emulator reads the game file; core is not used
             try await player.play(PlayRequest(core: installed.executable, content: game.fileURL))
             playing = Playing(gameID: game.id, phase: .playing, emulator: installed.emulator.name)
+            await beginRecord(gameID: game.id, emulator: installed.emulator.name)
             let date = now()
             try? await store.update(game.id) { $0.lastPlayed = date }
             await reload()

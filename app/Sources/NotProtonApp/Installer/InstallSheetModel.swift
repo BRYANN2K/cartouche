@@ -58,7 +58,7 @@ final class InstallSheetModel {
 
     @ObservationIgnored private var analysisTask: Task<Void, Never>?
     @ObservationIgnored var cleaner = InstallerCleanup()
-    @ObservationIgnored var loadRunners: @Sendable () -> [Runner] = { InstallRunners.choices(RunnerRegistry.refresh()) }
+    @ObservationIgnored var loadRunners: @Sendable () -> [Runner] = { InstallRunners.choices(RunnerRegistry.refresh(free: .standard)) }
     @ObservationIgnored var tool: @Sendable () -> String? = { Innoextract.path() }
 
     var step: Step {

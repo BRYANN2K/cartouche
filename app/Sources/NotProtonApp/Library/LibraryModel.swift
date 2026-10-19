@@ -111,6 +111,14 @@ final class LibraryModel {
 
     private(set) var choices: LibraryChoices
     var problem: String?
+    // A non-blocking setup note, for example switching an installer game to an
+    // older Wine than the one that last ran its prefix
+    var setupNotice: String?
+
+    // Folders the setup and launch paths read; tests point them at scratch dirs
+    @ObservationIgnored var installsFolder: URL = GameFolder.installs
+    @ObservationIgnored var runnersFolder: URL = SupportPaths.runners
+    @ObservationIgnored var backendsFolder: URL = BackendInstaller.folder
 
     @ObservationIgnored let store: LibraryStore
     @ObservationIgnored let importer: SteamLibraryImporter
@@ -407,7 +415,11 @@ final class LibraryModel {
     func setSetup(_ setup: GameSetupChoice, for id: String, tellSteam: Bool = true) {
         choices.setups[id] = setup
         persist()
-        if tellSteam { self.tellSteam(id) }
+        if let game = game(id), game.source == .installer {
+            applyInstallerSetup(setup, for: game)
+        } else if tellSteam {
+            self.tellSteam(id)
+        }
     }
 
     // Several setups at once, saved once, as Steam already has them (P3)
@@ -415,6 +427,10 @@ final class LibraryModel {
         guard !updates.isEmpty else { return }
         choices.setups.merge(updates) { _, new in new }
         persist()
+        // An installer game's own launcher follows the adopted choice
+        for (id, setup) in updates where game(id)?.source == .installer {
+            applyInstallerSetup(setup, for: game(id)!)
+        }
     }
 
     private func persist() {

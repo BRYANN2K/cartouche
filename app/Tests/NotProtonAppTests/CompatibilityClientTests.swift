@@ -196,6 +196,29 @@ struct CompatibilityClientTests {
         #expect(client.cached(schema: schema)?.generated == start)
     }
 
+    @Test("With the daily switch off the model asks for nothing and keeps its data")
+    @MainActor
+    func dailySwitchOff() async throws {
+        let work = try scratchDirectory("compat-daily-off")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let server = Server([.success((try CompatFixture.packed(), 200))])
+        let client = client(work, server)
+        try seedCache(client)
+
+        let model = CompatibilityModel(client: client)
+        model.dailyChecks = { false }
+        let outcome = await model.refresh()
+
+        guard case .skipped = outcome else { Issue.record("got \(String(describing: outcome))"); return }
+        #expect(server.asked == 0)
+        #expect(!model.isOffline)
+        #expect(model.data?.generated == CompatFixture.generated)
+
+        model.dailyChecks = { true }
+        guard case .updated = await model.refresh() else { Issue.record("2"); return }
+        #expect(server.asked == 1)
+    }
+
     @Test("A damaged cache file is ignored")
     func damagedCache() throws {
         let work = try scratchDirectory("compat-damaged")

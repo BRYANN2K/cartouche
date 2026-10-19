@@ -1,6 +1,7 @@
-// Finds a Game Porting Toolkit the user installed from Apple's disk image and
-// copies it into runners/gptk-<version> on this Mac. Cartouche never ships or
-// downloads any of its files: Apple's license does not allow redistribution.
+// Finds a Game Porting Toolkit the user installed from Apple's disk image. The
+// user picks once per toolkit: Copy into runners/gptk-<version>, or Use in Place,
+// which records the folder and reads it there. Cartouche never ships or downloads
+// any of its files: Apple's license does not allow redistribution.
 
 import Foundation
 
@@ -42,10 +43,13 @@ enum PortingToolkitSource {
         let version: String
         let origin: String
         let files: [String: String]
+        // Use in Place: the lib folder the runner reads instead of a copy
+        var inPlace: String? = nil
     }
 
     static let receiptName = ".cartouche-runner.json"
     private static let manualKey = "manualPortingToolkitPaths"
+    private static let askedKey = "portingToolkitAsked"
 
     static func manualFolders(_ defaults: UserDefaults = .standard) -> [URL] {
         (defaults.stringArray(forKey: manualKey) ?? []).map { URL(filePath: $0, directoryHint: .isDirectory) }
@@ -55,6 +59,16 @@ enum PortingToolkitSource {
         let paths = defaults.stringArray(forKey: manualKey) ?? []
         let path = folder.standardizedFileURL.path(percentEncoded: false)
         if !paths.contains(path) { defaults.set(paths + [path], forKey: manualKey) }
+    }
+
+    // The Copy / Use in Place question is asked once per toolkit version
+    static func isAsked(version: String, _ defaults: UserDefaults = .standard) -> Bool {
+        (defaults.stringArray(forKey: askedKey) ?? []).contains(version)
+    }
+
+    static func markAsked(version: String, _ defaults: UserDefaults = .standard) {
+        let versions = defaults.stringArray(forKey: askedKey) ?? []
+        if !versions.contains(version) { defaults.set(versions + [version], forKey: askedKey) }
     }
 
     static func runnerID(version: String) -> String {
@@ -152,6 +166,47 @@ enum PortingToolkitSource {
         return receipt
     }
 
+    // Records the install's own folder as the runner's lib; nothing is copied
+    @discardableResult
+    static func useInPlace(_ install: PortingToolkitInstall, runners: URL = SupportPaths.runners) throws -> Receipt {
+        let fm = FileManager.default
+        let target = folder(version: install.version, runners: runners)
+        let staging = runners.appending(path: ".\(target.lastPathComponent).new")
+        try? fm.removeItem(at: staging)
+        defer { try? fm.removeItem(at: staging) }
+        try fm.createDirectory(at: staging, withIntermediateDirectories: true)
+        var inPlace = install.lib.standardizedFileURL.path(percentEncoded: false)
+        while inPlace.count > 1 && inPlace.hasSuffix("/") { inPlace.removeLast() }
+        let receipt = Receipt(
+            version: install.version, origin: install.origin.path(percentEncoded: false),
+            files: [:], inPlace: inPlace)
+        try JSONEncoder().encode(receipt).write(to: staging.appending(path: receiptName))
+        try? fm.removeItem(at: target)
+        try fm.moveItem(at: staging, to: target)
+        return receipt
+    }
+
+    // The lib folder a set-up toolkit reads: its copy, or what Use in Place recorded
+    static func libFolder(version: String, runners: URL = SupportPaths.runners) -> URL {
+        if let path = receipt(version: version, runners: runners)?.inPlace {
+            return URL(filePath: path, directoryHint: .isDirectory)
+        }
+        return folder(version: version, runners: runners).appending(path: "lib")
+    }
+
+    // What a Copy answer needs room for: the lib folder's size on disk
+    static func copySize(of lib: URL) -> Int64 {
+        guard let walker = FileManager.default.enumerator(
+            at: lib, includingPropertiesForKeys: [.totalFileAllocatedSizeKey, .fileAllocatedSizeKey])
+        else { return 0 }
+        var total: Int64 = 0
+        for case let url as URL in walker {
+            let values = try? url.resourceValues(forKeys: [.totalFileAllocatedSizeKey, .fileAllocatedSizeKey])
+            total += Int64(values?.totalFileAllocatedSize ?? values?.fileAllocatedSize ?? 0)
+        }
+        return total
+    }
+
     // Every regular file under lib/, by path relative to the runner folder
     static func hashes(in root: URL) -> [String: String] {
         let lib = root.appending(path: "lib")
@@ -169,6 +224,12 @@ enum PortingToolkitSource {
 
     static func verify(version: String, runners: URL = SupportPaths.runners) -> [String] {
         guard let receipt = receipt(version: version, runners: runners) else { return [] }
+        // A folder used in place is not hashed — Apple's own updates may change it — but it must be there
+        if let inPlace = receipt.inPlace {
+            let lib = URL(filePath: inPlace, directoryHint: .isDirectory)
+            return FileManager.default.fileExists(atPath: framework(inLib: lib).path(percentEncoded: false))
+                ? [] : [String(localized: "The folder at \(inPlace) is gone.")]
+        }
         let root = folder(version: version, runners: runners)
         return receipt.files.keys.sorted().compactMap { path in
             Digest.sha256IfPresent(root.appending(path: path)) == receipt.files[path]
@@ -176,16 +237,20 @@ enum PortingToolkitSource {
         }
     }
 
-    // One runner per version copied or found; none at all when the user has no toolkit
+    // One runner per version set up or found; none at all when the user has no toolkit
     static func runners(found: [PortingToolkitInstall], runners: URL) -> [Runner] {
         var listed: [Runner] = []
         let copied = copiedVersions(in: runners)
         for version in copied {
             let problems = verify(version: version, runners: runners)
+            // A Use in Place runner points at the folder it recorded, even after it is gone
+            let source = receipt(version: version, runners: runners)?.inPlace
+                .map { URL(filePath: $0, directoryHint: .isDirectory) }
+                ?? found.first { $0.version == version }?.origin
             listed.append(Runner(
                 id: runnerID(version: version), kind: .portingToolkit, version: version, displayVersion: version,
                 flavors: [.rosetta], state: problems.isEmpty ? .ready : .damaged(files: problems), build: nil,
-                source: found.first { $0.version == version }?.origin, isInstalled: true
+                source: source, isInstalled: true
             ))
         }
         for install in found where !copied.contains(install.version) {
@@ -215,7 +280,7 @@ extension RunnerRegistry {
     // The user's own toolkit first, then a CrossOver that provides it; nil means D3DMetal is not offered
     func d3dMetal(runners folder: URL = SupportPaths.runners) -> D3DMetalProvider? {
         if let toolkit = runners.last(where: { $0.kind == .portingToolkit && $0.state == .ready }) {
-            let lib = PortingToolkitSource.folder(version: toolkit.version, runners: folder).appending(path: "lib")
+            let lib = PortingToolkitSource.libFolder(version: toolkit.version, runners: folder)
             return .portingToolkit(version: toolkit.version, framework: PortingToolkitSource.framework(inLib: lib))
         }
         let roots = installed.map { SupportPaths.clonedRoot(forBuild: $0.id, runners: folder) }

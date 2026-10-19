@@ -176,7 +176,7 @@ class Cask(Tmp):
         # Ruby interpolates #{version}; the result must be what release.yml uploads
         text = self.render()
         url = re.search(r'url "([^"]+)"', text).group(1).replace("#{version}", "0.1.0")
-        self.assertEqual(url, "https://github.com/BRYANN2K/NotProton/releases/download/v0.1.0/"
+        self.assertEqual(url, "https://github.com/BRYANN2K/cartouche/releases/download/v0.1.0/"
                          + release.ARCHIVE.format(version="0.1.0"))
         self.assertNotIn("NotProtonNot", text)
 

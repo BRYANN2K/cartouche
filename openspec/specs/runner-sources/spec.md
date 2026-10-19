@@ -8,6 +8,10 @@ Free runners Cartouche can install and use without CrossOver: Wine CrossOver bui
 ### Requirement: Pinned free Wine builds
 The app SHALL install only Wine builds listed in its runner manifest, and SHALL verify each download against the manifest's SHA-256 before using it.
 
+#### Scenario: Remote manifests are signed
+- **WHEN** the app fetches a newer `runners.json` from the compat-data release
+- **THEN** it is used only when the detached `runners.json.sig` signature verifies against the EdDSA public key the app ships (SUPublicEDKey); a manifest with a missing or wrong signature is refused and the bundled manifest stays in use
+
 #### Scenario: Install a pinned build
 - **WHEN** the user clicks Download on "Wine CrossOver 26.3" in Runners
 - **THEN** the archive is downloaded, its SHA-256 matches the manifest, the runner appears with state ready, and a test game prefix boots `winecfg` to its window within 60 seconds on an M-series Mac
@@ -28,7 +32,19 @@ The app SHALL detect a Game Porting Toolkit installed by the user and offer it a
 
 #### Scenario: GPTK found
 - **WHEN** the user has installed the Game Porting Toolkit from Apple's disk image
-- **THEN** Runners lists "Game Porting Toolkit" with its version and state ready, copied into Cartouche's runners folder from the user's own install
+- **THEN** Runners lists "Game Porting Toolkit" with its version and asks once, showing the size a copy needs: Copy into Cartouche's runners folder, or Use in Place
+
+#### Scenario: Copied
+- **WHEN** the user answers Copy
+- **THEN** the toolkit is copied into Cartouche's runners folder and the runner reaches state ready
+
+#### Scenario: Used in place
+- **WHEN** the user answers Use in Place
+- **THEN** the runner records the folder, keeps no copy, and reaches state ready while that folder is there
+
+#### Scenario: The in-place folder is gone
+- **WHEN** a folder recorded by Use in Place no longer exists
+- **THEN** the runner shows a damaged state naming the folder and offers to copy the toolkit from a new location
 
 #### Scenario: Nothing Apple is redistributed
 - **WHEN** CI scans the repository and every release asset for D3DMetal or GPTK file names and Apple's library hashes

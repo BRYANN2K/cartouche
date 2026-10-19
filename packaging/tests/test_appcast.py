@@ -14,7 +14,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 BIN = pathlib.Path(os.environ.get("SPARKLE_BIN", ROOT / "app/.build/artifacts/sparkle/Sparkle/bin"))
 MAKE_APPCAST = ROOT / "packaging/make-appcast.sh"
 S = "{http://www.andymatuschak.org/xml-namespaces/sparkle}"
-REPO_URL = "https://github.com/BRYANN2K/NotProton/releases/download"
+REPO_URL = "https://github.com/BRYANN2K/cartouche/releases/download"
 
 sys.path.insert(0, str(ROOT / "packaging"))
 from release import bundle_version  # noqa: E402

@@ -13,42 +13,21 @@ enum StoreGameEnvironment {
         wine: WineRunner, prefix: URL, setup: GameSetup, launch: StoreLaunch,
         backends: URL = BackendInstaller.folder, base: [String: String]
     ) -> [String: String] {
-        var env = WineInstall.environment(runner: wine, prefix: prefix, inputs: nil, base: base)
-        if let backend = setup.backend {
-            env["CX_GRAPHICS_BACKEND"] = backend.rawValue
-            let crossOver = FileManager.default.fileExists(atPath: wine.root.appending(path: "share/crossover").path(percentEncoded: false))
-            if !crossOver, let dlls = dlls(backend, backends: backends) {
-                env["WINEDLLPATH"] = dlls.path + ":" + (env["WINEDLLPATH"] ?? "")
-                env["WINEDLLOVERRIDES"] = (env["WINEDLLOVERRIDES"].map { $0 + ";" } ?? "") + dlls.overrides
-            }
-        }
-        // The game's own variables, already checked by GameSetupResolver, then the store's
-        env.merge(setup.environment) { $1 }
+        // Same env builder as every game Cartouche launches (SetupEnvironment)
+        var env = SetupEnvironment.make(wine: wine, prefix: prefix, backend: setup.backend,
+                                        environment: setup.environment, backends: backends, base: base)
+        // The store's own variables last, minus Wine's own which must not be replaced
         env.merge(launch.environment.filter { !$0.key.hasPrefix("WINE") }) { $1 }
         return env
     }
 
-    // DXMT or DXVK from backends/, only once their files are in place
     static func dlls(_ backend: GraphicsBackend, backends: URL) -> (path: String, overrides: String)? {
-        guard backend == .dxmt || backend == .dxvk, BackendInstaller.receipt(for: backend, in: backends) != nil else { return nil }
-        let root = BackendInstaller.folder(for: backend, in: backends)
-        let folders = BackendInstaller.folders.map { root.appending(path: $0) }
-            .filter { FileManager.default.fileExists(atPath: $0.path(percentEncoded: false)) }
-        guard !folders.isEmpty else { return nil }
-        let overrides = backend == .dxmt ? "d3d11,dxgi,d3d10core=b" : "d3d9,d3d10core,d3d11,dxgi=b"
-        return (folders.map { $0.path(percentEncoded: false) }.joined(separator: ":"), overrides)
+        SetupEnvironment.dlls(backend, backends: backends)
     }
 
     // DXMT's guide puts winemetal.dll in the prefix as well
     static func prepare(_ backend: GraphicsBackend?, prefix: URL, backends: URL = BackendInstaller.folder) {
-        guard backend == .dxmt, BackendInstaller.receipt(for: .dxmt, in: backends) != nil else { return }
-        let source = BackendInstaller.folder(for: .dxmt, in: backends).appending(path: "x86_64-windows/winemetal.dll")
-        let target = prefix.appending(path: "drive_c/windows/system32/winemetal.dll")
-        let fm = FileManager.default
-        guard fm.fileExists(atPath: source.path(percentEncoded: false)),
-              fm.fileExists(atPath: target.deletingLastPathComponent().path(percentEncoded: false)) else { return }
-        try? fm.removeItem(at: target)
-        try? fm.copyItem(at: source, to: target)
+        SetupEnvironment.prepare(backend, prefix: prefix, backends: backends)
     }
 
     // The command: arch -x86_64 <wine> <exe> <arguments>

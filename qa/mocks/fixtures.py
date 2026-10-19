@@ -379,7 +379,7 @@ def runners_json():
             {
                 "id": "wine-crossover-26.3.0-1", "kind": "wineBuild", "origin": "cartouche",
                 "name": "Wine CrossOver", "version": "26.3.0-1", "displayVersion": "26.3",
-                "url": "https://github.com/BRYANN2K/NotProton/releases/download/wine-crossover-26.3.0-1/wine-crossover-26.3.0-1-x86_64.tar.xz",
+                "url": "https://github.com/BRYANN2K/cartouche/releases/download/wine-crossover-26.3.0-1/wine-crossover-26.3.0-1-x86_64.tar.xz",
                 "size": len(crossover), "sha256": _sha(crossover),
                 "root": "wine", "loader": "bin/wine",
                 "flavors": ["rosetta", "fex"],
@@ -432,7 +432,7 @@ def _item(version, bundle_version, sig, base, channel=None,
     <sparkle:shortVersionString>{version}</sparkle:shortVersionString>{chan}
     <description><![CDATA[<h2>Cartouche {version}</h2><p>{notes}</p>]]></description>
     <pubDate>Mon, 12 Oct 2026 09:00:00 +0000</pubDate>
-    <enclosure url="{base}/BRYANN2K/NotProton/releases/download/v{version}/Cartouche-{version}.zip"
+    <enclosure url="{base}/BRYANN2K/cartouche/releases/download/v{version}/Cartouche-{version}.zip"
       sparkle:edSignature="{sig}" type="application/octet-stream"/>
   </item>"""
 

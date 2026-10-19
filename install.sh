@@ -1,7 +1,7 @@
 #!/bin/sh
 # Installs the latest Cartouche release in /Applications and opens it.
 #
-#   curl -fsSL https://raw.githubusercontent.com/BRYANN2K/NotProton/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/BRYANN2K/cartouche/main/install.sh | sh
 #
 # curl marks nothing as quarantined, so macOS opens Cartouche without the
 # "Not Opened" warning a browser download gets (docs/adr/0012). Before anything
@@ -13,7 +13,7 @@ set -eu
 cert_sha1=
 bundle_id=dev.bryann2k.cartouche
 
-release=${CARTOUCHE_RELEASE_URL:-https://github.com/BRYANN2K/NotProton/releases/latest/download}
+release=${CARTOUCHE_RELEASE_URL:-https://github.com/BRYANN2K/cartouche/releases/latest/download}
 apps=${CARTOUCHE_APPLICATIONS:-/Applications}
 
 say() { printf '%s\n' "$*"; }

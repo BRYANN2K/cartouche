@@ -79,8 +79,11 @@ final class AgentLiveBackend: AgentBackend {
 
     func runners() -> [Runner] { library.runners }
     func refreshRunners() async -> [Runner] {
-        let registry = await Task.detached { RunnerRegistry.refresh() }.value
+        let registry = await Task.detached { RunnerRegistry.refresh(free: .standard) }.value
         library.runners = registry.runners
+        library.backendAvailability = await Task.detached {
+            BackendAvailability.current(registry: registry, manifest: .current())
+        }.value
         return registry.runners
     }
     func installRunner(_ id: String) async throws {

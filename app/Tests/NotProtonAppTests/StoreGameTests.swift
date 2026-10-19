@@ -188,22 +188,49 @@ struct StoreGameTests {
         #expect(!scene.center.playing.contains(game.id))
     }
 
-    @Test("The download in the sidebar's activity slot, in light and dark")
+    @Test("The store's download joins the sidebar's activity slot, and its Stop ends the job")
     func activitySlot() async throws {
         let scene = try await StoreScene("game-activity")
         defer { scene.remove() }
         await scene.signIn(.epic, code: "epic-good-code")
         scene.flag("slow")
+        // The app's wiring in startStores: the center feeds the slot, Stop goes back to it
+        let activity = ActivityCenter(installs: InstallCenter(notifier: RecordingNotifier()), control: RecordingControl(),
+                                      notifier: RecordingActivityNotifier())
+        activity.storeSource = { [scene] in scene.center.activity }
+        activity.stopStore = { [scene] in scene.center.stop($0) }
         scene.center.install(try #require(scene.model.game("epic:Fennec")))
         await scene.waitUntil { (scene.center.activity?.fraction ?? 0) > 0 }
+        let shown = try #require(scene.center.activity)
+        #expect(activity.slot == .store(shown))
+        #expect(activity.menuSections.map(\.kind) == [.store])
         for dark in [false, true] {
-            let view = LibrarySidebar(model: scene.model).environment(scene.center)
-            let texts = try await renderedTexts(view, size: CGSize(width: 260, height: 600), named: "store-activity", dark: dark)
-            #expect(seen(texts, "Downloading 13%") || seen(texts, "Downloading 50%"), "\(texts)")
-            #expect(seen(texts, "Sample Free Game"), "\(texts)")
+            await windowSnapshot(LibrarySidebar(model: scene.model).activitySlot(activity, library: scene.model),
+                                 named: "store-activity", size: CGSize(width: 260, height: 600), dark: dark)
         }
-        scene.center.jobs.forEach { scene.center.stop($0) }
+        // Stop on the card cancels the running job, and the game is left uninstalled
+        activity.stopStore(shown)
         await scene.waitForJobs()
+        #expect(scene.center.activity == nil)
         #expect(scene.center.record("epic:Fennec") == nil)
+    }
+
+    @Test("The store card shows the job's label, the game, the percent and Stop")
+    func storeCardTexts() async throws {
+        let queued = StoreActivity(gameID: "epic:Owl", title: "Second Game", label: StoreJob.Kind.update.label,
+                                   fraction: 0.5, waiting: 1)
+        for (activity, label, percent, extra) in [
+            (epicDownload, "Downloading", "34", String?.none),
+            (queued, "Updating", "50", "1 more waiting"),
+        ] {
+            let texts = try await renderedTexts(
+                StoreInstallCard(activity: activity, stop: {}, show: {}).frame(width: 220).padding(12),
+                size: CGSize(width: 240, height: 90))
+            #expect(seen(texts, label), "\(texts)")
+            #expect(seen(texts, activity.title), "\(texts)")
+            #expect(seen(texts, "Stop"), "\(texts)")
+            #expect(seen(texts, percent) || seen(texts, "\(percent)%"), "\(texts)")
+            if let extra { #expect(seen(texts, extra), "\(texts)") }
+        }
     }
 }

@@ -1,7 +1,9 @@
 // The Wine builds Cartouche may download, each pinned by URL, size and SHA-256.
 // Shipped with the app as runners.json; a newer copy published next to the
-// compatibility data can add builds without an app update.
+// compatibility data can add builds without an app update. The published copy is
+// trusted only with a valid EdDSA signature from the Sparkle key (docs/RELEASE.md).
 
+import CryptoKit
 import Foundation
 
 struct RunnerManifest: Sendable, Equatable, Codable {
@@ -140,6 +142,26 @@ extension RunnerManifest {
         feed.deletingLastPathComponent().appending(path: "runners.json")
     }
 
+    // runners.json -> runners.json.sig, the detached signature CI publishes beside it
+    static func signatureFile(for manifest: URL) -> URL {
+        manifest.appendingPathExtension("sig")
+    }
+
+    // The public half of the key CI signs with: the Sparkle key, already shipped for
+    // the appcast as SUPublicEDKey. Nil outside the app bundle (tests pass their own).
+    static func signingKey(bundle: Bundle = .main) -> Curve25519.Signing.PublicKey? {
+        (bundle.object(forInfoDictionaryKey: "SUPublicEDKey") as? String)
+            .flatMap { Data(base64Encoded: $0) }
+            .flatMap { try? Curve25519.Signing.PublicKey(rawRepresentation: $0) }
+    }
+
+    // A .sig holds the base64 signature; sign_update's own "edSignature" text parses too
+    static func signature(from data: Data) -> Data? {
+        var text = String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+        if let quoted = text.firstMatch(of: /edSignature="([^"]+)"/) { text = String(quoted.1) }
+        return Data(base64Encoded: text)
+    }
+
     enum RefreshOutcome: Sendable, Equatable {
         case updated(revision: Int)
         case unchanged
@@ -147,12 +169,22 @@ extension RunnerManifest {
         case unavailable
     }
 
-    // Keeps the published copy when it is valid and newer than what the app has
+    // Keeps the published copy when it is signed, valid and newer than what the app has.
+    // A manifest the shipped key does not sign is refused and the bundled copy stays.
     static func refresh(
         from url: URL, cache: URL = cacheFile,
-        fetch: @Sendable (URL) async throws -> (Data, Int) = CompatibilityClient.download
+        fetch: @Sendable (URL) async throws -> (Data, Int) = CompatibilityClient.download,
+        key: Curve25519.Signing.PublicKey? = signingKey()
     ) async -> RefreshOutcome {
         guard let (data, status) = try? await fetch(url), status == 200 else { return .unavailable }
+        // A signature that cannot be fetched at all is retried at the next check
+        guard let signed = try? await fetch(signatureFile(for: url)) else { return .unavailable }
+        guard signed.1 == 200, let signature = signature(from: signed.0), let key,
+              key.isValidSignature(signature, for: data)
+        else {
+            AppLog.note("runner manifest at \(url.absoluteString) refused: missing or wrong signature")
+            return .rejected("missing or wrong signature")
+        }
         let published: RunnerManifest
         do {
             published = try read(data)

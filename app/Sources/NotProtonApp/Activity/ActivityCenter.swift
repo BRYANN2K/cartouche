@@ -1,7 +1,7 @@
 // Owns what the activity slot shows: the running game, the install from
-// InstallCenter, Steam's downloads and the updates. Reads Steam's own files off
-// the main thread, tells Steam to pause or cancel, and announces the end of a
-// download or an install.
+// InstallCenter, a store client's job, Steam's downloads and the updates.
+// Reads Steam's own files off the main thread, tells Steam to pause or cancel,
+// and announces the end of a download or an install.
 
 import AppKit
 import Foundation
@@ -21,6 +21,9 @@ final class ActivityCenter {
     var consoleGame: RunningGame?
     // Or read from it: what RetroArch plays now (P13's ConsoleCenter)
     @ObservationIgnored var consoleSource: @MainActor () -> RunningGame? = { nil }
+    // The running store job, from StoreCenter (P10); the app sets both
+    @ObservationIgnored var storeSource: @MainActor () -> StoreActivity? = { nil }
+    @ObservationIgnored var stopStore: @MainActor (StoreActivity) -> Void = { _ in }
     private(set) var downloads: [DownloadActivity] = []
     // Runner and backend updates; their phases fill this in
     var updates: [UpdateActivity] = []
@@ -68,11 +71,13 @@ final class ActivityCenter {
     }
 
     var slot: ActivitySlot? {
-        ActivitySlot.pick(playing: playing, install: installs.activity, downloads: downloads, updates: updates)
+        ActivitySlot.pick(playing: playing, install: installs.activity, store: storeSource(),
+                          downloads: downloads, updates: updates)
     }
 
     var menuSections: [ActivityMenuSection] {
-        ActivityMenuSection.all(playing: playing, install: installs.activity, downloads: downloads, updates: updates)
+        ActivityMenuSection.all(playing: playing, install: installs.activity, store: storeSource(),
+                                downloads: downloads, updates: updates)
     }
 
     func download(for game: Game) -> DownloadActivity? {

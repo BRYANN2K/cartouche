@@ -36,7 +36,11 @@ The app SHALL read MacGamingDB reports from `/api/rest/games/{appid}` only when 
 - **THEN** no request goes to macgamingdb.app and the estimate area says Mac reports are turned off
 
 ### Requirement: Offline-first client
-The app SHALL fetch the file at most once a day, SHALL keep the last valid copy, and SHALL show its age when it is older than 3 days.
+The app SHALL fetch the file at most once a day, SHALL keep the last valid copy, and SHALL show its age when it is older than 3 days. When "Check for updates and compatibility data daily" (Settings > General, on by default) is off, the app SHALL NOT fetch the file and SHALL keep using the copy it has.
+
+#### Scenario: Daily check turned off
+- **WHEN** the daily switch is off
+- **THEN** no request goes to the compat-data release, the runner manifest is not fetched either, and Sparkle's automatic update check is paused; Check for Updates still works
 
 #### Scenario: Offline launch
 - **WHEN** the Mac is offline and a cached file exists

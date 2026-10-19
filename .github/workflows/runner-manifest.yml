@@ -2,6 +2,8 @@ name: runner-manifest
 
 # Publishes runners.json on the compat-data release, where the app looks for a
 # newer list of Wine builds once a day. Runs when main changes the shipped copy.
+# The copy is signed with the Sparkle key: the app refuses an unsigned or
+# wrongly signed manifest (docs/RELEASE.md).
 on:
   push:
     branches: [main]
@@ -17,7 +19,9 @@ concurrency:
 
 jobs:
   publish:
-    runs-on: ubuntu-latest
+    # macOS because the signer is Sparkle's sign_update, the same tool that signs
+    # the appcast; the key never lands in the repository
+    runs-on: macos-latest
     permissions:
       contents: write
     steps:
@@ -34,6 +38,27 @@ jobs:
             python3 packaging/runner_manifest.py check "$manifest"
           fi
 
+      - name: Resolve the Sparkle tools
+        run: swift package resolve --package-path app
+
+      - name: Sign runners.json
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          if [ -z "$SPARKLE_PRIVATE_KEY" ]; then
+            echo "::error::SPARKLE_PRIVATE_KEY must be set (docs/RELEASE.md)"
+            exit 1
+          fi
+          bin=app/.build/artifacts/sparkle/Sparkle/bin
+          manifest=app/Sources/NotProtonApp/Resources/runners.json
+          sig=$(printf '%s' "$SPARKLE_PRIVATE_KEY" | "$bin/sign_update" -p --ed-key-file - "$manifest")
+          if [ -z "$sig" ]; then
+            echo "::error::sign_update gave no signature"
+            exit 1
+          fi
+          printf '%s\n' "$sig" > runners.json.sig
+          printf '%s' "$SPARKLE_PRIVATE_KEY" | "$bin/sign_update" --verify --ed-key-file - "$manifest" "$sig"
+
       - name: Upload
         env:
           GH_TOKEN: ${{ github.token }}
@@ -44,4 +69,5 @@ jobs:
               --title "Compatibility data" \
               --notes "Nightly compatibility data for Cartouche, built by .github/workflows/compat-data.yml. Sources: AppleGamingWiki (CC BY-NC-SA 3.0); ProtonDB (ODbL 1.0, the ProtonDB counts are shared under the same license); AreWeAntiCheatYet (MIT). Format: docs/schema/compat.schema.json."
           fi
-          gh release upload compat-data app/Sources/NotProtonApp/Resources/runners.json --clobber
+          gh release upload compat-data \
+            app/Sources/NotProtonApp/Resources/runners.json runners.json.sig --clobber

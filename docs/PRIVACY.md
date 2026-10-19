@@ -7,7 +7,7 @@ Cartouche has no server and no account. It does not collect analytics. Every req
 ## What is built and what is planned
 
 - Everything this page describes is merged except agent control (P11), which is still a proposal and sends nothing.
-- FPS tracking (P8) is merged: sessions are measured and stored locally. Sharing them with MacGamingDB is coded but has no destination: MacGamingDB publishes no way to send reports, so the sharing toggle stays off and unavailable. Nothing is sent.
+- FPS tracking (P8) is merged: sessions are measured and stored locally. Sharing them with MacGamingDB is coded but has no destination: MacGamingDB publishes no way to send reports. The sharing UI is hidden in v0.1.0 and comes back as an opt-in in v0.1.1 (see `docs/ROADMAP.md`). Nothing is sent.
 - Store sign-ins (P10), netplay, RetroAchievements, the translation service and iCloud Drive saves (P14) are merged and described below.
 
 ## macOS permissions
@@ -78,8 +78,8 @@ Cartouche sends no account, no Mac serial number and no list of your library. Th
 | Destination | When | What the service can see | Can you turn it off |
 |---|---|---|---|
 | macgamingdb.app | When you open a game's details or the estimate needs it, if the toggle is on | The Steam App ID of that game, your IP address, and the User-Agent `Cartouche/<version>` with the project website | Yes: Settings > Privacy > Fetch Mac reports from MacGamingDB |
-| github.com release asset `compat-data` | At most once a day | A plain download request: your IP address and the User-Agent `Cartouche/<version>` | No setting exists today |
-| github.com `appcast.xml` (Sparkle) | The daily update check | A plain download request. The Info.plist does not turn on Sparkle's system profile | Not decided. Beta releases are a separate opt-in |
+| github.com release asset `compat-data` (the compatibility file and the signed runner manifest) | At most once a day | A plain download request: your IP address and the User-Agent `Cartouche/<version>` | Yes: Settings > General > Check for updates and compatibility data daily |
+| github.com `appcast.xml` (Sparkle) | The daily update check | A plain download request. The Info.plist does not turn on Sparkle's system profile | Yes: the same switch pauses the automatic check. Check for Updates in the Cartouche menu always works. Beta releases are a separate opt-in |
 | buildbot.libretro.com | When you add a console (its core and the core info archive), or when you pick an official RetroArch release | A plain download request | Cores download only for consoles you add |
 | raw.githubusercontent.com | When you install a redistributable with Winetricks | A plain download request for the pinned Winetricks script | You choose to run it |
 | Steam content servers (`steamstatic.com`, `steamcdn-a.akamaihd.net`, `media.steampowered.com`) | When Cartouche installs its Steam integration or fetches a Steam game's icon | A plain download request. Packages are checked against pinned SHA-256 values | Inherited from NotProton |
@@ -107,11 +107,14 @@ Cartouche sends no account, no Mac serial number and no list of your library. Th
 - CI builds it from AppleGamingWiki, ProtonDB and AreWeAntiCheatYet. It holds no MacGamingDB data and nothing about you.
 - The app downloads it at most once a day and keeps the last valid copy. A failed connection does not count as the day's download.
 - A file that fails schema validation, or that is older than the copy in use, is discarded.
+- The runner manifest comes from the same release. The app trusts it only when its `runners.json.sig` signature verifies against the EdDSA public key the app ships (`SUPublicEDKey`); otherwise the bundled manifest stays in use.
+- Settings > General > Check for updates and compatibility data daily pauses both downloads when it is off. The switch is on by default.
 
 ### Sparkle updates
 
 - Sparkle fetches the signed `appcast.xml` from Cartouche's GitHub releases. The app accepts only updates signed with Cartouche's EdDSA key.
 - Sparkle's own check interval is one day. The release specification requires an update to be offered within 24 hours.
+- The same daily switch pauses Sparkle's automatic check. Check for Updates in the Cartouche menu is not affected.
 
 ### RetroArch cores
 
@@ -136,7 +139,7 @@ Cartouche sends no account, no Mac serial number and no list of your library. Th
 - Your library, favorites, game setups and settings.
 - The cached Steam library export (`steam-library.json`), console games, store library lists and install records (`stores/`).
 - The compatibility file and the per-game MacGamingDB answers (`~/Library/Application Support/Cartouche/compatibility/`).
-- Frame rates: one SQLite file, `performance/sessions.sqlite`, in the Cartouche folder (P8). Nothing is sent; the sharing toggle stays unavailable because MacGamingDB has no way to receive reports. If one ever existed, a report would carry only the chip, memory, macOS version, runner, backend, filtered settings and the FPS.
+- Frame rates: one SQLite file, `performance/sessions.sqlite`, in the Cartouche folder (P8). Nothing is sent; v0.1.0 shows no sharing control, and MacGamingDB has no way to receive reports. If one ever existed, a report would carry only the chip, memory, macOS version, runner, backend, filtered settings and the FPS.
 - Logs in `~/Library/Logs/Cartouche`.
 - Epic, GOG and Amazon tokens, and the RetroAchievements token, in the macOS Keychain only. Details below.
 - Console extras (`retroarch/extras.json`): RetroAchievements username, the translation service address, the netplay nickname, per-game toggles and the last achievement counts. No secrets in it.
@@ -151,6 +154,5 @@ Cartouche sends no account, no Mac serial number and no list of your library. Th
 
 ## Not decided
 
-- A setting to turn off the daily update check and the daily download of the compatibility file.
 - Which permissions need a relaunch beyond Input Monitoring. The P17 matrix is unmeasured.
 - A netplay host that skips libretro's lobby. Hosting always announces today.

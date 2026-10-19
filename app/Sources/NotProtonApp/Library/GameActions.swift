@@ -55,7 +55,8 @@ enum GameMenu {
 
     static func items(for game: Game, in model: LibraryModel) -> [GameMenuItem] {
         let setup = model.setup(for: game.id)
-        let steam = game.steamAppID != nil
+        // Only a real Steam game gets steam:// links; an installer game keeps its own launcher
+        let steam = game.steamAppID != nil && game.source == .steam
         // A store game downloads through its store, which needs the session (P10)
         let store = game.source.isStore
         let expired = model.isExpired(.source(game.source))
@@ -71,7 +72,8 @@ enum GameMenu {
             .divider,
         ]
         if !game.source.isConsole {
-            let runners = model.runners.filter(\.isOffered)
+            // Installer games pick from the install runners: ready free Wine builds included
+            let runners = game.source == .installer ? model.installRunners : model.runners.filter(\.isOffered)
             // Only the pairs this Mac can run; nothing to pick for the Mac version (P3)
             let resolved = model.resolution(for: game).setup
             let windows = resolved.version == .windows
@@ -138,6 +140,9 @@ struct GameActionRunner {
     var afterLaunch: @MainActor () -> Void = {}
     // Console games start in RetroArch, through the console center
     var playConsole: @MainActor (Game) -> Void = { _ in }
+    // A game installed from a Windows installer runs its launch script; the
+    // setup's DXMT winemetal.dll is refreshed first, as store games do
+    var playInstaller: @MainActor (Game) -> Void = GameActionRunner.launchInstaller
     // Epic, GOG and Amazon games go through their store's client (P10)
     var stores: StoreCenter?
     var confirmUninstall: @MainActor (Game) -> Bool = GameActionRunner.confirmUninstall
@@ -156,7 +161,11 @@ struct GameActionRunner {
         if game.source.isStore, let stores, performStore(action, on: game, stores) { return }
         switch action {
         case .play:
-            if let id = game.steamAppID {
+            if game.source == .installer {
+                // Its own launcher script, kept in step with the game's setup (P6)
+                playInstaller(game)
+                afterLaunch()
+            } else if let id = game.steamAppID {
                 open(URL(string: "steam://rungameid/\(id)")!)
                 afterLaunch()
             } else if game.console != nil {
@@ -223,5 +232,20 @@ struct GameActionRunner {
         panel.allowedContentTypes = [.image]
         panel.message = String(localized: "Choose a cover image.")
         return panel.runModal() == .OK ? panel.url : nil
+    }
+
+    // Detaches the install folder's launch script; the agent's launch endpoint
+    // and InstallAllTests run the same file. DXMT's winemetal.dll is refreshed
+    // for the record's backend, as store games do at launch.
+    @MainActor static func launchInstaller(_ game: Game) {
+        guard game.id.hasPrefix("installer:") else { return }
+        let folder = GameFolder(root: GameFolder.installs
+            .appending(path: String(game.id.dropFirst("installer:".count))))
+        guard let data = try? Data(contentsOf: folder.record),
+              let record = try? InstalledGames.decoder.decode(InstalledGame.self, from: data),
+              FileManager.default.fileExists(atPath: record.launcher.path(percentEncoded: false))
+        else { return }
+        SetupEnvironment.prepare(record.backend, prefix: folder.prefix, backends: BackendInstaller.folder)
+        try? Shell.detach(record.launcher.path(percentEncoded: false), [], environment: [:])
     }
 }

@@ -85,6 +85,10 @@ struct Game: Identifiable, Sendable, Equatable {
     // The Steam App ID the compatibility data knows a store game by, matched by name,
     // for its estimate. Never used to start the game (P10)
     var compatAppID: Int?
+    // For a Windows installer game: the setup its install ran with, used as the
+    // default of its game setup until the user picks another one
+    var installRunnerID: String?
+    var installGraphics: GraphicsBackend?
 
     var coverShape: CoverShape { source.isConsole ? .square : .portrait }
 

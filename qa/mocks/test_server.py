@@ -200,8 +200,8 @@ class TestMacGamingDB(MockServerCase):
 # ---------------------------------------------------------------- compat feed
 
 class TestCompatFeed(MockServerCase):
-    PATH = "/BRYANN2K/NotProton/releases/download/compat-data/compat.json.gz"
-    RUNNERS = "/BRYANN2K/NotProton/releases/download/compat-data/runners.json"
+    PATH = "/BRYANN2K/cartouche/releases/download/compat-data/compat.json.gz"
+    RUNNERS = "/BRYANN2K/cartouche/releases/download/compat-data/runners.json"
 
     def _doc(self, path=PATH):
         status, body, headers = self.get(path)
@@ -287,7 +287,7 @@ class TestCompatFeed(MockServerCase):
 # ---------------------------------------------------------------- appcast
 
 class TestAppcast(MockServerCase):
-    PATH = "/BRYANN2K/NotProton/releases/latest/download/appcast.xml"
+    PATH = "/BRYANN2K/cartouche/releases/latest/download/appcast.xml"
 
     def test_default_feed_offers_no_update(self):
         _, body, _ = self.get(self.PATH)
@@ -341,7 +341,7 @@ class TestReleaseAssets(MockServerCase):
 
     def test_app_zip(self):
         status, body, _ = self.get(
-            "/BRYANN2K/NotProton/releases/download/v0.2.0/Cartouche-0.2.0.zip")
+            "/BRYANN2K/cartouche/releases/download/v0.2.0/Cartouche-0.2.0.zip")
         self.assertEqual(status, 200)
         names = zipfile.ZipFile(io.BytesIO(body)).namelist()
         self.assertIn("Cartouche.app/Contents/Info.plist", names)
@@ -357,7 +357,7 @@ class TestReleaseAssets(MockServerCase):
 
     def test_tampered_route(self):
         status, body, _ = self.get(
-            "/BRYANN2K/NotProton/releases/download/v9.9.9/wine-tampered.tar.xz")
+            "/BRYANN2K/cartouche/releases/download/v9.9.9/wine-tampered.tar.xz")
         self.assertEqual(status, 200)
         self.assertNotEqual(body, b"QA tampered archive\n" * 16)
 

@@ -34,6 +34,28 @@ struct UpdateChannelTests {
         #expect(delegate.allowedChannels(for: updater).isEmpty)
     }
 
+    @Test("The daily switch drives Sparkle's automatic check and defaults to on")
+    func dailySwitch() {
+        let suite = "daily-checks-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        #expect(DailyChecks.enabled(defaults))
+        defaults.set(false, forKey: DailyChecks.key)
+        #expect(!DailyChecks.enabled(defaults))
+
+        var on = true
+        let updater = AppUpdater(dailyChecks: { on })
+        // Sparkle stores the switch on the host's defaults; leave nothing behind
+        defer { UserDefaults.standard.removeObject(forKey: "SUEnableAutomaticChecks") }
+        #expect(updater.automaticallyChecks)
+        on = false
+        updater.applyDailyChecks()
+        #expect(!updater.automaticallyChecks)
+        on = true
+        updater.applyDailyChecks()
+        #expect(updater.automaticallyChecks)
+    }
+
     @Test("The Settings toggle and the updater read the same key")
     func toggleSharesTheKey() throws {
         let view = try String(

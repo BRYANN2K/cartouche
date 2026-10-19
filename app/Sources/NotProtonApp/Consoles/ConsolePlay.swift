@@ -17,10 +17,13 @@ protocol ConsoleRunning: Sendable {
     func ended() async -> PlayReport?
     // Cartouche is quitting
     func leaveForTermination() async -> PlayReport
+    // The process the game runs in, for the session record; nil when untold
+    var processIdentifier: Int32? { get async }
 }
 
 extension ConsoleRunning {
     func leaveForTermination() async -> PlayReport { await quit() }
+    var processIdentifier: Int32? { nil }
 }
 
 extension ConsolePlayer: ConsoleRunning {}
@@ -171,6 +174,7 @@ extension ConsoleCenter {
             if extras.cloudSaves { try extras.cloud.ensure() }
             try await runner.play(request)
             playing = Playing(gameID: id, phase: .playing)
+            await beginRecord(gameID: id, emulator: nil)
             startExtras(for: game, hardcore: request.hardcore, netplay: netplay)
             let date = now()
             try? await store.update(id) { $0.lastPlayed = date }
@@ -209,6 +213,7 @@ extension ConsoleCenter {
             finished.signal()
         }
         _ = finished.wait(timeout: .now() + limit)
+        endRecord()
         playing = nil
         powerOn = nil
     }
@@ -221,12 +226,74 @@ extension ConsoleCenter {
             game.playSeconds += seconds
             game.lastPlayed = date
         }
-        if playing?.emulator != nil { runner = nil }
+        endRecord()
+        // A standalone emulator's and a picked-up session's runner are one-offs
+        if playing?.emulator != nil || runner is OrphanedRunner { runner = nil }
         playing = nil
         powerOn = nil
         statesChanged += 1
         await reload()
         await endExtras(id)
+    }
+
+    // MARK: The session record
+
+    // Written when the game starts; a heartbeat lands every minute while
+    // Cartouche lives, so a killed Cartouche can pick the session back up
+    // or count it. Without the process's own start there is nothing to check
+    // a pid against, and no record is kept.
+    func beginRecord(gameID: String, emulator: String?) async {
+        guard let runner, let pid = await runner.processIdentifier,
+              let start = sessions.processStart(pid) else { return }
+        let date = now()
+        sessions.write(ConsoleSessionRecord(gameID: gameID, emulator: emulator, pid: pid,
+                                            processStarted: start, started: date, heartbeat: date))
+        startHeartbeat()
+    }
+
+    func startHeartbeat() {
+        heartbeat?.cancel()
+        let sessions = sessions, every = heartbeatEvery
+        heartbeat = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: every)
+                guard !Task.isCancelled else { return }
+                sessions.heartbeat()
+            }
+        }
+    }
+
+    func endRecord() {
+        heartbeat?.cancel()
+        heartbeat = nil
+        sessions.clear()
+    }
+
+    // At launch: a session record left over means the last Cartouche was
+    // killed mid-game. A process still there — same pid AND same start — is
+    // picked up again and counted when it ends; gone, its time is counted to
+    // the last heartbeat. Whoever holds the pid now is never signaled.
+    func reattachOrphaned() async {
+        guard playing == nil else { return }
+        sessions.clearUnreadable()
+        guard let record = sessions.read() else { return }
+        if sessions.isSameProcess(record) {
+            runner = OrphanedRunner(record: record, sessions: sessions)
+            playing = Playing(gameID: record.gameID, phase: .playing, emulator: record.emulator)
+            startHeartbeat()
+            watchForEnd()
+            await reload()
+            AppLog.note("console session picked up: \(record.gameID) pid \(record.pid)")
+        } else {
+            let seconds = max(0, record.heartbeat.timeIntervalSince(record.started))
+            try? await store.update(record.gameID) {
+                $0.playSeconds += seconds
+                $0.lastPlayed = record.heartbeat
+            }
+            endRecord()
+            await reload()
+            AppLog.note("console session counted after Cartouche was killed: \(record.gameID) \(Int(seconds))s")
+        }
     }
 
     // A RetroArch closed from its own menu or window ends the session too

@@ -69,6 +69,7 @@ struct ActivitySnapshotTests {
             ("slot-playing-retroarch", AnyView(PlayingCard(game: RunningGame(id: "console:1", name: "Super Metroid", target: .console, fps: 60)) {})),
             ("slot-installing", AnyView(InstallingCard(install: install) {})),
             ("slot-installing-stuck", AnyView(InstallingCard(install: stuck) {})),
+            ("slot-store", AnyView(StoreInstallCard(activity: epicDownload, stop: {}, show: {}))),
             ("slot-downloading", AnyView(DownloadsCard(summary: DownloadSummary(downloads: [godOfWar]), toggle: {}, show: {}))),
             ("slot-downloading-two", AnyView(DownloadsCard(summary: DownloadSummary(downloads: [godOfWar, apex]), toggle: {}, show: {}))),
             ("slot-paused", AnyView(DownloadsCard(summary: DownloadSummary(downloads: [paused]), toggle: {}, show: {}))),

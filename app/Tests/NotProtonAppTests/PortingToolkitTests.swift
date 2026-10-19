@@ -161,6 +161,40 @@ final class PortingToolkitTests {
         #expect(registry([install]).runners.first?.state == .ready)
     }
 
+    @Test("Use in Place keeps no copy, reads the folder it recorded, and reports when it is gone")
+    func inPlace() throws {
+        let volume = volumes.appending(path: "Evaluation environment for Windows games 4.0")
+        try toolkit(at: volume.appending(path: "redist/lib"))
+        let install = try #require(PortingToolkitSource.discover(search()).first)
+        #expect(PortingToolkitSource.copySize(of: install.lib) > 0)
+
+        let receipt = try PortingToolkitSource.useInPlace(install, runners: runners)
+        #expect(receipt.inPlace == Self.path(install.lib))
+        #expect(receipt.files.isEmpty)
+        #expect(!FileManager.default.fileExists(atPath:
+            PortingToolkitSource.folder(version: "4.0b3", runners: runners)
+                .appending(path: "lib").path(percentEncoded: false)))
+
+        var found = registry([install])
+        var runner = try #require(found.runners.first)
+        #expect(runner.state == .ready)
+        #expect(runner.source.map(Self.path) == Self.path(install.lib))
+        guard case .portingToolkit(_, let framework) = found.d3dMetal(runners: runners) else {
+            Issue.record("expected D3DMetal in place"); return
+        }
+        #expect(Self.path(framework) == Self.path(install.lib.appending(path: "external/D3DMetal.framework")))
+
+        // The folder goes away: the runner is damaged and names it
+        try FileManager.default.removeItem(at: volume)
+        found = registry(PortingToolkitSource.discover(search()))
+        runner = try #require(found.runners.first)
+        guard case .damaged(let files) = runner.state else {
+            Issue.record("expected damaged, got \(runner.state)"); return
+        }
+        #expect(files == ["The folder at \(Self.path(install.lib)) is gone."])
+        #expect(found.d3dMetal(runners: runners) == nil)
+    }
+
     @Test("Version folders keep only safe characters")
     func ids() {
         #expect(PortingToolkitSource.runnerID(version: "4.0 beta 3") == "gptk-4.0_beta_3")

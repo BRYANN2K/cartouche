@@ -64,6 +64,10 @@ final class ConsoleCenter {
     @ObservationIgnored var resolveCore: (@MainActor (String) async throws -> URL)?
     // Plays a game in a standalone emulator; tests hand in their own environment
     @ObservationIgnored var standaloneEnvironment: [String: String]?
+    // The record of the running session, so a killed Cartouche counts its time
+    @ObservationIgnored var sessions = SessionRecords(file: SupportPaths.consoleSession)
+    @ObservationIgnored var heartbeatEvery: Duration = .seconds(60)
+    @ObservationIgnored var heartbeat: Task<Void, Never>?
 
     // Asks for Local Network before netplay on the local network (P17's flow)
     @ObservationIgnored var netplayFlow: PermissionFlow?

@@ -10,7 +10,7 @@ struct InstallEngine: Sendable {
 
     var installs: URL = GameFolder.installs
     var runners: URL = SupportPaths.runners
-    var registry: @Sendable () -> RunnerRegistry = { RunnerRegistry.refresh() }
+    var registry: @Sendable () -> RunnerRegistry = { RunnerRegistry.refresh(free: .standard) }
     var environment: [String: String] = ProcessInfo.processInfo.environment
     var policy = InstallRun.Policy()
     var keepAwake = true
@@ -141,11 +141,14 @@ struct InstallEngine: Sendable {
         let registry = registry()
         let runner = registry.runner(id: job.inputs.runnerID)
         if let wine = runner.flatMap({ InstallRunners.wine(for: $0, runners: runners) }) {
-            try GameLauncher.write(exe: exe, folder: folder, wine: wine)
+            try GameLauncher.write(exe: exe, folder: folder, wine: wine, backend: .wined3d)
         }
+        // The setup defaults to what the install ran: the installer's runner, plain Wine (wined3d)
         var game = InstalledGame(
             id: folder.root.lastPathComponent, name: job.request.name, appID: job.request.appID, gogID: job.request.gogID,
-            runnerID: job.inputs.runnerID, prefix: folder.prefix.path(percentEncoded: false),
+            runnerID: job.inputs.runnerID, graphics: GraphicsBackend.wined3d.rawValue,
+            wineVersion: runner?.version, wineRunnerKind: runner?.kind.rawValue,
+            prefix: folder.prefix.path(percentEncoded: false),
             exe: exe.path(percentEncoded: false), installedAt: Date(),
             installerFolder: job.request.source.path(percentEncoded: false),
             redistributables: Redistributables.verbs(job.redistributables)

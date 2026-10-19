@@ -16,6 +16,14 @@ Each Windows game SHALL have a setup made of a runner, a graphics backend, a CPU
 - **WHEN** the user opens the Graphics menu for a game on a runner without D3DMetal
 - **THEN** D3DMetal is not listed, and FEX is not listed on macOS 15
 
+#### Scenario: Installer games change setup in place
+- **WHEN** the user picks a different ready runner or backend for a game installed from a Windows installer
+- **THEN** its launcher is rewritten with the same environment a store game would get, in the same prefix, and neither the game nor the prefix is copied
+
+#### Scenario: Older Wine warns but is allowed
+- **WHEN** the picked Wine is older than the version that last ran an installer game's prefix
+- **THEN** the panel shows a short warning that the prefix was updated by a newer Wine and the game may not start, and the choice is still applied
+
 ### Requirement: Steam compatibility tools per setup
 The app SHALL register one Steam compatibility tool per valid runner and backend pair, and a change of setup in Cartouche SHALL be reflected in Steam's per-game compatibility choice.
 

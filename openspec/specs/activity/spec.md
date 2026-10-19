@@ -6,7 +6,7 @@ How Cartouche shows what is happening now (running game, installs, downloads, up
 ## Requirements
 
 ### Requirement: One activity slot
-The sidebar SHALL show the most important ongoing activity, in this order: running game, install, downloads, updates; and SHALL hide the slot when nothing is going on.
+The sidebar SHALL show the most important ongoing activity, in this order: running game, install, a store client's job, downloads, updates; and SHALL hide the slot when nothing is going on.
 
 #### Scenario: Priority
 - **WHEN** a game is running while a download is in progress

@@ -27,6 +27,8 @@ struct CartoucheApp: App {
     @State private var relaunch = RelaunchService()
     @State private var onboarding: OnboardingModel?
     @State private var performance = PerformanceModel()
+    // The free runners and the Game Porting Toolkit, for Settings > Compatibility (P2)
+    @State private var runners: RunnersModel
     // Epic, GOG and Amazon (P10)
     @State private var stores: StoreCenter
     @State private var agents: AgentControlModel
@@ -53,6 +55,9 @@ struct CartoucheApp: App {
         let consoles = SettingsWindow.consolesModel(cores: cores)
         let consoleCenter = ConsoleCenter(settings: consoles, cores: cores, library: library)
         let compat = CompatibilityModel()
+        let runners = RunnersModel()
+        runners.chooseToolkitFolder = ToolkitFolderPicker.choose
+        _runners = State(initialValue: runners)
         _library = State(initialValue: library)
         _consoles = State(initialValue: consoles)
         _consoleCenter = State(initialValue: consoleCenter)
@@ -133,12 +138,15 @@ struct CartoucheApp: App {
         Settings {
             SettingsWindow(model: library, permissions: permissions, consoles: consoles)
                 .environment(consoleCenter)
+                .environment(runners)
                 .environment(onboarding)
                 .environment(gameFolders)
                 .environment(stores)
                 .environment(controls)
                 .storeSignIn(stores)
                 .environment(agents)
+                // A runner set up or repaired in Settings joins game setups right away
+                .onChange(of: runners.registry.runners) { _, _ in Task { await syncRunnerList() } }
         }
 
         MenuBarExtra(isInserted: $showInMenuBar) {
@@ -172,6 +180,8 @@ struct CartoucheApp: App {
         await library.load()
         library.watch()
         await consoleCenter.reload()
+        // A console session left over when Cartouche was killed is picked up or counted
+        await consoleCenter.reattachOrphaned()
         consoleCenter.folderList = gameFolders
         consoleCenter.netplayFlow = PermissionFlow(center: permissions)
         await consoleCenter.startWatching()
@@ -196,6 +206,10 @@ struct CartoucheApp: App {
         stores.afterLaunch = actions.afterLaunch
         let index = TitleIndex()
         stores.matchAppID = { [compat] title in index.appID(title, data: compat.data) }
+        // The store's running job joins the shared activity slot (P7)
+        let activity = ActivityCenter.shared
+        activity.storeSource = { [stores] in stores.activity }
+        activity.stopStore = { [stores] in stores.stop($0) }
         Task { await stores.start(refresh: !library.isOffline) }
     }
 
@@ -225,19 +239,28 @@ struct CartoucheApp: App {
         return model
     }
 
-    // Runners are read through the registry, off the main thread
+    // Runners are read through the registry, off the main thread — free builds and
+    // the Game Porting Toolkit included, so game setups can offer them (P2, P3)
     private func loadRunners() async {
-        let registry = await Task.detached { RunnerRegistry.refresh() }.value
-        library.runners = registry.runners
-        // What each runner can pair with, which games have a Mac build, and Steam's own choices (P3)
-        let (availability, tools, platforms, mappings) = await Task.detached {
-            (BackendAvailability.current(registry: registry), RunnerRegistry.backendTools(),
+        await runners.refresh()
+        await syncRunnerList()
+        let (tools, platforms, mappings) = await Task.detached {
+            (RunnerRegistry.backendTools(),
              SteamAppInfo.platforms(), (SteamCompatChoice.mappings(), SteamCompatChoice.modified()))
         }.value
-        library.backendAvailability = availability
         library.backendTools = tools
         library.macBuilds = platforms?.both ?? []
         library.adoptSteamChoices(mappings.0, written: mappings.1)
+    }
+
+    // What the Runners screen's registry knows, handed to the setups (P3)
+    private func syncRunnerList() async {
+        let registry = runners.registry
+        let manifest = runners.manifest
+        library.runners = registry.runners
+        library.backendAvailability = await Task.detached {
+            BackendAvailability.current(registry: registry, manifest: manifest)
+        }.value
     }
 
     @CommandsBuilder

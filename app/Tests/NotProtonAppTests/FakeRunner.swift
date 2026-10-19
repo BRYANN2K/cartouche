@@ -15,10 +15,13 @@ actor FakeRunner: ConsoleRunning {
     private var exitedByItself = false
     let states: URL
     let picture: Data
+    // The process the session record watches for; nil unless the test gives one
+    nonisolated let processIdentifier: Int32?
 
-    init(states: URL, picture: Data) {
+    init(states: URL, picture: Data, pid: Int32? = nil) {
         self.states = states
         self.picture = picture
+        self.processIdentifier = pid
     }
 
     var isPlaying: Bool { started != nil }
@@ -95,8 +98,8 @@ extension ConsoleScene {
         }
     }
 
-    func useFakeRunner(picture: Data) -> FakeRunner {
-        let runner = FakeRunner(states: paths.states, picture: picture)
+    func useFakeRunner(picture: Data, pid: Int32? = nil) -> FakeRunner {
+        let runner = FakeRunner(states: paths.states, picture: picture, pid: pid)
         center.makeRunner = { _ in runner }
         return runner
     }

@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import Testing
 
@@ -8,7 +9,7 @@ struct RunnerManifestTests {
 
     static func entry(
         id: String = "wine-crossover-26.3.0-1", kind: String = "wineBuild",
-        url: String = "https://github.com/BRYANN2K/NotProton/releases/download/wine-crossover-26.3.0-1/wine-crossover-26.3.0-1-x86_64.tar.xz",
+        url: String = "https://github.com/BRYANN2K/cartouche/releases/download/wine-crossover-26.3.0-1/wine-crossover-26.3.0-1-x86_64.tar.xz",
         size: Int64 = 1234, sha256: String = String(repeating: "ab", count: 32),
         root: String = "wine-crossover-26.3.0-1", loader: String = "bin/wine", flavors: [String] = ["rosetta"]
     ) -> [String: Any] {
@@ -98,34 +99,93 @@ struct RunnerManifestTests {
         #expect(RunnerManifest.merged(bundled: shipped, refreshed: swapped) == shipped)
     }
 
-    @Test("Refresh keeps a valid newer copy, and refuses a broken one without touching the cache")
+    // A throwaway EdDSA key, never the real one; serves runners.json and its .sig
+    static func feed(manifest: Data, key: Curve25519.Signing.PrivateKey) throws
+        -> (Curve25519.Signing.PublicKey, @Sendable (URL) async throws -> (Data, Int)) {
+        let signature = try key.signature(for: manifest)
+        let sig = Data(signature.base64EncodedString().utf8)
+        let fetch: @Sendable (URL) async throws -> (Data, Int) = { url in
+            url.pathExtension == "sig" ? (sig, 200) : (manifest, 200)
+        }
+        return (key.publicKey, fetch)
+    }
+
+    @Test("Refresh keeps a valid signed newer copy, and refuses a broken one without touching the cache")
     func refresh() async throws {
         let work = try scratchDirectory("manifest")
         defer { try? FileManager.default.removeItem(at: work) }
         let cache = work.appending(path: "runners.json")
-        let url = URL(string: "https://github.com/BRYANN2K/NotProton/releases/download/compat-data/runners.json")!
+        let url = URL(string: "https://github.com/BRYANN2K/cartouche/releases/download/compat-data/runners.json")!
         let shipped = try RunnerManifest.bundled()
         let newer = try Self.manifest([Self.entry()], revision: shipped.revision + 1)
+        let signing = Curve25519.Signing.PrivateKey()
+        let (key, feed) = try Self.feed(manifest: newer, key: signing)
 
-        let updated = await RunnerManifest.refresh(from: url, cache: cache) { _ in (newer, 200) }
+        let updated = await RunnerManifest.refresh(from: url, cache: cache, fetch: feed, key: key)
         #expect(updated == .updated(revision: shipped.revision + 1))
         #expect(RunnerManifest.current(cache: cache).build(id: "wine-crossover-26.3.0-1") != nil)
 
         let broken = try Self.manifest([Self.entry(sha256: "nope")], revision: shipped.revision + 5)
-        let rejected = await RunnerManifest.refresh(from: url, cache: cache) { _ in (broken, 200) }
+        let brokenFeed = try Self.feed(manifest: broken, key: signing)
+        let rejected = await RunnerManifest.refresh(from: url, cache: cache, fetch: brokenFeed.1, key: key)
         guard case .rejected = rejected else { Issue.record("\(rejected)"); return }
         #expect(try Data(contentsOf: cache) == newer)
 
-        let same = await RunnerManifest.refresh(from: url, cache: cache) { _ in (newer, 200) }
+        let same = await RunnerManifest.refresh(from: url, cache: cache, fetch: feed, key: key)
         #expect(same == .unchanged)
-        let missing = await RunnerManifest.refresh(from: url, cache: cache) { _ in (Data(), 404) }
+        let missing = await RunnerManifest.refresh(from: url, cache: cache, fetch: { _ in (Data(), 404) }, key: key)
         #expect(missing == .unavailable)
+    }
+
+    @Test("A manifest with a missing or wrong signature is refused and the bundled copy stays")
+    func unsignedOrForged() async throws {
+        let work = try scratchDirectory("manifest-unsigned")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let cache = work.appending(path: "runners.json")
+        let url = URL(string: "https://github.com/BRYANN2K/cartouche/releases/download/compat-data/runners.json")!
+        let shipped = try RunnerManifest.bundled()
+        let newer = try Self.manifest([Self.entry()], revision: shipped.revision + 1)
+        let key = Curve25519.Signing.PrivateKey().publicKey
+
+        // No signature file at all
+        let noSig = await RunnerManifest.refresh(from: url, cache: cache, fetch: { url in
+            url.pathExtension == "sig" ? (Data(), 404) : (newer, 200)
+        }, key: key)
+        guard case .rejected = noSig else { Issue.record("\(noSig)"); return }
+        #expect(!FileManager.default.fileExists(atPath: cache.path(percentEncoded: false)))
+
+        // Signed by another key
+        let forged = try Self.feed(manifest: newer, key: Curve25519.Signing.PrivateKey())
+        let wrong = await RunnerManifest.refresh(from: url, cache: cache, fetch: forged.1, key: key)
+        guard case .rejected = wrong else { Issue.record("\(wrong)"); return }
+        #expect(!FileManager.default.fileExists(atPath: cache.path(percentEncoded: false)))
+
+        // Garbage in the signature file
+        let garbage = await RunnerManifest.refresh(from: url, cache: cache, fetch: { url in
+            url.pathExtension == "sig" ? (Data("not a signature".utf8), 200) : (newer, 200)
+        }, key: key)
+        guard case .rejected = garbage else { Issue.record("\(garbage)"); return }
+
+        // The bundled manifest is what the app installs from
+        #expect(RunnerManifest.current(cache: cache) == shipped)
+    }
+
+    @Test("The signature file sits beside the manifest and parses base64 or sign_update output")
+    func signatureFile() throws {
+        let url = URL(string: "https://github.com/BRYANN2K/cartouche/releases/download/compat-data/runners.json")!
+        #expect(RunnerManifest.signatureFile(for: url).absoluteString == url.absoluteString + ".sig")
+
+        let signature = try Curve25519.Signing.PrivateKey().signature(for: Data("manifest".utf8))
+        #expect(RunnerManifest.signature(from: Data(signature.base64EncodedString().utf8)) == signature)
+        let sparkle = Data("sparkle:edSignature=\"\(signature.base64EncodedString())\" length=\"8\"\n".utf8)
+        #expect(RunnerManifest.signature(from: sparkle) == signature)
+        #expect(RunnerManifest.signature(from: Data("%%%".utf8)) == nil)
     }
 
     @Test("The refreshed copy sits next to the compatibility file")
     func feed() {
-        let compat = URL(string: "https://github.com/BRYANN2K/NotProton/releases/download/compat-data/compat.json.gz")!
+        let compat = URL(string: "https://github.com/BRYANN2K/cartouche/releases/download/compat-data/compat.json.gz")!
         #expect(RunnerManifest.feed(fromCompatibilityFeed: compat).absoluteString
-            == "https://github.com/BRYANN2K/NotProton/releases/download/compat-data/runners.json")
+            == "https://github.com/BRYANN2K/cartouche/releases/download/compat-data/runners.json")
     }
 }

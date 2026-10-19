@@ -32,7 +32,7 @@ the appcast's own URLs) keep their `https://github.com/…` addresses — manife
 validation requires that host — so the QA harness maps `github.com` (and the
 CDN hosts above) to the mock: /etc/hosts in the QA jail or a URL-protocol
 override in the QA build. Every asset also answers on its github.com *path*:
-`GET /BRYANN2K/NotProton/releases/download/<tag>/<file>`.
+`GET /BRYANN2K/cartouche/releases/download/<tag>/<file>`.
 
 ## `__control` — scenario switch
 
@@ -110,6 +110,8 @@ in `/__control/state` — `steam-*`, `homebrew-*`, `installer-*`,
 - **Sparkle signatures**: the appcast carries placeholder edSignatures; an
   end-to-end signed update needs the real EdDSA keypair, which the mock can't
   hold. `update-foreign-key` is still fully testable (refusal is the point).
+  The same covers `runners.json`: the mock serves no `runners.json.sig`, so
+  the app refuses the mock manifest and keeps its bundled copy.
 - **Steam's own API**: the library comes from the fake Steam's local files in
   the QA home, not HTTP — nothing to mock there beyond the CDN and installer.
 - **Store/RA/lobby wire shapes**: P10/P14 are unmerged; fixtures match their

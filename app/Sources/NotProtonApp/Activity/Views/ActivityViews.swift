@@ -43,8 +43,9 @@ struct ActivitySlotView: View {
         switch slot {
         case .playing: 0
         case .installing: 1
-        case .downloads: 2
-        case .update: 3
+        case .store: 2
+        case .downloads: 3
+        case .update: 4
         }
     }
 
@@ -54,6 +55,9 @@ struct ActivitySlotView: View {
             switch slot {
             case .playing(let game): PlayingCard(game: game) { Task { await center.quitGame() } }
             case .installing(let install): InstallingCard(install: install) { center.installs.open() }
+            case .store(let activity):
+                StoreInstallCard(activity: activity, stop: { center.stopStore(activity) },
+                                 show: { library.reveal(gameID: activity.gameID) })
             case .downloads(let downloads):
                 DownloadsCard(summary: DownloadSummary(downloads: downloads),
                               toggle: { downloads.first.map { center.togglePause($0.appID) } },
@@ -129,6 +133,64 @@ struct InstallingCard: View {
         }
         .buttonStyle(.plain)
         .help(Text("Show the install"))
+    }
+}
+
+// A store client's running job: the percent ring, the game, and Stop. Store
+// clients cannot pause a download, so the ring only reads; Stop ends the job.
+// The card taps through to the game in the library.
+struct StoreInstallCard: View {
+    let activity: StoreActivity
+    let stop: () -> Void
+    let show: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            StoreRing(fraction: activity.fraction)
+            Button(action: show) {
+                VStack(alignment: .leading, spacing: 2) {
+                    SlotHeader(label: activity.label, title: activity.title)
+                    if activity.waiting > 0 {
+                        Text(activity.waiting == 1 ? String(localized: "1 more waiting")
+                                                   : String(localized: "\(activity.waiting) more waiting"))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(Text("Show in the library"))
+            Button("Stop", action: stop)
+                .controlSize(.small)
+        }
+        .accessibilityElement(children: .contain)
+    }
+}
+
+// The store job's ring: the track and the progress arc, the percent inside.
+// Drawn like DownloadRing but not a button: store clients have no Pause.
+struct StoreRing: View {
+    let fraction: Double
+    var size: CGFloat = 32
+
+    var body: some View {
+        ZStack {
+            Circle().stroke(Color.primary.opacity(0.12), lineWidth: 2.6)
+            Circle()
+                .trim(from: 0, to: max(0.001, min(1, fraction)))
+                .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 2.6, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .animation(.linear(duration: 0.5), value: fraction)
+            Text(verbatim: "\(Int((fraction * 100).rounded(.down)))")
+                .font(.system(size: size * 0.28, weight: .semibold).monospacedDigit())
+                .foregroundStyle(.secondary)
+        }
+        .padding(1.3)
+        .frame(width: size, height: size)
+        .accessibilityElement()
+        .accessibilityLabel(Text("Download progress"))
+        .accessibilityValue(Text("\(Int((fraction * 100).rounded(.down)))%"))
     }
 }
 

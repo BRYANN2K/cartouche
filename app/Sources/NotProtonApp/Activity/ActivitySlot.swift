@@ -1,5 +1,6 @@
-// What is going on right now: a running game, an install, Steam downloads and
-// updates. The sidebar shows the most important one; the status menu lists them all.
+// What is going on right now: a running game, an install, a store client's job,
+// Steam downloads and updates. The sidebar shows the most important one; the
+// status menu lists them all.
 
 import Foundation
 
@@ -64,14 +65,17 @@ struct UpdateActivity: Identifiable, Equatable, Sendable {
 enum ActivitySlot: Equatable, Sendable {
     case playing(RunningGame)
     case installing(InstallActivity)
+    // A download, update, verify or import from a store client (P10)
+    case store(StoreActivity)
     case downloads([DownloadActivity])
     case update(UpdateActivity)
 
-    // Playing beats installing beats downloads beats updates; nil hides the slot
-    static func pick(playing: RunningGame?, install: InstallActivity?,
+    // Playing beats installing beats a store job beats downloads beats updates; nil hides the slot
+    static func pick(playing: RunningGame?, install: InstallActivity?, store: StoreActivity?,
                      downloads: [DownloadActivity], updates: [UpdateActivity]) -> ActivitySlot? {
         if let playing { return .playing(playing) }
         if let install { return .installing(install) }
+        if let store { return .store(store) }
         if !downloads.isEmpty { return .downloads(downloads) }
         if let update = updates.first { return .update(update) }
         return nil
@@ -131,7 +135,7 @@ struct DownloadSummary: Equatable, Sendable {
 
 // Every ongoing activity, for the status item's menu
 struct ActivityMenuSection: Equatable, Sendable {
-    enum Kind: Equatable, Sendable { case playing, installing, downloads, updates }
+    enum Kind: Equatable, Sendable { case playing, installing, store, downloads, updates }
 
     struct Line: Equatable, Sendable {
         let title: String
@@ -146,12 +150,13 @@ struct ActivityMenuSection: Equatable, Sendable {
         switch kind {
         case .playing: String(localized: "Playing")
         case .installing: String(localized: "Installing")
+        case .store: String(localized: "Store")
         case .downloads: String(localized: "Downloads")
         case .updates: String(localized: "Updates")
         }
     }
 
-    static func all(playing: RunningGame?, install: InstallActivity?,
+    static func all(playing: RunningGame?, install: InstallActivity?, store: StoreActivity?,
                     downloads: [DownloadActivity], updates: [UpdateActivity]) -> [ActivityMenuSection] {
         var sections: [ActivityMenuSection] = []
         if let playing {
@@ -159,6 +164,9 @@ struct ActivityMenuSection: Equatable, Sendable {
         }
         if let install {
             sections.append(ActivityMenuSection(kind: .installing, lines: [Line(title: install.title, detail: "\(Int(install.fraction * 100))%")]))
+        }
+        if let store {
+            sections.append(ActivityMenuSection(kind: .store, lines: [Line(title: store.title, detail: Self.detail(store))]))
         }
         if !downloads.isEmpty {
             sections.append(ActivityMenuSection(kind: .downloads, lines: downloads.map {
@@ -169,6 +177,10 @@ struct ActivityMenuSection: Equatable, Sendable {
             sections.append(ActivityMenuSection(kind: .updates, lines: updates.map { Line(title: $0.title, detail: $0.kind) }))
         }
         return sections
+    }
+
+    static func detail(_ activity: StoreActivity) -> String {
+        String(localized: "\(activity.label), \(Int((activity.fraction * 100).rounded(.down)))%")
     }
 
     static func detail(_ download: DownloadActivity) -> String {

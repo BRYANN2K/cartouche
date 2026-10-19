@@ -1,5 +1,6 @@
-// The store screens: a store's page before it is connected, its row in
-// Settings > Accounts, and its download in the sidebar's activity slot.
+// The store screens: a store's page before it is connected and its row in
+// Settings > Accounts. A store's download shows in the shared activity slot
+// (ActivityViews.swift's StoreInstallCard).
 // Cartouche never draws a password field: the user signs in on the store's own
 // page, in the sign-in window (StoreSignInWindow.swift).
 
@@ -159,46 +160,3 @@ struct StoreAccountRow: View {
     }
 }
 
-// The sidebar's activity slot while a store game downloads
-struct StoreActivityRow: View {
-    let center: StoreCenter
-    let model: LibraryModel
-
-    var body: some View {
-        if let activity = center.activity {
-            HStack(spacing: 10) {
-                ZStack {
-                    Circle().stroke(.quaternary, lineWidth: 3)
-                    Circle().trim(from: 0, to: activity.fraction)
-                        .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                }
-                .frame(width: 22, height: 22)
-                .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(verbatim: "\(activity.label) \(Int((activity.fraction * 100).rounded()))%")
-                        .font(.caption).foregroundStyle(.secondary).monospacedDigit()
-                    Text(verbatim: activity.title).font(.callout.weight(.semibold)).lineLimit(1)
-                }
-                Spacer(minLength: 4)
-                Button {
-                    if let job = center.jobs.first(where: { $0.gameID == activity.gameID && $0.phase == .running }) { center.stop(job) }
-                } label: {
-                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                }
-                .buttonStyle(.borderless)
-                .help(Text("Stop"))
-                .accessibilityLabel(Text("Stop"))
-            }
-            .padding(10)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .padding(.horizontal, 10)
-            .padding(.bottom, 10)
-            .contentShape(Rectangle())
-            .onTapGesture { model.select(activity.gameID) }
-            .accessibilityElement(children: .contain)
-            .accessibilityLabel(Text("\(activity.title), \(activity.label)"))
-            .accessibilityValue(Text(verbatim: "\(Int((activity.fraction * 100).rounded()))%"))
-        }
-    }
-}

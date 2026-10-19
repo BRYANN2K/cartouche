@@ -1038,6 +1038,22 @@
         }
       }
     },
+    "%@, %lld%%" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, %lld%%"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@，%lld%%"
+          }
+        }
+      }
+    },
     "%@, checksum match" : {
       "localizations" : {
         "it" : {
@@ -1982,6 +1998,22 @@
         }
       }
     },
+    "A copy needs %@ on disk and keeps working after the original is removed. Use in Place reads it where it is." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una copia richiede %@ su disco e continua a funzionare anche se l'originale viene rimosso. Usa sul posto la legge dove si trova."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拷贝需要 %@ 磁盘空间，即使移除原件也能继续使用。就地使用则直接读取其当前位置。"
+          }
+        }
+      }
+    },
     "A damaged installer file" : {
       "localizations" : {
         "it" : {
@@ -2714,22 +2746,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "高级"
-          }
-        }
-      }
-    },
-    "After a game, Cartouche sends your Mac's chip, memory and macOS version, the setup, the game's settings and the FPS. No account, path or Steam ID." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dopo una partita, Cartouche invia chip, memoria e versione di macOS del tuo Mac, la configurazione, le impostazioni del gioco e gli FPS. Nessun account, percorso o Steam ID."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "游戏结束后，Cartouche 会发送你的 Mac 的芯片、内存和 macOS 版本、配置、游戏设置和 FPS。不包含账户、路径或 Steam ID。"
           }
         }
       }
@@ -4039,22 +4055,6 @@
         }
       }
     },
-    "Cartouche can't send reports to MacGamingDB yet, so your frame rates stay on this Mac." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cartouche non può ancora inviare segnalazioni a MacGamingDB, quindi i tuoi frame rate restano su questo Mac."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cartouche 目前还无法向 MacGamingDB 发送报告，因此你的帧率只保存在这台 Mac 上。"
-          }
-        }
-      }
-    },
     "Cartouche can't use the keychain. Sign in again." : {
       "localizations" : {
         "it" : {
@@ -4179,6 +4179,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cartouche 无法连接 %@ 服务器。请检查网络连接，然后重试。"
+          }
+        }
+      }
+    },
+    "Cartouche couldn’t apply this setup: %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche non è riuscito ad applicare questa configurazione: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 无法应用此设置：%@"
           }
         }
       }
@@ -4663,6 +4679,22 @@
         }
       }
     },
+    "Check for updates and compatibility data daily" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerca ogni giorno aggiornamenti e dati di compatibilità"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每天检查更新和兼容性数据"
+          }
+        }
+      }
+    },
     "Check installed files" : {
       "localizations" : {
         "it" : {
@@ -4963,6 +4995,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请选择启动游戏的文件。"
+          }
+        }
+      }
+    },
+    "Choose your Game Porting Toolkit folder or app." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli la cartella o l'app del Game Porting Toolkit."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择 Game Porting Toolkit 文件夹或 App。"
           }
         }
       }
@@ -6790,6 +6838,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "详细信息"
+          }
+        }
+      }
+    },
+    "Detected automatically" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rilevato automaticamente"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动检测"
           }
         }
       }
@@ -9866,6 +9930,22 @@
         }
       }
     },
+    "Looks once a day for a new version and new compatibility data. Check for Updates in the Cartouche menu still works." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controlla una volta al giorno la presenza di una nuova versione e di nuovi dati di compatibilità. «Controlla aggiornamenti» nel menu Cartouche continua a funzionare."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每天检查一次新版本和新的兼容性数据。Cartouche 菜单中的“检查更新”仍可使用。"
+          }
+        }
+      }
+    },
     "Low" : {
       "localizations" : {
         "it" : {
@@ -10486,6 +10566,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "尚未测量 FPS"
+          }
+        }
+      }
+    },
+    "No Game Porting Toolkit folder was found on this Mac." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessuna cartella del Game Porting Toolkit trovata su questo Mac."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此 Mac 上未找到 Game Porting Toolkit 文件夹。"
           }
         }
       }
@@ -14288,6 +14384,22 @@
         }
       }
     },
+    "Set Up Game Porting Toolkit %@?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurare Game Porting Toolkit %@?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设置 Game Porting Toolkit %@？"
+          }
+        }
+      }
+    },
     "Set up a runner in Settings > Compatibility to play %@." : {
       "localizations" : {
         "it" : {
@@ -14412,22 +14524,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "安装与设置"
-          }
-        }
-      }
-    },
-    "Share my frame rates with MacGamingDB" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Condividi i miei frame rate con MacGamingDB"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "与 MacGamingDB 分享我的帧率"
           }
         }
       }
@@ -15939,6 +16035,22 @@
         }
       }
     },
+    "Store" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Store"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "商店"
+          }
+        }
+      }
+    },
     "Store sign-ins for Epic, GOG, Amazon and RetroAchievements" : {
       "localizations" : {
         "it" : {
@@ -16419,6 +16531,22 @@
         }
       }
     },
+    "The chosen folder does not contain a Game Porting Toolkit." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La cartella scelta non contiene un Game Porting Toolkit."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所选文件夹中不包含 Game Porting Toolkit。"
+          }
+        }
+      }
+    },
     "The clone has no Wine loader at %@." : {
       "localizations" : {
         "it" : {
@@ -16559,6 +16687,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下载的文件已损坏。请重试。"
+          }
+        }
+      }
+    },
+    "The folder at %@ is gone." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La cartella in %@ non esiste più."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 处的文件夹已不存在。"
           }
         }
       }
@@ -16931,6 +17075,22 @@
         }
       }
     },
+    "This Mac" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo Mac"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这台 Mac"
+          }
+        }
+      }
+    },
     "This app includes newer files than those installed for Steam." : {
       "localizations" : {
         "it" : {
@@ -17055,6 +17215,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "这是 %@ 自己的页面。Cartouche 只保留它返回的登录令牌。"
+          }
+        }
+      }
+    },
+    "This prefix was updated by a newer Wine (%@). %@ is older and the game may not start." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo prefisso è stato aggiornato da un Wine più recente (%1$@). %2$@ è più vecchio e il gioco potrebbe non avviarsi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此游戏容器已由更新版本的 Wine（%1$@）更新。%2$@ 版本较旧，游戏可能无法启动。"
           }
         }
       }
@@ -17763,6 +17939,22 @@
         }
       }
     },
+    "Use in Place" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa sul posto"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "就地使用"
+          }
+        }
+      }
+    },
     "Use the Keychain" : {
       "localizations" : {
         "it" : {
@@ -17839,6 +18031,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "将此图片用作 %@ 的封面？"
+          }
+        }
+      }
+    },
+    "Used for performance estimates" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usato per le stime delle prestazioni"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用于性能预估"
           }
         }
       }
@@ -18415,6 +18623,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Windows 版本"
+          }
+        }
+      }
+    },
+    "Wine" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wine"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wine"
           }
         }
       }

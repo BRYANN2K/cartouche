@@ -2,7 +2,7 @@
 """Nightly upstream watch: opens one GitHub issue per upstream version that
 supported.json does not list yet.
 
-  GITHUB_TOKEN=... ./watch.py --repo BRYANN2K/NotProton [--dry-run]
+  GITHUB_TOKEN=... ./watch.py --repo BRYANN2K/cartouche [--dry-run]
 
 Issues carry the label "upstream" and a fixed title per version, for example
 "Upstream: Steam client 1792192922". An issue with that title, open or closed,
@@ -21,7 +21,7 @@ import urllib.request
 
 HERE = pathlib.Path(__file__).resolve().parent
 LABEL = "upstream"
-USER_AGENT = "Cartouche-upstream-watch (+https://github.com/BRYANN2K/NotProton)"
+USER_AGENT = "Cartouche-upstream-watch (+https://github.com/BRYANN2K/cartouche)"
 
 STEAM_MANIFESTS = {
     "stable": "https://client-update.steamstatic.com/steam_client_osx",

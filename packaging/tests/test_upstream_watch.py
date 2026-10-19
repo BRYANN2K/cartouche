@@ -68,7 +68,7 @@ class FakeIssues:
     def create(self, title, body):
         self.created.append((title, body))
         self.existing.add(title)
-        return f"https://github.com/BRYANN2K/NotProton/issues/{len(self.created)}"
+        return f"https://github.com/BRYANN2K/cartouche/issues/{len(self.created)}"
 
 
 def quiet(_):
@@ -164,7 +164,7 @@ class Tracker(unittest.TestCase):
             page = int(url.rsplit("page=", 1)[1])
             return [{"title": f"t{page}-{i}"} for i in range(100 if page == 1 else 3)]
 
-        titles = watch.GitHubIssues("BRYANN2K/NotProton", "tok", request).titles()
+        titles = watch.GitHubIssues("BRYANN2K/cartouche", "tok", request).titles()
         self.assertEqual(len(titles), 103)
         self.assertIn("state=all", calls[0][1])
         self.assertIn("labels=upstream", calls[0][1])
@@ -187,9 +187,9 @@ class Tracker(unittest.TestCase):
             sent.update(method=method, url=url, body=body)
             return {"html_url": "https://github.com/r/r/issues/7"}
 
-        url = watch.GitHubIssues("BRYANN2K/NotProton", "t", request).create("Upstream: DXMT 0.81", "b")
+        url = watch.GitHubIssues("BRYANN2K/cartouche", "t", request).create("Upstream: DXMT 0.81", "b")
         self.assertEqual(url, "https://github.com/r/r/issues/7")
-        self.assertEqual(sent["url"], "https://api.github.com/repos/BRYANN2K/NotProton/issues")
+        self.assertEqual(sent["url"], "https://api.github.com/repos/BRYANN2K/cartouche/issues")
         self.assertEqual(sent["body"]["labels"], ["upstream"])
 
 

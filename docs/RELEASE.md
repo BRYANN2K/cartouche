@@ -47,8 +47,12 @@ Steps:
 
 The EdDSA private key signs every archive, delta and the appcast. It was created in P0 and its public half is `SUPublicEDKey` in `app/Info.plist`.
 
-- Secret `SPARKLE_PRIVATE_KEY`: the content of the exported key file (one base64 line).
-- If it is lost, installed copies can no longer update. Users must download the next release by hand.
+- Secret `SPARKLE_PRIVATE_KEY`: the content of the exported key file (one base64 line). Kept as a repository secret, never committed; the `release` and `runner-manifest` workflows read it.
+- If it is lost, installed copies can no longer update and a remote runner manifest is no longer trusted. Users must download the next release by hand.
+
+### Runner manifest
+
+The `runner-manifest` workflow publishes the shipped `runners.json` on the `compat-data` release when it changes on `main`. It signs the file with `sign_update` and `SPARKLE_PRIVATE_KEY` — the same key as the appcast — and uploads the signature as `runners.json.sig` next to it. The app fetches both once a day and accepts the remote manifest only when the signature verifies against `SUPublicEDKey`; a manifest whose signature is missing or wrong is refused, and the bundled `runners.json` stays in use.
 
 ## Homebrew tap
 
@@ -86,7 +90,7 @@ The `release` workflow then:
 
 ### Checksum for install.sh
 
-`SHA256SUMS` holds one line, `<sha256>  Cartouche-<version>.zip`, in the format `shasum -a 256 -c` reads. Its name never changes, so `install.sh` (P18) can fetch `https://github.com/BRYANN2K/NotProton/releases/latest/download/SHA256SUMS`, take the archive name from it, download that archive from the same folder and run `shasum -a 256 -c SHA256SUMS` before installing.
+`SHA256SUMS` holds one line, `<sha256>  Cartouche-<version>.zip`, in the format `shasum -a 256 -c` reads. Its name never changes, so `install.sh` (P18) can fetch `https://github.com/BRYANN2K/cartouche/releases/latest/download/SHA256SUMS`, take the archive name from it, download that archive from the same folder and run `shasum -a 256 -c SHA256SUMS` before installing.
 
 If the run fails after the tag was pushed, fix the cause and run the workflow by hand (Actions > release > Run workflow) with the tag.
 

@@ -18,6 +18,8 @@ final class CompatibilityModel {
     @ObservationIgnored let macGamingDB: MacGamingDBClient
     @ObservationIgnored let choices: PrivacyChoices
     @ObservationIgnored var now: @Sendable () -> Date = { Date() }
+    // Settings > General's daily switch; tests drive it
+    @ObservationIgnored var dailyChecks: () -> Bool = { DailyChecks.enabled() }
     @ObservationIgnored var chip: String? = MacChip.current()
 
     init(
@@ -51,6 +53,8 @@ final class CompatibilityModel {
             return nil
         }
         if data == nil { load() }
+        // The daily switch keeps the cached copy in place and asks for nothing
+        guard dailyChecks() else { return .skipped }
         let outcome = await client.refresh(now: now(), schema: schema)
         switch outcome {
         case .updated(let fresh):

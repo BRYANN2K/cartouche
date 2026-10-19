@@ -202,27 +202,33 @@ struct AccountsSettingsView: View {
 struct CompatibilitySettingsView: View {
     let model: LibraryModel
     @Environment(\.openWindow) private var openWindow
+    // Free runners and the Game Porting Toolkit; absent in standalone test fixtures
+    @Environment(RunnersModel.self) private var runners: RunnersModel?
 
     var body: some View {
         Form {
-            SetupDefaultsSection(model: model)
-            BackendDownloadsSection(model: model)
-            Section("Runners") {
-                if model.runners.isEmpty {
-                    Text("No runner found on this Mac yet").foregroundStyle(.secondary)
-                }
-                ForEach(model.runners) { runner in
-                    LabeledContent {
-                        Text(Self.state(runner)).foregroundStyle(.secondary)
-                    } label: {
-                        Text(verbatim: "\(runner.kind.name) \(runner.displayVersion)")
-                        if let source = runner.source {
-                            Text(verbatim: source.path(percentEncoded: false)).foregroundStyle(.secondary)
+            ThisMacSection()
+            if let runners {
+                RunnersSection(model: runners)
+            } else {
+                Section("Runners") {
+                    if model.runners.isEmpty {
+                        Text("No runner found on this Mac yet").foregroundStyle(.secondary)
+                    }
+                    ForEach(model.runners) { runner in
+                        LabeledContent {
+                            Text(Self.state(runner)).foregroundStyle(.secondary)
+                        } label: {
+                            Text(verbatim: "\(runner.kind.name) \(runner.displayVersion)")
+                            if let source = runner.source {
+                                Text(verbatim: source.path(percentEncoded: false)).foregroundStyle(.secondary)
+                            }
                         }
                     }
                 }
             }
-            FreeRunnerSection()
+            BackendDownloadsSection(model: model)
+            SetupDefaultsSection(model: model)
             Section {
                 LabeledContent {
                     Button("Open Steam Play Setup") { openWindow(id: CartoucheApp.setupWindow) }
