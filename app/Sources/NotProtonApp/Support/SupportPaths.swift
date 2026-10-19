@@ -10,6 +10,7 @@ enum SupportPaths {
     static let dylibName = CARTOUCHE_DYLIB_NAME
     static let steamPrefix = CARTOUCHE_STEAM_PREFIX
     static let toolPrefix = CARTOUCHE_TOOL_PREFIX
+    static let fpsCounterName = CARTOUCHE_FPS_COUNTER_NAME
 
     static var home: URL {
         URL(filePath: NSHomeDirectory())
@@ -42,6 +43,9 @@ enum SupportPaths {
     static var overlayShim: URL { support.appending(path: "overlay-shim.dylib") }
     static var iconmaker: URL { support.appending(path: "iconmaker") }
     static var appinfo: URL { support.appending(path: "appinfo") }
+    // The frame counter the run script injects, and the sessions it records (P8)
+    static var fpsCounter: URL { support.appending(path: fpsCounterName) }
+    static var performance: URL { support.appending(path: CARTOUCHE_PERFORMANCE_DIR) }
 
     static var packageDownloads: URL {
         home.appending(path: "Library/Caches/\(supportDirName)/valve-packages")

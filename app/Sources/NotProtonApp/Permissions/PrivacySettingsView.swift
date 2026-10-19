@@ -31,12 +31,21 @@ struct PrivacySettingsView: View {
 
     let center: PermissionCenter
     @Bindable var choices: PrivacyChoices = PrivacyChoices()
+    var sharing = PerformanceSharing()
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 Toggle("Fetch Mac reports from MacGamingDB", isOn: $choices.fetchMacReports)
                 Text("When you open a game, Cartouche asks MacGamingDB for its Mac reports. MacGamingDB sees which game, but no account or Mac identifier.")
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                // Frame rates stay on this Mac unless this is on (P8)
+                Toggle("Share my frame rates with MacGamingDB", isOn: $choices.sharePerformance)
+                    .disabled(!sharing.isAvailable)
+                Text(sharing.isAvailable
+                     ? "After a game, Cartouche sends your Mac's chip, memory and macOS version, the setup, the game's settings and the FPS. No account, path or Steam ID."
+                     : "Cartouche can't send reports to MacGamingDB yet, so your frame rates stay on this Mac.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 Divider()

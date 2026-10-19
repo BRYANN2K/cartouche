@@ -22,6 +22,7 @@ struct CartoucheApp: App {
     @State private var gameFolders = GameFolders()
     @State private var relaunch = RelaunchService()
     @State private var onboarding: OnboardingModel?
+    @State private var performance = PerformanceModel()
     @AppStorage(GeneralSettings.showInMenuBarKey) private var showInMenuBar = true
     @AppStorage(AfterLaunch.key) private var afterLaunch = AfterLaunch.hide
     private let updater = AppUpdater()
@@ -62,10 +63,15 @@ struct CartoucheApp: App {
                                             set: { onboarding?.isPresented = $0 })) {
                     if let onboarding { OnboardingView(model: onboarding).interactiveDismissDisabled() }
                 }
+                .environment(performance)
                 .task { await start() }
                 // Onboarding may have added consoles and game folders
                 .onChange(of: onboarding?.isPresented ?? false) { _, shown in
                     if !shown { Task { await consoleCenter.reload(); await consoleCenter.scanFolders() } }
+                }
+                // Back from a game: its session is read in (P8)
+                .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+                    Task { await performance.refresh() }
                 }
         }
         .defaultSize(width: 1280, height: 820)

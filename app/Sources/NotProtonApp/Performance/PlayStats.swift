@@ -1,0 +1,155 @@
+// Frame rates from the counter's samples (P8): which seconds count, a session's
+// average and 1% low, and a game's numbers per setup, weighted by play time.
+
+import Foundation
+
+// One second the frame counter wrote
+struct FrameSample: Equatable, Sendable {
+    let time: Int
+    let frames: Int
+    let frontmost: Bool
+    var width = 0
+    var height = 0
+
+    // "# cartouche-fps 1 ..." starts a file; each other line is "<time> <frames> <frontmost> <width> <height>"
+    static func parse(_ text: String) -> [FrameSample] {
+        text.split(separator: "\n").compactMap { line in
+            guard !line.hasPrefix("#") else { return nil }
+            let fields = line.split(separator: " ").map { Int($0) }
+            guard fields.count == 5, let time = fields[0], let frames = fields[1], let front = fields[2],
+                  let width = fields[3], let height = fields[4], frames >= 0 else { return nil }
+            return FrameSample(time: time, frames: frames, frontmost: front != 0, width: width, height: height)
+        }
+    }
+}
+
+// The setup a session ran with. The runner's name is kept beside it, not in it, so a
+// renamed tool is still the same setup.
+struct PlaySetup: Hashable, Sendable {
+    var runnerID: String
+    var translation: GameSetupChoice.Translation
+    var backend: GraphicsBackend?
+}
+
+enum PlayStats {
+
+    // Shaders compile and assets stream in while a game warms up
+    static let warmUpSeconds = 30
+    // A second with fewer frames is a loading screen or a stall, not play
+    static let loadingBelow = 5
+
+    // A second counts after the warm-up, from the first presented frame, when the game is
+    // frontmost and not loading
+    static func counted(_ samples: [FrameSample]) -> [Bool] {
+        guard let start = samples.first?.time else { return [] }
+        return samples.map { $0.time - start >= warmUpSeconds && $0.frontmost && $0.frames >= loadingBelow }
+    }
+
+    struct Measured: Equatable, Sendable {
+        var seconds = 0
+        var frames = 0
+        // Counted seconds per frame count, enough to merge sessions and find the 1% low
+        var histogram: [Int: Int] = [:]
+        var width: Int?
+        var height: Int?
+
+        var average: Double? { seconds > 0 ? Double(frames) / Double(seconds) : nil }
+        var low1: Double? { PlayStats.low1(histogram) }
+    }
+
+    static func measure(_ samples: [FrameSample]) -> Measured {
+        var out = Measured()
+        var sizes: [Int: Int] = [:]
+        for (sample, counts) in zip(samples, counted(samples)) where counts {
+            out.seconds += 1
+            out.frames += sample.frames
+            out.histogram[sample.frames, default: 0] += 1
+            if sample.width > 0, sample.height > 0 { sizes[sample.width << 20 | sample.height, default: 0] += 1 }
+        }
+        // The size played at most
+        if let size = sizes.max(by: { ($0.value, $1.key) < ($1.value, $0.key) })?.key {
+            out.width = size >> 20
+            out.height = size & 0xFFFFF
+        }
+        return out
+    }
+
+    // The mean of the slowest 1% of counted seconds, at least one second
+    static func low1(_ histogram: [Int: Int]) -> Double? {
+        let total = histogram.values.reduce(0, +)
+        guard total > 0 else { return nil }
+        let wanted = max(1, total / 100)
+        var taken = 0, sum = 0
+        for (fps, count) in histogram.sorted(by: { $0.key < $1.key }) {
+            let take = min(count, wanted - taken)
+            taken += take
+            sum += take * fps
+            if taken == wanted { break }
+        }
+        return Double(sum) / Double(wanted)
+    }
+
+    // Each average counts for as long as it was measured, so a short test does not
+    // weigh as much as hours of play
+    static func weightedAverage(_ parts: [(average: Double, seconds: Int)]) -> Double? {
+        let seconds = parts.reduce(0) { $0 + $1.seconds }
+        guard seconds > 0 else { return nil }
+        return parts.reduce(0) { $0 + $1.average * Double($1.seconds) } / Double(seconds)
+    }
+
+    static func merge(_ histograms: [[Int: Int]]) -> [Int: Int] {
+        histograms.reduce(into: [:]) { out, h in out.merge(h, uniquingKeysWith: +) }
+    }
+}
+
+// One setup's numbers for a game
+struct SetupPlay: Equatable, Sendable, Identifiable {
+    let setup: PlaySetup
+    // The runner's name as Steam listed it, from the latest session
+    let runnerName: String
+    let average: Double?
+    let low1: Double?
+    let measuredSeconds: Int
+    let played: TimeInterval
+    let sessions: Int
+
+    var id: PlaySetup { setup }
+}
+
+// A game's numbers over every session
+struct GamePlay: Equatable, Sendable {
+    let average: Double?
+    let low1: Double?
+    let played: TimeInterval
+    // Best first, then the most played
+    let setups: [SetupPlay]
+    // The latest session's runner would not take the frame counter
+    let measurementRefused: Bool
+
+    var measuredSetups: [SetupPlay] { setups.filter { $0.average != nil } }
+    var best: SetupPlay? { measuredSetups.first }
+
+    static func summarize(_ sessions: [StoredSession]) -> GamePlay? {
+        guard let latest = sessions.max(by: { $0.started < $1.started }) else { return nil }
+        let groups = Dictionary(grouping: sessions, by: \.setup)
+        let setups = groups.map { setup, runs in
+            let measured = runs.filter { $0.measured.seconds > 0 }
+            return SetupPlay(
+                setup: setup,
+                runnerName: runs.max(by: { $0.started < $1.started })!.runnerName,
+                average: PlayStats.weightedAverage(measured.compactMap { s in s.measured.average.map { ($0, s.measured.seconds) } }),
+                low1: PlayStats.low1(PlayStats.merge(measured.map(\.measured.histogram))),
+                measuredSeconds: measured.reduce(0) { $0 + $1.measured.seconds },
+                played: runs.reduce(0) { $0 + $1.duration },
+                sessions: runs.count)
+        }
+        .sorted { ($0.average ?? -1, $0.played, $0.runnerName) > ($1.average ?? -1, $1.played, $1.runnerName) }
+        let measured = sessions.filter { $0.measured.seconds > 0 }
+        return GamePlay(
+            average: PlayStats.weightedAverage(measured.compactMap { s in s.measured.average.map { ($0, s.measured.seconds) } }),
+            low1: PlayStats.low1(PlayStats.merge(measured.map(\.measured.histogram))),
+            played: sessions.reduce(0) { $0 + $1.duration },
+            setups: setups,
+            measurementRefused: latest.measurement == .refused)
+    }
+}

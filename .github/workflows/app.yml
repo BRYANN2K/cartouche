@@ -129,6 +129,7 @@ jobs:
           make -s spawn-env
           make -s activatecheck
           make -s compatcheck
+          make -s fps-counter-tests
           make -s compatsvc-check
           make -s shortcutcheck
           make -s launch-shell

@@ -7,12 +7,14 @@ struct GamePanel: View {
     let actions: GameActionRunner
 
     @State private var showingDetails = false
+    @State private var showingCompare = false
+    @Environment(PerformanceModel.self) private var performance: PerformanceModel?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(ConsoleCenter.self) private var consoles: ConsoleCenter?
 
     private var content: GamePanelContent {
         GamePanelContent(game: game, compat: compat.panel(appID: game.steamAppID ?? -1, method: .wine),
-                         setup: model.setup(for: game.id))
+                         setup: model.setup(for: game.id), play: performance?.play(appID: game.steamAppID))
     }
 
     var body: some View {
@@ -52,9 +54,13 @@ struct GamePanel: View {
         .task(id: game.id) {
             // Asks MacGamingDB for this game only, when its panel opens
             if let appID = game.steamAppID { await compat.openGame(appID: appID) }
+            await performance?.refresh()
         }
         .sheet(isPresented: $showingDetails) {
             GameDetailsSheet(content: content, compat: compat, model: model)
+        }
+        .sheet(isPresented: $showingCompare) {
+            if let play = content.play { CompareSetupsSheet(game: game, play: play, model: model) }
         }
     }
 
@@ -84,7 +90,11 @@ struct GamePanel: View {
                 .accessibilityLabel(Text("More"))
             }
         case .yourPlay:
-            EmptyView()
+            if let play = content.play {
+                group(section.title) {
+                    YourPlayRows(play: play) { showingCompare = true }
+                }
+            }
         case .expected:
             group(section.title) {
                 let (estimate, line) = GamePanelContent.estimate(content.compat.estimate, macReportsOn: content.compat.macReportsOn)

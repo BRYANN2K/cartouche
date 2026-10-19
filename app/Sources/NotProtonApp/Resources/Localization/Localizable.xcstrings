@@ -1720,6 +1720,22 @@
         }
       }
     },
+    "1% low" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minimo 1%"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1% 低帧"
+          }
+        }
+      }
+    },
     "A Steam client update may break Cartouche." : {
       "localizations" : {
         "it" : {
@@ -2404,6 +2420,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "高级"
+          }
+        }
+      }
+    },
+    "After a game, Cartouche sends your Mac's chip, memory and macOS version, the setup, the game's settings and the FPS. No account, path or Steam ID." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dopo una partita, Cartouche invia chip, memoria e versione di macOS del tuo Mac, la configurazione, le impostazioni del gioco e gli FPS. Nessun account, percorso o Steam ID."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "游戏结束后，Cartouche 会发送你的 Mac 的芯片、内存和 macOS 版本、配置、游戏设置和 FPS。不包含账户、路径或 Steam ID。"
           }
         }
       }
@@ -3118,6 +3150,38 @@
         }
       }
     },
+    "Best" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Migliore"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最佳"
+          }
+        }
+      }
+    },
+    "Best with %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Migliore con %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最佳：%@"
+          }
+        }
+      }
+    },
     "Betas get new features first and may have more bugs. Turning this off keeps the beta until the next release." : {
       "localizations" : {
         "it" : {
@@ -3501,6 +3565,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cartouche 无法读取此磁盘。请在系统设置中允许“可移除宗卷”。"
+          }
+        }
+      }
+    },
+    "Cartouche can't send reports to MacGamingDB yet, so your frame rates stay on this Mac." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche non può ancora inviare segnalazioni a MacGamingDB, quindi i tuoi frame rate restano su questo Mac."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 目前还无法向 MacGamingDB 发送报告，因此你的帧率只保存在这台 Mac 上。"
           }
         }
       }
@@ -4481,6 +4561,38 @@
         }
       }
     },
+    "Compare %lld Setups" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confronta %lld configurazioni"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "比较 %lld 种配置"
+          }
+        }
+      }
+    },
+    "Compare Setups" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confronta configurazioni"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "比较配置"
+          }
+        }
+      }
+    },
     "Compatibility" : {
       "localizations" : {
         "it" : {
@@ -5312,6 +5424,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已损坏"
+          }
+        }
+      }
+    },
+    "Default Graphics" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grafica predefinita"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "默认图形"
           }
         }
       }
@@ -6276,6 +6404,22 @@
         }
       }
     },
+    "FPS can't be measured with this runner" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile misurare gli FPS con questo runner"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法用此运行器测量 FPS"
+          }
+        }
+      }
+    },
     "Failed" : {
       "localizations" : {
         "it" : {
@@ -7152,6 +7296,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "如果 Cartouche 安装在那里，它将保持安装状态。仍要继续吗？"
+          }
+        }
+      }
+    },
+    "In Use" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In uso"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用中"
           }
         }
       }
@@ -8640,6 +8800,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "暂无备份"
+          }
+        }
+      }
+    },
+    "No FPS measured yet" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun FPS misurato finora"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未测量 FPS"
           }
         }
       }
@@ -11930,6 +12106,22 @@
         }
       }
     },
+    "Share my frame rates with MacGamingDB" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Condividi i miei frame rate con MacGamingDB"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "与 MacGamingDB 分享我的帧率"
+          }
+        }
+      }
+    },
     "Show" : {
       "localizations" : {
         "it" : {
@@ -14553,6 +14745,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用"
+          }
+        }
+      }
+    },
+    "Use This Setup" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa questa configurazione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用此配置"
           }
         }
       }

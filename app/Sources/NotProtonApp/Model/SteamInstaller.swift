@@ -108,7 +108,8 @@ enum SteamInstaller {
         let files = DeploymentContent.files(
             payload: payload, bridgePayload: bridgeLocated, app: app, bridge: bridge,
             signatures: signatures, fonts: fonts, overlayShim: overlayShim, iconmaker: iconmaker, appinfo: appinfo,
-            compatTools: compatTools, tools: tools, runners: runners)
+            compatTools: compatTools, tools: tools, runners: runners,
+            fpsCounter: support.appending(path: SupportPaths.fpsCounterName))
         let content = try DeploymentContent.inspect(files: files, bundled: build, installed: previousBuild,
                                                    legacyVersion: SteamBundle.deployedVersion(at: deployedVersion))
         guard content != .newerInstalled else {

@@ -12,6 +12,8 @@ enum InstallPayload {
         let appinfo: URL
         let run: URL
         let builtAt: Int64
+        // Optional: a payload staged before P8 has no frame counter, and games then run unmeasured
+        let fpsCounter: URL?
 
         let signatures: [URL]
         let fontsRoot: URL
@@ -40,6 +42,7 @@ enum InstallPayload {
         let iconmaker = root.appending(path: "iconmaker")
         let appinfo = root.appending(path: "appinfo")
         let run = root.appending(path: "run")
+        let fpsCounter = root.appending(path: SupportPaths.fpsCounterName)
         let stamp = try? String(contentsOf: root.appending(path: "build-time"), encoding: .utf8)
         let builtAt = stamp.flatMap { Int64($0.trimmingCharacters(in: .whitespacesAndNewlines)) }
 
@@ -80,7 +83,9 @@ enum InstallPayload {
 
         return Located(
             dylib: dylib, overlayShim: shim, iconmaker: iconmaker,
-            appinfo: appinfo, run: run, builtAt: builtAt, signatures: signatures,
+            appinfo: appinfo, run: run, builtAt: builtAt,
+            fpsCounter: files.fileExists(atPath: fpsCounter.path(percentEncoded: false)) ? fpsCounter : nil,
+            signatures: signatures,
             fontsRoot: fontsRoot, fonts: fonts
         )
     }

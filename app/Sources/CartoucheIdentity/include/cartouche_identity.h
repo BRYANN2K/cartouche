@@ -27,6 +27,10 @@
 #define CARTOUCHE_BACKENDS_DIR "backends"
 #define CARTOUCHE_SETUPS_DIR "setups"
 
+// The frame counter injected into Windows games, and the folder its sessions go to (P8)
+#define CARTOUCHE_FPS_COUNTER_NAME "fps-counter.dylib"
+#define CARTOUCHE_PERFORMANCE_DIR "performance"
+
 // The dylib injected into Steam.app
 #define CARTOUCHE_DYLIB_NAME "cartouche.dylib"
 

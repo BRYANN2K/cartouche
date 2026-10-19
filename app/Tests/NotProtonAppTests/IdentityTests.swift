@@ -179,7 +179,7 @@ struct IdentityTests {
     func noNotProtonSteamNames() throws {
         let extensions: Set<String> = ["c", "h", "m", "sh", "py", "swift", "js", "cpp"]
         var files = [Self.repoRoot.appending(path: "Makefile")]
-        for directory in ["dylib", "helpers", "bridge", "ntdll-patch", "steam-shim", "overlay-shim", "lsteamclient",
+        for directory in ["dylib", "helpers", "bridge", "ntdll-patch", "steam-shim", "overlay-shim", "fps-counter", "lsteamclient",
                           "app/Sources", "tools"] {
             let walk = try #require(FileManager.default.enumerator(
                 at: Self.repoRoot.appending(path: directory), includingPropertiesForKeys: nil))
@@ -205,7 +205,7 @@ struct IdentityTests {
         let folder = try Regex(#"Application Support/([A-Za-z0-9._-]+)"#)
         let extensions: Set<String> = ["c", "h", "m", "sh", "py", "swift", "js"]
         var files = [Self.repoRoot.appending(path: "Makefile")]
-        for directory in ["dylib", "helpers", "bridge", "ntdll-patch", "steam-shim", "overlay-shim", "lsteamclient",
+        for directory in ["dylib", "helpers", "bridge", "ntdll-patch", "steam-shim", "overlay-shim", "fps-counter", "lsteamclient",
                           "app/Sources"] {
             let walk = try #require(FileManager.default.enumerator(
                 at: Self.repoRoot.appending(path: directory), includingPropertiesForKeys: nil))

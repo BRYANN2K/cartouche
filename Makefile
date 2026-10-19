@@ -177,7 +177,8 @@ compatcheck: $(RUN_SCRIPT_H)
 	$(TEST_CC) -I$(GENERATED_DIR) \
 	  -o $(COMPATCHECK) dylib/tests/compatcheck.c && \
 	$(COMPATCHECK) && \
-	$(MAKE) -s backendcheck
+	$(MAKE) -s backendcheck && \
+	$(MAKE) -s fpscheck
 
 COMPATSVC_CHECK := $(OUT_DIR)/compatsvc-check
 
@@ -497,6 +498,43 @@ overlay-shim-bench:
 		printf '  %-8s ' "$$a"; $(OUT_DIR)/passbench.$$a || exit 1; \
 	done
 
+# Frame counter injected into Windows games (P8), both slices like the overlay shim
+FPS_COUNTER_SRC   := fps-counter/fps_counter.m
+FPS_COUNTER       := $(OUT_DIR)/$(call identity,CARTOUCHE_FPS_COUNTER_NAME)
+FPS_COUNTER_FLAGS := -mmacosx-version-min=$(MIN_VER) $(AVAIL) -dynamiclib -O2 -Wall -Wextra \
+                     -install_name @rpath/$(notdir $(FPS_COUNTER)) \
+                     -framework QuartzCore -framework Foundation
+FPS_COUNTER_TESTS := fps-counter/tests
+FPS_PRESENT_FLAGS := -mmacosx-version-min=$(MIN_VER) -O2 -Wall -Wextra \
+                     -framework Metal -framework QuartzCore -framework Foundation
+
+.PHONY: fps-counter fps-counter-tests fps-counter-bench fpscheck
+
+fps-counter: $(FPS_COUNTER)
+
+$(FPS_COUNTER): $(FPS_COUNTER_SRC)
+	@mkdir -p $(OUT_DIR)
+	$(CC) -arch arm64 $(FPS_COUNTER_FLAGS) -o $(OUT_DIR)/fps-counter.arm64.dylib $<
+	$(CC) -arch x86_64 $(FPS_COUNTER_FLAGS) -o $(OUT_DIR)/fps-counter.x86_64.dylib $<
+	lipo -create $(OUT_DIR)/fps-counter.arm64.dylib $(OUT_DIR)/fps-counter.x86_64.dylib -output $@
+	codesign -fs - $@
+	@lipo -info $@
+
+$(OUT_DIR)/fps-present.%: $(FPS_COUNTER_TESTS)/present.m
+	@mkdir -p $(OUT_DIR)
+	$(CC) -arch $* $(FPS_PRESENT_FLAGS) -o $@ $<
+
+fps-counter-tests: $(FPS_COUNTER) $(OUT_DIR)/fps-present.arm64 $(OUT_DIR)/fps-present.x86_64
+	@sh $(FPS_COUNTER_TESTS)/counter.sh $(FPS_COUNTER) $(OUT_DIR)
+
+fps-counter-bench: $(FPS_COUNTER) $(OUT_DIR)/fps-present.arm64 $(OUT_DIR)/fps-present.x86_64
+	@sh $(FPS_COUNTER_TESTS)/bench.sh $(FPS_COUNTER) $(OUT_DIR)
+
+# Run by compatcheck as well, which the CI runs
+fpscheck: $(FPS_COUNTER) $(OUT_DIR)/fps-present.arm64
+	@if [ ! -f dylib/tests/fpscheck.sh ]; then $(call SKIP,fpscheck,dylib/tests/fpscheck.sh); exit 0; fi; \
+	sh dylib/tests/fpscheck.sh dylib/feats/compat_run.sh $(FPS_COUNTER) $(OUT_DIR)
+
 ICONMAKER := $(OUT_DIR)/iconmaker
 
 iconmaker: $(ICONMAKER)
@@ -595,11 +633,12 @@ bridge:
 fonts:
 	fonts/build.sh
 
-app-payload: $(TARGET) $(OVERLAY_SHIM) $(ICONMAKER) $(APPINFO)
+app-payload: $(TARGET) $(OVERLAY_SHIM) $(FPS_COUNTER) $(ICONMAKER) $(APPINFO)
 	@mkdir -p "$(APP_PAYLOAD)/signatures/macos.arm64"
 	@mkdir -p "$(APP_PAYLOAD)/bridge"
 	cp -f $(TARGET) "$(APP_PAYLOAD)/$(DYLIB_NAME)"
 	cp -f $(OVERLAY_SHIM) "$(APP_PAYLOAD)/overlay-shim.dylib"
+	cp -f $(FPS_COUNTER) "$(APP_PAYLOAD)/$(notdir $(FPS_COUNTER))"
 	cp -f $(ICONMAKER) "$(APP_PAYLOAD)/iconmaker"
 	cp -f $(APPINFO) "$(APP_PAYLOAD)/appinfo"
 	cp -f dylib/feats/compat_run.sh "$(APP_PAYLOAD)/run"

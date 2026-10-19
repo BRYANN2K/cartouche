@@ -72,20 +72,25 @@ struct GamePanelContent {
     let layers: [LayerReport]
     let bestLayer: TranslationLayer?
     let setup: GameSetupChoice
+    // The user's own sessions, measured by the frame counter (P8)
+    let play: GamePlay?
 
-    init(game: Game, compat: CompatibilityPanel, setup: GameSetupChoice) {
+    init(game: Game, compat: CompatibilityPanel, setup: GameSetupChoice, play: GamePlay? = nil) {
         self.game = game
         self.compat = compat
         layers = GraphicsReports.layers(compat.mac)
         bestLayer = GraphicsReports.best(layers)
         self.setup = setup
+        self.play = play
     }
 
     var playLabel: String { game.installed ? String(localized: "Play") : String(localized: "Install") }
 
-    // Your Play needs measured sessions, which P8 records
+    // Your Play once the game has a session
     var sections: [Section] {
-        var out: [Section] = [.play, .expected]
+        var out: [Section] = [.play]
+        if play != nil { out.append(.yourPlay) }
+        out.append(.expected)
         if compat.antiCheat != nil { out.append(.antiCheat) }
         if !layers.isEmpty { out.append(.graphics) }
         out.append(.setup)

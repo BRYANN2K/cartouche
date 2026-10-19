@@ -146,7 +146,7 @@ enum DeploymentContent {
     static func files(
         payload: InstallPayload.Located, bridgePayload: BridgePayload.Located,
         app: URL, bridge: URL, signatures: URL, fonts: URL, overlayShim: URL, iconmaker: URL, appinfo: URL,
-        compatTools: URL, tools: [InstalledTool], runners: URL
+        compatTools: URL, tools: [InstalledTool], runners: URL, fpsCounter: URL? = nil
     ) -> [File] {
         var files = [
             File(source: payload.dylib, destination: SupportPaths.Steam.deployedDylib(inBundle: app),
@@ -155,6 +155,11 @@ enum DeploymentContent {
             File(source: payload.iconmaker, destination: iconmaker, name: "iconmaker", executable: true),
             File(source: payload.appinfo, destination: appinfo, name: "appinfo", executable: true),
         ]
+        // Games load it, not Steam, so it can be replaced while Steam runs
+        if let source = payload.fpsCounter, let fpsCounter {
+            files.append(File(source: source, destination: fpsCounter, name: SupportPaths.fpsCounterName,
+                              needsClientStopped: false))
+        }
         files += payload.signatures.map {
             File(source: $0, destination: signatures.appending(path: $0.lastPathComponent),
                  name: "signatures/\($0.lastPathComponent)")
@@ -196,7 +201,8 @@ enum DeploymentContent {
                               fonts: SupportPaths.fonts,
                               overlayShim: SupportPaths.overlayShim, iconmaker: SupportPaths.iconmaker,
                               appinfo: SupportPaths.appinfo, compatTools: SupportPaths.Steam.compatTools,
-                              tools: RunnerRegistry.tools(), runners: SupportPaths.runners)
+                              tools: RunnerRegistry.tools(), runners: SupportPaths.runners,
+                              fpsCounter: SupportPaths.fpsCounter)
             return try inspect(files: files, bundled: Build(version: version, builtAt: payload.builtAt),
                                installed: readBuild(at: record(beside: SupportPaths.deployedVersion)),
                                legacyVersion: SteamBundle.deployedVersion(), additionalDifferences: pinned.sorted())

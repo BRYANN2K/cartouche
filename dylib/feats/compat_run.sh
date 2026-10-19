@@ -1559,6 +1559,10 @@ if [ -n "\$STEAM_DYLD_INSERT_LIBRARIES" ]; then
     export DYLD_INSERT_LIBRARIES="\$STEAM_DYLD_INSERT_LIBRARIES"
   fi
 fi
+if [ -n "\$CARTOUCHE_FPS_COUNTER" ]; then
+  export DYLD_INSERT_LIBRARIES="\${DYLD_INSERT_LIBRARIES:+\$DYLD_INSERT_LIBRARIES:}\$CARTOUCHE_FPS_COUNTER"
+fi
+unset CARTOUCHE_FPS_COUNTER
 [ -n "\$CARTOUCHE_GAME_CWD" ] && cd "\$CARTOUCHE_GAME_CWD"
 "$WINELOADER" "\$@"
 exit \$?
@@ -1653,6 +1657,58 @@ terminate() {
 }
 trap terminate TERM INT HUP
 
+# Frame counter (P8): a folder per launch holds the setup and the counter's samples,
+# which the app reads after the game ends. dyld kills a process whose inserted library
+# fails to load, so each runner's loader is tried first; one that refuses it starts
+# the game without it.
+fps_counter="$np_support/fps-counter.dylib"
+fps_dir=""
+fps_insert=""
+fps_probe() {
+  key=$(stat -f '%d:%i:%m:%z' "$WINELOADER" "$fps_counter" 2>/dev/null | tr '\n' ' ')
+  cache="$np_support/performance/probe-$(printf '%s' "$np_build-${wine_unix##*/}" | tr -c 'A-Za-z0-9._-' _)"
+  if [ -f "$cache" ] && [ "$(sed -n 1p "$cache")" = "$key" ]; then
+    probed=$(sed -n 2p "$cache")
+    echo "fps: $probed for this runner, checked before"
+    [ "$probed" = ok ]
+    return
+  fi
+  marker="$fps_dir/probe"
+  probed=ok
+  DYLD_INSERT_LIBRARIES="$fps_counter" CARTOUCHE_FPS_PROBE="$marker" \
+    "$WINELOADER" --version > /dev/null 2>&1 8>&- 9>&- || probed=refused
+  [ -s "$marker" ] || probed=refused
+  rm -f "$marker"
+  printf '%s\n%s\n' "$key" "$probed" > "$cache" || true
+  echo "fps: $probed by $WINELOADER"
+  [ "$probed" = ok ]
+}
+prepare_fps() {
+  if [ "${CARTOUCHE_FPS:-1}" = 0 ]; then
+    echo "fps: off, CARTOUCHE_FPS=0 in the launch options"
+    return 0
+  fi
+  [ "$app_id" != 0 ] && [ -f "$fps_counter" ] || return 0
+  fps_dir="$np_support/performance/incoming/$app_id-$(date +%s)-$$"
+  mkdir -p "$fps_dir" || { fps_dir=""; return 0; }
+  {
+    echo "app_id=$app_id"
+    echo "runner=$np_build"
+    echo "flavor=${np_flavor:-rosetta}"
+    echo "backend=${CX_GRAPHICS_BACKEND:-$np_backend}"
+    echo "display=$np_display"
+    echo "started=$(date +%s)"
+    env | LC_ALL=C sed -nE 's/^((D3DM_|DXMT_|DXVK_|MTL_|ROSETTA_)[A-Z0-9_]*=.*)/setting=\1/p' | LC_ALL=C sort
+  } > "$fps_dir/session"
+  if fps_probe; then
+    fps_insert="$fps_counter"
+    echo "measure=on" >> "$fps_dir/session"
+  else
+    echo "measure=refused" >> "$fps_dir/session"
+  fi
+}
+prepare_fps >> "$log" 2>&1 || true
+
 game_cwd="$(pwd)"
 if [ -n "$STEAM_DYLD_INSERT_LIBRARIES" ]; then
   echo "=== overlay injected from $STEAM_DYLD_INSERT_LIBRARIES ===" >> "$log" 2>&1 || true
@@ -1681,6 +1737,9 @@ set -- \
   --env STEAM_COMPAT_APP_ID="$STEAM_COMPAT_APP_ID" \
   --env STEAM_DYLD_INSERT_LIBRARIES="$STEAM_DYLD_INSERT_LIBRARIES" \
   --env CARTOUCHE_GAME_CWD="$game_cwd" "$@"
+if [ -n "$fps_dir" ]; then
+  set -- --env CARTOUCHE_FPS_DIR="$fps_dir" --env CARTOUCHE_FPS_COUNTER="$fps_insert" "$@"
+fi
 lsregister="/System/Library/Frameworks/CoreServices.framework/Versions/A"
 lsregister="$lsregister/Frameworks/LaunchServices.framework/Support/lsregister"
 [ -x "$lsregister" ] && "$lsregister" -f "$loader_app" >> "$log" 2>&1 || true
@@ -1689,6 +1748,7 @@ open_pid=$!
 /usr/bin/caffeinate -d -i -w "$open_pid" >> "$log" 2>&1 &
 status=0
 wait "$open_pid" || status=$?
+[ -z "$fps_dir" ] || echo "ended=$(date +%s)" >> "$fps_dir/session" 2>/dev/null || true
 echo "=== game exited status=$status, killing wine prefix ===" >> "$log" 2>&1 || true
 kill_wine_prefix
 echo "=== wine prefix killed, session ending ===" >> "$log" 2>&1 || true
