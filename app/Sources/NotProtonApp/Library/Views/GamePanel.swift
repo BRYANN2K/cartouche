@@ -10,6 +10,7 @@ struct GamePanel: View {
     @State private var showingCompare = false
     @Environment(PerformanceModel.self) private var performance: PerformanceModel?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.activity) private var activity
     @Environment(ConsoleCenter.self) private var consoles: ConsoleCenter?
 
     private var content: GamePanelContent {
@@ -68,26 +69,31 @@ struct GamePanel: View {
     private func block(_ section: GamePanelContent.Section, _ content: GamePanelContent) -> some View {
         switch section {
         case .play:
-            HStack(spacing: 8) {
-                Button {
-                    actions.perform(game.installed ? .play : .install, on: game)
-                } label: {
-                    Label(content.playLabel, systemImage: game.installed ? "play.fill" : "arrow.down")
-                        .frame(maxWidth: .infinity)
+            // While Steam downloads the game, its progress and controls take Play's place (P7)
+            if let download = activity.download(for: game) {
+                DownloadBlock(download: download, center: activity)
+            } else {
+                HStack(spacing: 8) {
+                    Button {
+                        actions.perform(game.installed ? .play : .install, on: game)
+                    } label: {
+                        Label(content.playLabel, systemImage: game.installed ? "play.fill" : "arrow.down")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .controlSize(.large)
+                    .prominentButton()
+                    .disabled(!game.installed && model.isOffline)
+                    .help(!game.installed && model.isOffline ? Text("Connect to the internet to download") : Text(verbatim: ""))
+                    Menu {
+                        GameMenuContent(items: GameMenu.items(for: game, in: model)) { actions.perform($0, on: game) }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                    }
+                    .menuIndicator(.hidden)
+                    .fixedSize()
+                    .controlSize(.large)
+                    .accessibilityLabel(Text("More"))
                 }
-                .controlSize(.large)
-                .prominentButton()
-                .disabled(!game.installed && model.isOffline)
-                .help(!game.installed && model.isOffline ? Text("Connect to the internet to download") : Text(verbatim: ""))
-                Menu {
-                    GameMenuContent(items: GameMenu.items(for: game, in: model)) { actions.perform($0, on: game) }
-                } label: {
-                    Image(systemName: "ellipsis")
-                }
-                .menuIndicator(.hidden)
-                .fixedSize()
-                .controlSize(.large)
-                .accessibilityLabel(Text("More"))
             }
         case .yourPlay:
             if let play = content.play {

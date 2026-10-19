@@ -222,9 +222,16 @@ private struct InstallingStep: View {
         if let job = model.job {
             Text("Installing \(job.title)").font(.title2.bold())
             HStack(alignment: .top, spacing: 18) {
-                // The cover colors in as the files unpack.
+                // The cover colors in from the bottom as the files unpack (P7's reveal).
                 InstallCover(appID: job.request.appID, name: job.title)
                     .saturation(job.phase == .installing || job.phase == .redistributables ? job.progress.fraction : 1)
+                    .overlay {
+                        if let appID = job.request.appID, job.phase == .installing || job.phase == .redistributables {
+                            RevealCover(game: .steam(appID, name: job.title, installed: false),
+                                        progress: CoverReveal.Progress(fraction: job.progress.fraction))
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+                    }
                     .frame(width: 120, height: 180)
                 VStack(alignment: .leading, spacing: 10) {
                     switch job.phase {

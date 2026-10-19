@@ -41,9 +41,6 @@ struct LibrarySidebar: View {
             }
         }
         .listStyle(.sidebar)
-        .safeAreaInset(edge: .bottom) {
-            if let consoles, consoles.playing != nil { ActivitySlot(center: consoles, model: model) }
-        }
         .navigationSplitViewColumnWidth(min: 190, ideal: 220, max: 280)
     }
 
@@ -62,11 +59,13 @@ struct LibraryWindow: View {
 
     @FocusState private var searchFocused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.activity) private var activity
     @Environment(ConsoleCenter.self) private var consoles: ConsoleCenter?
 
     var body: some View {
         NavigationSplitView {
             LibrarySidebar(model: model)
+                .activitySlot(activity, library: model)
         } detail: {
             detail
                 .inspector(isPresented: Binding(

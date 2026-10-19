@@ -50,6 +50,11 @@ final class PermissionCenter {
         }
     }
 
+    // One permission, for a feature about to offer it
+    func refresh(_ permission: Permission) async {
+        states[permission] = await read(permission, deep: false)
+    }
+
     // Back from System Settings: check again what the user went there to change
     func applicationDidBecomeActive() async {
         for permission in Permission.allCases {

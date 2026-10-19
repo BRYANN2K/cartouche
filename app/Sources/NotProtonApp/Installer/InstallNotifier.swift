@@ -1,53 +1,54 @@
 // "<Game> is installed" with an Open button, when the install finishes while
-// the sheet is closed. Posts only if notifications are already allowed: the
-// prompt itself comes from NotificationOffer, after Cartouche's explanation.
+// the sheet is closed, and "<Game> could not be installed" when it fails. Posts
+// only if notifications are already allowed: the prompt itself comes from
+// NotificationOffer, after Cartouche's explanation.
 
 import Foundation
-import UserNotifications
 
 @MainActor
 protocol InstallNotifying: AnyObject {
     func installed(name: String, job: UUID)
+    func failed(name: String, job: UUID)
+}
+
+extension InstallNotifying {
+    func failed(name: String, job: UUID) {}
 }
 
 @MainActor
-final class UserInstallNotifier: NSObject, InstallNotifying, @preconcurrency UNUserNotificationCenterDelegate {
+final class UserInstallNotifier: InstallNotifying {
 
     static let category = "install-finished"
+    static let failedCategory = "install-failed"
     static let openAction = "open"
 
     // Called with the job's ID when the user clicks Open.
     var onOpen: (UUID) -> Void = { _ in }
 
-    // A command-line or test build has no bundle, and UNUserNotificationCenter needs one.
-    private var center: UNUserNotificationCenter? {
-        Bundle.main.bundleIdentifier == nil ? nil : UNUserNotificationCenter.current()
+    let poster: any NotificationPosting
+
+    init(poster: (any NotificationPosting)? = nil, router: NotificationRouter? = nil) {
+        let router = router ?? .shared
+        self.poster = poster ?? router
+        for category in [Self.category, Self.failedCategory] {
+            router.handle(category: category) { [weak self] _, info in
+                if let id = info["job"].flatMap(UUID.init(uuidString:)) { self?.onOpen(id) }
+            }
+        }
     }
 
     func installed(name: String, job: UUID) {
-        guard let center else { return }
-        center.delegate = self
-        let open = UNNotificationAction(identifier: Self.openAction, title: String(localized: "Open"), options: [.foreground])
-        center.setNotificationCategories([UNNotificationCategory(identifier: Self.category, actions: [open], intentIdentifiers: [])])
-        let content = UNMutableNotificationContent()
-        content.title = String(localized: "\(name) is installed")
-        content.body = String(localized: "Choose which file starts the game.")
-        content.categoryIdentifier = Self.category
-        content.userInfo = ["job": job.uuidString]
-        let request = UNNotificationRequest(identifier: job.uuidString, content: content, trigger: nil)
-        Task {
-            let status = await center.notificationSettings().authorizationStatus
-            guard status == .authorized || status == .provisional else { return }
-            try? await center.add(request)
-        }
+        poster.post(NotificationSpec(
+            identifier: job.uuidString, title: String(localized: "\(name) is installed"),
+            body: String(localized: "Choose which file starts the game."), category: Self.category,
+            action: Self.openAction, actionTitle: String(localized: "Open"), userInfo: ["job": job.uuidString]))
     }
 
-    func userNotificationCenter(
-        _ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler done: @escaping () -> Void
-    ) {
-        if let id = (response.notification.request.content.userInfo["job"] as? String).flatMap(UUID.init(uuidString:)) {
-            onOpen(id)
-        }
-        done()
+    // Open shows the sheet on the failed install, with its retries
+    func failed(name: String, job: UUID) {
+        poster.post(NotificationSpec(
+            identifier: "failed-\(job.uuidString)", title: String(localized: "\(name) could not be installed"),
+            body: String(localized: "Open Cartouche to see why and try again."), category: Self.failedCategory,
+            action: Self.openAction, actionTitle: String(localized: "Open"), userInfo: ["job": job.uuidString]))
     }
 }

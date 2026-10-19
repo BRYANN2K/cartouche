@@ -34,6 +34,10 @@ int main(int argc, char **argv) {
         fputs(NP_LAUNCH_MIGRATION, stdout);
         return 0;
     }
+    if (argc == 2 && strcmp(argv[1], "downloads") == 0) {
+        fputs(NP_DOWNLOAD_COMMANDS, stdout);
+        return 0;
+    }
     if (argc == 2 && strcmp(argv[1], "compat-hint") == 0) {
         fputs(NP_COMPAT_HINT, stdout);
         return 0;
@@ -42,7 +46,7 @@ int main(int argc, char **argv) {
         fputs(NP_IMAGE_FILES_LABEL, stdout);
         return 0;
     }
-    fputs("usage: emit component|statement [fallback [fex-tool...]]|migration|compat-hint|"
+    fputs("usage: emit component|statement [fallback [fex-tool...]]|migration|downloads|compat-hint|"
           "image-files-label\n", stderr);
     return 2;
 }

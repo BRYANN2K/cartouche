@@ -9,8 +9,13 @@ import Testing
 @MainActor
 struct ActivityQuitTests {
 
+    // The sidebar with P7's activity slot following this scene's console center
     private func sidebar(_ scene: ConsoleScene) -> some View {
-        LibrarySidebar(model: scene.library).environment(scene.center).environment(\.covers, scene.covers)
+        let activity = ActivityCenter(installs: InstallCenter(notifier: RecordingNotifier()), control: RecordingControl(),
+                                      notifier: RecordingActivityNotifier())
+        activity.follow(scene.center)
+        return LibrarySidebar(model: scene.library).activitySlot(activity, library: scene.library)
+            .environment(scene.center).environment(\.covers, scene.covers)
             .frame(width: 280, height: 560)
     }
 

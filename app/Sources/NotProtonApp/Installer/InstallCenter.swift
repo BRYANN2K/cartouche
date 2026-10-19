@@ -129,6 +129,10 @@ final class InstallCenter {
             if let flow = permissionFlow { NotificationOffer.offer(after: .installFinished, flow: flow) }
             if !isSheetPresented || sheet.job !== job { notifier.installed(name: job.title, job: job.id) }
         }
+        if job.phase == .failed {
+            if let flow = permissionFlow { NotificationOffer.offer(after: .installFinished, flow: flow) }
+            if !isSheetPresented || sheet.job !== job { notifier.failed(name: job.title, job: job.id) }
+        }
         pump()
     }
 }

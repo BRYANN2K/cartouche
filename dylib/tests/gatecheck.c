@@ -178,6 +178,26 @@ static void check_paths(void) {
     if (np_webpatch_should_patch(NULL))
         wrong("should_patch(NULL) answered yes");
     printf("%zu chunk paths checked\n", n + 1);
+
+    // Only this one path is served from the app's command file
+    static const struct { const char *path; int want; } commands[] = {
+        { "/Steam.AppBundle/Steam/Contents/MacOS/steamui/cartouche/steam-downloads.json", 1 },
+        { "steamui/cartouche/steam-downloads.json",                                       1 },
+        { "/Steam.AppBundle/Steam/Contents/MacOS/steamui/steam-downloads.json",           0 },
+        { "/Steam.AppBundle/Steam/Contents/MacOS/steamui/cartouche/steam-downloads.json.x", 0 },
+        { "/Steam.AppBundle/Steam/Contents/MacOS/steamui/cartouche/../steam-downloads.json", 0 },
+        { "/Steam.AppBundle/Steam/Contents/MacOS/steamui/cartouche/other.json",           0 },
+        { "/Users/me/cartouche/steam-downloads.json",                                     0 },
+    };
+    size_t m = sizeof(commands) / sizeof(commands[0]);
+    for (size_t i = 0; i < m; i++)
+        if (!np_webpatch_is_download_commands(commands[i].path) != !commands[i].want)
+            wrong("is_download_commands(%s), wanted %d", commands[i].path, commands[i].want);
+    if (np_webpatch_is_download_commands(NULL))
+        wrong("is_download_commands(NULL) answered yes");
+    if (np_webpatch_should_patch(commands[0].path))
+        wrong("the command file is patched as a chunk");
+    printf("%zu command file paths checked\n", m + 1);
 }
 
 static void selfcheck(void) {

@@ -153,9 +153,22 @@ static int open_patched(const char *path) {
 
 static const int WRITE_INTENT = O_WRONLY | O_RDWR | O_CREAT | O_TRUNC | O_APPEND;
 
+// The app's download command file, opened read-only from its support folder. -1 when it
+// is missing, so the loopback host answers as for any absent file.
+static int open_download_commands(void) {
+    const char *home = np_home_dir();
+    if (!home)
+        return -1;
+    char file[1100];
+    np_support_path(file, sizeof(file), home, NP_DOWNLOAD_COMMANDS_FILE);
+    return sys_open(file, O_RDONLY | O_CLOEXEC, 0);
+}
+
 static int try_serve(const char *path, int oflag) {
     if (oflag & WRITE_INTENT)
         return -1;
+    if (np_webpatch_is_download_commands(path))
+        return open_download_commands();
     if (!np_webpatch_should_patch(path))
         return -1;
     return open_patched(path);

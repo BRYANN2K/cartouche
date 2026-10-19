@@ -49,6 +49,7 @@ struct GameCard: View {
     let perform: (GameAction) -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.activity) private var activity
     @State private var tilt: CGSize = .zero
     @State private var hovering = false
 
@@ -61,7 +62,7 @@ struct GameCard: View {
             Text(game.name)
                 .font(.callout.weight(.semibold))
                 .lineLimit(1)
-            Text(game.status())
+            Text(activity.download(for: game)?.cardStatus ?? game.status())
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
@@ -79,6 +80,12 @@ struct GameCard: View {
     private var cover: some View {
         let motion = Motion(reduceMotion: reduceMotion)
         return CoverView(game: game, override: override, gray: !inColor)
+            .overlay {
+                // A download brings the color back from the bottom up (P7)
+                if !isSelected, let reveal = activity.reveal(for: game) {
+                    RevealCover(game: game, override: override, progress: reveal)
+                }
+            }
             .aspectRatio(game.coverShape.aspectRatio, contentMode: .fit)
             .frame(maxWidth: .infinity)
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))

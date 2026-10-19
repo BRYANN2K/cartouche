@@ -29,4 +29,12 @@ void np_webpatch_set_fex_tools(const char *const *names, size_t count);
 char *np_webpatch_transform(const uint8_t *src, size_t src_len, size_t *out_len,
                             const char **out_shape);
 
+// Pause and Resume from Cartouche (P7). The app writes its commands to this file in its
+// support folder; the page reads it from steamloopback.host/cartouche/, and the hook
+// serves that one path from the app's file, read-only.
+#define NP_DOWNLOAD_COMMANDS_FILE "steam-downloads.json"
+
+// 1 when `path` is where the loopback host looks for the command file.
+int np_webpatch_is_download_commands(const char *path);
+
 #endif // CARTOUCHE_FEATS_WEBPATCH_H

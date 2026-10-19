@@ -15,7 +15,9 @@ struct CartoucheApp: App {
     @State private var library: LibraryModel
     @State private var compat = CompatibilityModel()
     @State private var steamSetup = SteamSetup()
-    @State private var permissions = PermissionCenter.live()
+    @State private var permissions: PermissionCenter
+    // Hosts the explanation that comes before the notifications prompt (P17)
+    @State private var permissionFlow: PermissionFlow
     @State private var consoles: ConsolesSettingsModel
     @State private var consoleCenter: ConsoleCenter
     @State private var network = NetworkWatch()
@@ -31,6 +33,9 @@ struct CartoucheApp: App {
         // The first launch claims Cartouche's own folder, even before anything is installed
         try? FileManager.default.createDirectory(at: SupportPaths.support, withIntermediateDirectories: true)
         AppLog.start()
+        let permissions = PermissionCenter.live()
+        _permissions = State(initialValue: permissions)
+        _permissionFlow = State(initialValue: PermissionFlow(center: permissions))
         let library = LibraryModel()
         // Settings > Consoles and the library share one core manager
         let cores = CoreManager(paths: SettingsWindow.retroArchPaths)
@@ -59,6 +64,7 @@ struct CartoucheApp: App {
             LibraryWindow(model: library, compat: compat, steamSetup: steamSetup, actions: actions)
                 .environment(consoleCenter)
                 .frame(minWidth: 900, minHeight: 560)
+                .permissionExplanations(permissionFlow)
                 .sheet(isPresented: Binding(get: { onboarding?.isPresented ?? false },
                                             set: { onboarding?.isPresented = $0 })) {
                     if let onboarding { OnboardingView(model: onboarding).interactiveDismissDisabled() }
@@ -132,8 +138,22 @@ struct CartoucheApp: App {
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main) {
             [consoleCenter] _ in MainActor.assumeIsolated { consoleCenter.endForTermination() }
         }
+        await startActivity()
         await loadRunners()
         await compat.refresh()
+    }
+
+    // The activity slot: Steam's downloads and running game, and the first finished
+    // download or install offers notifications (P7, P17)
+    private func startActivity() async {
+        RevealRenderer.warmUp()
+        await permissions.refresh(.notifications)
+        let activity = ActivityCenter.shared
+        activity.permissionFlow = permissionFlow
+        InstallCenter.shared.permissionFlow = permissionFlow
+        activity.follow(consoleCenter)
+        activity.onDownloadFinished = { [library] _ in Task { await library.load() } }
+        activity.watch()
     }
 
     private func makeOnboarding() -> OnboardingModel {
@@ -363,6 +383,8 @@ struct StatusItemMenu: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
+        // Everything going on, even what the sidebar slot leaves out (P7)
+        ActivityMenuContent(center: ActivityCenter.shared)
         let recent = model.recentlyPlayed
         if !recent.isEmpty {
             Section("Recently Played") {

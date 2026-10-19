@@ -199,6 +199,22 @@
         }
       }
     },
+    "%@ could not be downloaded" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile scaricare %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法下载 %@"
+          }
+        }
+      }
+    },
     "%@ could not be installed" : {
       "localizations" : {
         "it" : {
@@ -717,6 +733,22 @@
         }
       }
     },
+    "%@ is ready to play" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ è pronto per giocare"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 已可游玩"
+          }
+        }
+      }
+    },
     "%@ is running. Quit the game first." : {
       "localizations" : {
         "it" : {
@@ -777,6 +809,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 需要 BIOS"
+          }
+        }
+      }
+    },
+    "%@ of %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ di %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ / %2$@"
           }
         }
       }
@@ -948,22 +996,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@，文件名匹配"
-          }
-        }
-      }
-    },
-    "%@, playing" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@, in gioco"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@，正在玩"
           }
         }
       }
@@ -1352,6 +1384,22 @@
         }
       }
     },
+    "%lld more waiting" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Altri %lld in attesa"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "还有 %lld 个在等待"
+          }
+        }
+      }
+    },
     "%lld of %lld recent ProtonDB reports say it doesn’t run on Linux." : {
       "localizations" : {
         "it" : {
@@ -1460,6 +1508,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld 个结果"
+          }
+        }
+      }
+    },
+    "%lld%%" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld%%"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld%%"
+          }
+        }
+      }
+    },
+    "%lld%% of %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld%% di %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld%%，共 %2$@"
           }
         }
       }
@@ -1672,6 +1752,22 @@
         }
       }
     },
+    "1 more waiting" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un altro in attesa"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "还有 1 个在等待"
+          }
+        }
+      }
+    },
     "1 report" : {
       "localizations" : {
         "it" : {
@@ -1748,6 +1844,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Steam 客户端更新可能导致 Cartouche 无法使用。"
+          }
+        }
+      }
+    },
+    "A Steam game" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un gioco Steam"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一款 Steam 游戏"
           }
         }
       }
@@ -4897,6 +5009,22 @@
         }
       }
     },
+    "Content servers unreachable" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server dei contenuti non raggiungibili"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法连接内容服务器"
+          }
+        }
+      }
+    },
     "Continue" : {
       "localizations" : {
         "it" : {
@@ -5213,6 +5341,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "核心"
+          }
+        }
+      }
+    },
+    "Corrupt download" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download danneggiato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载已损坏"
           }
         }
       }
@@ -5908,6 +6052,22 @@
         }
       }
     },
+    "Disk write failure" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Errore di scrittura su disco"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "磁盘写入失败"
+          }
+        }
+      }
+    },
     "Doesn’t run on Linux" : {
       "localizations" : {
         "it" : {
@@ -5972,6 +6132,22 @@
         }
       }
     },
+    "Download failed" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download non riuscito"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载失败"
+          }
+        }
+      }
+    },
     "Download finished, install finished, ready to play" : {
       "localizations" : {
         "it" : {
@@ -6020,6 +6196,22 @@
         }
       }
     },
+    "Download progress" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avanzamento del download"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载进度"
+          }
+        }
+      }
+    },
     "Downloaded missing components." : {
       "localizations" : {
         "it" : {
@@ -6048,6 +6240,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在下载"
+          }
+        }
+      }
+    },
+    "Downloading %lld games" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download di %lld giochi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在下载 %lld 款游戏"
           }
         }
       }
@@ -6112,6 +6320,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在下载缺失的组件"
+          }
+        }
+      }
+    },
+    "Downloading, %lld%%" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download, %lld%%"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在下载，%lld%%"
+          }
+        }
+      }
+    },
+    "Downloads" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载"
           }
         }
       }
@@ -7456,6 +7696,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "安装图形后端"
+          }
+        }
+      }
+    },
+    "Install progress" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avanzamento dell’installazione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装进度"
           }
         }
       }
@@ -9060,6 +9316,22 @@
         }
       }
     },
+    "No internet connection" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessuna connessione a Internet"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无互联网连接"
+          }
+        }
+      }
+    },
     "No longer installed" : {
       "localizations" : {
         "it" : {
@@ -9844,6 +10116,22 @@
         }
       }
     },
+    "Open Cartouche to see why and try again." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri Cartouche per vedere il motivo e riprovare."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开 Cartouche 查看原因并重试。"
+          }
+        }
+      }
+    },
     "Open CrossOver to activate it." : {
       "localizations" : {
         "it" : {
@@ -10132,6 +10420,70 @@
         }
       }
     },
+    "Pause" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pausa"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂停"
+          }
+        }
+      }
+    },
+    "Pause Download" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Metti in pausa il download"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂停下载"
+          }
+        }
+      }
+    },
+    "Paused" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In pausa"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已暂停"
+          }
+        }
+      }
+    },
+    "Paused, %lld%%" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In pausa, %lld%%"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已暂停，%lld%%"
+          }
+        }
+      }
+    },
     "Perfect" : {
       "localizations" : {
         "it" : {
@@ -10272,6 +10624,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在玩"
+          }
+        }
+      }
+    },
+    "Playing on RetroArch" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In gioco su RetroArch"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在 RetroArch 上游玩"
           }
         }
       }
@@ -10468,6 +10836,22 @@
         }
       }
     },
+    "Quit %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esci da %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "退出 %@"
+          }
+        }
+      }
+    },
     "Quit Cartouche" : {
       "localizations" : {
         "it" : {
@@ -10480,6 +10864,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "退出 Cartouche"
+          }
+        }
+      }
+    },
+    "Quit Game" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esci dal gioco"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "退出游戏"
           }
         }
       }
@@ -11594,6 +11994,22 @@
         }
       }
     },
+    "Resume Download" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riprendi il download"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "继续下载"
+          }
+        }
+      }
+    },
     "RetroArch did not take the change: %@" : {
       "localizations" : {
         "it" : {
@@ -12282,6 +12698,38 @@
         }
       }
     },
+    "Show in the library" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra nella libreria"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在游戏库中显示"
+          }
+        }
+      }
+    },
+    "Show the install" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra l’installazione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示安装"
+          }
+        }
+      }
+    },
     "Show the selected backup in the Finder." : {
       "localizations" : {
         "it" : {
@@ -12781,6 +13229,22 @@
         }
       }
     },
+    "Steam asks before it removes what was downloaded" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam chiede conferma prima di eliminare ciò che è stato scaricato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 会在删除已下载内容前询问"
+          }
+        }
+      }
+    },
     "Steam at %@ isn't connected, so Cartouche can't be removed from it. All other Cartouche data is removed, except for Windows Games and prefixes." : {
       "localizations" : {
         "it" : {
@@ -12937,6 +13401,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Steam 会下载 Windows 版本并通过 Steam Play 运行。适用于 Mac 版更新滞后的情况。"
+          }
+        }
+      }
+    },
+    "Steam finished downloading it." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam ha terminato il download."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 已下载完成。"
           }
         }
       }
@@ -13165,6 +13645,22 @@
         }
       }
     },
+    "Steam reported error %lld" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam ha segnalato l’errore %lld"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 报告了错误 %lld"
+          }
+        }
+      }
+    },
     "Steam restored to its original state." : {
       "localizations" : {
         "it" : {
@@ -13177,6 +13673,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Steam 已恢复原状。"
+          }
+        }
+      }
+    },
+    "Steam stopped the download" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam ha interrotto il download"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 停止了下载"
           }
         }
       }
@@ -14685,6 +15197,22 @@
         }
       }
     },
+    "Update available" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiornamento disponibile"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有可用更新"
+          }
+        }
+      }
+    },
     "Update available (%@)." : {
       "localizations" : {
         "it" : {
@@ -14729,6 +15257,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "更新兼容工具"
+          }
+        }
+      }
+    },
+    "Updates" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiornamenti"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新"
           }
         }
       }
@@ -15005,6 +15549,22 @@
         }
       }
     },
+    "Waiting" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In attesa"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等待中"
+          }
+        }
+      }
+    },
     "Waiting for a relaunch" : {
       "localizations" : {
         "it" : {
@@ -15033,6 +15593,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在等待另一个安装完成"
+          }
+        }
+      }
+    },
+    "Waiting to download" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In attesa del download"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等待下载"
           }
         }
       }

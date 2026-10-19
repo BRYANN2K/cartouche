@@ -397,6 +397,25 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     "localStorage.setItem(K,\"1\")" \
     "}catch(e){console.error(\"Cartouche: launch options migration failed\",e)}})()"
 
+// Pause and Resume from Cartouche (P7): once a second the page reads the app's command
+// file from its own loopback host and runs each new command once. Only pause and resume,
+// only for a numeric app ID, only if written in the last 30 seconds.
+#define NP_DOWNLOAD_COMMANDS \
+    "(()=>{const K=\"CartoucheDownloadCommand\";let last=+(localStorage.getItem(K)||0);" \
+    "const run=c=>{if(!Number.isInteger(c.appid)||c.appid<=0||!(Date.now()/1e3-c.at<30))return;" \
+    "if(c.verb===\"pause\")SteamClient.Downloads.PauseAppUpdate(c.appid);" \
+    "else if(c.verb===\"resume\")SteamClient.Downloads.ResumeAppUpdate(c.appid);else return;" \
+    "console.log(\"Cartouche: \"+c.verb+\" the download of app \"+c.appid)};" \
+    "setInterval(async()=>{try{" \
+    "const r=await fetch(\"/cartouche/" NP_DOWNLOAD_COMMANDS_FILE "\",{cache:\"no-store\"});" \
+    "if(!r.ok)return;const d=await r.json();" \
+    "if(!d||d.version!==1||!Array.isArray(d.commands))return;" \
+    "const ids=d.commands.map(c=>c&&c.id).filter(Number.isInteger);" \
+    "if(ids.length&&Math.max(...ids)<last)last=0;" \
+    "for(const c of d.commands){if(!c||!Number.isInteger(c.id)||c.id<=last)continue;" \
+    "last=c.id;localStorage.setItem(K,String(last));run(c)}" \
+    "}catch(e){}},1e3)})()"
+
 static const np_gate_t g_gates_forcetool[] = {
     // SteamPlay settings section
     { "function " NP_C1 "(" NP_C2 "){return(0," NP_C3 ".CI)()?",
@@ -524,7 +543,8 @@ static const np_gate_t g_fixes[] = {
       "selectedOption:" NP_C1 "||\"" NP_FALLBACK_TOOL "\",",
       1, 0 },
     { "this.m_bServicesInitialized=!0,SteamClient.UI.NotifyAppInitialized()",
-      "this.m_bServicesInitialized=!0," NP_LAUNCH_MIGRATION ",SteamClient.UI.NotifyAppInitialized()", 1, 0 },
+      "this.m_bServicesInitialized=!0," NP_LAUNCH_MIGRATION "," NP_DOWNLOAD_COMMANDS
+      ",SteamClient.UI.NotifyAppInitialized()", 1, 0 },
     // Pr means macOS, td means Windows.
     // Steam Play makes every game count as available, so the Apple filter goes by oslist.
     // Games missing from appinfo.vdf, and other platforms, keep Steam's check.
@@ -637,6 +657,13 @@ static const char *inside_steamui(const char *path) {
 
 // The compatibility UI has shipped in both chunk~*.js and sp.js.
 // np_webpatch_transform rejects scripts without matching anchors.
+int np_webpatch_is_download_commands(const char *path) {
+    if (!path)
+        return 0;
+    const char *rest = inside_steamui(path);
+    return rest && strcmp(rest, "cartouche/" NP_DOWNLOAD_COMMANDS_FILE) == 0;
+}
+
 int np_webpatch_should_patch(const char *path) {
     if (!path || !has_suffix(path, ".js"))
         return 0;

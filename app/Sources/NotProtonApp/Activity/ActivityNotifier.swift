@@ -1,0 +1,137 @@
+// macOS notifications for the end of a download or an install, each with one
+// action. They go out only when notifications are already allowed: the prompt
+// itself comes from NotificationOffer, after Cartouche's explanation (P17).
+
+import AppKit
+import Foundation
+import UserNotifications
+
+// One notification, as Cartouche builds it
+struct NotificationSpec: Equatable, Sendable {
+    let identifier: String
+    let title: String
+    let body: String
+    let category: String
+    let action: String
+    let actionTitle: String
+    let userInfo: [String: String]
+}
+
+@MainActor
+protocol NotificationPosting: AnyObject {
+    func post(_ spec: NotificationSpec)
+}
+
+// UNUserNotificationCenter has a single delegate, so every notification of the app
+// goes through this one and its action reaches the handler of its category.
+@MainActor
+final class NotificationRouter: NSObject, NotificationPosting, @preconcurrency UNUserNotificationCenterDelegate {
+
+    static let shared = NotificationRouter()
+
+    private var handlers: [String: @MainActor (String, [String: String]) -> Void] = [:]
+    private var categories: [String: UNNotificationCategory] = [:]
+
+    // A command-line or test build has no bundle, and UNUserNotificationCenter needs one
+    private var center: UNUserNotificationCenter? {
+        Bundle.main.bundleIdentifier == nil ? nil : UNUserNotificationCenter.current()
+    }
+
+    func handle(category: String, _ handler: @escaping @MainActor (String, [String: String]) -> Void) {
+        handlers[category] = handler
+    }
+
+    func post(_ spec: NotificationSpec) {
+        guard let center else { return }
+        center.delegate = self
+        let action = UNNotificationAction(identifier: spec.action, title: spec.actionTitle, options: [.foreground])
+        categories[spec.category] = UNNotificationCategory(identifier: spec.category, actions: [action], intentIdentifiers: [])
+        center.setNotificationCategories(Set(categories.values))
+        let content = UNMutableNotificationContent()
+        content.title = spec.title
+        content.body = spec.body
+        content.categoryIdentifier = spec.category
+        content.userInfo = spec.userInfo
+        let request = UNNotificationRequest(identifier: spec.identifier, content: content, trigger: nil)
+        Task {
+            let status = await center.notificationSettings().authorizationStatus
+            guard status == .authorized || status == .provisional else { return }
+            try? await center.add(request)
+        }
+    }
+
+    func respond(category: String, action: String, userInfo: [String: String]) {
+        handlers[category]?(action, userInfo)
+    }
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler done: @escaping () -> Void
+    ) {
+        let content = response.notification.request.content
+        let info = content.userInfo.reduce(into: [String: String]()) { out, pair in
+            if let key = pair.key as? String, let value = pair.value as? String { out[key] = value }
+        }
+        respond(category: content.categoryIdentifier, action: response.actionIdentifier, userInfo: info)
+        done()
+    }
+}
+
+@MainActor
+protocol ActivityNotifying: AnyObject {
+    func ready(name: String, appID: Int)
+    func downloadFailed(name: String, appID: Int, reason: String)
+}
+
+@MainActor
+final class UserActivityNotifier: ActivityNotifying {
+
+    static let readyCategory = "download-finished"
+    static let failedCategory = "download-failed"
+    static let playAction = "play"
+    static let retryAction = "retry"
+
+    let poster: any NotificationPosting
+    var open: @MainActor (URL) -> Void
+
+    init(poster: (any NotificationPosting)? = nil, router: NotificationRouter? = nil,
+         open: @escaping @MainActor (URL) -> Void = { NSWorkspace.shared.open($0) }) {
+        let router = router ?? .shared
+        self.poster = poster ?? router
+        self.open = open
+        router.handle(category: Self.readyCategory) { [weak self] action, info in self?.respond(action, info) }
+        router.handle(category: Self.failedCategory) { [weak self] action, info in self?.respond(action, info) }
+    }
+
+    func ready(name: String, appID: Int) {
+        poster.post(Self.readySpec(name: name, appID: appID))
+    }
+
+    func downloadFailed(name: String, appID: Int, reason: String) {
+        poster.post(Self.failedSpec(name: name, appID: appID, reason: reason))
+    }
+
+    static func readySpec(name: String, appID: Int) -> NotificationSpec {
+        NotificationSpec(identifier: "ready-\(appID)", title: String(localized: "\(name) is ready to play"),
+                         body: String(localized: "Steam finished downloading it."), category: readyCategory,
+                         action: playAction, actionTitle: String(localized: "Play"), userInfo: ["appid": String(appID)])
+    }
+
+    static func failedSpec(name: String, appID: Int, reason: String) -> NotificationSpec {
+        NotificationSpec(identifier: "failed-\(appID)", title: String(localized: "\(name) could not be downloaded"),
+                         body: reason, category: failedCategory, action: retryAction,
+                         actionTitle: String(localized: "Try Again"), userInfo: ["appid": String(appID)])
+    }
+
+    // Play starts the game through Steam, Try Again queues the download again, a click on the banner opens Cartouche
+    func respond(_ action: String, _ info: [String: String]) {
+        guard let appID = info["appid"].flatMap(Int.init) else { return }
+        switch action {
+        case Self.playAction:
+            open(URL(string: "steam://rungameid/\(appID)")!)
+        case Self.retryAction:
+            open(URL(string: "steam://install/\(appID)")!)
+        default:
+            NSApp?.activate()
+        }
+    }
+}
