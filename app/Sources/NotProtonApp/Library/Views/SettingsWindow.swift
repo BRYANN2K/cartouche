@@ -22,7 +22,7 @@ enum GeneralSettings {
 }
 
 enum SettingsTab: String, CaseIterable, Identifiable {
-    case general, library, accounts, compatibility, privacy, consoles, controllers
+    case general, library, accounts, compatibility, privacy, consoles, controllers, agents
 
     var id: String { rawValue }
 
@@ -35,6 +35,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .privacy: String(localized: "Privacy")
         case .consoles: String(localized: "Consoles")
         case .controllers: String(localized: "Controllers")
+        case .agents: String(localized: "Agents")
         }
     }
 
@@ -47,6 +48,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .privacy: "hand.raised"
         case .consoles: "gamecontroller"
         case .controllers: "gamecontroller.fill"
+        case .agents: "brain.head.profile"
         }
     }
 }
@@ -60,6 +62,8 @@ struct SettingsWindow: View {
     @Environment(ControlsCenter.self) private var controls: ControlsCenter?
     // Achievements, iCloud Drive and translation in Settings > Consoles (P14); emulators (P16)
     @Environment(ConsoleCenter.self) private var consoleCenter: ConsoleCenter?
+    // Level, transports, pending approvals and the action log (P11)
+    @Environment(AgentControlModel.self) private var agents: AgentControlModel?
 
     var body: some View {
         TabView(selection: $tab) {
@@ -82,6 +86,7 @@ struct SettingsWindow: View {
         case .privacy: PrivacySettingsView(center: permissions)
         case .consoles: ConsolesSettingsView(model: consoles, extras: consoleCenter?.extras, emulators: consoleCenter?.emulators)
         case .controllers: if let controls { ControllersSettingsView(center: controls) }
+        case .agents: if let agents { AgentsSettingsView(model: agents) }
         }
     }
 

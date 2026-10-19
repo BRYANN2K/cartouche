@@ -724,6 +724,11 @@ define BUNDLE_APP
 		"$(2)/Contents/Resources/"
 	cp -R "$(2)/Contents/Resources/NotProtonApp_NotProtonApp.bundle/Contents/Resources/"*.lproj \
 		"$(2)/Contents/Resources/"
+	@mkdir -p "$(2)/Contents/Helpers"
+	# The stdio face of the app's MCP server; MCP clients run it from the bundle
+	cp -f "$$(swift build --package-path app -c $(1) $(SWIFT_FLAGS) --show-bin-path)/cartouche-mcp" \
+		"$(2)/Contents/Helpers/cartouche-mcp"
+	codesign -f -s "$(APP_SIGN_ID)" "$(2)/Contents/Helpers/cartouche-mcp"
 	cp "$(ICON_DIR)/Assets.car" "$(ICON_DIR)/Cartouche.icns" \
 		"$(2)/Contents/Resources/"
 	@missing=$$(cd "$(APP_PAYLOAD)" && find . -type f ! -name '.DS_Store' | sed 's|^\./||' \

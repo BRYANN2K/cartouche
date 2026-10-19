@@ -26,10 +26,22 @@ let package = Package(
     targets: [
         // The folder names the app, the dylib and the run script share
         .target(name: "CartoucheIdentity", path: "Sources/CartoucheIdentity"),
+        // The MCP transports shared by the app and the cartouche-mcp helper
+        .target(
+            name: "CartoucheMCP",
+            dependencies: ["CartoucheIdentity", .product(name: "RetroArchKit", package: "retroarch")],
+            path: "Sources/CartoucheMCP"
+        ),
+        // The stdio helper MCP clients launch; Contents/Helpers/cartouche-mcp
+        .executableTarget(
+            name: "cartouche-mcp",
+            dependencies: ["CartoucheMCP"],
+            path: "Sources/CartoucheMCPHelper"
+        ),
         .executableTarget(
             name: "NotProtonApp",
             dependencies: [
-                "CartoucheIdentity", .product(name: "Sparkle", package: "Sparkle"),
+                "CartoucheIdentity", "CartoucheMCP", .product(name: "Sparkle", package: "Sparkle"),
                 .product(name: "RetroArchKit", package: "retroarch"),
                 .product(name: "InstallerKit", package: "installer"),
             ],
@@ -65,7 +77,7 @@ let package = Package(
     ] + (hasTests ? [
         .testTarget(
             name: "NotProtonAppTests",
-            dependencies: ["NotProtonApp", .product(name: "RetroArchKit", package: "retroarch")],
+            dependencies: ["NotProtonApp", "CartoucheMCP", .product(name: "RetroArchKit", package: "retroarch")],
             path: testsPath
         ),
     ] : [])

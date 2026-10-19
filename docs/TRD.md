@@ -26,7 +26,7 @@ Cartouche.app (SwiftUI, Swift 6)
   Compatibility client + estimate, MacGamingDB client
   Permissions module (catalog, explanation sheet, relaunch)
   Sparkle updater
-  Helpers/cartouche-mcp  --XPC-->  app          (MCP server for agents, P11 proposal)
+  Helpers/cartouche-mcp  --Unix socket-->  app          (MCP server for agents, P11 proposal)
   RetroArch (bundled, built by CI) <--MCP stdio-- app
           |
           | writes Steam config, installs compat tools
@@ -145,7 +145,7 @@ Steam (Mac client)
 
 ### MCP server for agents (P11, proposal, not merged)
 
-- Helper binary `cartouche-mcp` in `Contents/Helpers/`, built with the official Swift MCP SDK. It speaks stdio to the client and XPC to the app.
+- Helper binary `cartouche-mcp` in `Contents/Helpers/`, built with the official Swift MCP SDK. It speaks stdio to the client and a Unix socket in the app's data folder to the app; the app admits only the bundled helper.
 - Tools cover PC and console games.
 - Optional HTTP transport on 127.0.0.1 with a token. Off by default.
 - Three access levels: Read only, Standard (default), Full. Tools above the level are refused.

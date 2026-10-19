@@ -16,7 +16,7 @@ Only the latest release gets security fixes. Update through Sparkle or Homebrew.
 
 ## Threat overview
 
-This is a short summary. Agent control (P11) is specified but not merged yet; its section below is the approved design from `openspec/changes/p11-agent-control/`, not a description of running code.
+This is a short summary. Agent control (P11) is specified in `openspec/changes/p11-agent-control/` and its section below describes the transport as implemented there.
 
 ### Code injected into Steam
 
@@ -40,11 +40,11 @@ This is a short summary. Agent control (P11) is specified but not merged yet; it
 - Sparkle accepts only updates signed with Cartouche's EdDSA key. The NotProton feed is never contacted.
 - Verify downloads against the SHA-256 shown in the release or the Homebrew cask.
 
-### MCP server for agents (P11, specified, not merged)
+### MCP server for agents (P11)
 
 The MCP server lets an AI agent read the library and act on it through the same functions the UI uses. The threat is a malicious or confused agent, or a network party reaching the server.
 
-- The default transport is stdio: a `cartouche-mcp` helper binary the client starts (`claude mcp add cartouche -- cartouche-mcp`). The helper speaks MCP over stdio to the client and XPC to the app. An agent never reaches the app's internals directly.
+- The default transport is stdio: a `cartouche-mcp` helper binary the client starts (`claude mcp add cartouche -- cartouche-mcp`). The helper speaks MCP over stdio to the client and reaches the app over a Unix socket at `~/Library/Application Support/Cartouche/agent/mcp.sock`. The socket's folder is 0700 and the socket 0600; the app accepts a peer only when it runs as the same user (`getpeereid`) and its executable is the bundled helper inside the app (`LOCAL_PEERPID` + `proc_pidpath`). An agent never reaches the app's internals directly.
 - The optional HTTP transport listens on 127.0.0.1 only, is off by default and needs a token. Requests without it get HTTP 401. Remote access from another machine is a non-goal.
 - Three access levels: Read only, Standard (default) and Full. Every tool belongs to a level; a call above the level set in Settings is refused and names the level it needs.
 - Tools that install, delete or run an executable wait for approval in the app. A notification asks "Allow?" and the tool returns only after Allow or Deny.

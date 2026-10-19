@@ -947,6 +947,38 @@
         }
       }
     },
+    "%@ wants to %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ vuole %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 想要 %@。"
+          }
+        }
+      }
+    },
+    "%@ wants to %@. Allow?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ vuole %@. Consentire?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 想要 %@。是否允许？"
+          }
+        }
+      }
+    },
     "%@ was last run by %@, which is no longer set up. Rebuild the prefix first." : {
       "localizations" : {
         "it" : {
@@ -2190,6 +2222,22 @@
         }
       }
     },
+    "Access" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesso"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "访问权限"
+          }
+        }
+      }
+    },
     "Accessibility" : {
       "localizations" : {
         "it" : {
@@ -2686,6 +2734,22 @@
         }
       }
     },
+    "Agents" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "智能体"
+          }
+        }
+      }
+    },
     "All Games" : {
       "localizations" : {
         "it" : {
@@ -2714,6 +2778,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "所有 Mac 报告"
+          }
+        }
+      }
+    },
+    "Allow" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consenti"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许"
           }
         }
       }
@@ -3476,6 +3556,22 @@
         }
       }
     },
+    "Bearer token" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Token Bearer"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bearer 令牌"
+          }
+        }
+      }
+    },
     "Becomes" : {
       "localizations" : {
         "it" : {
@@ -3827,6 +3923,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cartouche 会将其工具添加到 Steam 应用"
+          }
+        }
+      }
+    },
+    "Cartouche agent request" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Richiesta dell’agente Cartouche"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 智能体请求"
           }
         }
       }
@@ -4887,6 +4999,22 @@
         }
       }
     },
+    "Claude Code" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Claude Code"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Claude Code"
+          }
+        }
+      }
+    },
     "Cleaning up" : {
       "localizations" : {
         "it" : {
@@ -4947,6 +5075,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "点按游戏上的星标即可将其添加到这里。"
+          }
+        }
+      }
+    },
+    "Client configuration" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurazione client"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "客户端配置"
           }
         }
       }
@@ -5235,6 +5379,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在配置 Steam"
+          }
+        }
+      }
+    },
+    "Connect" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connessione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连接"
           }
         }
       }
@@ -5635,6 +5795,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "其他磁盘上的副本 %@"
+          }
+        }
+      }
+    },
+    "Copy" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copia"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制"
           }
         }
       }
@@ -6538,6 +6714,38 @@
         }
       }
     },
+    "Denied" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Negata"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已拒绝"
+          }
+        }
+      }
+    },
+    "Deny" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nega"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拒绝"
+          }
+        }
+      }
+    },
     "Depends on the game" : {
       "localizations" : {
         "it" : {
@@ -7322,6 +7530,22 @@
         }
       }
     },
+    "Failed: %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non riuscita: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "失败：%@"
+          }
+        }
+      }
+    },
     "Favorites" : {
       "localizations" : {
         "it" : {
@@ -7706,6 +7930,22 @@
         }
       }
     },
+    "Full" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完全"
+          }
+        }
+      }
+    },
     "GOG answered %lld." : {
       "localizations" : {
         "it" : {
@@ -8006,6 +8246,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "引导"
+          }
+        }
+      }
+    },
+    "HTTP could not start: %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile avviare HTTP: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTP 无法启动：%@"
+          }
+        }
+      }
+    },
+    "HTTP listens on 127.0.0.1 only; the helper clients run through Cartouche’s own channel." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTP è in ascolto solo su 127.0.0.1; i client helper passano per il canale proprio di Cartouche."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTP 仅监听 127.0.0.1；辅助客户端经由 Cartouche 自有通道运行。"
           }
         }
       }
@@ -9306,6 +9578,22 @@
         }
       }
     },
+    "Let agents control Cartouche" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consenti agli agent di controllare Cartouche"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许智能体控制 Cartouche"
+          }
+        }
+      }
+    },
     "Library" : {
       "localizations" : {
         "it" : {
@@ -10246,6 +10534,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "还没有 Windows 安装程序"
+          }
+        }
+      }
+    },
+    "No agent actions yet" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessuna azione degli agent per ora"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚无智能体操作"
           }
         }
       }
@@ -11562,6 +11866,22 @@
         }
       }
     },
+    "Other clients over HTTP" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Altri client via HTTP"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通过 HTTP 连接的其他客户端"
+          }
+        }
+      }
+    },
     "Other ways" : {
       "localizations" : {
         "it" : {
@@ -12346,6 +12666,22 @@
         }
       }
     },
+    "Read Only" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sola lettura"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只读"
+          }
+        }
+      }
+    },
     "Read the Valve file list" : {
       "localizations" : {
         "it" : {
@@ -12634,6 +12970,22 @@
         }
       }
     },
+    "Recent Agent Actions" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Azioni recenti degli agent"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近的智能体操作"
+          }
+        }
+      }
+    },
     "Recently Played" : {
       "localizations" : {
         "it" : {
@@ -12742,6 +13094,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "刷新设置"
+          }
+        }
+      }
+    },
+    "Refused: %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rifiutata: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已拒绝：%@"
           }
         }
       }
@@ -14752,6 +15120,22 @@
         }
       }
     },
+    "Standard" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standard"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "标准"
+          }
+        }
+      }
+    },
     "Standard decompression" : {
       "localizations" : {
         "it" : {
@@ -14764,6 +15148,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "标准解压"
+          }
+        }
+      }
+    },
+    "Standard: install, launch and change game settings. Full also runs commands inside a game’s Windows folder. Installs, deletions and program launches always ask first." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standard: installa, avvia e modifica le impostazioni dei giochi. Completo esegue anche comandi nella cartella Windows del gioco. Installazioni, eliminazioni e avvii di programmi chiedono sempre prima."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "标准：安装、启动并修改游戏设置。完全权限还可在游戏的 Windows 文件夹中运行命令。安装、删除和启动程序一律需要先询问。"
           }
         }
       }
@@ -15907,6 +16307,22 @@
         }
       }
     },
+    "The MCP server entry most clients take" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La voce del server MCP usata dalla maggior parte dei client"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "大多数客户端使用的 MCP 服务器配置"
+          }
+        }
+      }
+    },
     "The Mac build, with no translation. Usually the fastest." : {
       "localizations" : {
         "it" : {
@@ -16707,6 +17123,22 @@
         }
       }
     },
+    "Through MCP, for Claude and other assistants" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tramite MCP, per Claude e altri assistenti"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通过 MCP，供 Claude 及其他助手使用"
+          }
+        }
+      }
+    },
     "Time left" : {
       "localizations" : {
         "it" : {
@@ -16943,6 +17375,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "不到一分钟"
+          }
+        }
+      }
+    },
+    "Undo" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annulla"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撤销"
+          }
+        }
+      }
+    },
+    "Undone" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annullata"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已撤销"
           }
         }
       }
@@ -17519,6 +17983,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "等待中"
+          }
+        }
+      }
+    },
+    "Waiting for You" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In attesa di te"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等待你"
           }
         }
       }

@@ -3,13 +3,13 @@
 
 import Foundation
 
-enum JSONValue: Decodable, Equatable, Sendable {
+enum SchemaValue: Decodable, Equatable, Sendable {
     case null
     case bool(Bool)
     case number(Double)
     case string(String)
-    case array([JSONValue])
-    case object([String: JSONValue])
+    case array([SchemaValue])
+    case object([String: SchemaValue])
 
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
@@ -21,10 +21,10 @@ enum JSONValue: Decodable, Equatable, Sendable {
             self = .number(value)
         } else if let value = try? container.decode(String.self) {
             self = .string(value)
-        } else if let value = try? container.decode([JSONValue].self) {
+        } else if let value = try? container.decode([SchemaValue].self) {
             self = .array(value)
         } else {
-            self = .object(try container.decode([String: JSONValue].self))
+            self = .object(try container.decode([String: SchemaValue].self))
         }
     }
 
@@ -39,7 +39,7 @@ enum JSONValue: Decodable, Equatable, Sendable {
         }
     }
 
-    subscript(key: String) -> JSONValue? {
+    subscript(key: String) -> SchemaValue? {
         if case .object(let o) = self { return o[key] }
         return nil
     }
@@ -47,7 +47,7 @@ enum JSONValue: Decodable, Equatable, Sendable {
 
 struct CompatSchema: Sendable {
 
-    let root: JSONValue
+    let root: SchemaValue
 
     static let annotations: Set<String> = ["$schema", "$id", "$comment", "title", "description", "$defs"]
     static let checks: Set<String> = [
@@ -61,7 +61,7 @@ struct CompatSchema: Sendable {
     }
 
     init(_ data: Data) throws {
-        root = try JSONDecoder().decode(JSONValue.self, from: data)
+        root = try JSONDecoder().decode(SchemaValue.self, from: data)
         try Self.checkKeywords(root)
     }
 
@@ -73,7 +73,7 @@ struct CompatSchema: Sendable {
         return try CompatSchema(Data(contentsOf: url))
     }
 
-    private static func checkKeywords(_ node: JSONValue) throws {
+    private static func checkKeywords(_ node: SchemaValue) throws {
         guard case .object(let schema) = node else { return }
         for (key, value) in schema {
             guard annotations.contains(key) || checks.contains(key) else {
@@ -90,31 +90,31 @@ struct CompatSchema: Sendable {
         }
     }
 
-    func errors(_ document: JSONValue) -> [String] {
+    func errors(_ document: SchemaValue) -> [String] {
         var found: [String] = []
         validate(document, root, "$", &found)
         return found
     }
 
-    private func resolve(_ ref: String) -> JSONValue? {
+    private func resolve(_ ref: String) -> SchemaValue? {
         guard ref.hasPrefix("#/") else { return nil }
-        var node: JSONValue? = root
+        var node: SchemaValue? = root
         for part in ref.dropFirst(2).split(separator: "/") {
             node = node?[String(part)]
         }
         return node
     }
 
-    private func isType(_ value: JSONValue, _ wanted: String) -> Bool {
+    private func isType(_ value: SchemaValue, _ wanted: String) -> Bool {
         value.typeName == wanted || (wanted == "number" && value.typeName == "integer")
     }
 
-    private func number(_ value: JSONValue?) -> Double? {
+    private func number(_ value: SchemaValue?) -> Double? {
         if case .number(let n) = value { return n }
         return nil
     }
 
-    private func validate(_ value: JSONValue, _ schemaNode: JSONValue, _ path: String, _ found: inout [String]) {
+    private func validate(_ value: SchemaValue, _ schemaNode: SchemaValue, _ path: String, _ found: inout [String]) {
         guard case .object(let schema) = schemaNode else { return }
 
         if case .string(let ref) = schema["$ref"] {
@@ -176,7 +176,7 @@ struct CompatSchema: Sendable {
             if let minimum = number(schema["minProperties"]), Double(object.count) < minimum {
                 found.append("\(path): too few properties")
             }
-            let properties: [String: JSONValue] = if case .object(let p) = schema["properties"] { p } else { [:] }
+            let properties: [String: SchemaValue] = if case .object(let p) = schema["properties"] { p } else { [:] }
             for (name, item) in object.sorted(by: { $0.key < $1.key }) {
                 let at = "\(path).\(name)"
                 if let names = schema["propertyNames"] {

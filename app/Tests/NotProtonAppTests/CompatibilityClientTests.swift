@@ -213,7 +213,7 @@ struct CompatSchemaTests {
     private func errors(_ change: (inout String) -> Void) throws -> [String] {
         var json = try CompatFixture.json()
         change(&json)
-        let tree = try JSONDecoder().decode(JSONValue.self, from: Data(json.utf8))
+        let tree = try JSONDecoder().decode(SchemaValue.self, from: Data(json.utf8))
         return try CompatSchema.bundled().errors(tree)
     }
 

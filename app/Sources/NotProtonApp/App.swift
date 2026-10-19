@@ -29,9 +29,11 @@ struct CartoucheApp: App {
     @State private var performance = PerformanceModel()
     // Epic, GOG and Amazon (P10)
     @State private var stores: StoreCenter
+    @State private var agents: AgentControlModel
     @AppStorage(GeneralSettings.showInMenuBarKey) private var showInMenuBar = true
     @AppStorage(AfterLaunch.key) private var afterLaunch = AfterLaunch.hide
     private let updater = AppUpdater()
+    private let agentBackend: AgentLiveBackend
 
     init() {
         // The first launch claims Cartouche's own folder, even before anything is installed
@@ -43,15 +45,26 @@ struct CartoucheApp: App {
         _permissionFlow = State(initialValue: PermissionFlow(center: permissions))
         let library = LibraryModel()
         // Controllers, layouts and the options that need a permission (P15)
-        _controls = State(initialValue: ControlsCenter(
-            permissions: permissions, files: ControlsFiles(retroArch: SettingsWindow.retroArchPaths)))
+        let controls = ControlsCenter(
+            permissions: permissions, files: ControlsFiles(retroArch: SettingsWindow.retroArchPaths))
+        _controls = State(initialValue: controls)
         // Settings > Consoles and the library share one core manager
         let cores = CoreManager(paths: SettingsWindow.retroArchPaths, source: .qa)
         let consoles = SettingsWindow.consolesModel(cores: cores)
+        let consoleCenter = ConsoleCenter(settings: consoles, cores: cores, library: library)
+        let compat = CompatibilityModel()
         _library = State(initialValue: library)
         _consoles = State(initialValue: consoles)
-        _consoleCenter = State(initialValue: ConsoleCenter(settings: consoles, cores: cores, library: library))
+        _consoleCenter = State(initialValue: consoleCenter)
+        _compat = State(initialValue: compat)
         _stores = State(initialValue: StoreCenter.live(library: library))
+        // The agent server reads the same models the windows do; off until
+        // the user turns it on (Settings > Agents).
+        let backend = AgentLiveBackend(library: library, consoles: consoleCenter,
+                                       installs: .shared, compat: compat, controls: controls)
+        agentBackend = backend
+        _agents = State(initialValue: AgentControlModel(
+            service: AgentService(backend: backend, providers: [AgentControls()])))
     }
 
     private var actions: GameActionRunner {
@@ -84,6 +97,7 @@ struct CartoucheApp: App {
                 .environment(performance)
                 .environment(stores)
                 .storeSignIn(stores)
+                .agentApprovals(agents)
                 .task { await start() }
                 // Onboarding may have added consoles and game folders
                 .onChange(of: onboarding?.isPresented ?? false) { _, shown in
@@ -124,6 +138,7 @@ struct CartoucheApp: App {
                 .environment(stores)
                 .environment(controls)
                 .storeSignIn(stores)
+                .environment(agents)
         }
 
         MenuBarExtra(isInserted: $showInMenuBar) {
@@ -172,6 +187,8 @@ struct CartoucheApp: App {
         await loadRunners()
         startStores()
         await compat.refresh()
+        // With the library and folders loaded the agent's readable roots are known
+        agentBackend.refreshRoots()
     }
 
     // Store accounts from the Keychain, then each store's list in the background (P10)

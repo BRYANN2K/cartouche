@@ -94,6 +94,14 @@ final class InstallCenter {
         pump()
     }
 
+    // A retry the RetryFix list does not name (the agent's single_thread,
+    // copy_to_internal_disk): the inputs were changed by hand, so the job
+    // just queues again.
+    func requeue(_ job: InstallJob) {
+        job.phase = .waiting
+        pump()
+    }
+
     func stop(_ job: InstallJob) {
         if job.phase == .waiting {
             job.phase = .stopped

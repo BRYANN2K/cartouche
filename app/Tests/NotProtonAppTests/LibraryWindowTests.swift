@@ -186,9 +186,9 @@ struct LibraryWindowTests {
 @MainActor
 struct SettingsWindowTests {
 
-    @Test("Tabs: General, Library, Accounts, Compatibility, Privacy, Consoles and Controllers")
+    @Test("Tabs: General, Library, Accounts, Compatibility, Privacy, Consoles, Controllers and Agents")
     func tabs() {
-        #expect(SettingsTab.allCases.map(\.title) == ["General", "Library", "Accounts", "Compatibility", "Privacy", "Consoles", "Controllers"])
+        #expect(SettingsTab.allCases.map(\.title) == ["General", "Library", "Accounts", "Compatibility", "Privacy", "Consoles", "Controllers", "Agents"])
     }
 
     @Test("Each tab renders in light and dark")
@@ -207,6 +207,10 @@ struct SettingsWindowTests {
         let consoles = ConsolesSettingsModel(paths: paths, includedApp: fixture.root.appending(path: "RetroArch.app"),
                                              cores: CoreManager(paths: paths), official: OfficialRelease(paths: paths),
                                              probe: { _ in nil })
+        let agentBackend = AgentFixture(home: fixture.root)
+        let agentService = AgentService(backend: agentBackend, level: .standard, home: fixture.root)
+        agentService.notify = { _ in }
+        let agents = AgentControlModel(service: agentService, defaults: scratch.defaults)
         let panes: [(SettingsTab, AnyView)] = [
             (.general, AnyView(GeneralSettingsView())),
             (.library, AnyView(LibrarySettingsView(model: model))),
@@ -214,6 +218,7 @@ struct SettingsWindowTests {
             (.compatibility, AnyView(CompatibilitySettingsView(model: model))),
             (.privacy, AnyView(PrivacySettingsView(center: center))),
             (.consoles, AnyView(ConsolesSettingsView(model: consoles, chooseApp: { nil }))),
+            (.agents, AnyView(AgentsSettingsView(model: agents))),
         ]
         for (tab, view) in panes {
             for dark in [false, true] {

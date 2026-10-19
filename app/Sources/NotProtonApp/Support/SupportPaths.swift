@@ -57,6 +57,10 @@ enum SupportPaths {
 
     static var deployedVersion: URL { support.appending(path: "dylib.version") }
 
+    // The socket the bundled cartouche-mcp helper connects to (P11); the agent
+    // server binds it while Settings > Agents is on.
+    static var agentSocket: URL { support.appending(path: CARTOUCHE_AGENT_SOCKET) }
+
     // Read by the dylib at Steam launch, in np_compat_load_tool_list.
     static var toolList: URL { support.appending(path: "tools") }
     // Read with it, one tool per runner and graphics backend pair (P3)

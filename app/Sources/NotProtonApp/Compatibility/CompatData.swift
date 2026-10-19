@@ -23,9 +23,9 @@ struct CompatData: Decodable, Sendable {
     // Unpacks, checks against the schema and decodes. Any failure means the file is not used.
     static func read(_ data: Data, schema: CompatSchema) throws -> CompatData {
         let json = data.first == 0x1f ? try Gzip.decompress(data) : data
-        let tree: JSONValue
+        let tree: SchemaValue
         do {
-            tree = try JSONDecoder().decode(JSONValue.self, from: json)
+            tree = try JSONDecoder().decode(SchemaValue.self, from: json)
         } catch {
             throw Rejected(description: "not JSON")
         }
