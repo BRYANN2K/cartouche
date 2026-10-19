@@ -669,6 +669,8 @@ app: app-payload $(ICON_CAR)
 		"$(APP_BUNDLE)/Contents/MacOS/Cartouche"
 	cp -R "$$(swift build --package-path app -c release --show-bin-path)/NotProtonApp_NotProtonApp.bundle" \
 		"$(APP_BUNDLE)/Contents/Resources/"
+	cp -R "$$(swift build --package-path app -c release --show-bin-path)/RetroArchKit_RetroArchKit.bundle" \
+		"$(APP_BUNDLE)/Contents/Resources/"
 	cp -R "$(APP_BUNDLE)/Contents/Resources/NotProtonApp_NotProtonApp.bundle/Contents/Resources/"*.lproj \
 		"$(APP_BUNDLE)/Contents/Resources/"
 	cp "$(ICON_DIR)/Assets.car" "$(ICON_DIR)/Cartouche.icns" \

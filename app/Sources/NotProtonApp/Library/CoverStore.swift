@@ -1,0 +1,106 @@
+// Where a game's cover comes from. The user's own image wins; then Steam's library
+// art for the App ID, from Steam's own cache first, then Cartouche's copy of Steam's
+// CDN art; then the store's art (P10); and last a cover drawn from the name.
+
+import Foundation
+
+enum CoverArt: Equatable, Sendable {
+    case image(URL)
+    // Drawn from the game's name and its executable icon
+    case drawn
+}
+
+enum ArtKind: String, Sendable {
+    // 600 by 900, the grid
+    case cover = "library_600x900"
+    // The wide picture at the top of the panel
+    case hero = "library_hero"
+}
+
+struct CoverStore: Sendable {
+
+    typealias Fetch = @Sendable (URL) async throws -> (Data, Int)
+
+    var steamCache: URL = SupportPaths.Steam.userData.appending(path: "appcache/librarycache")
+    var cache: URL = SupportPaths.home.appending(path: "Library/Caches/\(SupportPaths.supportDirName)/covers")
+    var fetch: Fetch = CoverStore.download
+    // Store art arrives with P10
+    var storeArt: @Sendable (Game, ArtKind) -> URL? = { _, _ in nil }
+
+    static func cdn(_ appID: Int, _ kind: ArtKind) -> URL {
+        URL(string: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/\(appID)/\(kind.rawValue).jpg")!
+    }
+
+    // What is on disk now, without the network
+    func local(for game: Game, kind: ArtKind, override: URL?) -> CoverArt? {
+        if kind == .cover, let override, exists(override) { return .image(override) }
+        if let appID = game.steamAppID {
+            if let found = steamFile(appID, kind) { return .image(found) }
+            let mine = cached(appID, kind)
+            if exists(mine) { return .image(mine) }
+        }
+        if let store = storeArt(game, kind), exists(store) { return .image(store) }
+        return nil
+    }
+
+    // The local art, or Steam's CDN copied into Cartouche's cache, or the drawn cover.
+    // Offline, the CDN step fails and the next source is used.
+    func art(for game: Game, kind: ArtKind, override: URL?) async -> CoverArt {
+        if let found = local(for: game, kind: kind, override: override) { return found }
+        if let appID = game.steamAppID, let saved = await download(appID, kind) { return .image(saved) }
+        return .drawn
+    }
+
+    // Steam keeps library art as <appid>_library_600x900.jpg in older clients, and in
+    // a folder per app, sometimes one level deeper, in newer ones
+    func steamFile(_ appID: Int, _ kind: ArtKind) -> URL? {
+        let names = kind == .cover ? ["library_600x900.jpg", "library_capsule.jpg"] : ["library_hero.jpg"]
+        let flat = steamCache.appending(path: "\(appID)_\(kind.rawValue).jpg")
+        if exists(flat) { return flat }
+        let folder = steamCache.appending(path: String(appID))
+        for name in names where exists(folder.appending(path: name)) { return folder.appending(path: name) }
+        let inner = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
+        for sub in inner.map(\.lastPathComponent).sorted() {
+            let found = names.map { folder.appending(path: sub).appending(path: $0) }.first(where: exists)
+            if let found { return found }
+        }
+        return nil
+    }
+
+    func cached(_ appID: Int, _ kind: ArtKind) -> URL {
+        cache.appending(path: "\(appID)/\(kind.rawValue).jpg")
+    }
+
+    private func download(_ appID: Int, _ kind: ArtKind) async -> URL? {
+        guard let (data, status) = try? await fetch(Self.cdn(appID, kind)), status == 200, Self.looksLikeImage(data) else {
+            return nil
+        }
+        let file = cached(appID, kind)
+        do {
+            try atomicReplace(file, with: data, step: "cover")
+            return file
+        } catch {
+            return nil
+        }
+    }
+
+    // JPEG or PNG, so an error page is never shown as a cover
+    static func looksLikeImage(_ data: Data) -> Bool {
+        data.starts(with: [0xFF, 0xD8, 0xFF]) || data.starts(with: [0x89, 0x50, 0x4E, 0x47])
+    }
+
+    private func exists(_ url: URL) -> Bool {
+        FileManager.default.fileExists(atPath: url.path(percentEncoded: false))
+    }
+
+    static let session: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 15
+        return URLSession(configuration: config)
+    }()
+
+    @Sendable static func download(_ url: URL) async throws -> (Data, Int) {
+        let (data, response) = try await session.data(from: url)
+        return (data, (response as? HTTPURLResponse)?.statusCode ?? 0)
+    }
+}

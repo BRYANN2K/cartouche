@@ -33,6 +33,22 @@
         }
       }
     },
+    "%@ (this Mac)" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (questo Mac)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@（这台 Mac）"
+          }
+        }
+      }
+    },
     "%@ and %@ both come from %@ but pin different hashes." : {
       "localizations" : {
         "it" : {
@@ -49,6 +65,22 @@
         }
       }
     },
+    "%@ artwork" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Immagine di %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 的图片"
+          }
+        }
+      }
+    },
     "%@ at %@ spans %lld bytes, past the end of a %lld byte file." : {
       "localizations" : {
         "it" : {
@@ -61,6 +93,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%2$@ 处的%1$@占用 %3$lld 字节，超出了文件的 %4$lld 字节长度。"
+          }
+        }
+      }
+    },
+    "%@ average" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Media di %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 平均"
           }
         }
       }
@@ -513,6 +561,22 @@
         }
       }
     },
+    "%@ support comes in a later version of Cartouche. You will sign in on %@’s own page, and Cartouche will keep only a login token, in your Keychain." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il supporto di %1$@ arriverà in una versione successiva di Cartouche. Accederai dalla pagina di %2$@ e Cartouche conserverà solo un token di accesso, nel tuo portachiavi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 支持将在 Cartouche 的后续版本中推出。你将在 %@ 自己的页面上登录，Cartouche 只会在你的钥匙串中保存登录令牌。"
+          }
+        }
+      }
+    },
     "%@ templates %@" : {
       "localizations" : {
         "it" : {
@@ -584,6 +648,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@，独占空间 %@"
+          }
+        }
+      }
+    },
+    "%@. %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@. %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@。%@。"
+          }
+        }
+      }
+    },
+    "%@. Signed in as %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@. Accesso come %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@。已登录为 %@"
           }
         }
       }
@@ -780,6 +876,38 @@
         }
       }
     },
+    "%lld fps" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld fps"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld fps"
+          }
+        }
+      }
+    },
+    "%lld games" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld giochi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 款游戏"
+          }
+        }
+      }
+    },
     "%lld of %lld recent ProtonDB reports say it doesn’t run on Linux." : {
       "localizations" : {
         "it" : {
@@ -792,6 +920,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld/%lld 份近期 ProtonDB 报告称其无法在 Linux 上运行。"
+          }
+        }
+      }
+    },
+    "%lld reports" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld segnalazioni"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 份报告"
+          }
+        }
+      }
+    },
+    "%lld reports from Macs like yours" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld segnalazioni da Mac simili al tuo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "来自与你的 Mac 相近机型的 %lld 份报告"
+          }
+        }
+      }
+    },
+    "%lld results" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld risultati"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 个结果"
           }
         }
       }
@@ -888,6 +1064,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1 个备份"
+          }
+        }
+      }
+    },
+    "1 game" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 gioco"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 款游戏"
+          }
+        }
+      }
+    },
+    "1 report" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 segnalazione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 份报告"
+          }
+        }
+      }
+    },
+    "1 report from Macs like yours" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 segnalazione da Mac simili al tuo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "来自与你的 Mac 相近机型的 1 份报告"
+          }
+        }
+      }
+    },
+    "1 result" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 risultato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 个结果"
           }
         }
       }
@@ -1100,6 +1340,22 @@
         }
       }
     },
+    "Accounts" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "账户"
+          }
+        }
+      }
+    },
     "Add" : {
       "localizations" : {
         "it" : {
@@ -1112,6 +1368,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "添加"
+          }
+        }
+      }
+    },
+    "Add Consoles" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi console"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加主机"
           }
         }
       }
@@ -1132,6 +1404,54 @@
         }
       }
     },
+    "Add Games" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi giochi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加游戏"
+          }
+        }
+      }
+    },
+    "Add Games…" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi giochi…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加游戏…"
+          }
+        }
+      }
+    },
+    "Add a Windows game or your own console games" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi un gioco Windows o i tuoi giochi per console"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加 Windows 游戏或你自己的主机游戏"
+          }
+        }
+      }
+    },
     "Add a copy of CrossOver from another folder." : {
       "localizations" : {
         "it" : {
@@ -1148,6 +1468,54 @@
         }
       }
     },
+    "Add to Favorites" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi ai preferiti"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加到个人收藏"
+          }
+        }
+      }
+    },
+    "Add your own game dumps with Add Games, or put them in a watched folder." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi i dump dei tuoi giochi con Aggiungi giochi, o mettili in una cartella monitorata."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用“添加游戏”添加你自己的游戏备份，或将其放入受监视的文件夹。"
+          }
+        }
+      }
+    },
+    "Adding games this way comes in a later version of Cartouche." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungere giochi in questo modo arriverà in una versione successiva di Cartouche."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以这种方式添加游戏将在 Cartouche 的后续版本中推出。"
+          }
+        }
+      }
+    },
     "Adds Steam Play to the Steam app" : {
       "localizations" : {
         "it" : {
@@ -1160,6 +1528,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "为 Steam 应用添加 Steam Play"
+          }
+        }
+      }
+    },
+    "Advanced" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avanzate"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "高级"
+          }
+        }
+      }
+    },
+    "All Games" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tutti i giochi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有游戏"
+          }
+        }
+      }
+    },
+    "All Mac Reports" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tutte le segnalazioni Mac"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有 Mac 报告"
           }
         }
       }
@@ -1272,6 +1688,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "另一项安装操作正在修改此处的文件。请等待该操作完成。"
+          }
+        }
+      }
+    },
+    "Anti-Cheat on Linux" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anti-cheat su Linux"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Linux 上的反作弊"
           }
         }
       }
@@ -1528,6 +1960,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "AreWeAntiCheatYet：%@ 计划支持 Linux。"
+          }
+        }
+      }
+    },
+    "Average" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Media"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "平均"
           }
         }
       }
@@ -1832,6 +2280,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在阻止 Steam 客户端更新"
+          }
+        }
+      }
+    },
+    "Bring your games to this Mac" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Porta i tuoi giochi su questo Mac"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "把你的游戏带到这台 Mac"
           }
         }
       }
@@ -2143,6 +2607,22 @@
         }
       }
     },
+    "Cartouche checks the files first and runs nothing until you choose Install." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche controlla prima i file e non esegue nulla finché non scegli Installa."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 会先检查文件，在你选择“安装”之前不会运行任何内容。"
+          }
+        }
+      }
+    },
     "Cartouche could not download %@. Check your internet connection and try again." : {
       "localizations" : {
         "it" : {
@@ -2187,6 +2667,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cartouche 无法连接 %@ 服务器。请检查网络连接，然后重试。"
+          }
+        }
+      }
+    },
+    "Cartouche couldn’t read your library" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche non è riuscito a leggere la tua libreria"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 无法读取你的游戏库"
+          }
+        }
+      }
+    },
+    "Cartouche couldn’t save your library choices: %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche non è riuscito a salvare le scelte della libreria: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 无法保存你的游戏库选择：%@"
+          }
+        }
+      }
+    },
+    "Cartouche couldn’t use this image: %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche non è riuscito a usare questa immagine: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 无法使用此图片：%@"
           }
         }
       }
@@ -2267,6 +2795,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cartouche 已移除。由于另一个工具也在使用 Steam，Steam 保持不变。"
+          }
+        }
+      }
+    },
+    "Cartouche identifies each file by its checksum and downloads only the cores it needs." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche riconosce ogni file dal suo checksum e scarica solo i core necessari."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 通过校验和识别每个文件，并只下载需要的核心。"
           }
         }
       }
@@ -2383,6 +2927,22 @@
         }
       }
     },
+    "Change Cover…" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambia copertina…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更改封面…"
+          }
+        }
+      }
+    },
     "Check for Updates…" : {
       "localizations" : {
         "it" : {
@@ -2427,6 +2987,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请检查权限，确认当前用户拥有该文件夹。"
+          }
+        }
+      }
+    },
+    "Check the spelling, or connect another store." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controlla l’ortografia o collega un altro negozio."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请检查拼写，或连接其他商店。"
           }
         }
       }
@@ -2495,6 +3071,38 @@
         }
       }
     },
+    "Choose a cover image." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli un’immagine di copertina."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择一张封面图片。"
+          }
+        }
+      }
+    },
+    "Choose the Steam app." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli l’app Steam."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择 Steam 应用。"
+          }
+        }
+      }
+    },
     "Choose…" : {
       "localizations" : {
         "it" : {
@@ -2527,6 +3135,22 @@
         }
       }
     },
+    "Clear Search" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancella ricerca"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除搜索"
+          }
+        }
+      }
+    },
     "Clear Steam's controller permission so macOS asks for it again." : {
       "localizations" : {
         "it" : {
@@ -2539,6 +3163,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "清除 Steam 的控制器权限，让 macOS 重新询问授权。"
+          }
+        }
+      }
+    },
+    "Click the star on a game to add it here." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fai clic sulla stella di un gioco per aggiungerlo qui."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点按游戏上的星标即可将其添加到这里。"
           }
         }
       }
@@ -2571,6 +3211,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请先关闭 Steam，再继续。"
+          }
+        }
+      }
+    },
+    "Compatibility" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compatibilità"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "兼容性"
           }
         }
       }
@@ -2703,6 +3359,70 @@
         }
       }
     },
+    "Connect %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collega %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连接 %@"
+          }
+        }
+      }
+    },
+    "Connect a store or install a Windows game. Everything shows up here, ready to play." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collega un negozio o installa un gioco Windows. Tutto compare qui, pronto per giocare."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连接商店或安装 Windows 游戏。所有游戏都会显示在这里，随时可玩。"
+          }
+        }
+      }
+    },
+    "Connect to the internet to download" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connettiti a Internet per scaricare"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连接互联网以下载"
+          }
+        }
+      }
+    },
+    "Console Games" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Giochi per console"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "主机游戏"
+          }
+        }
+      }
+    },
     "Console games and the rest of Cartouche still work." : {
       "localizations" : {
         "it" : {
@@ -2715,6 +3435,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "主机游戏和 Cartouche 的其他功能仍可使用。"
+          }
+        }
+      }
+    },
+    "Consoles" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Console"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "主机"
           }
         }
       }
@@ -3023,6 +3759,22 @@
         }
       }
     },
+    "Covers and compatibility data come from this Mac until the connection is back." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copertine e dati di compatibilità vengono da questo Mac finché la connessione non torna."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连接恢复前，封面和兼容性数据来自这台 Mac。"
+          }
+        }
+      }
+    },
     "CrossOver" : {
       "shouldTranslate" : false
     },
@@ -3086,6 +3838,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "不会移除 CrossOver 原应用。"
+          }
+        }
+      }
+    },
+    "D3DMetal is never bundled. It comes from your own Game Porting Toolkit or CrossOver." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "D3DMetal non è mai incluso. Viene dal tuo Game Porting Toolkit o da CrossOver."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "D3DMetal 从不随附。它来自你自己的 Game Porting Toolkit 或 CrossOver。"
           }
         }
       }
@@ -3458,6 +4226,22 @@
         }
       }
     },
+    "Details" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dettagli"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "详细信息"
+          }
+        }
+      }
+    },
     "DirectX 11 and 12 through Apple’s D3DMetal" : {
       "localizations" : {
         "it" : {
@@ -3502,6 +4286,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已完成"
+          }
+        }
+      }
+    },
+    "Download Steam" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scarica Steam"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载 Steam"
           }
         }
       }
@@ -3570,6 +4370,22 @@
         }
       }
     },
+    "Downloading Steam…" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download di Steam…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在下载 Steam…"
+          }
+        }
+      }
+    },
     "Downloading from %@" : {
       "localizations" : {
         "it" : {
@@ -3618,6 +4434,22 @@
         }
       }
     },
+    "Downloads the official installer from Valve and moves Steam to Applications." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scarica l’installer ufficiale da Valve e sposta Steam in Applicazioni."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从 Valve 下载官方安装程序，并将 Steam 移到“应用程序”。"
+          }
+        }
+      }
+    },
     "Dragging an installer onto Cartouche still works." : {
       "localizations" : {
         "it" : {
@@ -3630,6 +4462,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "将安装程序拖到 Cartouche 上仍然可用。"
+          }
+        }
+      }
+    },
+    "Drop a setup.exe or a game folder on Add Games to install it." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trascina un setup.exe o una cartella di gioco su Aggiungi giochi per installarlo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将 setup.exe 或游戏文件夹拖到“添加游戏”上即可安装。"
+          }
+        }
+      }
+    },
+    "Drop a setup.exe with its .bin files, or a game folder" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trascina un setup.exe con i suoi file .bin, o una cartella di gioco"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拖入 setup.exe 及其 .bin 文件，或游戏文件夹"
+          }
+        }
+      }
+    },
+    "Drop your own game dumps, or a folder of them" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trascina i dump dei tuoi giochi, o una cartella che li contiene"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拖入你自己的游戏备份，或存放它们的文件夹"
           }
         }
       }
@@ -3666,6 +4546,22 @@
         }
       }
     },
+    "Epic Games, GOG and Amazon Games sign-in comes in a later version of Cartouche." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accesso a Epic Games, GOG e Amazon Games arriverà in una versione successiva di Cartouche."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Epic Games、GOG 和 Amazon Games 登录将在 Cartouche 的后续版本中推出。"
+          }
+        }
+      }
+    },
     "Excellent" : {
       "localizations" : {
         "it" : {
@@ -3678,6 +4574,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "极佳"
+          }
+        }
+      }
+    },
+    "Expected on This Mac" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previsto su questo Mac"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在这台 Mac 上的预期表现"
           }
         }
       }
@@ -3710,6 +4622,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "操作失败"
+          }
+        }
+      }
+    },
+    "Favorites" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preferiti"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "个人收藏"
           }
         }
       }
@@ -3758,6 +4686,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下载 Valve 组件"
+          }
+        }
+      }
+    },
+    "Find" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trova"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查找"
           }
         }
       }
@@ -3842,6 +4786,70 @@
         }
       }
     },
+    "Games you own show up here once %@ is running and signed in." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I giochi che possiedi compaiono qui quando %@ è aperto e hai eseguito l’accesso."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 运行并登录后，你拥有的游戏会显示在这里。"
+          }
+        }
+      }
+    },
+    "General" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generali"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通用"
+          }
+        }
+      }
+    },
+    "Get" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ottieni"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "获取"
+          }
+        }
+      }
+    },
+    "Get Info" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ottieni informazioni"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示简介"
+          }
+        }
+      }
+    },
     "Get a notification when a game is ready?" : {
       "localizations" : {
         "it" : {
@@ -3874,6 +4882,118 @@
         }
       }
     },
+    "Graphics" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grafica"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "图形"
+          }
+        }
+      }
+    },
+    "Graphics Reported on Macs" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grafica segnalata sui Mac"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac 上报告的图形方案"
+          }
+        }
+      }
+    },
+    "Hidden Games" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Giochi nascosti"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已隐藏的游戏"
+          }
+        }
+      }
+    },
+    "Hidden games stay installed. They are left out of the library and search." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I giochi nascosti restano installati. Sono esclusi dalla libreria e dalla ricerca."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐藏的游戏仍保持安装，但不会出现在游戏库和搜索中。"
+          }
+        }
+      }
+    },
+    "Hide Cartouche" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nascondi Cartouche"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐藏 Cartouche"
+          }
+        }
+      }
+    },
+    "Hide Game" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nascondi gioco"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐藏游戏"
+          }
+        }
+      }
+    },
+    "Hide Game Panel" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nascondi pannello del gioco"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐藏游戏面板"
+          }
+        }
+      }
+    },
     "High" : {
       "localizations" : {
         "it" : {
@@ -3886,6 +5006,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "高"
+          }
+        }
+      }
+    },
+    "Homebrew could not install Steam: %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Homebrew non è riuscito a installare Steam: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Homebrew 无法安装 Steam：%@"
           }
         }
       }
@@ -3970,6 +5106,22 @@
         }
       }
     },
+    "Install Cartouche into Steam, repair it, and manage prefixes and backups." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installa Cartouche in Steam, riparalo e gestisci prefissi e backup."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将 Cartouche 安装到 Steam、修复它，并管理前缀和备份。"
+          }
+        }
+      }
+    },
     "Install Cartouche into Steam." : {
       "localizations" : {
         "it" : {
@@ -3986,6 +5138,22 @@
         }
       }
     },
+    "Install Steam" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installa Steam"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装 Steam"
+          }
+        }
+      }
+    },
     "Install runner" : {
       "localizations" : {
         "it" : {
@@ -3998,6 +5166,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "安装运行环境"
+          }
+        }
+      }
+    },
+    "Install with Homebrew" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installa con Homebrew"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 Homebrew 安装"
           }
         }
       }
@@ -4130,6 +5314,22 @@
         }
       }
     },
+    "It replaces the cover from Steam until you choose Use the Original Cover." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sostituisce la copertina di Steam finché non scegli Usa la copertina originale."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "它会替换 Steam 的封面，直到你选择“使用原始封面”。"
+          }
+        }
+      }
+    },
     "It will replace the DLLs used by CrossOver with ones that match your compatibility tool." : {
       "localizations" : {
         "it" : {
@@ -4162,6 +5362,22 @@
         }
       }
     },
+    "Keep Cartouche Open" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantieni Cartouche aperto"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保持 Cartouche 打开"
+          }
+        }
+      }
+    },
     "Keeping the shipped %@ failed. " : {
       "localizations" : {
         "it" : {
@@ -4190,6 +5406,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "钥匙串"
+          }
+        }
+      }
+    },
+    "Kind" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tipo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "类型"
           }
         }
       }
@@ -4354,6 +5586,22 @@
         }
       }
     },
+    "Loading library" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Caricamento della libreria"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在载入游戏库"
+          }
+        }
+      }
+    },
     "Local Network" : {
       "localizations" : {
         "it" : {
@@ -4366,6 +5614,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "本地网络"
+          }
+        }
+      }
+    },
+    "Locate Steam…" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trova Steam…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查找 Steam…"
           }
         }
       }
@@ -4450,6 +5714,22 @@
         }
       }
     },
+    "Mac" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac"
+          }
+        }
+      }
+    },
     "Mac reports are turned off in Settings > Privacy" : {
       "localizations" : {
         "it" : {
@@ -4478,6 +5758,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "中"
+          }
+        }
+      }
+    },
+    "Metal Performance HUD" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HUD prestazioni Metal"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Metal 性能 HUD"
           }
         }
       }
@@ -4578,6 +5874,22 @@
         }
       }
     },
+    "Most players use %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La maggior parte dei giocatori usa %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "大多数玩家使用 %@"
+          }
+        }
+      }
+    },
     "Most reported layer: %@" : {
       "localizations" : {
         "it" : {
@@ -4590,6 +5902,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "报告最多的转译层：%@"
+          }
+        }
+      }
+    },
+    "Native" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nativo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原生"
           }
         }
       }
@@ -4658,6 +5986,22 @@
         }
       }
     },
+    "No %@ games yet" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ancora nessun gioco %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "还没有 %@ 游戏"
+          }
+        }
+      }
+    },
     "No Backups" : {
       "localizations" : {
         "it" : {
@@ -4686,6 +6030,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "暂无游戏容器"
+          }
+        }
+      }
+    },
+    "No Windows installers yet" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ancora nessun installer Windows"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "还没有 Windows 安装程序"
           }
         }
       }
@@ -4722,6 +6082,22 @@
         }
       }
     },
+    "No data" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun dato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无数据"
+          }
+        }
+      }
+    },
     "No estimate for this Mac yet" : {
       "localizations" : {
         "it" : {
@@ -4738,6 +6114,22 @@
         }
       }
     },
+    "No favorites yet" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ancora nessun preferito"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "还没有个人收藏"
+          }
+        }
+      }
+    },
     "No file at %@." : {
       "localizations" : {
         "it" : {
@@ -4750,6 +6142,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 处没有文件。"
+          }
+        }
+      }
+    },
+    "No games match “%@”" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun gioco corrisponde a “%@”"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有与“%@”匹配的游戏"
+          }
+        }
+      }
+    },
+    "No games yet" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ancora nessun gioco"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "还没有游戏"
+          }
+        }
+      }
+    },
+    "No hidden games" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun gioco nascosto"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有隐藏的游戏"
           }
         }
       }
@@ -4814,6 +6254,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此版本暂无报告"
+          }
+        }
+      }
+    },
+    "No runner found on this Mac yet" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun runner trovato su questo Mac"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这台 Mac 上尚未找到运行器"
+          }
+        }
+      }
+    },
+    "No runner set up" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun runner configurato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未设置运行器"
           }
         }
       }
@@ -4898,6 +6370,38 @@
         }
       }
     },
+    "Not available" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non disponibile"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不可用"
+          }
+        }
+      }
+    },
+    "Not connected" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non collegato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未连接"
+          }
+        }
+      }
+    },
     "Not found" : {
       "localizations" : {
         "it" : {
@@ -4958,6 +6462,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "尚未安装。"
+          }
+        }
+      }
+    },
+    "Not set up" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non configurato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未设置"
+          }
+        }
+      }
+    },
+    "Not signed in" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesso non eseguito"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未登录"
           }
         }
       }
@@ -5058,6 +6594,22 @@
         }
       }
     },
+    "Offline" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Offline"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "离线"
+          }
+        }
+      }
+    },
     "Offline. Compatibility data from %lld days ago." : {
       "localizations" : {
         "it" : {
@@ -5138,6 +6690,22 @@
         }
       }
     },
+    "Open Cartouche" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri Cartouche"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开 Cartouche"
+          }
+        }
+      }
+    },
     "Open Cartouche at login" : {
       "localizations" : {
         "it" : {
@@ -5202,6 +6770,54 @@
         }
       }
     },
+    "Open Steam" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri Steam"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开 Steam"
+          }
+        }
+      }
+    },
+    "Open Steam Play Setup" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri configurazione di Steam Play"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开 Steam Play 设置"
+          }
+        }
+      }
+    },
+    "Open Steam to Sign In" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri Steam per accedere"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开 Steam 以登录"
+          }
+        }
+      }
+    },
     "Open System Settings" : {
       "localizations" : {
         "it" : {
@@ -5234,6 +6850,22 @@
         }
       }
     },
+    "Other ways" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Altri modi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其他方式"
+          }
+        }
+      }
+    },
     "Overlay shim" : {
       "localizations" : {
         "it" : {
@@ -5246,6 +6878,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "游戏叠加层适配组件"
+          }
+        }
+      }
+    },
+    "PC" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PC"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PC"
+          }
+        }
+      }
+    },
+    "PC Games" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Giochi PC"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PC 游戏"
           }
         }
       }
@@ -5314,6 +6978,38 @@
         }
       }
     },
+    "Perfect" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perfetto"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完美"
+          }
+        }
+      }
+    },
+    "Play" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gioca"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开始游戏"
+          }
+        }
+      }
+    },
     "Play with others on your network?" : {
       "localizations" : {
         "it" : {
@@ -5342,6 +7038,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "可玩"
+          }
+        }
+      }
+    },
+    "Played %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Giocato %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@玩过"
           }
         }
       }
@@ -5426,6 +7138,22 @@
         }
       }
     },
+    "Privacy" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐私"
+          }
+        }
+      }
+    },
     "Private Size" : {
       "localizations" : {
         "it" : {
@@ -5458,6 +7186,22 @@
         }
       }
     },
+    "Quit Cartouche" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esci da Cartouche"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "退出 Cartouche"
+          }
+        }
+      }
+    },
     "RVA %@ falls in no mapped section of the %@ ntdll, so the %@ cannot be located." : {
       "localizations" : {
         "it" : {
@@ -5470,6 +7214,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "RVA %@ 不在 %@ ntdll 的任何已映射节内，无法定位%@。"
+          }
+        }
+      }
+    },
+    "Rating" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valutazione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "评级"
           }
         }
       }
@@ -5730,6 +7490,22 @@
         }
       }
     },
+    "Recently Played" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Giocati di recente"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近玩过"
+          }
+        }
+      }
+    },
     "Record prefix build" : {
       "localizations" : {
         "it" : {
@@ -5774,6 +7550,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "刷新"
+          }
+        }
+      }
+    },
+    "Refresh Library" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiorna libreria"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刷新游戏库"
+          }
+        }
+      }
+    },
+    "Refresh Setup" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiorna configurazione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刷新设置"
           }
         }
       }
@@ -6014,6 +7822,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "移除 Cartouche 创建的所有内容？"
+          }
+        }
+      }
+    },
+    "Remove from Favorites" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rimuovi dai preferiti"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从个人收藏中移除"
           }
         }
       }
@@ -6450,6 +8274,22 @@
         }
       }
     },
+    "Runner" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Runner"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "运行器"
+          }
+        }
+      }
+    },
     "Runner %@" : {
       "localizations" : {
         "it" : {
@@ -6466,6 +8306,38 @@
         }
       }
     },
+    "Runners" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Runner"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "运行器"
+          }
+        }
+      }
+    },
+    "Runs" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si avvia"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可运行"
+          }
+        }
+      }
+    },
     "Runs on Linux in %lld of %lld recent ProtonDB reports." : {
       "localizations" : {
         "it" : {
@@ -6478,6 +8350,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld/%lld 份近期 ProtonDB 报告称其可在 Linux 上运行。"
+          }
+        }
+      }
+    },
+    "Search" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerca"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索"
           }
         }
       }
@@ -6594,6 +8482,54 @@
         }
       }
     },
+    "Setting up…" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurazione…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在设置…"
+          }
+        }
+      }
+    },
+    "Settings" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impostazioni"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设置"
+          }
+        }
+      }
+    },
+    "Settings…" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impostazioni…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设置…"
+          }
+        }
+      }
+    },
     "Setup" : {
       "localizations" : {
         "it" : {
@@ -6610,6 +8546,86 @@
         }
       }
     },
+    "Show" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示"
+          }
+        }
+      }
+    },
+    "Show Game" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra gioco"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示游戏"
+          }
+        }
+      }
+    },
+    "Show Game Panel" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra pannello del gioco"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示游戏面板"
+          }
+        }
+      }
+    },
+    "Show Games That Are Not Installed" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra i giochi non installati"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示未安装的游戏"
+          }
+        }
+      }
+    },
+    "Show games that are not installed" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra i giochi non installati"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示未安装的游戏"
+          }
+        }
+      }
+    },
     "Show in Finder" : {
       "localizations" : {
         "it" : {
@@ -6622,6 +8638,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在访达中显示"
+          }
+        }
+      }
+    },
+    "Show in Steam" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra in Steam"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 Steam 中显示"
+          }
+        }
+      }
+    },
+    "Show in menu bar" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra nella barra dei menu"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在菜单栏中显示"
           }
         }
       }
@@ -6658,6 +8706,118 @@
         }
       }
     },
+    "Sign In" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录"
+          }
+        }
+      }
+    },
+    "Sign In Again" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi di nuovo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新登录"
+          }
+        }
+      }
+    },
+    "Sign In with %@…" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi con %@…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 %@ 登录…"
+          }
+        }
+      }
+    },
+    "Sign In…" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录…"
+          }
+        }
+      }
+    },
+    "Sign in" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录"
+          }
+        }
+      }
+    },
+    "Sign in once to see your %@ library here. Games then run with the runner you choose." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi una volta per vedere qui la tua libreria %@. I giochi poi girano con il runner che scegli."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录一次即可在这里看到你的 %@ 游戏库。游戏随后会使用你选择的运行器运行。"
+          }
+        }
+      }
+    },
+    "Sign in to Steam" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi a Steam"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录 Steam"
+          }
+        }
+      }
+    },
     "Signature database" : {
       "localizations" : {
         "it" : {
@@ -6670,6 +8830,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "签名数据库"
+          }
+        }
+      }
+    },
+    "Signed in as %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesso come %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已登录为 %@"
           }
         }
       }
@@ -6702,6 +8878,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下载的文件存在问题。请检查是否有新版 Cartouche。"
+          }
+        }
+      }
+    },
+    "Sources" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fonti"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "来源"
           }
         }
       }
@@ -6772,6 +8964,22 @@
     },
     "Steam" : {
       "shouldTranslate" : false
+    },
+    "Steam Play Setup" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurazione di Steam Play"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam Play 设置"
+          }
+        }
+      }
     },
     "Steam Play in Steam" : {
       "localizations" : {
@@ -6949,6 +9157,22 @@
         }
       }
     },
+    "Steam could not be installed: %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile installare Steam: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法安装 Steam：%@"
+          }
+        }
+      }
+    },
     "Steam games still run." : {
       "localizations" : {
         "it" : {
@@ -7013,6 +9237,22 @@
         }
       }
     },
+    "Steam is installed. Sign in once in Steam. Your library then shows up here, and Windows games run through Steam Play." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam è installato. Accedi una volta in Steam. La tua libreria comparirà qui e i giochi Windows girano tramite Steam Play."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 已安装。请在 Steam 中登录一次。之后你的游戏库会显示在这里，Windows 游戏通过 Steam Play 运行。"
+          }
+        }
+      }
+    },
     "Steam is restored to its unmodified state and Cartouche is removed, including the compatibility tool that lives inside the Steam folder. Windows games and Steam Play prefixes are not removed." : {
       "localizations" : {
         "it" : {
@@ -7073,6 +9313,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Steam 已配置为注入其他动态库。请先修复 Steam，再安装 Cartouche。"
+          }
+        }
+      }
+    },
+    "Steam is somewhere else" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam si trova altrove"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 在其他位置"
           }
         }
       }
@@ -7233,6 +9489,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "推荐出现在“下载”中的安装程序"
+          }
+        }
+      }
+    },
+    "Syncing Steam library…" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sincronizzazione della libreria Steam…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在同步 Steam 游戏库…"
+          }
+        }
+      }
+    },
+    "Syncing…" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sincronizzazione…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在同步…"
           }
         }
       }
@@ -8133,6 +10421,22 @@
         }
       }
     },
+    "Translation" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduzione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "转译"
+          }
+        }
+      }
+    },
     "Try Again" : {
       "localizations" : {
         "it" : {
@@ -8161,6 +10465,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "极致"
+          }
+        }
+      }
+    },
+    "Uninstall…" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disinstalla…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "卸载…"
           }
         }
       }
@@ -8229,6 +10549,22 @@
         }
       }
     },
+    "Untested" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non testato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未测试"
+          }
+        }
+      }
+    },
     "Update" : {
       "localizations" : {
         "it" : {
@@ -8293,6 +10629,22 @@
         }
       }
     },
+    "Use" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用"
+          }
+        }
+      }
+    },
     "Use a copy of Steam from another folder or drive." : {
       "localizations" : {
         "it" : {
@@ -8305,6 +10657,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用其他文件夹或磁盘中的 Steam。"
+          }
+        }
+      }
+    },
+    "Use as Cover" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa come copertina"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用作封面"
           }
         }
       }
@@ -8325,6 +10693,22 @@
         }
       }
     },
+    "Use the Original Cover" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa la copertina originale"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用原始封面"
+          }
+        }
+      }
+    },
     "Use the newer Cartouche app to update or repair the installed files." : {
       "localizations" : {
         "it" : {
@@ -8337,6 +10721,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请使用较新版的 Cartouche 更新或修复已安装的文件。"
+          }
+        }
+      }
+    },
+    "Use this image as the cover of %@?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usare questa immagine come copertina di %@?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将此图片用作 %@ 的封面？"
+          }
+        }
+      }
+    },
+    "Uses Steam Play" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa Steam Play"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 Steam Play"
+          }
+        }
+      }
+    },
+    "Valve’s server did not send the installer." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il server di Valve non ha inviato l’installer."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valve 的服务器未发送安装程序。"
           }
         }
       }
@@ -8369,6 +10801,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "验证 CrossOver 许可证"
+          }
+        }
+      }
+    },
+    "Verify Files" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifica file"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "验证文件"
           }
         }
       }
@@ -8453,6 +10901,22 @@
         }
       }
     },
+    "When a game starts" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quando un gioco si avvia"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "游戏启动时"
+          }
+        }
+      }
+    },
     "When you open a game, Cartouche asks MacGamingDB for its Mac reports. MacGamingDB sees which game, but no account or Mac identifier." : {
       "localizations" : {
         "it" : {
@@ -8465,6 +10929,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "打开游戏时，Cartouche 会向 MacGamingDB 获取该游戏的 Mac 报告。MacGamingDB 能看到是哪款游戏，但看不到任何账户或 Mac 标识符。"
+          }
+        }
+      }
+    },
+    "Windows Game" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gioco Windows"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Windows 游戏"
+          }
+        }
+      }
+    },
+    "Windows Installer" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installer Windows"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Windows 安装程序"
+          }
+        }
+      }
+    },
+    "Windows Installers" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installer Windows"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Windows 安装程序"
           }
         }
       }
@@ -8571,6 +11083,54 @@
         }
       }
     },
+    "Your %@ session expired" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La tua sessione %@ è scaduta"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的 %@ 会话已过期"
+          }
+        }
+      }
+    },
+    "Your Play" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le tue partite"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的游戏记录"
+          }
+        }
+      }
+    },
+    "Your Steam library needs the Mac version of Steam. Windows games then run through Steam Play, with the runners you set up here." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La tua libreria Steam richiede la versione Mac di Steam. I giochi Windows girano poi tramite Steam Play, con i runner che configuri qui."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的 Steam 游戏库需要 Mac 版 Steam。之后 Windows 游戏会通过 Steam Play，使用你在这里设置的运行器运行。"
+          }
+        }
+      }
+    },
     "Your game and settings stay as they are." : {
       "localizations" : {
         "it" : {
@@ -8583,6 +11143,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你的游戏和设置会保持不变。"
+          }
+        }
+      }
+    },
+    "Your games still play. Sign in again to download and update them." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I tuoi giochi funzionano ancora. Accedi di nuovo per scaricarli e aggiornarli."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的游戏仍可游玩。重新登录即可下载和更新它们。"
           }
         }
       }
@@ -8983,6 +11559,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "重复声明了软件包 ID %@。"
+          }
+        }
+      }
+    },
+    "setup.exe and .bin" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "setup.exe e .bin"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "setup.exe 和 .bin"
+          }
+        }
+      }
+    },
+    "today" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "oggi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今天"
           }
         }
       }

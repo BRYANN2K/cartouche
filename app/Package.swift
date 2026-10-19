@@ -18,13 +18,18 @@ let package = Package(
     platforms: [.macOS("15.0")],
     dependencies: [
         .package(url: "https://github.com/sparkle-project/Sparkle", exact: "2.10.0"),
+        // Settings > Consoles
+        .package(path: "../retroarch"),
     ],
     targets: [
         // The folder names the app, the dylib and the run script share
         .target(name: "CartoucheIdentity", path: "Sources/CartoucheIdentity"),
         .executableTarget(
             name: "NotProtonApp",
-            dependencies: ["CartoucheIdentity", .product(name: "Sparkle", package: "Sparkle")],
+            dependencies: [
+                "CartoucheIdentity", .product(name: "Sparkle", package: "Sparkle"),
+                .product(name: "RetroArchKit", package: "retroarch"),
+            ],
             path: "Sources/NotProtonApp",
             resources: (hasPayload ? [.copy("Resources/payload")] : []) + [
                 .process("Resources/Localization"),
@@ -55,7 +60,7 @@ let package = Package(
     ] + (hasTests ? [
         .testTarget(
             name: "NotProtonAppTests",
-            dependencies: ["NotProtonApp"],
+            dependencies: ["NotProtonApp", .product(name: "RetroArchKit", package: "retroarch")],
             path: testsPath
         ),
     ] : [])
