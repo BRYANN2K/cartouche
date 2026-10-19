@@ -13,6 +13,9 @@ public struct ToolMap: Sendable, Equatable {
         case closeContent
         case quit
         case readMemory
+        case setShader
+        case setOption
+        case disk
 
         public var tool: String {
             switch self {
@@ -23,6 +26,9 @@ public struct ToolMap: Sendable, Equatable {
             case .closeContent: "CLOSE_CONTENT"
             case .quit: "QUIT"
             case .readMemory: "READ_CORE_MEMORY"
+            case .setShader: "SET_SHADER"
+            case .setOption: "SET_OPTION"
+            case .disk: "DISK"
             }
         }
 
@@ -32,6 +38,9 @@ public struct ToolMap: Sendable, Equatable {
             case .loadContent: [("core", []), ("content", [])]
             case .state: [("action", ["save", "load"]), ("slot", [])]
             case .readMemory: [("address", []), ("bytes", [])]
+            case .setShader: [("preset", [])]
+            case .setOption: [("option", []), ("state", ["on", "off"])]
+            case .disk: [("action", ["eject", "next", "prev"])]
             case .status, .screenshot, .closeContent, .quit: []
             }
         }

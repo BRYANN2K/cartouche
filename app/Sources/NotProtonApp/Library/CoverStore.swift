@@ -3,6 +3,7 @@
 // CDN art; then the store's art (P10); and last a cover drawn from the name.
 
 import Foundation
+import RetroArchKit
 
 enum CoverArt: Equatable, Sendable {
     case image(URL)
@@ -26,6 +27,23 @@ struct CoverStore: Sendable {
     var fetch: Fetch = CoverStore.download
     // Store art arrives with P10
     var storeArt: @Sendable (Game, ArtKind) -> URL? = { _, _ in nil }
+    // libretro-thumbnails for console games; nil uses the project's server
+    var thumbnails: Thumbnails?
+
+    var consoleThumbnails: Thumbnails {
+        thumbnails ?? Thumbnails(cache: cache.appending(path: "consoles", directoryHint: .isDirectory), fetch: fetch)
+    }
+
+    // Box art in the grid; a screenshot, else the title screen, else the box at the top of the panel
+    static func thumbnailKinds(_ kind: ArtKind) -> [ThumbnailKind] {
+        kind == .cover ? [.boxart] : [.snap, .title, .boxart]
+    }
+
+    private func consoleName(_ game: Game) -> (system: String, name: String)? {
+        guard let console = game.console, let name = console.databaseName,
+              let system = ConsoleCatalog.console(console.console)?.system else { return nil }
+        return (system, name)
+    }
 
     static func cdn(_ appID: Int, _ kind: ArtKind) -> URL {
         URL(string: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/\(appID)/\(kind.rawValue).jpg")!
@@ -40,6 +58,13 @@ struct CoverStore: Sendable {
             if exists(mine) { return .image(mine) }
         }
         if let store = storeArt(game, kind), exists(store) { return .image(store) }
+        if let (system, name) = consoleName(game) {
+            // A picture not tried yet comes before a fallback already here
+            for art in Self.thumbnailKinds(kind) {
+                if let found = consoleThumbnails.local(system: system, kind: art, name: name) { return .image(found) }
+                if !consoleThumbnails.isMissing(system: system, kind: art, name: name) { return nil }
+            }
+        }
         return nil
     }
 
@@ -48,6 +73,11 @@ struct CoverStore: Sendable {
     func art(for game: Game, kind: ArtKind, override: URL?) async -> CoverArt {
         if let found = local(for: game, kind: kind, override: override) { return found }
         if let appID = game.steamAppID, let saved = await download(appID, kind) { return .image(saved) }
+        if let (system, name) = consoleName(game) {
+            for art in Self.thumbnailKinds(kind) {
+                if let saved = await consoleThumbnails.image(system: system, kind: art, name: name) { return .image(saved) }
+            }
+        }
         return .drawn
     }
 

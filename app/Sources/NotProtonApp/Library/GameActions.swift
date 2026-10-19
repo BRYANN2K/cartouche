@@ -126,6 +126,8 @@ struct GameActionRunner {
     var showInfo: @MainActor () -> Void = {}
     // What Cartouche does once a game starts, from Settings > General
     var afterLaunch: @MainActor () -> Void = {}
+    // Console games start in RetroArch, through the console center
+    var playConsole: @MainActor (Game) -> Void = { _ in }
 
     func perform(_ action: GameAction, on game: Game) {
         switch action {
@@ -133,6 +135,8 @@ struct GameActionRunner {
             if let id = game.steamAppID {
                 open(URL(string: "steam://rungameid/\(id)")!)
                 afterLaunch()
+            } else if game.console != nil {
+                playConsole(game)
             }
         case .install:
             if let id = game.steamAppID { open(URL(string: "steam://install/\(id)")!) }
@@ -150,7 +154,11 @@ struct GameActionRunner {
             setup.graphics = backend
             model.setSetup(setup, for: game.id)
         case .showInFinder:
-            if let folder = model.installFolder(of: game) { reveal(folder) }
+            if let file = game.console?.fileURL {
+                reveal(file)
+            } else if let folder = model.installFolder(of: game) {
+                reveal(folder)
+            }
         case .showInSteam:
             if let id = game.steamAppID { open(URL(string: "steam://nav/games/details/\(id)")!) }
         case .verifyFiles:

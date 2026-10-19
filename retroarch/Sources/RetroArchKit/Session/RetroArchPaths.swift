@@ -24,6 +24,13 @@ public struct RetroArchPaths: Sendable, Equatable {
     public var menuConfig: URL { folder("config") }
     // Where RetroArch unpacks the assets it carries
     public var bundle: URL { folder("bundle") }
+    // The libretro database, one .rdb per console
+    public var database: URL { folder("database") }
+    // Cartouche's own shader presets for the Look choice
+    public var shaders: URL { folder("shaders") }
+    // RetroArch's home, HOME and CFFIXED_USER_HOME: what it makes under ~
+    // (~/Documents/RetroArch, ~/Library/Application Support/RetroArch) stays here
+    public var home: URL { folder("home") }
 
     // The included RetroArch's own retroarch.cfg, passed with -c so that the
     // user's file is never read or written
@@ -40,7 +47,7 @@ public struct RetroArchPaths: Sendable, Equatable {
     func create() throws {
         for folder in [
             cores, coreInfo, bios, saves, states, screenshots, downloads, logs, playlists, recordings,
-            thumbnails, cache, menuConfig, bundle,
+            thumbnails, cache, menuConfig, bundle, home,
         ] {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         }

@@ -16,6 +16,12 @@ if [ ! -x "$exe" ]; then
     exit 1
 fi
 
+# A home of its own: RetroArch makes folders under ~ as it starts, and macOS
+# RetroArch finds ~ through Foundation, which reads CFFIXED_USER_HOME, not HOME
+scratch=$(mktemp -d "${TMPDIR:-/tmp}/check-retroarch.XXXXXX")
+trap 'rm -rf "$scratch"' EXIT
+export HOME="$scratch" CFFIXED_USER_HOME="$scratch"
+
 # A GUI build that does not exit after printing must not hang the job
 bounded() { perl -e 'alarm shift; exec @ARGV' 60 "$@"; }
 

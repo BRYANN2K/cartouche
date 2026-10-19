@@ -49,6 +49,10 @@ struct CoverView: View {
 
     var body: some View {
         ZStack {
+            // A console box, landscape or portrait, sits whole in its square
+            if game.coverShape == .square && kind == .cover {
+                Rectangle().fill(Color.primary.opacity(0.06))
+            }
             // What is on disk shows at once; only the CDN waits for the task
             switch art ?? covers.local(for: game, kind: kind, override: override) {
             case .image(let url):

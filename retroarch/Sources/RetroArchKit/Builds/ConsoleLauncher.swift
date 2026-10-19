@@ -20,8 +20,19 @@ public struct ConsoleLauncher: Sendable {
         // Without MCP, the UDP commands are what is left to talk to it
         config.networkCommands = !capabilities.mcp
         var launch = RetroArchLaunch(executable: app, config: config, mcp: capabilities.mcp)
-        launch.environment = environment
+        launch.environment = Self.environment(environment ?? ProcessInfo.processInfo.environment, home: paths.home)
         return launch
+    }
+
+    // RetroArch makes its default folders under ~ before it reads any config,
+    // and macOS RetroArch finds ~ through Foundation, which reads
+    // CFFIXED_USER_HOME rather than HOME. Both point into Cartouche's folder,
+    // so the user's own ~/Documents/RetroArch is never made or touched.
+    public static func environment(_ base: [String: String], home: URL) -> [String: String] {
+        var environment = base
+        environment["HOME"] = home.path(percentEncoded: false)
+        environment["CFFIXED_USER_HOME"] = home.path(percentEncoded: false)
+        return environment
     }
 
     public func play(core: URL, content: URL) async throws -> RetroArchSession {

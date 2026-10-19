@@ -1,0 +1,24 @@
+{
+  "_about": "Rows of the libretro database (libretro-database, rdb/, master on 2026-10-19), recorded as they are, plus rows for the synthetic homebrew cartridges and discs the tests write. The homebrew checksums were computed with Python's zlib and hashlib, apart from Cartouche's own code.",
+  "Nintendo - Super Nintendo Entertainment System": [
+    {"name": "Super Metroid (Japan, USA) (En,Ja)", "rom_name": "Super Metroid (Japan, USA) (En,Ja).sfc", "size": 3145728, "crc": "d63ed5f8", "md5": "21f3e98df4780ee1c667b84e57d88675", "sha1": "da957f0d63d14cb441d215462904c4fa8519c613"},
+    {"name": "Super Metroid (Japan, USA)[h]", "rom_name": "Super Metroid (1994)(Nintendo)(JP-US)(en)[h].bin", "size": 3145728, "crc": "1c665fbc", "md5": "f24904a32f1f6fc40f5be39086a7fa7c", "sha1": "aae861ec06198f1abe6293d0f22402fee96ba4ee"},
+    {"name": "Legend of Zelda, The - A Link to the Past (USA)", "rom_name": "Legend of Zelda, The - A Link to the Past (USA).sfc", "size": 1048576, "crc": "777aac2f", "md5": "608c22b8ff930c62dc2de54bcd6eba72", "sha1": "6d4f10a8b10e10dbe624cb23cf03b88bb8252973", "serial": "SNS-P-ZL"},
+    {"name": "Legend of Zelda, The - A Link to the Past (USA)", "rom_name": "Legend of Zelda, The - A Link to the Past (1992)(Nintendo)(US)[a].bin", "size": 1048576, "crc": "2d3f3778", "md5": "06691ea3ad0b9a5628961665b405b38c", "sha1": "843c5b03a566ec6ace031aa27129861e0e3170d4"},
+    {"name": "Cartouche Homebrew (World)", "rom_name": "Cartouche Homebrew (World).sfc", "size": 32768, "crc": "3fa862e9", "md5": "17e68b69340359ef09c0789df4f4f963", "sha1": "d5786716c2de06b5fc688bbd02d9ef9b2d7cb556"}
+  ],
+  "Nintendo - Game Boy": [
+    {"name": "Cartouche Quest (World)", "rom_name": "Cartouche Quest (World).gb", "size": 32768, "crc": "d6106f3a", "md5": "d3ea2bea44e10c929d339f1934bd22d2", "sha1": "cd8df01afc660a34b8ba4d5563f6365f51bbc035"},
+    {"name": "Cartouche Puzzle (World)", "rom_name": "Cartouche Puzzle (World).gb", "size": 32768, "crc": "b91b5d93", "md5": "772817e285e8201a95bdf0d8ab9f633b", "sha1": "9230f8df6f3950d213386ed6c97dceaf272dc825"},
+    {"name": "Cartouche Race (World)", "rom_name": "Cartouche Race (World).gb", "size": 32768, "crc": "60ee6afc", "md5": "7844772693d6639275fa14cba9cf509d", "sha1": "b3fec3ba018275743795f929e5d53beceba54c90"},
+    {"name": "Cartouche Maze (World)", "rom_name": "Cartouche Maze (World).gb", "size": 32768, "crc": "f6ff6e5e", "md5": "a6d499f212299e6174717c3fd29f42d2", "sha1": "859af205aa8fd133bea5a27554b364fc5482a9dd"}
+  ],
+  "Sony - PlayStation": [
+    {"name": "Crash Bandicoot (USA)", "rom_name": "Crash Bandicoot (USA).bin", "size": 632083536, "crc": "41b5f211", "md5": "b4aeaf0c0bb2f2000f31d12e7b59f8f9", "sha1": "61ff4c9e8dcfb9e5d94d37f66330b69d08d6c914", "serial": "SCUS-94900"},
+    {"name": "Metal Gear Solid (USA) (Disc 1) (Rev 1)", "rom_name": "Metal Gear Solid (USA) (Disc 1) (Rev 1).bin", "size": 705614112, "crc": "21b5d15d", "md5": "e31ce17570897c323b7a539a2c616c72", "sha1": "37498e6598ce4eabf00630b6a9197b20861e55a0", "serial": "SLUS-00594"},
+    {"name": "Metal Gear Solid (USA) (Disc 2) (Rev 1)", "rom_name": "Metal Gear Solid (USA) (Disc 2) (Rev 1).bin", "size": 731911824, "crc": "a3f02c87", "md5": "d613f35103086eb3b4803469f73f6e59", "sha1": "d6edfd60a375c10087eacebd709419950c8995ad", "serial": "SLUS-00776"},
+    {"name": "Cartouche Test Disc (World)", "rom_name": "Cartouche Test Disc (World).bin", "serial": "SLUS-99901"},
+    {"name": "Cartouche Test Saga (World) (Disc 1)", "rom_name": "Cartouche Test Saga (World) (Disc 1).bin", "serial": "SLUS-99902"},
+    {"name": "Cartouche Test Saga (World) (Disc 2)", "rom_name": "Cartouche Test Saga (World) (Disc 2).bin", "serial": "SLUS-99903"}
+  ]
+}

@@ -12,11 +12,12 @@ struct CartoucheApp: App {
     @State private var status = SystemStatus()
     @State private var prefixes = PrefixesModel()
     @State private var pane: Pane = .status
-    @State private var library = LibraryModel()
+    @State private var library: LibraryModel
     @State private var compat = CompatibilityModel()
     @State private var steamSetup = SteamSetup()
     @State private var permissions = PermissionCenter.live()
-    @State private var consoles = SettingsWindow.consolesModel()
+    @State private var consoles: ConsolesSettingsModel
+    @State private var consoleCenter: ConsoleCenter
     @State private var network = NetworkWatch()
     @State private var gameFolders = GameFolders()
     @State private var relaunch = RelaunchService()
@@ -29,6 +30,13 @@ struct CartoucheApp: App {
         // The first launch claims Cartouche's own folder, even before anything is installed
         try? FileManager.default.createDirectory(at: SupportPaths.support, withIntermediateDirectories: true)
         AppLog.start()
+        let library = LibraryModel()
+        // Settings > Consoles and the library share one core manager
+        let cores = CoreManager(paths: SettingsWindow.retroArchPaths)
+        let consoles = SettingsWindow.consolesModel(cores: cores)
+        _library = State(initialValue: library)
+        _consoles = State(initialValue: consoles)
+        _consoleCenter = State(initialValue: ConsoleCenter(settings: consoles, cores: cores, library: library))
     }
 
     private var actions: GameActionRunner {
@@ -41,18 +49,24 @@ struct CartoucheApp: App {
                 case .keepOpen: break
                 case .quit: NSApp.terminate(nil)
                 }
-            })
+            },
+            playConsole: { [consoleCenter] game in Task { await consoleCenter.play(game.id, resume: true) } })
     }
 
     var body: some Scene {
         Window("Cartouche", id: Self.mainWindow) {
             LibraryWindow(model: library, compat: compat, steamSetup: steamSetup, actions: actions)
+                .environment(consoleCenter)
                 .frame(minWidth: 900, minHeight: 560)
                 .sheet(isPresented: Binding(get: { onboarding?.isPresented ?? false },
                                             set: { onboarding?.isPresented = $0 })) {
                     if let onboarding { OnboardingView(model: onboarding).interactiveDismissDisabled() }
                 }
                 .task { await start() }
+                // Onboarding may have added consoles and game folders
+                .onChange(of: onboarding?.isPresented ?? false) { _, shown in
+                    if !shown { Task { await consoleCenter.reload(); await consoleCenter.scanFolders() } }
+                }
         }
         .defaultSize(width: 1280, height: 820)
         .commands { menus }
@@ -72,6 +86,7 @@ struct CartoucheApp: App {
 
         Settings {
             SettingsWindow(model: library, permissions: permissions, consoles: consoles)
+                .environment(consoleCenter)
                 .environment(onboarding)
                 .environment(gameFolders)
         }
@@ -104,6 +119,13 @@ struct CartoucheApp: App {
         compat.load()
         await library.load()
         library.watch()
+        await consoleCenter.reload()
+        consoleCenter.folderList = gameFolders
+        await consoleCenter.startWatching()
+        // A console game still running when Cartouche quits is quit and counted first
+        NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main) {
+            [consoleCenter] _ in MainActor.assumeIsolated { consoleCenter.endForTermination() }
+        }
         await loadRunners()
         await compat.refresh()
     }

@@ -84,6 +84,11 @@ public struct StopReport: Sendable, Equatable {
 
     public var way: Way
     public var duration: Duration
+
+    public init(way: Way, duration: Duration) {
+        self.way = way
+        self.duration = duration
+    }
 }
 
 // One running RetroArch, driven over its MCP pipe. Cartouche starts it with
@@ -185,6 +190,29 @@ public actor RetroArchSession {
         let result = try await call(.screenshot)
         guard let png = result.images.first else { throw RetroArchSessionError.unexpectedReply(result.text) }
         return png
+    }
+
+    // Answers once the preset is applied; nil turns the shader off
+    public func setShader(_ preset: URL?) async throws {
+        try await call(.setShader, ["preset": .string(preset?.path(percentEncoded: false) ?? "")])
+    }
+
+    // One of RetroArch's on/off options: runahead, cheevos_hardcore, pause…
+    public func setOption(_ option: String, on: Bool) async throws {
+        try await call(.setOption, ["option": .string(option), "state": .string(on ? "on" : "off")])
+    }
+
+    public enum DiskAction: String, Sendable { case eject, next, prev }
+
+    public func disk(_ action: DiskAction) async throws {
+        try await call(.disk, ["action": .string(action.rawValue)])
+    }
+
+    // The bytes at a system address, as RetroArch's reply lists them
+    public func readMemory(address: Int, bytes: Int) async throws -> [UInt8] {
+        let reply = try await call(.readMemory, ["address": .string(String(address, radix: 16)), "bytes": .number(Double(bytes))]).text
+        // "READ_CORE_MEMORY 0 1c 02 00 00"
+        return reply.split(separator: " ").dropFirst(2).compactMap { UInt8($0, radix: 16) }
     }
 
     public func closeContent() async throws {

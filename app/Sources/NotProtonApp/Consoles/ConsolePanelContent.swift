@@ -1,0 +1,88 @@
+// What the console game panel shows, in order: can I play it, where do I
+// continue from, how much did I play, with which setup. The rest is behind More….
+
+import Foundation
+import RetroArchKit
+
+struct ConsolePanelContent {
+
+    enum Section: String, Sendable {
+        case play, bios, continueFrom, stats, setup, controls, more
+
+        var title: String {
+            switch self {
+            case .play: String(localized: "Play")
+            case .bios: "BIOS"
+            case .continueFrom: String(localized: "Continue From")
+            case .stats: String(localized: "Your Play")
+            case .setup: String(localized: "Setup")
+            case .controls: String(localized: "Controls")
+            case .more: String(localized: "More…")
+            }
+        }
+    }
+
+    let game: ConsoleGame
+    let console: Console
+    let states: [SaveState]
+    let bios: BIOSStatus?
+    let playing: Playing?
+
+    var biosMissing: Bool { bios.map { !$0.isReady } ?? false }
+
+    // The BIOS warning comes right under Play, Continue From once a state exists
+    var sections: [Section] {
+        var out: [Section] = [.play]
+        if biosMissing { out.append(.bios) }
+        if !states.isEmpty { out.append(.continueFrom) }
+        out += [.stats, .setup, .controls, .more]
+        return out
+    }
+
+    var titles: [String] { sections.map { $0 == .play ? playLabel : $0.title } }
+
+    var hasAutoState: Bool { states.contains(where: \.isAuto) }
+
+    var playLabel: String {
+        switch playing?.phase {
+        case .starting: String(localized: "Starting…")
+        case .playing: String(localized: "Playing")
+        case nil: hasAutoState ? String(localized: "Resume") : String(localized: "Play")
+        }
+    }
+
+    var canPlay: Bool { playing == nil && !biosMissing && game.exists }
+
+    // "Super Nintendo. Played yesterday."
+    func subtitle(now: Date = Date()) -> String {
+        let state = game.lastPlayed.map { String(localized: "Played \(GameDates.relative($0, now: now))") }
+            ?? String(localized: "Never played")
+        return String(localized: "\(console.name). \(state).")
+    }
+
+    var played: String {
+        let minutes = Int(game.playSeconds / 60)
+        if minutes < 1 { return game.playSeconds > 0 ? String(localized: "Under a minute") : String(localized: "Not yet") }
+        if minutes < 60 { return minutes == 1 ? String(localized: "1 minute") : String(localized: "\(minutes) minutes") }
+        let hours = game.playSeconds / 3600
+        return String(localized: "\(hours.formatted(.number.precision(.fractionLength(0...1)))) hours")
+    }
+
+    // RetroAchievements sign-in arrives with P14; until then the count is unknown
+    var achievements: String { String(localized: "Not signed in") }
+
+    // "scph5501.bin is missing", and what to do about it
+    var biosWarning: (title: String, detail: String)? {
+        guard biosMissing, let bios else { return nil }
+        return (bios.message, String(localized: "Dump it from your own console, then put it in the BIOS folder."))
+    }
+
+    var cores: [(id: String, name: String)] { console.cores.map { ($0, ConsoleCatalog.coreName($0)) } }
+
+    var core: String { game.setup.core ?? console.core }
+
+    // "2 days ago" under each picture
+    static func when(_ state: SaveState, now: Date = Date()) -> String {
+        GameDates.relative(state.date, now: now)
+    }
+}

@@ -15,7 +15,7 @@ struct InstallSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             switch model.step {
-            case .drop: DropStep(model: model)
+            case .drop: DropStep(model: model, showConsoleGames: center.showConsoleGames)
             case .analysis: AnalysisStep(model: model)
             case .review: ReviewStep(model: model)
             case .installing: InstallingStep(center: center, model: model)
@@ -37,10 +37,19 @@ struct InstallSheet: View {
 
 private struct DropStep: View {
     let model: InstallSheetModel
+    var showConsoleGames: (@MainActor () -> Void)?
     @State private var targeted = false
 
     var body: some View {
         Text("Install a Windows Game").font(.title2.bold())
+        // The + sheet's two kinds, as in the mockup; Console Games is its own sheet
+        if let showConsoleGames {
+            Picker("Kind", selection: Binding(get: { AddGamesKind.windows }, set: { if $0 == .consoles { showConsoleGames() } })) {
+                ForEach(AddGamesKind.allCases) { Text($0.title).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+        }
         Text("Choose the folder with the installer. Keep the .bin files next to setup.exe.")
             .foregroundStyle(.secondary)
         VStack(spacing: 8) {

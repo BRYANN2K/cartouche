@@ -21,6 +21,8 @@ final class InstallCenter {
     static let shared = InstallCenter()
 
     var isSheetPresented = false
+    // Console Games in the first step's picker: the library's Add Games sheet (P13)
+    @ObservationIgnored var showConsoleGames: (@MainActor () -> Void)?
     private(set) var jobs: [InstallJob] = []
     let sheet: InstallSheetModel
 

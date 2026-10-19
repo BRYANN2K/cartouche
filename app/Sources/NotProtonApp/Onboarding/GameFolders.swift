@@ -60,6 +60,8 @@ extension URL {
 // Settings > Library
 struct GameFoldersSection: View {
     @Bindable var folders: GameFolders
+    // What the console library found in each folder (P13)
+    @Environment(ConsoleCenter.self) private var consoles: ConsoleCenter?
 
     var body: some View {
         Section {
@@ -72,7 +74,16 @@ struct GameFoldersSection: View {
                 } label: {
                     Text(verbatim: folder.plainPath).font(.callout.monospaced())
                         .lineLimit(1).truncationMode(.middle)
+                    if let consoles {
+                        Text(WatchedFolderState.text(folder.plainPath, count: consoles.folderCounts[folder.plainPath] ?? 0))
+                            .foregroundStyle(.secondary)
+                    }
                 }
+            }
+            if let consoles {
+                Toggle("Add new games automatically", isOn: Binding(
+                    get: { consoles.folderChoices.addAutomatically },
+                    set: { on in Task { await consoles.setAddAutomatically(on) } }))
             }
             Button("Add Folder…") {
                 if let folder = GameFolders.choose() { folders.add(folder) }

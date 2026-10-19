@@ -121,12 +121,15 @@ struct BIOSTests {
         #expect(catalog.firstMatch(of: link) == nil, "a UI string holds a link")
 
         // The only addresses in the code: where cores and core info come from,
-        // and where RetroArch's source is
+        // where RetroArch's source is, and the game database and box art (P13),
+        // which name games and hold no game file
         let allowed: Set<String> = [
             "https://buildbot.libretro.com/nightly/apple/osx/arm64/latest/",
             "https://buildbot.libretro.com/assets/frontend/info.zip",
             "https://buildbot.libretro.com/stable/",
             "https://github.com/libretro/RetroArch",
+            "https://raw.githubusercontent.com/libretro/libretro-database/master/rdb/",
+            "https://thumbnails.libretro.com/",
         ]
         let files = FileManager.default.enumerator(at: sources, includingPropertiesForKeys: nil)!
             .compactMap { $0 as? URL }.filter { $0.pathExtension == "swift" }

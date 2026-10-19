@@ -8,6 +8,7 @@ struct GamePanel: View {
 
     @State private var showingDetails = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(ConsoleCenter.self) private var consoles: ConsoleCenter?
 
     private var content: GamePanelContent {
         GamePanelContent(game: game, compat: compat.panel(appID: game.steamAppID ?? -1, method: .wine),
@@ -15,8 +16,16 @@ struct GamePanel: View {
     }
 
     var body: some View {
+        if let console = game.console, let consoles {
+            ConsolePanel(game: game, console: console, center: consoles, model: model, actions: actions)
+        } else {
+            pcBody
+        }
+    }
+
+    private var pcBody: some View {
         let content = content
-        ScrollView {
+        return ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 CoverView(game: game, kind: .hero)
                     .frame(height: 150)

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct LibrarySidebar: View {
     @Bindable var model: LibraryModel
+    @Environment(ConsoleCenter.self) private var consoles: ConsoleCenter?
 
     var body: some View {
         List(selection: $model.selection) {
@@ -17,15 +18,19 @@ struct LibrarySidebar: View {
                 row(.source(.installer), symbol: "shippingbox")
             }
             Section {
-                ForEach(model.consoles, id: \.self) { name in
-                    row(.source(.console(name)), symbol: "rectangle.portrait")
+                ForEach(model.consoles, id: \.self) { id in
+                    ConsoleSidebarRow(id: id, model: model)
                 }
             } header: {
                 HStack {
                     Text("Consoles")
                     Spacer()
+                    if consoles?.downloading.isEmpty == false {
+                        ProgressView().controlSize(.mini)
+                            .help(Text("Downloading cores…"))
+                    }
                     Button {
-                        model.addGames = .consoles
+                        model.showAddConsoles = true
                     } label: {
                         Image(systemName: "plus")
                     }
@@ -36,6 +41,9 @@ struct LibrarySidebar: View {
             }
         }
         .listStyle(.sidebar)
+        .safeAreaInset(edge: .bottom) {
+            if let consoles, consoles.playing != nil { ActivitySlot(center: consoles, model: model) }
+        }
         .navigationSplitViewColumnWidth(min: 190, ideal: 220, max: 280)
     }
 
@@ -54,6 +62,7 @@ struct LibraryWindow: View {
 
     @FocusState private var searchFocused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(ConsoleCenter.self) private var consoles: ConsoleCenter?
 
     var body: some View {
         NavigationSplitView {
@@ -98,6 +107,14 @@ struct LibraryWindow: View {
         .sheet(item: $model.addGames.withoutWindows) { kind in
             AddGamesSheet(kind: kind)
         }
+        .sheet(isPresented: $model.showAddConsoles) {
+            if let consoles { AddConsolesSheet(center: consoles) }
+        }
+        .overlay {
+            if let consoles, let powerOn = consoles.powerOn, !reduceMotion {
+                CRTPowerOn(powerOn: powerOn) { consoles.powerOn = nil }
+            }
+        }
         .installSheet(library: model, compat: compat)
         .animation(Motion(reduceMotion: reduceMotion).panel, value: model.selectedGameID)
     }
@@ -131,8 +148,17 @@ struct LibraryWindow: View {
 struct AddGamesSheet: View {
     @State var kind: AddGamesKind
     @Environment(\.dismiss) private var dismiss
+    @Environment(ConsoleCenter.self) private var consoles: ConsoleCenter?
 
     var body: some View {
+        if kind == .consoles, let consoles {
+            ConsoleImportFlow(center: consoles, kind: $kind)
+        } else {
+            windowsBody
+        }
+    }
+
+    private var windowsBody: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Add Games").font(.title2.weight(.bold))
             Picker("Kind", selection: $kind) {

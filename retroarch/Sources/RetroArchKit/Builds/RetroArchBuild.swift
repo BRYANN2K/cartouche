@@ -44,12 +44,15 @@ public enum ConsoleFeature: String, CaseIterable, Sendable, Identifiable {
 
 public enum BuildProbe {
 
-    // Runs the build twice, for --version and --help; nil if it is not RetroArch
-    public static func capabilities(of app: URL) async -> RetroArchCapabilities? {
+    // Runs the build twice, for --version and --help; nil if it is not RetroArch.
+    // With a home, RetroArch runs in it, as ConsoleLauncher runs it.
+    public static func capabilities(of app: URL, home: URL? = nil) async -> RetroArchCapabilities? {
         let executable = RetroArchLaunch.binary(app)
         guard FileManager.default.isExecutableFile(atPath: executable.path(percentEncoded: false)) else { return nil }
-        guard let help = await output(executable, "--help") else { return nil }
-        let version = await output(executable, "--version").flatMap { text in
+        if let home { try? FileManager.default.createDirectory(at: home, withIntermediateDirectories: true) }
+        let environment = home.map { ConsoleLauncher.environment(ProcessInfo.processInfo.environment, home: $0) }
+        guard let help = await output(executable, "--help", environment: environment) else { return nil }
+        let version = await output(executable, "--version", environment: environment).flatMap { text in
             text.split(separator: "\n").first { $0.hasPrefix("Version: ") }
                 .flatMap { $0.dropFirst("Version: ".count).split(separator: " ").first.map(String.init) }
         }
@@ -58,10 +61,12 @@ public enum BuildProbe {
     }
 
     // Bounded: a GUI build that does not exit is stopped after the limit
-    static func output(_ executable: URL, _ argument: String, limit: Duration = .seconds(10)) async -> String? {
+    static func output(_ executable: URL, _ argument: String, environment: [String: String]? = nil,
+                       limit: Duration = .seconds(10)) async -> String? {
         let process = Process()
         process.executableURL = executable
         process.arguments = [argument]
+        if let environment { process.environment = environment }
         let pipe = Pipe()
         process.standardOutput = pipe
         process.standardError = pipe

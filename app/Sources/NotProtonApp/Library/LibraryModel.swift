@@ -84,7 +84,9 @@ final class LibraryModel {
     private(set) var steam = SteamImport(presence: .closed, account: nil, games: [], exported: nil)
     // Windows installers (P6) and console games (P13) are added here by their phases
     var otherGames: [Game] = []
+    // Console catalog ids, and their games, which ConsoleCenter keeps here
     var consoles: [String] = []
+    var consoleGames: [Game] = []
     var stores: [GameSource: StoreConnection] = [:]
     var runners: [Runner] = []
     // From the registry and Steam's appinfo cache, set by the app (P3)
@@ -99,6 +101,7 @@ final class LibraryModel {
     // Window state the menus reach as well
     var showPanel = true
     var addGames: AddGamesKind?
+    var showAddConsoles = false
     var searchFocusRequests = 0
     var searchText = ""
     var isOffline = false
@@ -171,7 +174,7 @@ final class LibraryModel {
 
     // MARK: Games
 
-    var allGames: [Game] { (steam.games + otherGames).map(withVersion) }
+    var allGames: [Game] { (steam.games + otherGames).map(withVersion) + consoleGames }
 
     func game(_ id: String?) -> Game? {
         guard let id else { return nil }

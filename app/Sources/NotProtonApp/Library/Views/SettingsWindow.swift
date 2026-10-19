@@ -80,14 +80,15 @@ struct SettingsWindow: View {
     }
 
     // Cartouche's own RetroArch folder, never the user's
+    static let retroArchPaths = RetroArchPaths(root: SupportPaths.support.appending(path: "retroarch", directoryHint: .isDirectory))
+
     @MainActor
-    static func consolesModel() -> ConsolesSettingsModel {
-        let paths = RetroArchPaths(root: SupportPaths.support.appending(path: "retroarch", directoryHint: .isDirectory))
-        return ConsolesSettingsModel(
-            paths: paths,
+    static func consolesModel(cores: CoreManager = CoreManager(paths: retroArchPaths)) -> ConsolesSettingsModel {
+        ConsolesSettingsModel(
+            paths: retroArchPaths,
             includedApp: Bundle.main.bundleURL.appending(path: "Contents/Helpers/RetroArch.app"),
-            cores: CoreManager(paths: paths),
-            official: OfficialRelease(paths: paths))
+            cores: cores,
+            official: OfficialRelease(paths: retroArchPaths))
     }
 }
 

@@ -1,10 +1,11 @@
 // One game in the library, PC or console, whatever store it comes from
 
 import Foundation
+import RetroArchKit
 
 enum GameSource: Hashable, Sendable, Identifiable {
     case steam, epic, gog, amazon, installer
-    // A console added through RetroArch, named as the sidebar shows it (P13)
+    // A console added through RetroArch, by its catalog id (P13)
     case console(String)
 
     static let pc: [GameSource] = [.steam, .epic, .gog, .amazon, .installer]
@@ -37,7 +38,7 @@ enum GameSource: Hashable, Sendable, Identifiable {
         case .gog: "GOG"
         case .amazon: "Amazon Games"
         case .installer: String(localized: "Windows Installers")
-        case .console(let name): name
+        case .console(let id): ConsoleCatalog.console(id)?.name ?? id
         }
     }
 
@@ -75,6 +76,8 @@ struct Game: Identifiable, Sendable, Equatable {
     var collections: [String] = []
     // The executable the cover drawn from the name carries, when one is known
     var executable: URL?
+    // The RetroArch side of a console game
+    var console: ConsoleGame?
     // Set for a Steam game that has a macOS build too: the version it runs (P3)
     var version: GameVersion?
 

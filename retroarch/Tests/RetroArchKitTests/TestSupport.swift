@@ -75,6 +75,10 @@ enum Rig {
         launch.verbose = true
         var environment = ProcessInfo.processInfo.environment
         environment["HOME"] = home(folder).path(percentEncoded: false)
+        // macOS RetroArch finds ~/Documents through Foundation, which reads
+        // this rather than HOME; without it the default playlist folder is
+        // made in the real ~/Documents/RetroArch before the config is read
+        environment["CFFIXED_USER_HOME"] = home(folder).path(percentEncoded: false)
         launch.environment = environment
         return launch
     }

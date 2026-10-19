@@ -62,14 +62,15 @@ public final class ConsolesSettingsModel {
 
     public init(
         paths: RetroArchPaths, includedApp: URL, cores: CoreManager, official: OfficialRelease,
-        probe: @escaping Probe = { await BuildProbe.capabilities(of: $0) }
+        probe: Probe? = nil
     ) {
         self.paths = paths
         self.includedApp = includedApp
         self.cores = cores
         self.shelf = ConsoleShelf(paths: paths, cores: cores)
         self.official = official
-        self.probe = probe
+        // Probed in Cartouche's own RetroArch home, as it is launched
+        self.probe = probe ?? { [home = paths.home] in await BuildProbe.capabilities(of: $0, home: home) }
         choice = Self.savedChoice(paths) ?? .included
     }
 
@@ -119,9 +120,14 @@ public final class ConsolesSettingsModel {
         }
     }
 
+    // The environment RetroArch starts from; its HOME is Cartouche's either way
+    public var launchEnvironment: [String: String]?
+
     public var launcher: ConsoleLauncher? {
         guard let app, let capabilities else { return nil }
-        return ConsoleLauncher(paths: paths, app: app, capabilities: capabilities)
+        var launcher = ConsoleLauncher(paths: paths, app: app, capabilities: capabilities)
+        launcher.environment = launchEnvironment
+        return launcher
     }
 
     // What is shown stays until the new answer is in, so the pane does not flicker

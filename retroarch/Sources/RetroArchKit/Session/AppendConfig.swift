@@ -17,6 +17,12 @@ public struct AppendConfig: Sendable, Equatable {
     // sent there would close it
     public var networkCommandPort: UInt16 = 55455
     public var fullscreen = false
+    // Loads name.state.auto with the game: Resume
+    public var autoLoadState = false
+    // Run-ahead, one frame: the panel's Lower input lag
+    public var runAhead = false
+    // RetroAchievements' hardcore mode, which forbids states
+    public var hardcore = false
     // For tests and diagnostics: drivers, logging
     public var extra: [String: String] = [:]
 
@@ -49,11 +55,17 @@ public struct AppendConfig: Sendable, Equatable {
             ("assets_directory", path(paths.bundle.appending(path: "assets", directoryHint: .isDirectory))),
             ("overlay_directory", path(paths.bundle.appending(path: "overlays", directoryHint: .isDirectory))),
             ("savestate_auto_save", autoSaveState ? "true" : "false"),
-            ("savestate_auto_load", "false"),
+            ("savestate_auto_load", autoLoadState ? "true" : "false"),
             ("savestate_thumbnail_enable", "true"),
             ("video_fullscreen", fullscreen ? "true" : "false"),
             ("network_cmd_enable", networkCommands ? "true" : "false"),
             ("network_cmd_port", String(networkCommandPort)),
+            ("video_shader_dir", path(paths.shaders)),
+            ("run_ahead_enabled", runAhead ? "true" : "false"),
+            ("run_ahead_frames", "1"),
+            // One instance: a second copy of the core does not follow a loaded state
+            ("run_ahead_secondary_instance", "false"),
+            ("cheevos_hardcore_mode_enable", hardcore ? "true" : "false"),
         ]
         for key in extra.keys.sorted() {
             values.removeAll { $0.0 == key }

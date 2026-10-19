@@ -28,6 +28,13 @@ private struct InstallSheetHost: ViewModifier {
                 // Matches use the data the library already loaded.
                 center.compat = { [compat] in compat.data }
                 center.onGameReady = { _ in library.showInstalledGames(InstalledGames.all()) }
+                center.showConsoleGames = {
+                    center.isSheetPresented = false
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(350))
+                        library.addGames = .consoles
+                    }
+                }
                 library.showInstalledGames(InstalledGames.all())
             }
     }
