@@ -16,6 +16,9 @@ public struct ToolMap: Sendable, Equatable {
         case setShader
         case setOption
         case disk
+        case getOption
+        case log
+        case press
 
         public var tool: String {
             switch self {
@@ -29,6 +32,9 @@ public struct ToolMap: Sendable, Equatable {
             case .setShader: "SET_SHADER"
             case .setOption: "SET_OPTION"
             case .disk: "DISK"
+            case .getOption: "GET_OPTION"
+            case .log: "GET_LOG"
+            case .press: "PRESS"
             }
         }
 
@@ -41,6 +47,9 @@ public struct ToolMap: Sendable, Equatable {
             case .setShader: [("preset", [])]
             case .setOption: [("option", []), ("state", ["on", "off"])]
             case .disk: [("action", ["eject", "next", "prev"])]
+            case .getOption: [("option", [])]
+            case .log: [("since", [])]
+            case .press: [("player", []), ("control", []), ("frames", [])]
             case .status, .screenshot, .closeContent, .quit: []
             }
         }

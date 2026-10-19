@@ -10,14 +10,17 @@ public enum RetroArchSource {
 public struct ConsolesSettingsView: View {
 
     @Bindable var model: ConsolesSettingsModel
+    // Achievements, iCloud Drive, translation and netplay name (P14)
+    var extras: ConsoleExtras?
     // The standalone emulators found and each console's choice (P16)
     var emulators: EmulatorShelf?
     // Picks a RetroArch.app; the app may hand in its own panel
     var chooseApp: @MainActor () -> URL?
 
-    public init(model: ConsolesSettingsModel, emulators: EmulatorShelf? = nil,
+    public init(model: ConsolesSettingsModel, extras: ConsoleExtras? = nil, emulators: EmulatorShelf? = nil,
                 chooseApp: @escaping @MainActor () -> URL? = ConsolesSettingsView.openPanel) {
         self.model = model
+        self.extras = extras
         self.emulators = emulators
         self.chooseApp = chooseApp
     }
@@ -74,6 +77,7 @@ public struct ConsolesSettingsView: View {
             }
 
             if let emulators { StandaloneEmulatorsSection(emulators: emulators) }
+            if let extras { ConsoleExtrasSections(extras: extras) }
 
             Section {
                 HStack {

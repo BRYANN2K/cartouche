@@ -18,6 +18,6 @@ enum GameCover {
 
     // Steam's portrait library art, the same image the library grid shows.
     static func steam(appID: Int) -> URL? {
-        URL(string: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/\(appID)/library_600x900.jpg")
+        URL(string: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/\(appID)/library_600x900.jpg").map(QAEnvironment.url)
     }
 }

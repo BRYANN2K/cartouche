@@ -103,6 +103,22 @@
         }
       }
     },
+    "Accounts" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "账户"
+          }
+        }
+      }
+    },
     "Add Console" : {
       "localizations" : {
         "it" : {
@@ -115,6 +131,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "添加主机"
+          }
+        }
+      }
+    },
+    "Address" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indirizzo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "地址"
           }
         }
       }
@@ -151,6 +183,22 @@
         }
       }
     },
+    "Cancel" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annulla"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消"
+          }
+        }
+      }
+    },
     "Cartouche finds %@ in Applications and starts them with their own settings. It never changes those settings." : {
       "localizations" : {
         "it" : {
@@ -163,6 +211,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cartouche 会在“应用程序”中找到 %@，并以它们自己的设置启动。Cartouche 从不更改这些设置。"
+          }
+        }
+      }
+    },
+    "Cartouche has no tool named %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche non ha uno strumento chiamato %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 没有名为 %@ 的工具。"
           }
         }
       }
@@ -211,6 +275,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "教练模式"
+          }
+        }
+      }
+    },
+    "Coach mode is off for this game." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La modalità Coach è disattivata per questo gioco."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此游戏的教练模式已关闭。"
           }
         }
       }
@@ -311,6 +391,22 @@
         }
       }
     },
+    "Defaults" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Predefiniti"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "默认设置"
+          }
+        }
+      }
+    },
     "Download Core" : {
       "localizations" : {
         "it" : {
@@ -323,6 +419,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下载核心"
+          }
+        }
+      }
+    },
+    "Hardcore mode is on: Cartouche sends no input to this game." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La modalità Hardcore è attiva: Cartouche non invia comandi a questo gioco."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "硬核模式已开启：Cartouche 不会向此游戏发送任何输入。"
           }
         }
       }
@@ -359,6 +471,22 @@
         }
       }
     },
+    "Netplay name" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nome per il gioco in rete"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "联机名称"
+          }
+        }
+      }
+    },
     "No BIOS needed" : {
       "localizations" : {
         "it" : {
@@ -375,6 +503,22 @@
         }
       }
     },
+    "No game is running." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun gioco in esecuzione."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有正在运行的游戏。"
+          }
+        }
+      }
+    },
     "None found in Applications." : {
       "localizations" : {
         "it" : {
@@ -387,6 +531,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在“应用程序”中未找到。"
+          }
+        }
+      }
+    },
+    "Not signed in" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesso non effettuato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未登录"
           }
         }
       }
@@ -455,6 +615,22 @@
         }
       }
     },
+    "Password" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "密码"
+          }
+        }
+      }
+    },
     "Plays in a standalone emulator" : {
       "localizations" : {
         "it" : {
@@ -483,6 +659,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "移除"
+          }
+        }
+      }
+    },
+    "RetroAchievements did not answer (%lld)." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroAchievements non ha risposto (%lld)."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroAchievements 没有响应（%lld）。"
+          }
+        }
+      }
+    },
+    "RetroAchievements gave no token." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroAchievements non ha fornito alcun token."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroAchievements 没有提供令牌。"
+          }
+        }
+      }
+    },
+    "RetroAchievements refused the request." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroAchievements ha rifiutato la richiesta."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroAchievements 拒绝了请求。"
           }
         }
       }
@@ -586,6 +810,198 @@
         }
       }
     },
+    "RetroArch sends a picture of the game to this address and shows the translation it gets back. Use a service you trust: it sees your screen." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroArch invia un'immagine del gioco a questo indirizzo e mostra la traduzione ricevuta. Usa un servizio di cui ti fidi: vede il tuo schermo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroArch 会将游戏画面发送到此地址，并显示返回的翻译。请使用你信任的服务：它能看到你的屏幕。"
+          }
+        }
+      }
+    },
+    "RetroArch's default" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Predefinito di RetroArch"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroArch 默认"
+          }
+        }
+      }
+    },
+    "Save" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salva"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存"
+          }
+        }
+      }
+    },
+    "Save states to iCloud Drive" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salvataggi rapidi su iCloud Drive"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将即时存档保存到 iCloud 云盘"
+          }
+        }
+      }
+    },
+    "Saves and states follow you to your other Macs, in iCloud Drive's Cartouche folder." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salvataggi e salvataggi rapidi ti seguono sugli altri Mac, nella cartella Cartouche di iCloud Drive."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "存档和即时存档会通过 iCloud 云盘中的 Cartouche 文件夹同步到你的其他 Mac。"
+          }
+        }
+      }
+    },
+    "Set Up…" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configura…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设置…"
+          }
+        }
+      }
+    },
+    "Shown to friends in RetroArch's lobby" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrato agli amici nella lobby di RetroArch"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 RetroArch 大厅中向好友显示"
+          }
+        }
+      }
+    },
+    "Sign In" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录"
+          }
+        }
+      }
+    },
+    "Sign In to RetroAchievements" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi a RetroAchievements"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录 RetroAchievements"
+          }
+        }
+      }
+    },
+    "Sign In…" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录…"
+          }
+        }
+      }
+    },
+    "Sign Out" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esci"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "退出登录"
+          }
+        }
+      }
+    },
+    "Signed in as %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesso effettuato come %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已登录为 %@"
+          }
+        }
+      }
+    },
     "Slot %lld" : {
       "localizations" : {
         "it" : {
@@ -682,6 +1098,54 @@
         }
       }
     },
+    "This game has no value named %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo gioco non ha un valore chiamato %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此游戏没有名为 %@ 的数值。"
+          }
+        }
+      }
+    },
+    "Translation Service" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Servizio di traduzione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻译服务"
+          }
+        }
+      }
+    },
+    "Translation service" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Servizio di traduzione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻译服务"
+          }
+        }
+      }
+    },
     "Use Your Own Copy…" : {
       "localizations" : {
         "it" : {
@@ -698,6 +1162,54 @@
         }
       }
     },
+    "Used by Translate the screen. Not set." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usato da Traduci lo schermo. Non impostato."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "供“翻译屏幕”使用。未设置。"
+          }
+        }
+      }
+    },
+    "Used by Translate the screen: %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usato da Traduci lo schermo: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "供“翻译屏幕”使用：%@"
+          }
+        }
+      }
+    },
+    "Username" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nome utente"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用户名"
+          }
+        }
+      }
+    },
     "Your own copy: %@" : {
       "localizations" : {
         "it" : {
@@ -710,6 +1222,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你自己的副本：%@"
+          }
+        }
+      }
+    },
+    "Your password goes to RetroAchievements once. Cartouche keeps only the sign-in token, in your keychain." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La password viene inviata a RetroAchievements una sola volta. Cartouche conserva solo il token di accesso, nel portachiavi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的密码只会发送给 RetroAchievements 一次。Cartouche 只在钥匙串中保存登录令牌。"
+          }
+        }
+      }
+    },
+    "iCloud Drive is off on this Mac. Turn it on in System Settings, then try again." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud Drive è disattivato su questo Mac. Attivalo in Impostazioni di Sistema, poi riprova."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此 Mac 上的 iCloud 云盘已关闭。请在“系统设置”中打开它，然后重试。"
           }
         }
       }

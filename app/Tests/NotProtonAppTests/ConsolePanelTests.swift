@@ -22,7 +22,7 @@ struct ConsolePanelTests {
             .frame(width: 360, height: 980)
     }
 
-    @Test("Sections in the documented order: Play or Resume, Continue From, play time and achievements, Setup, Controls, More…")
+    @Test("Sections in the documented order: Play or Resume, Continue From, play time and achievements, Setup, Controls, Play Together, More…")
     func order() async throws {
         let scene = try ConsoleScene("panel-order")
         defer { scene.remove() }
@@ -30,7 +30,7 @@ struct ConsolePanelTests {
         let system = try #require(scene.center.console(of: game))
 
         var content = ConsolePanelContent(game: game, console: system, states: [], bios: scene.center.bios(for: game), playing: nil)
-        #expect(content.titles == ["Play", "Your Play", "Setup", "Controls", "More…"])
+        #expect(content.titles == ["Play", "Your Play", "Setup", "Controls", "Play Together", "More…"])
         #expect(content.played == "Not yet")
         #expect(content.subtitle() == "Super Nintendo. Never played.")
 
@@ -38,7 +38,7 @@ struct ConsolePanelTests {
         try scene.writeState(game, slot: nil, picture: try Self.screen("AUTO"), age: 60)
         content = ConsolePanelContent(game: game, console: system, states: scene.center.states(for: game),
                                       bios: scene.center.bios(for: game), playing: nil)
-        #expect(content.titles == ["Resume", "Continue From", "Your Play", "Setup", "Controls", "More…"])
+        #expect(content.titles == ["Resume", "Continue From", "Your Play", "Setup", "Controls", "Play Together", "More…"])
         #expect(content.states.map(\.title) == ["Auto", "Slot 3"])
         #expect(content.cores.map(\.name) == ["Snes9x", "bsnes", "Mesen-S"])
 
@@ -46,7 +46,7 @@ struct ConsolePanelTests {
         let disc = try await scene.addGame(console: "ps1", name: "Saga", discs: 2)
         let ps1 = try #require(scene.center.console(of: disc))
         let warned = ConsolePanelContent(game: disc, console: ps1, states: [], bios: scene.center.bios(for: disc), playing: nil)
-        #expect(warned.titles == ["Play", "BIOS", "Your Play", "Setup", "Controls", "More…"])
+        #expect(warned.titles == ["Play", "BIOS", "Your Play", "Setup", "Controls", "Play Together", "More…"])
         #expect(!warned.canPlay)
     }
 

@@ -1,8 +1,6 @@
 # Cartouche data schemas and data licenses
 
-The shape of the compatibility file, the MacGamingDB cache on the Mac, and the license of each data source. Read by contributors who change the builder or the app's compatibility code, and by anyone checking attribution. The schema file is `docs/schema/compat.schema.json`. If this page and the schema file differ, the schema file wins.
-
-Only compatibility data (P4) is written here. The FPS store (P8) and the library store (P5) are not merged. Their schemas are Not decided.
+The shape of the compatibility file, the MacGamingDB cache on the Mac, the other stores the merged phases keep, and the license of each data source. Read by contributors who change the builder or the app's code that touches them, and by anyone checking attribution. The compatibility schema file is `docs/schema/compat.schema.json`. If this page and the schema file differ, the schema file wins.
 
 ## Overview
 
@@ -162,6 +160,43 @@ Rules:
 - `tools/compat/check_published.py` fails if the published file names MacGamingDB anywhere.
 - Code licenses for the tools that read these sources are in `THIRD-PARTY-LICENSES` and `NOTICE`. They are separate from the data licenses above.
 
+## Other stores
+
+These are merged. Their shapes come from the code named beside them; none of them is a contract with another program.
+
+### FPS store (P8)
+
+`~/Library/Application Support/Cartouche/performance/sessions.sqlite`, written by `PerformanceStore` in `app/Sources/NotProtonApp/Performance/PerformanceStore.swift`. `PRAGMA user_version = 1`.
+
+- `sessions`: one row per play session. `folder` (the launch folder it came from, unique), `app_id`, `runner`, `translation`, `backend`, `runner_name`, `settings` (JSON object of the game's Cartouche variables), `started`, `ended` (Unix time), `measurement` (`on` or `refused`), `measured_seconds`, `frames`, `average`, `low1`, `histogram` (`fps:count` pairs), `width`, `height`.
+- `samples`: one row per second of a session, `session` references `sessions.id` with cascade delete. `time`, `frames`, `frontmost`, `counted`.
+- The run script leaves one folder per launch under `performance/incoming/` (`session` plus `samples-*` files); the store folds finished folders into the SQLite file and deletes them.
+
+### Library store (P5)
+
+`library.json` in the app data folder, written by `LibraryStore` (`app/Sources/NotProtonApp/Library/LibraryStore.swift`).
+
+- `favorites`, `hidden`: game ID lists.
+- `covers`: game ID to a file name under `covers/` (a copy of the image the user dropped).
+- `setups`: game ID to a `GameSetupChoice` (`runnerID`, `graphics`, `translation`, `metalHUD`, `version`, `environment`; every field optional).
+
+`steam-library.json` in the app data folder is the cached copy of the export the Steam side is meant to write (version 1). The Steam side that writes it is not done (P5 task 1.1); the app reads Steam's own files meanwhile.
+
+### Store records (P10)
+
+`stores/` in the app data folder, from `StoreRecords.swift`. No file here holds a token.
+
+- `stores/<store>/library.json`: the account's games as last listed, for offline browsing.
+- `stores/<store>/games/<id>.json`: one installed game (store, ID, title, install path, `saveStamps`, `installedAt`, `imported`).
+- `stores/<store>/client` and `stores/<store>/home`: the client's config folder and private HOME. Token files appear in them only while the client runs.
+- `stores/<store>/<slug>/pfx`: the game's Wine prefix.
+
+### Console extras (P14)
+
+`retroarch/extras.json` in the app data folder, from `ConsoleExtras.swift` (`ExtrasSettings`). Every key may be missing, so an older file still reads.
+
+- `username`, `translationService`, `netplayNickname`, `cloudSaves`, `translate`, `coach`, `gameIDs`, `progress`. No secrets; the RetroAchievements token is in the Keychain.
+
 ## Not decided
 
-- Schemas for the library store (P5, P13), the game setups (P3) and the FPS store (P8).
+- Nothing at the moment.

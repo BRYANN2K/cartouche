@@ -2,7 +2,7 @@
 
 How Cartouche is built, what it depends on, and what limits it. Read by contributors and reviewers. Product intent is in `docs/PRD.md`. Decisions are in `docs/adr/`.
 
-Status: draft, updated by each phase. Date: 2026-10-19. One scope; first release v0.1.0. Phases P0, P1, P4, P9, P12 and P17 are merged and archived. The others are still proposals, and the text about them is a plan.
+Status: draft, updated by each phase. Date: 2026-10-19. One scope; first release v0.1.0. Every phase is merged except agent control (P11), which is still a proposal; the text about it is a plan. The changes of the merged P5, P10 and P14 are not archived yet.
 
 ## Constraints
 
@@ -26,7 +26,7 @@ Cartouche.app (SwiftUI, Swift 6)
   Compatibility client + estimate, MacGamingDB client
   Permissions module (catalog, explanation sheet, relaunch)
   Sparkle updater
-  Helpers/cartouche-mcp  --XPC-->  app          (MCP server for agents)
+  Helpers/cartouche-mcp  --XPC-->  app          (MCP server for agents, P11 proposal)
   RetroArch (bundled, built by CI) <--MCP stdio-- app
           |
           | writes Steam config, installs compat tools
@@ -48,7 +48,7 @@ Steam (Mac client)
 
 - C code injected into the Mac Steam client with Dobby hooks.
 - Registers compatibility tools, patches Steam's web UI (`feats/webpatch.c`), writes Steam shortcuts (`feats/usershortcuts.c`) and starts games (`feats/compat_run.sh`).
-- P5 adds an export of the Steam library (owned games, collections, play time, installed state) from the code that already reads `window.appStore.m_mapApps`.
+- P5 specifies an export of the Steam library (owned games, collections, play time, installed state) from the code that already reads `window.appStore.m_mapApps`. That export is not done (task 1.1); the app falls back to Steam's own files.
 - P3 makes `compat_run.sh` set DLL overrides and environment variables per backend.
 - Also in this tree: `lsteamclient/`, `steam-shim/`, `ntdll-patch/`, `overlay-shim/`, `bridge/`, `helpers/`.
 - The dylib and the app share one data root and one set of Steam-side names through a generated header (P0). A test compares both sides.
@@ -68,7 +68,7 @@ Steam (Mac client)
 - Installed free runners live in `runners/wine-<id>/` (with a receipt of key file hashes) and `runners/gptk-<version>/lib` (receipt of every file hash). Downloads go to `~/Library/Caches/Cartouche/runners` and are deleted after unpacking. A download whose size or SHA-256 differs is deleted.
 - Free runners are listed by the registry but not offered to Steam yet. Their ntdll hook offsets need the built ntdll. CI runs `ntdll-patch/resolve.py` and uploads the values. Then the maintainer pins them in `NtdllPatcher` and `SupportedRunner`, as for CrossOver builds. P3 lists their Steam tools.
 - Each supported build is pinned: URL, size and SHA-256 in the runner manifest, ntdll hashes and RVAs in the code. `ntdll-patch/resolve.py` finds the RVAs.
-- Backends (P3): D3DMetal, DXMT, DXVK, wined3d. DXMT and DXVK are downloaded with pinned SHA-256. D3DMetal comes only from the user's GPTK or CrossOver.
+- Backends (P3): D3DMetal, DXMT, DXVK, wined3d. DXMT and DXVK are downloaded pinned by version, size and SHA-256 in `Resources/backends.json` (DXMT 0.80 MIT, DXVK 1.10.3-20230507-repack zlib). D3DMetal comes only from the user's GPTK or CrossOver.
 - A game setup is runner, backend, CPU translation and environment variables. The choice is written to Steam's `CompatToolMapping` through `SpecifyCompatTool`.
 - Steam sees one compatibility tool per valid runner and backend pair, named `<runner> · <backend>`.
 
@@ -77,7 +77,7 @@ Steam (Mac client)
 - Swift package with no dependency on the app.
 - Components: `PartScanner`, `Checksums`, `InnoInspector`, `GameName`, `SpaceEstimate`, `InnoCommand`, `ExeDetector`. CLI: `installer-inspect`.
 - Analysis reads files and runs only `innoextract`. It never executes anything from the dropped folder.
-- P6 adds the install runner: fresh prefix, Rosetta, Inno options (`/DIR`, `/LOG`, `/LANG`, `/NORESTART`), progress from the install folder size, stuck watchdog, retry fixes, winetricks for redistributables.
+- The install runner (P6): fresh prefix, Rosetta, Inno options (`/DIR`, `/LOG`, `/LANG`, `/NORESTART`), progress from the install folder size, stuck watchdog, retry fixes, winetricks for redistributables.
 
 ### Compatibility data pipeline (CI)
 
@@ -105,7 +105,45 @@ Steam (Mac client)
 - Source offer for the GPL: `docs/RETROARCH.md` and `THIRD-PARTY-LICENSES`.
 - Details: `docs/research/retroarch-frontend.md`.
 
-### MCP server for agents
+### Standalone emulators (P16)
+
+- Cartouche detects supported emulators in /Applications and ~/Applications (Dolphin, Ryubing and the catalog's others) and shows their version in Settings > Consoles.
+- A console set to a standalone emulator launches the game with that emulator's documented arguments; the activity slot tracks it until it quits. A removed emulator falls back to the RetroArch core, or Play names what is missing.
+
+### Console extras (P14)
+
+- Netplay uses RetroArch's own host and connect flags. Host announces to libretro's lobby under the netplay nickname and plays through libretro's MITM relay. Join merges the lobby's list with Bonjour rooms on the local network (Local Network permission), and keeps only rooms whose game and core match the library.
+- RetroAchievements: one sign-in, password sent once and never stored, token in the Keychain. Cartouche hashes a game file the way rcheevos does to find its game ID, and caches the unlock counts in `extras.json`. Hardcore turns off save states and rewind, and blocks input tools.
+- Screen translation is RetroArch's AI service: the address comes from Settings > Consoles, per game, and the frame goes to that service only on request.
+- iCloud Drive saves: `saves` and `states` become links into `iCloud Drive/Cartouche/`. Newer files win on merge; turning it off copies them back.
+- Coach mode (experimental, off per game) reads named values parsed from the game's Rich Presence script through Cartouche's MCP relay. It never sends input in Hardcore.
+
+### Store integrations (P10)
+
+- Epic, GOG and Amazon are driven through open-source clients: legendary, gogdl, comet (GOG online features beside the game) and nile. Each is pinned by version, size and SHA-256 in `Resources/store-clients.json`, downloaded from its GitHub release on first use and checked before every run.
+- Sign-in is each store's own web page; Cartouche reads only the one-time code. Tokens live in the Keychain; the client's token files are materialized into its private folder only while it runs, then collected back and deleted.
+- Store games install, update, verify, launch, uninstall and import through the adapters with the same runner, backend and FPS features as Steam games. Epic and GOG cloud saves sync before launch and after exit. Installed games keep working on an expired session.
+- Each store page states what its pinned client supports; Amazon lists cloud saves and online features as "Not supported yet" at nile 1.2.0.
+
+### Controls (P15)
+
+- Settings > Controllers and the game panel show connected controllers with name and battery.
+- Remapping per game: Steam Input for Steam games (Cartouche defers to it), `SDL_GAMECONTROLLERCONFIG` for other Wine games, RetroArch remap files for console games.
+- Mac keyboard and mouse options set the Wine Mac driver keys of the game's prefix. A controller-to-keyboard helper needs Accessibility and posts events only while the game is frontmost.
+- Couch mode browses and launches with a controller only.
+
+### Activity and performance (P7, P8)
+
+- One activity slot in the sidebar shows the most important thing: a running game, then installs, downloads, updates. The status menu lists the rest.
+- Steam downloads pause and resume through a command file the injected Steam page polls; a cover reveal shader in Metal tracks progress and respects Reduce Motion. Notifications fire on finished downloads and installs.
+- The run script injects the frame counter after a per-runner probe; a runner that refuses it runs unmeasured and the panel says so. Sessions land in `performance/incoming/` and are folded into `sessions.sqlite`: average, 1% low, play time, per setup. Your Play and Compare Setups read them.
+
+### Onboarding (P18)
+
+- Five skippable steps: Welcome (detection), PC games, Consoles, Folders and privacy, Ready. The state resumes after a quit and re-run is in Settings.
+- The PC games step offers a free runner and, only when the user sets Steam up, asks App Management by attempting the Steam write. It is the only macOS grant onboarding touches.
+
+### MCP server for agents (P11, proposal, not merged)
 
 - Helper binary `cartouche-mcp` in `Contents/Helpers/`, built with the official Swift MCP SDK. It speaks stdio to the client and XPC to the app.
 - Tools cover PC and console games.
@@ -114,7 +152,8 @@ Steam (Mac client)
 - Anything that installs, deletes or runs an exe waits for approval in the app.
 - An action log in Settings > Agents, with undo for configuration changes.
 - Tools never return tokens, passwords, Keychain items or files outside the app folder and folders the user granted.
-- Tool list: `mockup/MCP.md`.
+- Agents reach RetroArch only through Cartouche's relay over RetroArch's own `--mcp-stdio`; input tools are refused in a Hardcore session.
+- Tool list: `mockup/MCP.md`. Threat model: `SECURITY.md`.
 
 ### Sparkle updates
 
@@ -136,14 +175,17 @@ Steam (Mac client)
 | Compatibility cache | `compatibility/` in the app data folder | Last valid `compat.json.gz` and the time of the last contact | P4 |
 | MacGamingDB cache | `compatibility/macgamingdb/<appid>.json` | One answer per game: aggregate rating and raw report rows. Never uploaded | P4 |
 | Permission ledger and relaunch state | App defaults | What Cartouche asked, and the screen to reopen after a relaunch | P17 |
-| Library store | App data folder | Cached Steam import, console games, favorites, hidden games | P5, P13 |
+| Library store | `library.json`, `covers/` in the app data folder | Favorites, hidden games, chosen covers, per-game setups | P5 |
+| Steam library cache | `steam-library.json` in the app data folder | The last export the Steam side wrote | P5 |
+| Console library | `retroarch/` in the app data folder | Consoles, games, cores, saves, states, `extras.json` | P13, P14 |
 | Game setups | App data folder | Runner, backend, CPU, env per game | P3 |
-| FPS store | SQLite in app data folder | Sessions: duration, average, 1% low, resolution, setup | P8 |
-| Store tokens | macOS Keychain | Epic, GOG, Amazon tokens only | P10 |
+| FPS store | `performance/sessions.sqlite` in the app data folder | Sessions: duration, average, 1% low, resolution, setup | P8 |
+| Store records | `stores/` in the app data folder | Per-store `library.json`, per-game install records, client folders and private HOMEs | P10 |
+| Store and RetroAchievements tokens | macOS Keychain | Epic, GOG, Amazon tokens; the RetroAchievements token | P10, P14 |
 | Steam config | Steam's own files | `CompatToolMapping`, `shortcuts.vdf` | P3, P5 |
 | Agent action log | App data folder | Client name, time, action, previous value | P11 |
 
-The compatibility schemas are in `docs/DATA-SCHEMA.md`. The FPS store schema (P8) will be added there. Privacy rules are in `docs/PRIVACY.md`.
+The compatibility schemas and the FPS store schema are in `docs/DATA-SCHEMA.md`. Privacy rules are in `docs/PRIVACY.md`.
 
 ## External dependencies
 
@@ -157,12 +199,12 @@ The compatibility schemas are in `docs/DATA-SCHEMA.md`. The FPS store schema (P8
 | Wine CrossOver (CodeWeavers sources) | Free runner | LGPL | Built by our CI, downloaded by the app. Bundles freetype, gnutls, MoltenVK, SDL2 |
 | Wine (WineHQ builds, by Gcenx) | Secondary runner | LGPL | Downloaded by the app, not bundled |
 | Game Porting Toolkit, D3DMetal | Runner and DirectX 12 backend | Apple license | Never bundled. The user's own copy |
-| DXMT | DirectX 11 backend | To confirm in P3 | Downloaded, pinned SHA-256 |
+| DXMT | DirectX 11 backend | MIT | Downloaded, pinned SHA-256 |
 | DXVK | Older DirectX games | zlib | Downloaded, pinned SHA-256 |
 | innoextract | Inno Setup analysis | zlib | Bundled |
-| winetricks | Redistributables | LGPL | Bundled |
-| legendary, gogdl, nile | Epic, GOG, Amazon | GPL-3.0 | Bundled |
-| comet | GOG online features | Apache-2.0 | Bundled |
+| winetricks | Redistributables | LGPL | Downloaded, pinned |
+| legendary, gogdl, nile | Epic, GOG, Amazon | GPL-3.0 | Downloaded, pinned SHA-256 |
+| comet | GOG online features | Apache-2.0 | Downloaded, pinned SHA-256 |
 | Swift MCP SDK | MCP server | To confirm in P11 | Linked into `cartouche-mcp` |
 | RetroArch | Console frontend | GPL-3.0 | Built by our CI and bundled |
 | libretro cores | Emulation | Varies per core; some are non-commercial | Never bundled. Downloaded per console |
@@ -171,7 +213,7 @@ The compatibility schemas are in `docs/DATA-SCHEMA.md`. The FPS store schema (P8
 | ProtonDB export | Linux reports, anti-cheat | ODbL | Read by CI, attribution and share-alike |
 | AreWeAntiCheatYet | Anti-cheat status | MIT | Read by CI |
 
-The table lists some components of phases that are not merged (P3, P6, P10, P11). P2 is in progress. Those rows are a plan. `THIRD-PARTY-LICENSES` lists what the repository ships today and will grow with those phases.
+The Swift MCP SDK row is the only unmerged component above (P11 is a proposal). `THIRD-PARTY-LICENSES` lists what the repository ships today.
 
 ## Security and trust boundaries
 
@@ -191,64 +233,65 @@ Own name, bundle ID `dev.bryann2k.cartouche` (ADR 0014), data and log folders, S
 Runner protocol, registry and states. CrossOver re-expressed on it with identical behavior. Damage detection by pinned hashes. Change: [`p1-runner-model`](../openspec/changes/archive/2026-10-19-p1-runner-model/). Spec: `openspec/specs/runner-management/`. Merged.
 
 ### P2 Free runners
-CI build of Wine CrossOver, WineHQ runner, GPTK detection. Manifest with SHA-256. The Runners model fetches a newer manifest at most once a day (`RunnerManifest.refresh`). Pinned ntdll offsets and Steam use of free runners are not done yet. Change: [`p2-free-runners`](../openspec/changes/p2-free-runners/).
+CI build of Wine CrossOver, WineHQ runner, GPTK detection. Manifest with SHA-256. The Runners model fetches a newer manifest at most once a day (`RunnerManifest.refresh`). Pinned ntdll offsets and Steam use of free runners are not done yet. Change: [`p2-free-runners`](../openspec/changes/archive/2026-10-19-p2-free-runners/). Spec: `openspec/specs/runner-sources/`. Merged.
 
 ### P3 Graphics backends
-Per-game setup, one Steam tool per runner and backend pair, Mac or Windows version, pinned DXMT and DXVK. Change: [`p3-graphics-backends`](../openspec/changes/p3-graphics-backends/).
+Per-game setup, one Steam tool per runner and backend pair, Mac or Windows version, pinned DXMT and DXVK. Change: [`p3-graphics-backends`](../openspec/changes/archive/2026-10-19-p3-graphics-backends/). Spec: `openspec/specs/game-setup/`. Merged.
 
 ### P4 Compatibility data
 Nightly JSON, offline-first client, per-Mac estimate, Linux anti-cheat data, attribution. MacGamingDB is read live, not published. Change: [`p4-compatibility-data`](../openspec/changes/archive/2026-10-19-p4-compatibility-data/). Spec: `openspec/specs/compatibility-data/`. Merged.
 
 ### P5 Library app
-SwiftUI library, Steam import, favorites, search, all screen states, both macOS versions. Change: [`p5-library-app`](../openspec/changes/p5-library-app/).
+SwiftUI library, Steam import, favorites, search, all screen states, both macOS versions. The Steam-side library export (task 1.1) is not done; a running Steam gives the installed games read from its own files. Change: [`p5-library-app`](../openspec/changes/p5-library-app/). Merged, not archived.
 
 ### P6 Windows installer
-Analysis, install with progress, retry, playable result. Change: [`p6-windows-installer`](../openspec/changes/p6-windows-installer/).
+Analysis, install with progress, retry, playable result. Change: [`p6-windows-installer`](../openspec/changes/archive/2026-10-19-p6-windows-installer/). Spec: `openspec/specs/windows-installer/`. Merged.
 
 ### P7 Downloads and activity
-One activity slot, Steam download progress, cover reveal shader in Metal, notifications. Change: [`p7-downloads-activity`](../openspec/changes/p7-downloads-activity/).
+One activity slot, Steam download progress, cover reveal shader in Metal, notifications. Change: [`p7-downloads-activity`](../openspec/changes/archive/2026-10-19-p7-downloads-activity/). Spec: `openspec/specs/activity/`. Merged. Pausing a real Steam download is a manual check in its evidence.
 
 ### P8 Performance tracking
-Frame counter injected in the Wine process (x86_64 and arm64), SQLite store, comparison of setups, opt-in sharing. Change: [`p8-performance-tracking`](../openspec/changes/p8-performance-tracking/).
+Frame counter injected in the Wine process (x86_64 and arm64), SQLite store, comparison of setups, opt-in sharing that stays unavailable while MacGamingDB has no report endpoint. Change: [`p8-performance-tracking`](../openspec/changes/archive/2026-10-19-p8-performance-tracking/). Spec: `openspec/specs/performance-tracking/`. Merged. Injection on each real runner is a manual check in its evidence.
 
 ### P9 Release pipeline
 CI, stable self-signed signing, Sparkle appcast, Homebrew tap, upstream watch. Change: [`p9-release-pipeline`](../openspec/changes/archive/2026-10-19-p9-release-pipeline/). Spec: `openspec/specs/release-pipeline/`. Guide: `docs/RELEASE.md`. Merged. Its manual checks for the maintainer are listed in its evidence.
 
 ### P10 Store integrations
-Epic, GOG and Amazon through bundled CLIs, tokens in the Keychain. Change: [`p10-store-integrations`](../openspec/changes/p10-store-integrations/).
+Epic, GOG and Amazon through downloaded pinned CLIs, tokens in the Keychain. Change: [`p10-store-integrations`](../openspec/changes/p10-store-integrations/). Merged, not archived. Real sign-in and two-Mac cloud saves are maintainer steps in its evidence.
 
 ### P11 Agent control
-MCP server, access levels, approvals, action log. Change: [`p11-agent-control`](../openspec/changes/p11-agent-control/).
+MCP server, access levels, approvals, action log. Change: [`p11-agent-control`](../openspec/changes/p11-agent-control/). Proposal, not merged.
 
 ### P12 RetroArch bundle
 CI builds RetroArch from a pinned commit, signs it and embeds it. Cartouche drives it over MCP stdio, with a fallback to UDP commands on older releases. Version choice in Settings > Consoles. Change: [`p12-retroarch-bundle`](../openspec/changes/archive/2026-10-19-p12-retroarch-bundle/). Spec: `openspec/specs/retroarch-runtime/`. Guide: `docs/RETROARCH.md`. Merged. Research: `docs/research/retroarch-frontend.md`.
 
 ### P13 Console library
-Add Consoles, games added by checksum from the + sheet or watched folders, libretro covers, console game panel (Continue From save states, achievements count, look, input lag, hardcore, discs, BIOS status, CRT launch). Cores downloaded per console. Change: `p13-console-library` (opened on main).
+Add Consoles, games added by checksum from the + sheet or watched folders, libretro covers, console game panel (Continue From save states, achievements count, look, input lag, hardcore, discs, BIOS status, CRT launch). Cores downloaded per console. Change: [`p13-console-library`](../openspec/changes/archive/2026-10-19-p13-console-library/). Spec: `openspec/specs/console-library/`. Merged.
 
 ### P14 Console extras
-Netplay, RetroAchievements account linking, screen translation, Coach mode, iCloud save states. Change: `p14-console-extras`.
+Netplay, RetroAchievements account linking with Hardcore, screen translation, Coach mode, iCloud Drive saves. Change: [`p14-console-extras`](../openspec/changes/p14-console-extras/). Merged, not archived. Real lobby, live RetroAchievements, real iCloud sync and a second Mac are maintainer steps in its evidence.
 
 ### P15 Controls
-Controller status, remapping (Steam Input, `SDL_GAMECONTROLLERCONFIG`, RetroArch remap files), Mac keyboard and mouse options, controller for keyboard-only games, couch mode. Change: `p15-controls`. Research: `docs/research/controls.md`.
+Controller status, remapping (Steam Input, `SDL_GAMECONTROLLERCONFIG`, RetroArch remap files), Mac keyboard and mouse options, controller for keyboard-only games, couch mode. Change: [`p15-controls`](../openspec/changes/archive/2026-10-19-p15-controls/). Spec: `openspec/specs/controls/`. Merged. Research: `docs/research/controls.md`.
 
 ### P16 Standalone emulators
-Detect and launch Dolphin, PCSX2, PPSSPP, Azahar, xemu, Ryubing and others. Not bundled. Change: `p16-standalone-emulators`. Research: `docs/research/bonus-emulators.md`.
+Detect and launch Dolphin, PCSX2, PPSSPP, Azahar, xemu, Ryubing and others. Not bundled. Change: [`p16-standalone-emulators`](../openspec/changes/archive/2026-10-19-p16-standalone-emulators/). Spec: `openspec/specs/standalone-emulators/`. Merged. Research: `docs/research/bonus-emulators.md`.
 
 ### P17 Mac permissions
-Change: [`p17-mac-permissions`](../openspec/changes/archive/2026-10-19-p17-mac-permissions/). Spec: `openspec/specs/mac-permissions/`. Merged. A `Permissions/` module: a catalog of every permission Cartouche or the programs it starts can meet (App Management, Accessibility for Steam and for Cartouche, Input Monitoring for games and for Cartouche, Downloads folder, Removable Volumes, Local Network, Notifications, Login Items, Keychain), state readers, an explanation sheet before each macOS prompt, deep links to the System Settings panes, and a relaunch service for Input Monitoring. Reuses NotProton's App Management detection. Grants survive updates because the signing identity is stable (P9). The module is complete, but the screens that host it come with later phases (Settings P5, onboarding P18, controls P15). User-facing rules: `docs/PRIVACY.md`.
+Change: [`p17-mac-permissions`](../openspec/changes/archive/2026-10-19-p17-mac-permissions/). Spec: `openspec/specs/mac-permissions/`. Merged. A `Permissions/` module: a catalog of every permission Cartouche or the programs it starts can meet (App Management, Accessibility for Steam and for Cartouche, Input Monitoring for games and for Cartouche, Downloads folder, Removable Volumes, Local Network, Notifications, Login Items, Keychain), state readers, an explanation sheet before each macOS prompt, deep links to the System Settings panes, and a relaunch service for Input Monitoring. Reuses NotProton's App Management detection. Grants survive updates because the signing identity is stable (P9). The module and its host screens are merged (Settings P5, onboarding P18, controls P15). User-facing rules: `docs/PRIVACY.md`.
 
 ### P18 Onboarding
-Change `p18-onboarding`. dmg layout and README steps for opening a non-notarized app, Homebrew cask caveats, and a five-step first launch (Welcome with detection, PC games, Consoles, Folders and privacy, Ready). App Management is requested only in the PC games step. Mockup: `mockup/onboarding.html`.
+Change [`p18-onboarding`](../openspec/changes/archive/2026-10-19-p18-onboarding/). Spec: `openspec/specs/onboarding/`. Merged. dmg layout and README steps for opening a non-notarized app, Homebrew cask caveats, and a five-step first launch (Welcome with detection, PC games, Consoles, Folders and privacy, Ready). App Management is requested only in the PC games step. Mockup: `mockup/onboarding.html`.
 
 ## Open technical questions
 
-- Not decided: the channel that carries the Steam library export from Steam's UI to the app.
-- Not proven: injection of the frame counter with every runner (hardened runtime may block it). Proof is required in P8.
-- Not proven: pausing Steam downloads through the injected code. Proof is required in P7.
+- Not done: the Steam-side export of the owned library (P5 task 1.1). The app side reads `steam-library.json` when it appears; a running Steam gives only the installed games from its own files.
+- Not proven on real runners: frame counter injection per runner; the probe exists and a refused runner plays unmeasured (P8 evidence).
+- Not proven on a real Steam: Pause and Resume reach `SteamClient.Downloads` through the injected page (P7 evidence, manual check M1).
+- Not proven on real services: the netplay lobby and MITM relay, live RetroAchievements, real iCloud Drive sync and two physical Macs (P14 evidence). The RetroArch MCP tool list is pinned by a fixture at the current commit and compared in CI at every bump.
+- Not proven on real accounts: store sign-in, one installed game per store, and two-Mac cloud saves (P10 evidence).
 - Not proven: `/DIR` and `/LOG` honored by modified Inno installers; the ratio of installed size to part size (2.5 is an assumption); `unarc.dll` behavior under Rosetta on many cores.
-- Not proven: netplay relay availability. The RetroArch MCP tool list is pinned by a fixture at the current commit and compared in CI at every bump.
 - Not proven: which macOS permissions apply without a relaunch on macOS 15, 26 and 27. Only Input Monitoring is assumed to need one. The P17 matrix is a manual check.
 - Not proven: an update keeps macOS grants across two signed releases (P9 and P17 manual checks).
 - Not decided: a setting to turn off the daily update check and the daily compatibility file download.
-- Not decided: P16 spec. P13 to P15 are proposals on main.
+- Proposal: P11 agent control is the only phase not merged.

@@ -33,6 +33,10 @@ final class ConsoleCenter {
     var powerOn: PowerOn?
     // Bumped when RetroArch may have written states, so Continue From reads them again
     var statesChanged = 0
+    // Achievements, translation, iCloud Drive, the coach and netplay names (P14)
+    var extras: ConsoleExtras
+    // What RetroArch said of the session: hardcore on, the netplay seat
+    var session = ExtrasSession()
 
     @ObservationIgnored let cores: CoreManager
     @ObservationIgnored let shelf: ConsoleShelf
@@ -61,15 +65,22 @@ final class ConsoleCenter {
     // Plays a game in a standalone emulator; tests hand in their own environment
     @ObservationIgnored var standaloneEnvironment: [String: String]?
 
+    // Asks for Local Network before netplay on the local network (P17's flow)
+    @ObservationIgnored var netplayFlow: PermissionFlow?
+    @ObservationIgnored var watchExtras: Task<Void, Never>?
+    // Cartouche's relay for Coach mode, while a coached game runs
+    @ObservationIgnored var coach: CoachRelay?
+
     init(settings: ConsolesSettingsModel, cores: CoreManager, library: LibraryModel? = nil,
-         database: ContentDatabase? = nil, emulators: EmulatorShelf? = nil) {
+         database: ContentDatabase? = nil, extras: ConsoleExtras? = nil, emulators: EmulatorShelf? = nil) {
         self.settings = settings
+        self.extras = extras ?? ConsoleExtras(paths: settings.paths)
         paths = settings.paths
         self.emulators = emulators ?? EmulatorShelf(paths: settings.paths)
         self.cores = cores
         shelf = ConsoleShelf(paths: settings.paths, cores: cores)
         store = ConsoleLibrary(paths: settings.paths)
-        let database = database ?? ContentDatabase(paths: settings.paths)
+        let database = database ?? ContentDatabase(paths: settings.paths, source: .qa)
         self.database = database
         importFlow = ConsoleImport(identifier: Identifier(database: database))
         self.library = library

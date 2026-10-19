@@ -6,9 +6,9 @@ Cartouche has no server and no account. It does not collect analytics. Every req
 
 ## What is built and what is planned
 
-- The permissions module, the MacGamingDB client, the compatibility file client, Sparkle updates and the RetroArch core downloads are merged.
-- The screens that start some permission requests come with later phases (Settings window P5, installer P6, downloads P7, consoles P13, netplay P14, controls P15, onboarding P18). Until then the module is complete but the running app does not yet reach every request. The table below says which phase asks for each permission.
-- FPS tracking (P8) is not merged. Nothing measures frame rates today.
+- Everything this page describes is merged except agent control (P11), which is still a proposal and sends nothing.
+- FPS tracking (P8) is merged: sessions are measured and stored locally. Sharing them with MacGamingDB is coded but has no destination: MacGamingDB publishes no way to send reports, so the sharing toggle stays off and unavailable. Nothing is sent.
+- Store sign-ins (P10), netplay, RetroAchievements, the translation service and iCloud Drive saves (P14) are merged and described below.
 
 ## macOS permissions
 
@@ -21,7 +21,7 @@ Cartouche asks for a permission only when you start the feature that needs it. I
 | Accessibility | Cartouche | Controller for keyboard-only games (P15) | The first time you turn the option on | The option turns back off and says why |
 | Input Monitoring | Windows games | Keyboard in some games | Only if a game needs it. The game's error shows the fix | The keyboard may fail in that game |
 | Input Monitoring | Cartouche | Remap the Mac keyboard and mouse per game (P15) | The first time you turn remapping on | Remapping stays off. It applies only after a relaunch, see below |
-| Downloads folder | Cartouche | Suggest installers that appear in Downloads (P6) | When you turn the option on. Onboarding can also offer it | The option turns back off with "Cartouche can't read Downloads. Allow it in System Settings." Drag and drop still works |
+| Downloads folder | Cartouche | Suggest installers that appear in Downloads (P6) | When you turn the option on | The option turns back off with "Cartouche can't read Downloads. Allow it in System Settings." Drag and drop still works |
 | Removable Volumes | Cartouche | Game folders on an external disk (P13) | When you add such a folder | The folder is marked unavailable |
 | Local Network | Cartouche | Netplay and LAN games (P14) | The first netplay or LAN game | Internet netplay still works |
 | Notifications | Cartouche | Download finished, install finished, ready to play (P7) | Once, after the first download or install finishes. Never at launch | No banners. The activity slot still shows progress |
@@ -42,7 +42,9 @@ The app's Info.plist has exactly three usage descriptions: Downloads folder, Rem
 
 ### Onboarding
 
-Onboarding asks only for App Management and the Downloads folder. Neither needs a relaunch. Onboarding never asks Cartouche to quit.
+Onboarding asks only for App Management, in the PC games step, before it modifies Steam. It needs no relaunch. Onboarding never asks Cartouche to quit.
+
+The Folders and privacy step holds toggles, not macOS permissions: which game folders to use, and the MacGamingDB toggle. The Downloads folder, FPS sharing and other permissions are not in onboarding.
 
 ### Settings > Privacy
 
@@ -81,6 +83,14 @@ Cartouche sends no account, no Mac serial number and no list of your library. Th
 | buildbot.libretro.com | When you add a console (its core and the core info archive), or when you pick an official RetroArch release | A plain download request | Cores download only for consoles you add |
 | raw.githubusercontent.com | When you install a redistributable with Winetricks | A plain download request for the pinned Winetricks script | You choose to run it |
 | Steam content servers (`steamstatic.com`, `steamcdn-a.akamaihd.net`, `media.steampowered.com`) | When Cartouche installs its Steam integration or fetches a Steam game's icon | A plain download request. Packages are checked against pinned SHA-256 values | Inherited from NotProton |
+| github.com release assets of the store clients | The first time each store needs its client | A plain download request for a pinned release asset, checked by size and SHA-256 | Clients download only for stores you sign in to |
+| epicgames.com | Epic sign-in, and everything legendary does: listing your games, downloads, cloud saves | Epic's page sees the account you sign in with. legendary sends it your tokens and the game IDs you install or play | You sign in per store. Sign out deletes the tokens |
+| auth.gog.com, embed.gog.com, remote-config.gog.com, gamesdb.gog.com | GOG sign-in; the library list, cloud-save locations and covers read by Cartouche itself with your token; everything gogdl does (downloads, save sync); comet beside a running GOG game | The account you sign in with. comet answers the game's Galaxy calls with your tokens | You sign in per store. Sign out deletes the tokens |
+| amazon.com | Amazon sign-in, and everything nile does: registering as a device, listing your games, downloads | Amazon's page sees the account you sign in with. nile sends it your tokens and the game IDs you install or play | You sign in per store. Sign out deletes the tokens |
+| retroachievements.org | Sign-in once, then achievement lookups for console games you open | Your username, the password once over HTTPS (never stored), then the token; the hash of a game file and the counts of games you played | Settings > Consoles > Sign Out deletes the token. Achievements are off until you sign in |
+| lobby.libretro.com and libretro's MITM relay | When you open Join, or host a console game with the lobby | Join: a plain HTTP request for the room list. Host: your nickname, the game's name and checksum, the core, and the address to reach you; the session may run through the relay | Host without the lobby is not offered today. Local-network rooms need no lobby |
+| The translation service you configured | When you ask to translate the screen in a console game | RetroArch sends the current frame to that service. You choose the service; Cartouche only writes its address into RetroArch's settings | The option does nothing until you set a service |
+| iCloud Drive (Apple) | While "Save states to iCloud Drive" is on | Your console save files and save states, synced by macOS like any iCloud Drive folder | Turning the option off copies the files back to the Mac |
 
 ### MacGamingDB
 
@@ -109,18 +119,38 @@ Cartouche sends no account, no Mac serial number and no list of your library. Th
 - It records the size and SHA-256 when it first downloads a core, and checks them again at each launch.
 - Your games, saves and BIOS files are never uploaded.
 - Cartouche never links to a BIOS or game download.
-- RetroArch itself starts with Cartouche's own configuration. It does not read or write your own `retroarch.cfg`. Netplay and RetroAchievements (P14) are not merged.
+- RetroArch itself starts with Cartouche's own configuration. It does not read or write your own `retroarch.cfg`.
+
+### Console extras (P14)
+
+- Netplay is RetroArch's own. Cartouche starts it with RetroArch's host and connect flags. Hosting announces the game to libretro's lobby under your netplay nickname and plays through libretro's MITM relay. Joining reads the lobby's room list and, with Local Network allowed, the games on your network (Bonjour `_ra_netplay._tcp`). Cartouche runs no lobby or relay of its own.
+- The netplay nickname is the name you choose, else your RetroAchievements name, else RetroArch's default. It is never your Mac's account name.
+- RetroAchievements sign-in sends your password once to retroachievements.org over HTTPS. The answer's token is the only thing kept, in the Keychain. Cartouche then asks the site for game IDs (from a hash of your game file, the way rcheevos computes it) and your unlock counts. RetroArch gets the token while it starts, and it is removed from the written configuration right after.
+- Hardcore mode is enforced by RetroArch: save states and rewind are off, and Cartouche refuses input tools to a Hardcore session.
+- The translation service is an address you set in Settings > Consoles. RetroArch's AI service sends the frame to it only when you ask for a translation.
+- With "Save states to iCloud Drive" on, Cartouche's `saves` and `states` folders become links to `iCloud Drive/Cartouche/Saves` and `…/States`. The newer copy wins when they merge, and turning the option off copies everything back. Sync is Apple's own iCloud Drive; Cartouche has no cloud.
+- Coach mode reads named values of a running game through Cartouche's own relay. It sends nothing to a server.
 
 ## What stays on your Mac
 
 - Your library, favorites, game setups and settings.
+- The cached Steam library export (`steam-library.json`), console games, store library lists and install records (`stores/`).
 - The compatibility file and the per-game MacGamingDB answers (`~/Library/Application Support/Cartouche/compatibility/`).
-- Frame rates (P8). When P8 lands, sessions are stored in a local SQLite file in the Cartouche folder. Nothing is sent unless you turn on sharing, which is a separate opt-in. The spec for sharing is not final, so which fields would be sent is Not decided.
+- Frame rates: one SQLite file, `performance/sessions.sqlite`, in the Cartouche folder (P8). Nothing is sent; the sharing toggle stays unavailable because MacGamingDB has no way to receive reports. If one ever existed, a report would carry only the chip, memory, macOS version, runner, backend, filtered settings and the FPS.
 - Logs in `~/Library/Logs/Cartouche`.
-- Epic, GOG and Amazon tokens go to the macOS Keychain only (P10, not merged).
+- Epic, GOG and Amazon tokens, and the RetroAchievements token, in the macOS Keychain only. Details below.
+- Console extras (`retroarch/extras.json`): RetroAchievements username, the translation service address, the netplay nickname, per-game toggles and the last achievement counts. No secrets in it.
+
+### Store sign-ins (P10)
+
+- Sign-in happens on each store's own page: epicgames.com for Epic, auth.gog.com for GOG, the Amazon page nile prepares for Amazon. Cartouche never renders a password field; it only reads the one-time code the page hands over.
+- Each store keeps one item in the Keychain, a generic password under Cartouche's own service, readable only while the Mac is unlocked and never synced to other devices.
+- The clients keep their tokens in files. Cartouche writes those files into the client's own folder just before it runs, collects them back into the Keychain when it ends, and deletes them. Files a crash leaves behind go back into the Keychain at the next start. No file under `stores/` keeps a token.
+- Each client runs with its own HOME, temporary folder and a minimal environment. It talks only to its store: legendary to Epic's servers, gogdl to GOG, nile to Amazon. comet runs beside a GOG game and answers the game's Galaxy calls (achievements and friends) with your tokens. Cartouche itself calls GOG's web API with your bearer token for the library, save locations and covers.
+- Sign out deletes the Keychain item and asks the client to forget.
 
 ## Not decided
 
 - A setting to turn off the daily update check and the daily download of the compatibility file.
-- The fields of opt-in FPS sharing with MacGamingDB (P8).
 - Which permissions need a relaunch beyond Input Monitoring. The P17 matrix is unmeasured.
+- A netplay host that skips libretro's lobby. Hosting always announces today.

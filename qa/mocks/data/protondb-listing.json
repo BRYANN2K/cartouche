@@ -1,0 +1,23 @@
+[
+ {
+  "name": "reports_aug4_2026.tar.gz",
+  "path": "reports/reports_aug4_2026.tar.gz",
+  "size": 69443832,
+  "download_url": "https://raw.githubusercontent.com/bdefore/protondb-data/master/reports/reports_aug4_2026.tar.gz",
+  "type": "file"
+ },
+ {
+  "name": "reports_sep1_2026.tar.gz",
+  "path": "reports/reports_sep1_2026.tar.gz",
+  "size": 70421093,
+  "download_url": "https://raw.githubusercontent.com/bdefore/protondb-data/master/reports/reports_sep1_2026.tar.gz",
+  "type": "file"
+ },
+ {
+  "name": "reports_oct1_2026.tar.gz",
+  "path": "reports/reports_oct1_2026.tar.gz",
+  "size": 71531147,
+  "download_url": "https://raw.githubusercontent.com/bdefore/protondb-data/master/reports/reports_oct1_2026.tar.gz",
+  "type": "file"
+ }
+]

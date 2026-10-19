@@ -1,0 +1,79 @@
+{
+ "batchcomplete": true,
+ "query": {
+  "pages": [
+   {
+    "pageid": 296,
+    "ns": 0,
+    "title": "Disco Elysium",
+    "revisions": [
+     {
+      "revid": 5181,
+      "parentid": 4585,
+      "slots": {
+       "main": {
+        "contentmodel": "wikitext",
+        "contentformat": "text/x-wiki",
+        "content": "{{Infobox game\n|cover        = Disco Elysium - cover.png\n|developers   = \n{{Infobox game/row/developer|ZA/UM}}\n{{Infobox game/row/developer|The Knights of Unity|ref=<ref>{{Refurl|url=https://www.theknightsofunity.com/project/disco-elysium|title=The Knights of Unity Official Website: Projects|date=2020-12-13}}</ref>|Polishing}}\n|publishers   = \n|engines      = \n{{Infobox game/row/engine|Unity|name=Unity 2019|Former|ref=<ref name=\"former engineversion\">{{Refcheck|user=Baronsmoki|date=2020-12-16}}</ref>|build=2019.4.9f1}}\n{{Infobox game/row/engine|Unity|name=Unity 2020|ref=<ref name=\"engineversion\">{{Refcheck|user=Baronsmoki|date=2021-03-30}}</ref>|build=2020.2.3f1}}\n|release dates= \n{{Infobox game/row/date|Windows|October 15, 2019}}\n{{Infobox game/row/date|macOS|April 27, 2020|ref=<ref>{{Refurl|url=https://store.steampowered.com/newshub/app/632470/view/2225284620691739906|title=Disco Elysium - Disco Elysium is now available on Mac! - Steam News|date=2020-04-28}}</ref>}}\n|reception    = \n{{Infobox game/row/reception|Metacritic|disco-elysium|91}}\n{{Infobox game/row/reception|OpenCritic|8419/disco-elysium|92}}\n{{Infobox game/row/reception|IGDB|disco-elysium|89}}\n|taxonomy     = \n{{Infobox game/row/taxonomy/modes|Singleplayer}}\n{{Infobox game/row/taxonomy/pacing|Real-time}}\n{{Infobox game/row/taxonomy/perspectives|Bird's-eye view, Scrolling}}\n{{Infobox game/row/taxonomy/controls|Point and select}}\n{{Infobox game/row/taxonomy/genres|RPG}}\n{{Infobox game/row/taxonomy/art styles|Stylized}}\n{{Infobox game/row/taxonomy/themes|Detective/mystery}}\n|steam appid  = 632470\n|steam appid side  = 1173140\n|gogcom id    = 1771589310\n|gogcom id side = 1497779763\n|official site= https://discoelysium.com/\n|hltb         = 57335\n|strategywiki = \n|mobygames    = disco-elysium\n|wikipedia    = Disco Elysium\n|winehq       = 19600\n|license      = commercial\n|pcgamingwiki = Disco_Elysium\n|codeweavers  = \n|asg          = H2xehHfDnU61U1jGxVQcDS/disco-elysium\n}}\n\n{{Compatibility/macOS\n|native               = perfect\n|native notes         =\n|rosetta 2            = perfect\n|rosetta 2 notes      =\n|ios-ipados app       = na\n|ios-ipados app notes =\n|crossover            = unknown\n|crossover notes      =\n|wine                 = perfect\n|wine notes           =\n|parallels            = unknown\n|parallels notes      =\n|windows 10 arm       = na\n|windows 10 arm notes =\n|linux arm            = na\n|linux arm notes      =\n}}\n"
+       }
+      }
+     }
+    ]
+   },
+   {
+    "pageid": 533,
+    "ns": 0,
+    "title": "Apex Legends",
+    "revisions": [
+     {
+      "revid": 4647,
+      "parentid": 4228,
+      "slots": {
+       "main": {
+        "contentmodel": "wikitext",
+        "contentformat": "text/x-wiki",
+        "content": "{{Infobox game\n|cover        = Apex_Legends.jpg <!-- Try to find the highest resolution of a PC game cover, or copy directly from PCGamingWiki -->\n|developers   = \n{{Infobox game/row/developer|Respawn Entertainment}}\n|publishers   = \n{{Infobox game/row/publisher|Electronic Arts}}\n|engines      = \n{{Infobox game/row/engine|Engine}}\n|release dates= \n{{Infobox game/row/date|Windows|Feb 04, 2019}}\n{{Infobox game/row/date|macOS|Feb 04, 2019}} <!-- (Example: January 3, 2012) -->\n{{Infobox game/row/date|iOS|N/A}}\n{{Infobox game/row/date|iPadOS|N/A}}\n{{Infobox game/row/date|tvOS|N/A}}\n|reception    =\n{{Infobox game/row/reception|Metacritic|apex-legends|88}} <!-- (Example: URL section and score - Deus Ex: Mankind Divded) -->\n{{Infobox game/row/reception|Opencritic|7267/apex-legends|81}}\n{{Infobox game/row/reception|IGDB|apex-legends|88}}\n|taxonomy     =\n{{Infobox game/row/taxonomy/monetization      | | ref= }}\n{{Infobox game/row/taxonomy/microtransactions | | ref= }}\n{{Infobox game/row/taxonomy/modes             | Singleplayer, Multiplayer }}\n{{Infobox game/row/taxonomy/pacing            | Real-time }}\n{{Infobox game/row/taxonomy/perspectives      | First-person }}\n{{Infobox game/row/taxonomy/controls          | Direct control }}\n{{Infobox game/row/taxonomy/genres            | Action, Shooter }}\n{{Infobox game/row/taxonomy/sports            | }}\n{{Infobox game/row/taxonomy/vehicles          | }}\n{{Infobox game/row/taxonomy/art styles        | Stylized }}\n{{Infobox game/row/taxonomy/themes            | Sci-fi }}\n{{Infobox game/row/taxonomy/series            | PCGW Templates }}\n|steam appid  = 1172470\n|steam appid side = 10\n|gogcom id    = \n|gogcom id side = \n|official site= https://www.ea.com/games/apex-legends\n|hltb         =\n|igdb         = \n|strategywiki = \n|mobygames    = \n|wikipedia    = PCGamingWiki\n|winehq       = 2\n|license      = \n|pcgamingwiki =\n|codeweavers  =\n|asg          =\n}}\n\n{{Compatibility/macOS\n|native               = na\n|native notes         =\n|rosetta 2            = na\n|rosetta 2 notes      =\n|ios-ipados app       = na\n|ios-ipados app notes =\n|crossover            = unplayable\n|crossover notes      =\n|wine                 = unknown\n|wine notes           =\n|parallels            = playable\n|parallels notes      =\n|windows 10 arm       = na\n|windows 10 arm notes =\n|linux arm            = na\n|linux arm notes      =\n}}\n"
+       }
+      }
+     }
+    ]
+   },
+   {
+    "pageid": 1795,
+    "ns": 0,
+    "title": "Elden Ring",
+    "revisions": [
+     {
+      "revid": 10743,
+      "parentid": 10742,
+      "slots": {
+       "main": {
+        "contentmodel": "wikitext",
+        "contentformat": "text/x-wiki",
+        "content": "{{Infobox game\n|cover        = Elden_Ring_cover.jpg\n|developers   = \n{{Infobox game/row/developer|FromSoftware}}\n|publishers   = \n{{Infobox game/row/publisher|Bandai Namco Entertainment}}\n{{Infobox game/row/publisher|FromSoftware|Japan}}\n|engines      = \n|release dates= {{Infobox game/row/date|macOS|February 25, 2022}}\n|reception    = \n{{Infobox game/row/reception|Metacritic|elden-ring|95}}\n{{Infobox game/row/reception|OpenCritic|12090/elden-ring|96}}\n{{Infobox game/row/reception|IGDB|elden-ring|97}}\n|taxonomy     = \n{{Infobox game/row/taxonomy/monetization      | dlc }}\n{{Infobox game/row/taxonomy/microtransactions | none }}\n{{Infobox game/row/taxonomy/modes             | Singleplayer, Multiplayer }}\n{{Infobox game/row/taxonomy/pacing            | Real-time }}\n{{Infobox game/row/taxonomy/perspectives      | Third-person }}\n{{Infobox game/row/taxonomy/controls          | Direct control }}\n{{Infobox game/row/taxonomy/genres            | Action, RPG }}\n{{Infobox game/row/taxonomy/sports            | }}\n{{Infobox game/row/taxonomy/vehicles          | }}\n{{Infobox game/row/taxonomy/art styles        | Stylized }}\n{{Infobox game/row/taxonomy/themes            | Fantasy }}\n{{Infobox game/row/taxonomy/series            | }}\n|steam appid  = 1245620\n|steam appid side = \n|gogcom id    = \n|gogcom id side = \n|official site= https://www.bandainamcoent.com/games/eldenring\n|hltb         = 68151\n|igdb         = elden-ring\n|mobygames    = elden-ring\n|strategywiki = \n|wikipedia    = Elden Ring\n|winehq       = \n|license      = commercial\n}}\n\n{{Compatibility/macOS\n|native               = na\n|native notes         =\n|rosetta 2            = na\n|rosetta 2 notes      =\n|ios-ipados app       = na\n|ios-ipados app notes =\n|crossover            = playable\n|crossover notes      =\n|wine                 = perfect\n|wine notes           =\n|parallels            = unplayable\n|parallels notes      =\n|windows 10 arm       = na\n|windows 10 arm notes =\n|linux arm            = na\n|linux arm notes      =\n}}\n"
+       }
+      }
+     }
+    ]
+   },
+   {
+    "pageid": 2340,
+    "ns": 0,
+    "title": "Counter-Strike 2",
+    "revisions": [
+     {
+      "revid": 10994,
+      "parentid": 10993,
+      "slots": {
+       "main": {
+        "contentmodel": "wikitext",
+        "contentformat": "text/x-wiki",
+        "content": "{{Infobox game\n|cover        = Counter-Strike 2 cover.jpg\n|developers   = \n{{Infobox game/row/developer|Valve Corporation}}\n|publishers   = \n|engines      = \n{{Infobox game/row/engine|Source 2}}\n|release dates= \n|reception    = \n|taxonomy     =\n{{Infobox game/row/taxonomy/series            | Counter-Strike}}\n|steam appid  = 730\n|steam appid side = \n|gogcom id    = \n|gogcom id side = \n|official site = https://www.counter-strike.net/cs2\n|hltb         = \n|igdb         = <!-- Only needs to be set if there is no IGDB reception row -->\n|lutris       = \n|mobygames    = 209456\n|strategywiki = \n|wikipedia    = Counter-Strike 2\n|winehq       = \n|license      = commercial\n|pcgamingwiki = Counter-Strike_2\n}}\n\n{{Compatibility/macOS\n|native               = na\n|native notes         =\n|rosetta 2            = na\n|rosetta 2 notes      =\n|ios-ipados app       = na\n|ios-ipados app notes =\n|crossover            = perfect\n|crossover notes      =\n|wine                 = perfect\n|wine notes           =\n|parallels            = playable\n|parallels notes      =\n|windows 10 arm       = na\n|windows 10 arm notes =\n|linux arm            = na\n|linux arm notes      =\n}}\n"
+       }
+      }
+     }
+    ]
+   }
+  ]
+ }
+}

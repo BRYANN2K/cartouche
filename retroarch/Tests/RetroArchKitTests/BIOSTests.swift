@@ -122,8 +122,11 @@ struct BIOSTests {
 
         // The only addresses in the code: where cores and core info come from,
         // where RetroArch's source is, and the game database and box art (P13),
-        // which name games and hold no game file
+        // which name games and hold no game file; libretro's netplay lobby and
+        // RetroAchievements (P14), which hold no game file either
         let allowed: Set<String> = [
+            "http://lobby.libretro.com/",
+            "https://retroachievements.org/",
             "https://buildbot.libretro.com/nightly/apple/osx/arm64/latest/",
             "https://buildbot.libretro.com/assets/frontend/info.zip",
             "https://buildbot.libretro.com/stable/",

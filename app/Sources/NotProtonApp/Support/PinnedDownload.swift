@@ -36,14 +36,17 @@ enum PinnedDownload {
         report: @Sendable (Progress) -> Void = { _ in }
     ) async throws -> URL {
         let archive = downloads.appending(path: file)
-        if Digest.sha256IfPresent(archive) == sha256 {
+        // QA mode: the mock's synthetic files cannot match the real pins, so the
+        // hashes it lists in __pins.json count too (QAEnvironment)
+        let extras = await QAEnvironment.extraHashes(session: session)
+        if let onDisk = Digest.sha256IfPresent(archive), onDisk == sha256 || extras.contains(onDisk) {
             report(.reusing)
             return archive
         }
 
         var refusals: [String] = []
         var kinds: Set<Refusal> = []
-        for base in bases {
+        for base in bases.map(QAEnvironment.url) {
             let host = base.host() ?? base.absoluteString
             report(.fetching(host: host))
             let body: URL, response: URLResponse
@@ -63,7 +66,7 @@ enum PinnedDownload {
             }
 
             let got = try Digest.sha256(of: body)
-            guard got == sha256 else {
+            guard got == sha256 || extras.contains(got) else {
                 refusals.append("\(host) served \(got.prefix(16)) rather than \(sha256.prefix(16))")
                 kinds.insert(.mismatch)
                 continue

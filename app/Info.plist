@@ -34,6 +34,21 @@
 	<string>public.app-category.utilities</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>15.0</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>lobby.libretro.com</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
+		</dict>
+	</dict>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_ra_netplay._tcp</string>
+	</array>
 	<key>NSDownloadsFolderUsageDescription</key>
 	<string>Cartouche suggests Windows installers you download.</string>
 	<key>NSHighResolutionCapable</key>

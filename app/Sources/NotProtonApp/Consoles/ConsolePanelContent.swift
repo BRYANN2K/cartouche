@@ -7,7 +7,7 @@ import RetroArchKit
 struct ConsolePanelContent {
 
     enum Section: String, Sendable {
-        case play, bios, continueFrom, stats, setup, controls, more
+        case play, bios, continueFrom, stats, setup, controls, playTogether, more
 
         var title: String {
             switch self {
@@ -17,6 +17,7 @@ struct ConsolePanelContent {
             case .stats: String(localized: "Your Play")
             case .setup: String(localized: "Setup")
             case .controls: String(localized: "Controls")
+            case .playTogether: String(localized: "Play Together")
             case .more: String(localized: "More…")
             }
         }
@@ -27,6 +28,9 @@ struct ConsolePanelContent {
     let states: [SaveState]
     let bios: BIOSStatus?
     let playing: Playing?
+    // RetroAchievements: the account, and this game's counts once read (P14)
+    var signedIn = false
+    var progress: AchievementProgress?
     // RetroArch, or the standalone emulator the console plays in (P16)
     var route: ConsoleRoute = .retroArch
 
@@ -39,9 +43,12 @@ struct ConsolePanelContent {
         var out: [Section] = [.play]
         if biosMissing { out.append(.bios) }
         if !states.isEmpty { out.append(.continueFrom) }
-        out += [.stats, .setup, .controls, .more]
+        out += [.stats, .setup, .controls, .playTogether, .more]
         return out
     }
+
+    // Hardcore forbids states: Continue From and Resume wait until it is off
+    var statesAllowed: Bool { !game.setup.hardcore }
 
     var titles: [String] { sections.map { $0 == .play ? playLabel : $0.title } }
 
@@ -51,7 +58,7 @@ struct ConsolePanelContent {
         switch playing?.phase {
         case .starting: String(localized: "Starting…")
         case .playing: String(localized: "Playing")
-        case nil: hasAutoState && route == .retroArch ? String(localized: "Resume") : String(localized: "Play")
+        case nil: hasAutoState && route == .retroArch && statesAllowed ? String(localized: "Resume") : String(localized: "Play")
         }
     }
 
@@ -80,8 +87,13 @@ struct ConsolePanelContent {
         return String(localized: "\(hours.formatted(.number.precision(.fractionLength(0...1)))) hours")
     }
 
-    // RetroAchievements sign-in arrives with P14; until then the count is unknown
-    var achievements: String { String(localized: "Not signed in") }
+    // "12 of 64", as retroachievements.org counts them for the account
+    var achievements: String {
+        guard signedIn else { return String(localized: "Not signed in") }
+        guard let progress else { return String(localized: "Not known yet") }
+        guard progress.total > 0 else { return String(localized: "None for this game") }
+        return String(localized: "\(progress.unlocked) of \(progress.total)")
+    }
 
     // "scph5501.bin is missing", and what to do about it
     var biosWarning: (title: String, detail: String)? {

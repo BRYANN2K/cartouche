@@ -37,6 +37,7 @@ struct CartoucheApp: App {
         // The first launch claims Cartouche's own folder, even before anything is installed
         try? FileManager.default.createDirectory(at: SupportPaths.support, withIntermediateDirectories: true)
         AppLog.start()
+        if let qa = QAEnvironment.base { AppLog.note("QA mode: network base URLs re-point to \(qa.absoluteString)") }
         let permissions = PermissionCenter.live()
         _permissions = State(initialValue: permissions)
         _permissionFlow = State(initialValue: PermissionFlow(center: permissions))
@@ -45,7 +46,7 @@ struct CartoucheApp: App {
         _controls = State(initialValue: ControlsCenter(
             permissions: permissions, files: ControlsFiles(retroArch: SettingsWindow.retroArchPaths)))
         // Settings > Consoles and the library share one core manager
-        let cores = CoreManager(paths: SettingsWindow.retroArchPaths)
+        let cores = CoreManager(paths: SettingsWindow.retroArchPaths, source: .qa)
         let consoles = SettingsWindow.consolesModel(cores: cores)
         _library = State(initialValue: library)
         _consoles = State(initialValue: consoles)
@@ -157,6 +158,7 @@ struct CartoucheApp: App {
         library.watch()
         await consoleCenter.reload()
         consoleCenter.folderList = gameFolders
+        consoleCenter.netplayFlow = PermissionFlow(center: permissions)
         await consoleCenter.startWatching()
         controls.couch.play = { [actions] game in actions.perform(game.installed ? .play : .install, on: game) }
         await controls.start(relaunch: relaunch, library: library)

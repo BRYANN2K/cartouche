@@ -12,15 +12,19 @@ struct ConsolePanel: View {
     let actions: GameActionRunner
 
     @State private var showingMore = false
+    @State private var showingJoin = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(ControlsCenter.self) private var controls: ControlsCenter?
 
     private var content: ConsolePanelContent? {
         guard let system = center.console(of: console) else { return nil }
-        return ConsolePanelContent(game: console, console: system, states: center.states(for: console),
-                                   bios: center.bios(for: console),
-                                   playing: center.isPlaying(console.id) ? center.playing : nil,
-                                   route: center.route(for: system))
+        var content = ConsolePanelContent(game: console, console: system, states: center.states(for: console),
+                                          bios: center.bios(for: console),
+                                          playing: center.isPlaying(console.id) ? center.playing : nil,
+                                          route: center.route(for: system))
+        content.signedIn = center.extras.username != nil
+        content.progress = center.extras.progress(for: console)
+        return content
     }
 
     var body: some View {
@@ -51,6 +55,11 @@ struct ConsolePanel: View {
             .sheet(isPresented: $showingMore) {
                 ConsoleMoreSheet(game: console, content: content, center: center)
             }
+            .sheet(isPresented: $showingJoin) {
+                NetplayJoinSheet(center: center)
+            }
+            .netplayExplanations(center.netplayFlow)
+            .task(id: console.id) { await center.extras.refresh(console) }
         }
     }
 
@@ -60,7 +69,7 @@ struct ConsolePanel: View {
         case .play:
             HStack(spacing: 8) {
                 Button {
-                    Task { await center.play(console.id, resume: content.hasAutoState, reduceMotion: reduceMotion) }
+                    Task { await center.play(console.id, resume: content.hasAutoState && content.statesAllowed, reduceMotion: reduceMotion) }
                 } label: {
                     Label(content.playLabel, systemImage: "play.fill")
                         .frame(maxWidth: .infinity)
@@ -107,7 +116,7 @@ struct ConsolePanel: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
                         ForEach(content.states) { state in
-                            StateButton(state: state, look: console.setup.look, disabled: !content.canPlay) {
+                            StateButton(state: state, look: console.setup.look, disabled: !content.canPlay || !content.statesAllowed) {
                                 Task {
                                     await center.play(console.id, slot: state.slot, resume: state.isAuto, reduceMotion: reduceMotion)
                                 }
@@ -131,6 +140,10 @@ struct ConsolePanel: View {
         case .controls:
             group(section.title) {
                 if let controls { ControlsRow(game: game, center: controls) } else { ControllerRow() }
+            }
+        case .playTogether:
+            group(section.title) {
+                PlayTogetherRow(game: console, content: content, center: center, showingJoin: $showingJoin)
             }
         case .more:
             HStack {
@@ -306,6 +319,7 @@ struct ConsoleMoreSheet: View {
                         Text(content.achievements)
                     } label: {
                         Text(verbatim: "RetroAchievements")
+                        if let user = center.extras.username { Text(verbatim: user).foregroundStyle(.secondary) }
                     }
                 }
                 if let bios = content.bios, bios.summary != .notNeeded {
@@ -333,9 +347,10 @@ struct ConsoleMoreSheet: View {
                         Text(identified).foregroundStyle(.secondary)
                     }
                 }
+                ConsoleOptionsSections(game: game, center: center)
             }
             .formStyle(.grouped)
-            Text("Covers from libretro-thumbnails.").font(.caption).foregroundStyle(.secondary)
+            Text("Covers from libretro-thumbnails. Achievements from RetroAchievements.").font(.caption).foregroundStyle(.secondary)
             HStack {
                 Spacer()
                 Button("Done") { dismiss() }.keyboardShortcut(.defaultAction)

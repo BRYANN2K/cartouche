@@ -71,6 +71,17 @@ RETRO_API bool retro_load_game(const struct retro_game_info *game)
       return false;
    if (!environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &format))
       return false;
+   /* Its RAM at system address 0, for READ_CORE_MEMORY and the coach tests */
+   {
+      static struct retro_memory_descriptor descriptor;
+      static struct retro_memory_map map;
+      memset(&descriptor, 0, sizeof(descriptor));
+      descriptor.ptr        = ram;
+      descriptor.len        = sizeof(ram);
+      map.descriptors       = &descriptor;
+      map.num_descriptors   = 1;
+      environ_cb(RETRO_ENVIRONMENT_SET_MEMORY_MAPS, &map);
+   }
    bytes  = (const uint8_t*)game->data;
    colour = ((uint32_t)bytes[0] << 16) | ((uint32_t)bytes[1] << 8) | bytes[2];
    return true;

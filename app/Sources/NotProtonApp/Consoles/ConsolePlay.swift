@@ -25,6 +25,40 @@ extension ConsoleRunning {
 
 extension ConsolePlayer: ConsoleRunning {}
 
+// What P14's extras ask of the running game. A stand-in that has none of
+// them answers as a build without the MCP server would.
+protocol ConsoleExtrasRunning {
+    func log(since: Int) async throws -> (lines: [String], next: Int)
+    func hardcoreActive() async throws -> Bool
+    func translateNow() async throws
+    func coachTarget() async -> (any CoachTarget)?
+}
+
+extension ConsoleRunning {
+    func extrasLog(since: Int) async throws -> (lines: [String], next: Int) {
+        guard let player = self as? any ConsoleExtrasRunning else { throw RetroArchSessionError.needsMCP }
+        return try await player.log(since: since)
+    }
+
+    func extrasHardcoreActive() async throws -> Bool {
+        guard let player = self as? any ConsoleExtrasRunning else { throw RetroArchSessionError.needsMCP }
+        return try await player.hardcoreActive()
+    }
+
+    func extrasTranslateNow() async throws {
+        guard let player = self as? any ConsoleExtrasRunning else { throw RetroArchSessionError.needsMCP }
+        try await player.translateNow()
+    }
+
+    func extrasCoachTarget() async -> (any CoachTarget)? {
+        await (self as? any ConsoleExtrasRunning)?.coachTarget()
+    }
+}
+
+extension ConsolePlayer: ConsoleExtrasRunning {
+    func coachTarget() async -> (any CoachTarget)? { session }
+}
+
 struct Playing: Equatable {
     enum Phase: Equatable { case starting, playing }
 
@@ -82,7 +116,8 @@ extension ConsoleCenter {
     // MARK: Play and quit
 
     // Play, Resume (the auto state) or one slot under Continue From
-    func play(_ id: String, slot: Int? = nil, resume: Bool = false, reduceMotion: Bool = false) async {
+    func play(_ id: String, slot: Int? = nil, resume: Bool = false, reduceMotion: Bool = false,
+              netplay: NetplayRole? = nil, core: String? = nil) async {
         guard let game = game(id), let console = console(of: game), playing == nil else { return }
         problem = nil
         // Claimed before the emulators are looked for, so a second Play waits
@@ -106,7 +141,8 @@ extension ConsoleCenter {
             powerOn = PowerOn(gameID: id, picture: Self.screenshot(of: game, covers: covers))
         }
         do {
-            let core = game.setup.core ?? console.core
+            // A joined game plays with the host's core
+            let core = core ?? game.setup.core ?? console.core
             let coreURL: URL
             if let resolveCore {
                 coreURL = try await resolveCore(core)
@@ -123,14 +159,19 @@ extension ConsoleCenter {
             }
             guard let runner else { throw RetroArchSessionError.notRunning }
             var request = PlayRequest(core: coreURL, content: game.fileURL)
-            request.slot = slot
-            request.resume = resume
+            // Hardcore forbids states: the game starts from the beginning
+            request.slot = game.setup.hardcore ? nil : slot
+            request.resume = game.setup.hardcore ? false : resume
             request.look = game.setup.look
             request.lowerInputLag = game.setup.lowerInputLag
             request.hardcore = game.setup.hardcore
             request.disc = game.isMultiDisc ? min(game.setup.disc, game.discs.count - 1) : 0
+            request.netplay = netplay
+            extras.apply(to: &request, game: game)
+            if extras.cloudSaves { try extras.cloud.ensure() }
             try await runner.play(request)
             playing = Playing(gameID: id, phase: .playing)
+            startExtras(for: game, hardcore: request.hardcore, netplay: netplay)
             let date = now()
             try? await store.update(id) { $0.lastPlayed = date }
             await reload()
@@ -185,6 +226,7 @@ extension ConsoleCenter {
         powerOn = nil
         statesChanged += 1
         await reload()
+        await endExtras(id)
     }
 
     // A RetroArch closed from its own menu or window ends the session too

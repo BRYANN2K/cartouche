@@ -1,8 +1,8 @@
 # Cartouche
 
-Cartouche is a free macOS game launcher for Apple silicon Macs. It runs Windows games through Steam Play inside the Mac Steam client, using CrossOver as the runner.
+Cartouche is a free macOS game launcher for Apple silicon Macs. It runs Windows games through Steam Play inside the Mac Steam client, through Epic, GOG and Amazon, or from a Windows installer. It also plays console games through its own bundled RetroArch.
 
-Cartouche is a fork of [NotProton](https://github.com/NotProtonNot/NotProton) and is built on its code. Store clients, other runners and a new launcher interface are planned.
+Cartouche is a fork of [NotProton](https://github.com/NotProtonNot/NotProton) and is built on its code. Agent control through MCP is still planned (P11).
 
 **Status: early development.** There is no release yet. Expect missing features and breaking changes.
 
@@ -44,7 +44,9 @@ Cartouche is free and signed with its own certificate. It is not notarized by Ap
 
 ## What it does today
 
-Cartouche forcibly enables the Steam Play functionality in macOS Steam (which is present and inert) and ports some components of Valve's Proton to macOS. This is NotProton's design, unchanged so far.
+The library lists your Steam, Epic, GOG and Amazon games next to your console games. Store sign-in happens on each store's own page; the tokens stay in the Keychain. Consoles run on a bundled RetroArch build (cores download per console) or on standalone emulators you already have. Netplay, RetroAchievements, per-game controls and couch mode are in. FPS is measured per session and per setup; a MacGamingDB estimate and community compatibility data sit on the game panel.
+
+Underneath, Cartouche forcibly enables the Steam Play functionality in macOS Steam (which is present and inert) and ports some components of Valve's Proton to macOS. This is NotProton's design, unchanged so far.
 
 It is intended to be used with the stable Steam Client (version 1791918634) as well as the beta Steam Client (version 1792192922) paired with **CrossOver 26.3 or CrossOver [Preview](https://www.codeweavers.com/preview) 20261006 / 20260821 / 20261015**.
 

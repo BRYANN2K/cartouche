@@ -16,7 +16,7 @@ Only the latest release gets security fixes. Update through Sparkle or Homebrew.
 
 ## Threat overview
 
-This is a short summary. The MCP threat model will be written in full when the MCP server lands (P11).
+This is a short summary. Agent control (P11) is specified but not merged yet; its section below is the approved design from `openspec/changes/p11-agent-control/`, not a description of running code.
 
 ### Code injected into Steam
 
@@ -40,14 +40,18 @@ This is a short summary. The MCP threat model will be written in full when the M
 - Sparkle accepts only updates signed with Cartouche's EdDSA key. The NotProton feed is never contacted.
 - Verify downloads against the SHA-256 shown in the release or the Homebrew cask.
 
-### MCP server for agents
+### MCP server for agents (P11, specified, not merged)
 
-- The server is local only. The default transport is stdio, started by the client.
-- The optional HTTP transport listens on 127.0.0.1 only, is off by default and needs a token. Requests without it get HTTP 401.
-- Three access levels: Read only, Standard (default) and Full. Tools above the level are refused.
-- Installing, deleting and running an executable need the user's approval in the app.
-- Tools never return store tokens, passwords, Keychain items or files outside the app folder and folders the user granted.
-- Every agent action is logged in Settings > Agents.
+The MCP server lets an AI agent read the library and act on it through the same functions the UI uses. The threat is a malicious or confused agent, or a network party reaching the server.
+
+- The default transport is stdio: a `cartouche-mcp` helper binary the client starts (`claude mcp add cartouche -- cartouche-mcp`). The helper speaks MCP over stdio to the client and XPC to the app. An agent never reaches the app's internals directly.
+- The optional HTTP transport listens on 127.0.0.1 only, is off by default and needs a token. Requests without it get HTTP 401. Remote access from another machine is a non-goal.
+- Three access levels: Read only, Standard (default) and Full. Every tool belongs to a level; a call above the level set in Settings is refused and names the level it needs.
+- Tools that install, delete or run an executable wait for approval in the app. A notification asks "Allow?" and the tool returns only after Allow or Deny.
+- Every agent action is logged in Settings > Agents with the client name and time. Configuration changes can be undone from the log, and the undo is itself recorded.
+- A test client scans every read tool's answers for token patterns and paths outside the allowed roots. The scan is a CI test.
+- Agents reach RetroArch only through Cartouche's relay: the app starts RetroArch with `--mcp-stdio` only, so there is no RetroArch endpoint to reach. Cartouche applies its access levels before relaying, and refuses input tools while a Hardcore session runs.
+- An agent can never receive store tokens, passwords, Keychain items, or files outside the app's data folder and folders the user granted. It cannot act on store accounts beyond what the user signed in to.
 
 ### Other
 

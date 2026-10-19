@@ -55,9 +55,10 @@ struct LivePermissionRequester: PermissionRequester {
     }
 
     // Browsing for a Bonjour service is the first local network use, which
-    // shows the prompt. There is no answer to read back.
+    // shows the prompt. There is no answer to read back. The type is the one
+    // RetroArch publishes hosted games under, listed in NSBonjourServices.
     private static func touchLocalNetwork() async -> SystemAnswer {
-        let browser = NWBrowser(for: .bonjour(type: "_cartouche._udp", domain: nil), using: .udp)
+        let browser = NWBrowser(for: .bonjour(type: "_ra_netplay._tcp", domain: nil), using: .tcp)
         browser.start(queue: .global(qos: .userInitiated))
         try? await Task.sleep(for: .seconds(2))
         browser.cancel()

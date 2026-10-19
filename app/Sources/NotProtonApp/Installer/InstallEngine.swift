@@ -229,7 +229,7 @@ enum InstallerWinetricks {
         let step = String(localized: "Run Winetricks")
         let script = try await PinnedDownload.obtain(
             file: "winetricks", sha256: PrefixTools.winetricksSHA256,
-            bases: [URL(string: "https://raw.githubusercontent.com/Winetricks/winetricks/\(PrefixTools.winetricksRelease)/src")!],
+            bases: [QAEnvironment.url(URL(string: "https://raw.githubusercontent.com/Winetricks/winetricks/\(PrefixTools.winetricksRelease)/src")!)],
             into: SupportPaths.winetricksDownloads, step: step, from: "GitHub"
         )
         try await run(verbs, prefix: prefix, wine: wine, log: log, script: script)

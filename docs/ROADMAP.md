@@ -47,3 +47,9 @@ Two phases run in parallel only when they touch different directories. Each runs
 - Everything above, with every scenario evidenced.
 - Signed with the project's self-signed certificate, distributed through GitHub Releases and the Homebrew tap, updated by Sparkle.
 - Release notes say what works and what is experimental (Coach mode).
+
+## After v0.1.0
+
+### v0.1.1
+- **Share your stats.** Opt-in sharing of a game's play stats (FPS per setup, runner, backend, Mac model) from the game panel. Off by default; PRIVACY.md lists every field before it ships. Builds on P8's sharing payload, which v0.1.0 keeps in code but hides.
+- **Game list on the website.** cartouche.bryann2k.dev lists games with the stars users gave them and the shared stats behind them. The site reads the shared reports; the app never needs an account.

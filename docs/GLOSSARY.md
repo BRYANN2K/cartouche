@@ -40,11 +40,27 @@ Plain definitions of the terms used in Cartouche docs and specs. Read by contrib
 
 **Time Machine.** Cartouche's name for the browsable list of save states with pictures. Used by Continue From.
 
-**Coach mode.** An experimental feature in which an AI reads a console game's memory through RetroArch's MCP tools and gives tips. Memory addresses come from RetroAchievements definitions.
+**Netplay.** Playing a console game with a friend over the network, through RetroArch's own netplay. Cartouche lists hosted games from libretro's lobby and from the local network.
+
+**RetroAchievements.** A community service that gives retro games achievements. The user signs in once; the token stays in the Keychain.
+
+**Hardcore.** A RetroAchievements mode with no save states and no rewind. Cartouche also refuses input tools to a Hardcore session.
+
+**Standalone emulator.** An emulator that is an app of its own (Dolphin, Ryubing and others), not a libretro core. Cartouche detects installed ones and can launch a console's games with them.
+
+**Coach mode.** An experimental feature in which an AI reads a console game's values through Cartouche's own MCP relay and gives tips. The value names come from the game's RetroAchievements Rich Presence definition.
+
+## Stores
+
+**Store client.** The open-source command-line tool that talks to a game store for Cartouche: legendary (Epic), gogdl (GOG), comet (GOG online features) and nile (Amazon). Each is downloaded pinned from its GitHub release.
+
+**Token.** What a store, or RetroAchievements, returns after a sign-in on its own page. Stored only in the Keychain.
+
+**Cloud saves.** Save files a store syncs between Macs. Works for Epic and GOG games; Amazon has none at the pinned nile.
 
 ## Agents
 
-**MCP (Model Context Protocol).** An open protocol that lets AI agents call tools in an app. Cartouche has an MCP server for itself. RetroArch has another one, which Cartouche uses.
+**MCP (Model Context Protocol).** An open protocol that lets AI agents call tools in an app. Cartouche's own MCP server is planned (P11). RetroArch has one, which Cartouche uses and relays.
 
 ## Project process
 

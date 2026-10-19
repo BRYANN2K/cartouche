@@ -137,22 +137,26 @@ enum BackendInstaller {
         _ pin: BackendManifest.Pin, backends: URL = folder, downloads: URL = BackendInstaller.downloads,
         session: URLSession = PinnedDownload.session
     ) async throws -> Receipt {
-        let archive = try await download(pin, into: downloads, session: session)
+        let extras = await QAEnvironment.extraHashes(session: session)
+        let archive = try await download(pin, into: downloads, session: session, extraHashes: extras)
         defer { try? FileManager.default.removeItem(at: archive) }
-        return try unpack(archive, pin: pin, backends: backends)
+        return try unpack(archive, pin: pin, backends: backends, extraHashes: extras)
     }
 
-    // The archive, kept only if its size and SHA-256 match the pin
-    static func download(_ pin: BackendManifest.Pin, into downloads: URL, session: URLSession) async throws -> URL {
+    // The archive, kept only if its size and SHA-256 match the pin — or, in QA
+    // mode, a hash the mock server lists in __pins.json (QAEnvironment)
+    static func download(
+        _ pin: BackendManifest.Pin, into downloads: URL, session: URLSession, extraHashes: Set<String> = []
+    ) async throws -> URL {
         let fm = FileManager.default
         let archive = downloads.appending(path: pin.archiveName)
-        if Digest.sha256IfPresent(archive) == pin.sha256 { return archive }
+        if let onDisk = Digest.sha256IfPresent(archive), onDisk == pin.sha256 || extraHashes.contains(onDisk) { return archive }
         try? fm.removeItem(at: archive)
 
         let unreachable = String(localized: "Cartouche could not download \(pin.title). Check your internet connection and try again.")
         let body: URL, response: URLResponse
         do {
-            (body, response) = try await session.download(from: pin.url)
+            (body, response) = try await session.download(from: QAEnvironment.url(pin.url))
         } catch {
             AppLog.note("\(pin.id): \(pin.url.absoluteString) unreachable: \(error.localizedDescription)")
             throw StepFailure(step: step, detail: unreachable)
@@ -164,7 +168,7 @@ enum BackendInstaller {
         }
         let size = (try? fm.attributesOfItem(atPath: body.path(percentEncoded: false))[.size] as? Int64) ?? -1
         let got = try Digest.sha256(of: body)
-        guard size == pin.size, got == pin.sha256 else {
+        guard (size == pin.size && got == pin.sha256) || extraHashes.contains(got) else {
             AppLog.note("\(pin.id): got \(size) bytes with SHA-256 \(got), the pin is \(pin.size) bytes, \(pin.sha256)")
             throw StepFailure(step: step, detail: WineRunnerInstaller.damaged)
         }
@@ -174,10 +178,13 @@ enum BackendInstaller {
     }
 
     // Unpacks beside the backends folder and moves the result in only when it is complete
-    static func unpack(_ archive: URL, pin: BackendManifest.Pin, backends: URL) throws -> Receipt {
+    static func unpack(
+        _ archive: URL, pin: BackendManifest.Pin, backends: URL, extraHashes: Set<String> = []
+    ) throws -> Receipt {
         let fm = FileManager.default
         // A file swapped since the download was checked is not unpacked either
-        guard Digest.sha256IfPresent(archive) == pin.sha256 else {
+        guard let archiveHash = Digest.sha256IfPresent(archive),
+              archiveHash == pin.sha256 || extraHashes.contains(archiveHash) else {
             try? fm.removeItem(at: archive)
             throw StepFailure(step: step, detail: WineRunnerInstaller.damaged)
         }

@@ -56,7 +56,8 @@ resolve_icon() {
     find "$absent" -mtime +14 -delete 2>/dev/null || true
     find "$failed" -mmin +60 -delete 2>/dev/null || true
     if [ ! -s "$ico" ] && [ ! -f "$absent" ] && [ ! -f "$failed" ]; then
-      url="https://shared.fastly.steamstatic.com/community_assets/images/apps/$app_id/$meta_clienticon.ico"
+      icon_base="${CARTOUCHE_QA_BASE_URL:-https://shared.fastly.steamstatic.com}"
+      url="${icon_base%/}/community_assets/images/apps/$app_id/$meta_clienticon.ico"
       code=$(curl -fsL --connect-timeout 5 --max-time 20 -w '%{http_code}' -o "$ico.new" "$url" 2>>"$log")
       magic=$(od -An -tx1 -N4 "$ico.new" 2>/dev/null | tr -d ' \n')
       if [ "$magic" = "00000100" ]; then

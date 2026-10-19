@@ -21,8 +21,16 @@ public struct AppendConfig: Sendable, Equatable {
     public var autoLoadState = false
     // Run-ahead, one frame: the panel's Lower input lag
     public var runAhead = false
-    // RetroAchievements' hardcore mode, which forbids states
+    // RetroAchievements' hardcore mode, which forbids states and rewind
     public var hardcore = false
+    // Play Together: the name the other players see, and whether a hosted
+    // game is listed in libretro's lobby, played through its relay
+    public var netplayNickname: String?
+    public var netplayAnnounce = false
+    // RetroAchievements: the account RetroArch signs in with, by token
+    public var achievements: AchievementsLogin?
+    // Translate the screen: RetroArch's AI service with the user's service
+    public var translation: TranslationSetup?
     // For tests and diagnostics: drivers, logging
     public var extra: [String: String] = [:]
 
@@ -66,12 +74,56 @@ public struct AppendConfig: Sendable, Equatable {
             // One instance: a second copy of the core does not follow a loaded state
             ("run_ahead_secondary_instance", "false"),
             ("cheevos_hardcore_mode_enable", hardcore ? "true" : "false"),
+            // The UDP commands answer this Mac only
+            ("network_cmd_bind_address", "127.0.0.1"),
+            ("netplay_public_announce", netplayAnnounce ? "true" : "false"),
+            ("netplay_use_mitm_server", netplayAnnounce ? "true" : "false"),
         ]
+        if hardcore { values.append(("rewind_enable", "false")) }
+        if let netplayNickname { values.append(("netplay_nickname", netplayNickname)) }
+        values += achievementValues + translationValues
         for key in extra.keys.sorted() {
             values.removeAll { $0.0 == key }
             values.append((key, extra[key]!))
         }
         return values
+    }
+
+    // The token is the only secret; a password is never written
+    private var achievementValues: [(String, String)] {
+        guard let login = achievements else {
+            return [("cheevos_enable", "false"), ("cheevos_username", ""), ("cheevos_token", ""), ("cheevos_password", "")]
+        }
+        return [
+            ("cheevos_enable", "true"),
+            ("cheevos_username", login.username),
+            ("cheevos_token", login.token),
+            ("cheevos_password", ""),
+            ("cheevos_custom_host", login.host?.absoluteString ?? ""),
+            // The log is how Cartouche learns which game RetroAchievements recognized
+            ("cheevos_verbose_enable", "true"),
+            ("log_verbosity", "true"),
+        ]
+    }
+
+    private var translationValues: [(String, String)] {
+        guard let translation else { return [("ai_service_enable", "false")] }
+        return [
+            ("ai_service_enable", "true"),
+            ("ai_service_url", translation.service.absoluteString),
+            // Image mode: the translation is drawn over the game
+            ("ai_service_mode", "0"),
+            ("ai_service_target_lang", String(translation.targetLanguage)),
+            ("ai_service_pause", "true"),
+        ]
+    }
+
+    // The same configuration with the token taken out, written again once
+    // RetroArch has read it, so the token does not stay on disk
+    public var withoutSecrets: AppendConfig {
+        var copy = self
+        copy.achievements?.token = ""
+        return copy
     }
 
     public func render() throws -> String {
@@ -89,5 +141,7 @@ public struct AppendConfig: Sendable, Equatable {
     public func write() throws {
         try paths.create()
         try Data(render().utf8).write(to: paths.appendConfig, options: .atomic)
+        // It holds the RetroAchievements token while RetroArch starts
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: paths.appendConfig.path(percentEncoded: false))
     }
 }

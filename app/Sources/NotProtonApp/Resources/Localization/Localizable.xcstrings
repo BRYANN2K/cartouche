@@ -1454,6 +1454,22 @@
         }
       }
     },
+    "%lld of %lld" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld di %lld"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld/%lld"
+          }
+        }
+      }
+    },
     "%lld of %lld recent ProtonDB reports say it doesn’t run on Linux." : {
       "localizations" : {
         "it" : {
@@ -1466,6 +1482,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld/%lld 份近期 ProtonDB 报告称其无法在 Linux 上运行。"
+          }
+        }
+      }
+    },
+    "%lld other games in the lobby are not in your library." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Altre %lld partite nella lobby non sono nella tua libreria."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "大厅中另外 %lld 个游戏不在你的游戏库中。"
           }
         }
       }
@@ -2816,6 +2848,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Amazon 未接受登录。请重试。"
+          }
+        }
+      }
+    },
+    "An assistant connected to Cartouche reads the game's values and helps when you ask. It never presses a button in Hardcore mode." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un assistente collegato a Cartouche legge i valori del gioco e ti aiuta quando lo chiedi. Non preme mai pulsanti in modalità hardcore."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连接到 Cartouche 的助手会读取游戏数值，在你需要时提供帮助。在硬核模式下，它绝不会按键。"
           }
         }
       }
@@ -4967,6 +5015,38 @@
         }
       }
     },
+    "Coach" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coach"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "教练"
+          }
+        }
+      }
+    },
+    "Coach mode" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modalità coach"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "教练模式"
+          }
+        }
+      }
+    },
     "Command acts as Control" : {
       "localizations" : {
         "it" : {
@@ -5831,18 +5911,18 @@
         }
       }
     },
-    "Covers from libretro-thumbnails." : {
+    "Covers from libretro-thumbnails. Achievements from RetroAchievements." : {
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Copertine da libretro-thumbnails."
+            "value" : "Copertine da libretro-thumbnails. Obiettivi da RetroAchievements."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "封面来自 libretro-thumbnails。"
+            "value" : "封面来自 libretro-thumbnails。成就数据来自 RetroAchievements。"
           }
         }
       }
@@ -7178,6 +7258,22 @@
         }
       }
     },
+    "Experimental" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sperimentale"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "实验性"
+          }
+        }
+      }
+    },
     "Extracting" : {
       "localizations" : {
         "it" : {
@@ -7546,6 +7642,38 @@
         }
       }
     },
+    "Friends join from RetroArch's lobby, under %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gli amici possono unirsi dalla lobby di RetroArch, come %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "好友可从 RetroArch 大厅加入，名称为 %@。"
+          }
+        }
+      }
+    },
+    "Friends join from RetroArch's lobby." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gli amici possono unirsi dalla lobby di RetroArch."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "好友可从 RetroArch 大厅加入。"
+          }
+        }
+      }
+    },
     "From the GOG game info" : {
       "localizations" : {
         "it" : {
@@ -7702,6 +7830,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 运行并登录后，你拥有的游戏会显示在这里。"
+          }
+        }
+      }
+    },
+    "Games your friends host in RetroArch's lobby, and on your network, that you have too." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partite ospitate dai tuoi amici nella lobby di RetroArch o sulla tua rete, per giochi che hai anche tu."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的好友在 RetroArch 大厅或你的网络中主持、且你也拥有的游戏。"
           }
         }
       }
@@ -8022,6 +8166,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Homebrew 无法安装 Steam：%@"
+          }
+        }
+      }
+    },
+    "Host" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ospita"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当主机"
           }
         }
       }
@@ -8758,6 +8918,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "进程退出后输出通道仍未关闭，因此未能捕获输出。"
+          }
+        }
+      }
+    },
+    "Join" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unisciti"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加入"
+          }
+        }
+      }
+    },
+    "Join a Game" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unisciti a una partita"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加入游戏"
+          }
+        }
+      }
+    },
+    "Join…" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unisciti…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加入…"
           }
         }
       }
@@ -9818,6 +10026,22 @@
         }
       }
     },
+    "Needs a translation service, set in Settings" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Richiede un servizio di traduzione, da impostare in Impostazioni"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要翻译服务，请在“设置”中配置"
+          }
+        }
+      }
+    },
     "Needs rebuilding" : {
       "localizations" : {
         "it" : {
@@ -9830,6 +10054,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "需要重建"
+          }
+        }
+      }
+    },
+    "Netplay" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Netplay"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "联机对战"
           }
         }
       }
@@ -10154,6 +10394,22 @@
         }
       }
     },
+    "No friend hosts one of your games right now." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Al momento nessun amico sta ospitando un tuo gioco."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目前没有好友主持你拥有的游戏。"
+          }
+        }
+      }
+    },
     "No game folder found. Add the one where you keep your own console games." : {
       "localizations" : {
         "it" : {
@@ -10442,6 +10698,22 @@
         }
       }
     },
+    "None for this game" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun obiettivo per questo gioco"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此游戏没有成就"
+          }
+        }
+      }
+    },
     "None set up" : {
       "localizations" : {
         "it" : {
@@ -10662,6 +10934,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "尚未安装。"
+          }
+        }
+      }
+    },
+    "Not known yet" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ancora sconosciuto"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚不清楚"
           }
         }
       }
@@ -10918,6 +11206,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "离线。兼容性数据来自 %lld 天前。"
+          }
+        }
+      }
+    },
+    "On your network" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sulla tua rete"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在你的网络中"
           }
         }
       }
@@ -11242,6 +11546,22 @@
         }
       }
     },
+    "Options" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opzioni"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选项"
+          }
+        }
+      }
+    },
     "Other ways" : {
       "localizations" : {
         "it" : {
@@ -11542,6 +11862,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "开始玩 %@"
+          }
+        }
+      }
+    },
+    "Play Together" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gioca insieme"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一起游玩"
           }
         }
       }
@@ -13116,6 +13452,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "RetroArch 未接受此更改：%@"
+          }
+        }
+      }
+    },
+    "RetroArch did not translate: %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroArch non ha tradotto: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroArch 未能翻译：%@"
           }
         }
       }
@@ -16003,6 +16355,22 @@
         }
       }
     },
+    "The lobby did not answer. Games on your network are still listed." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La lobby non ha risposto. Le partite sulla tua rete sono comunque elencate."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "大厅未响应。你网络中的游戏仍会列出。"
+          }
+        }
+      }
+    },
     "The patched %@ ntdll has not been copied into place." : {
       "localizations" : {
         "it" : {
@@ -16463,6 +16831,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "工具"
+          }
+        }
+      }
+    },
+    "Translate Now" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduci ora"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "立即翻译"
+          }
+        }
+      }
+    },
+    "Translate the screen" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduci lo schermo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻译屏幕"
           }
         }
       }
@@ -17624,6 +18024,22 @@
     },
     "Winetricks…" : {
       "shouldTranslate" : false
+    },
+    "With %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 %@"
+          }
+        }
+      }
     },
     "With heavy decompression (%@)" : {
       "localizations" : {

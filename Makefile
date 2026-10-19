@@ -71,7 +71,7 @@ TARGET      := $(OUT_DIR)/$(DYLIB_NAME)
 OBJS := $(patsubst %.c,$(OUT_DIR)/%.o,$(SRCS))
 DEPS := $(OBJS:.o=.d)
 
-.PHONY: all clean rebuild dobby deploy dylib dylib-install sigcheck fonts fonts-install app-payload app app-zip \
+.PHONY: all clean rebuild dobby deploy dylib dylib-install sigcheck fonts fonts-install app-payload app qa-app app-zip \
         anchorcheck callscheck sigdb-fixtures webpatch-fixtures peicon-fixtures panel-behavior app-tests \
         tests-list overlay-shim overlay-shim-install overlay-shim-tests \
         overlay-shim-bench iconmaker icon \
@@ -659,7 +659,6 @@ app-payload: $(TARGET) $(OVERLAY_SHIM) $(FPS_COUNTER) $(ICONMAKER) $(APPINFO)
 	@echo "==> Staged app payload in $(APP_PAYLOAD)"
 
 APP_BUNDLE  := $(OUT_DIR)/Cartouche.app
-APP_BUNDLE_PAYLOAD := $(APP_BUNDLE)/Contents/Resources/NotProtonApp_NotProtonApp.bundle/Contents/Resources/payload
 APP_ZIP     := $(OUT_DIR)/Cartouche.zip
 APP_VERSION := $(shell sed -n 's/^\#define CARTOUCHE_VERSION "\(.*\)"/\1/p' dylib/version.h)
 
@@ -694,36 +693,42 @@ $(ICON_CAR): $(ICONGEN) $(wildcard $(BRAND_DIR)/*.svg)
 	iconutil -c icns -o "$(ICON_DIR)/Cartouche.icns" "$(ICON_SRC)/Cartouche.iconset"
 	@echo "==> Built $@"
 
-app: app-payload $(ICON_CAR)
-	swift build --package-path app -c release
-	rm -rf "$(APP_BUNDLE)"
-	@mkdir -p "$(APP_BUNDLE)/Contents/MacOS" "$(APP_BUNDLE)/Contents/Resources"
-	cp app/Info.plist "$(APP_BUNDLE)/Contents/Info.plist"
+# Extra flags for the swift build inside the bundle recipe (e.g.
+# `make qa-app SWIFT_FLAGS="--disable-sandbox ..."` inside a sandboxed shell).
+SWIFT_FLAGS ?=
+
+# Bundle assembly shared by `app` (release) and `qa-app` (debug):
+# $(1) is the swift build configuration, $(2) the bundle path.
+define BUNDLE_APP
+	swift build --package-path app -c $(1) $(SWIFT_FLAGS)
+	rm -rf "$(2)"
+	@mkdir -p "$(2)/Contents/MacOS" "$(2)/Contents/Resources"
+	cp app/Info.plist "$(2)/Contents/Info.plist"
 	/usr/libexec/PlistBuddy -c \
 		"Set :CFBundleShortVersionString $(APP_VERSION)" -c \
 		"Set :CFBundleVersion $(APP_BUNDLE_VERSION)" \
-		"$(APP_BUNDLE)/Contents/Info.plist"
-	cp "$$(swift build --package-path app -c release --show-bin-path)/NotProtonApp" \
-		"$(APP_BUNDLE)/Contents/MacOS/Cartouche"
-	@mkdir -p "$(APP_BUNDLE)/Contents/Frameworks"
-	ditto "$$(swift build --package-path app -c release --show-bin-path)/Sparkle.framework" \
-		"$(APP_BUNDLE)/Contents/Frameworks/Sparkle.framework"
+		"$(2)/Contents/Info.plist"
+	cp "$$(swift build --package-path app -c $(1) $(SWIFT_FLAGS) --show-bin-path)/NotProtonApp" \
+		"$(2)/Contents/MacOS/Cartouche"
+	@mkdir -p "$(2)/Contents/Frameworks"
+	ditto "$$(swift build --package-path app -c $(1) $(SWIFT_FLAGS) --show-bin-path)/Sparkle.framework" \
+		"$(2)/Contents/Frameworks/Sparkle.framework"
 	install_name_tool -add_rpath @executable_path/../Frameworks \
-		"$(APP_BUNDLE)/Contents/MacOS/Cartouche"
+		"$(2)/Contents/MacOS/Cartouche"
 	xcrun vtool -set-build-version macos $(MIN_VER) "$$(xcrun --sdk macosx --show-sdk-version)" \
-		-replace -output "$(APP_BUNDLE)/Contents/MacOS/Cartouche" \
-		"$(APP_BUNDLE)/Contents/MacOS/Cartouche"
-	cp -R "$$(swift build --package-path app -c release --show-bin-path)/NotProtonApp_NotProtonApp.bundle" \
-		"$(APP_BUNDLE)/Contents/Resources/"
-	cp -R "$$(swift build --package-path app -c release --show-bin-path)/RetroArchKit_RetroArchKit.bundle" \
-		"$(APP_BUNDLE)/Contents/Resources/"
-	cp -R "$(APP_BUNDLE)/Contents/Resources/NotProtonApp_NotProtonApp.bundle/Contents/Resources/"*.lproj \
-		"$(APP_BUNDLE)/Contents/Resources/"
+		-replace -output "$(2)/Contents/MacOS/Cartouche" \
+		"$(2)/Contents/MacOS/Cartouche"
+	cp -R "$$(swift build --package-path app -c $(1) $(SWIFT_FLAGS) --show-bin-path)/NotProtonApp_NotProtonApp.bundle" \
+		"$(2)/Contents/Resources/"
+	cp -R "$$(swift build --package-path app -c $(1) $(SWIFT_FLAGS) --show-bin-path)/RetroArchKit_RetroArchKit.bundle" \
+		"$(2)/Contents/Resources/"
+	cp -R "$(2)/Contents/Resources/NotProtonApp_NotProtonApp.bundle/Contents/Resources/"*.lproj \
+		"$(2)/Contents/Resources/"
 	cp "$(ICON_DIR)/Assets.car" "$(ICON_DIR)/Cartouche.icns" \
-		"$(APP_BUNDLE)/Contents/Resources/"
+		"$(2)/Contents/Resources/"
 	@missing=$$(cd "$(APP_PAYLOAD)" && find . -type f ! -name '.DS_Store' | sed 's|^\./||' \
 		| while read -r rel; do \
-			[ -s "$(CURDIR)/$(APP_BUNDLE_PAYLOAD)/$$rel" ] || echo "$$rel"; \
+			[ -s "$(CURDIR)/$(2)/Contents/Resources/NotProtonApp_NotProtonApp.bundle/Contents/Resources/payload/$$rel" ] || echo "$$rel"; \
 		done); \
 	if [ -n "$$missing" ]; then \
 		echo "==> the bundle is missing staged payload, so the app would ship without it:" >&2; \
@@ -733,13 +738,23 @@ app: app-payload $(ICON_CAR)
 	fi
 	@echo "==> Payload complete in the bundle"
 	@if [ -x "$(INNOEXTRACT)" ]; then \
-		mkdir -p "$(APP_BUNDLE)/Contents/Helpers" && \
-		cp -f "$(INNOEXTRACT)" "$(APP_BUNDLE)/Contents/Helpers/innoextract" && \
-		codesign -f -s "$(APP_SIGN_ID)" "$(APP_BUNDLE)/Contents/Helpers/innoextract"; \
+		mkdir -p "$(2)/Contents/Helpers" && \
+		cp -f "$(INNOEXTRACT)" "$(2)/Contents/Helpers/innoextract" && \
+		codesign -f -s "$(APP_SIGN_ID)" "$(2)/Contents/Helpers/innoextract"; \
 	else echo "==> $(INNOEXTRACT) not built, installer analysis needs a Homebrew innoextract (run: $(MAKE) innoextract)"; fi
-	codesign -f -s "$(APP_SIGN_ID)" "$(APP_BUNDLE)"
-	codesign --verify --strict "$(APP_BUNDLE)"
-	@echo "==> Built $(APP_BUNDLE) ($(APP_VERSION))"
+	codesign -f -s "$(APP_SIGN_ID)" "$(2)"
+	codesign --verify --strict "$(2)"
+	@echo "==> Built $(2) ($(APP_VERSION), $(1))"
+endef
+
+app: app-payload $(ICON_CAR)
+	$(call BUNDLE_APP,release,$(APP_BUNDLE))
+
+# The QA app is a debug build on purpose: QAEnvironment honours
+# CARTOUCHE_QA_BASE_URL only when DEBUG is defined, so the release app ignores
+# it. qa/launch.sh launches this bundle.
+qa-app: app-payload $(ICON_CAR)
+	$(call BUNDLE_APP,debug,$(OUT_DIR)/Cartouche-QA.app)
 
 app-zip: app
 	rm -f "$(APP_ZIP)"

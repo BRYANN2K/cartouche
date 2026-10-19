@@ -9,7 +9,7 @@ struct CompatibilityClient: Sendable {
     // repository is named in one place, SUFeedURL in Info.plist
     static var feed: URL? {
         guard let appcast = Bundle.main.object(forInfoDictionaryKey: "SUFeedURL") as? String else { return nil }
-        return URL(string: appcast).flatMap(feed(fromAppcast:))
+        return URL(string: appcast).map(QAEnvironment.url).flatMap(feed(fromAppcast:))
     }
 
     // .../releases/latest/download/appcast.xml -> .../releases/download/compat-data/compat.json.gz

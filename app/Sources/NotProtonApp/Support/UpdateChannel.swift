@@ -25,4 +25,13 @@ final class UpdateChannelDelegate: NSObject, SPUUpdaterDelegate {
     func allowedChannels(for updater: SPUUpdater) -> Set<String> {
         UpdateChannel.allowed(betaOptIn: betaOptIn())
     }
+
+    // QA mode (qa/README.md): the appcast is served by the local mock server.
+    // nil outside QA mode leaves Info.plist's SUFeedURL.
+    func feedURLString(for updater: SPUUpdater) -> String? {
+        guard QAEnvironment.isActive,
+              let appcast = Bundle.main.object(forInfoDictionaryKey: "SUFeedURL") as? String
+        else { return nil }
+        return QAEnvironment.url(appcast)?.absoluteString
+    }
 }

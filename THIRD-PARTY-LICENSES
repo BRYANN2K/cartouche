@@ -164,6 +164,37 @@ the app pins them, and are not part of Cartouche's release.
   Runner manifest                 runners.json, a newer copy from the compat-data
                                   release, accepted only if valid
 
+Graphics backends, pinned in app/Sources/NotProtonApp/Resources/backends.json.
+Each is downloaded when a game's setup first needs it, checked by size and
+SHA-256, and checked again before use:
+
+  DXMT 0.80                     MIT, from
+                                github.com/3Shain/dxmt, release asset
+                                dxmt-v0.80-builtin.tar.gz
+  DXVK 1.10.3-20230507-repack   zlib, from
+                                github.com/Gcenx/DXVK-macOS, release asset
+                                dxvk-macOS-async-v1.10.3-20230507-repack-builtin.tar.gz
+
+Store clients, pinned in app/Sources/NotProtonApp/Resources/store-clients.json.
+Each is downloaded the first time its store needs it, checked by size and
+SHA-256 before every run, and re-downloaded when the file no longer matches.
+CI checks the pins against GitHub (.github/workflows/store-clients.yml). The
+clients are upstream's own builds:
+
+  legendary 0.21.1    GPL-3.0, from github.com/derrod/legendary,
+                      release asset legendary_macOS_arm64.
+                      Epic Games sign-in, library, downloads, cloud saves.
+  gogdl 1.3.1         GPL-3.0, from
+                      github.com/Heroic-Games-Launcher/heroic-gogdl,
+                      release asset gogdl_macos_arm64.
+                      GOG sign-in, downloads and save sync.
+  comet 0.3.2         Apache-2.0, from github.com/imLinguin/comet,
+                      release asset comet-aarch64-apple-darwin.
+                      GOG online features beside a running game.
+  nile 1.2.0          GPL-3.0, from github.com/imLinguin/nile,
+                      release asset nile_macOS_arm64.
+                      Amazon Games sign-in, library, downloads.
+
 Community data
 --------------
 
@@ -175,6 +206,5 @@ never redistributes it.
 Not yet shipped
 ---------------
 
-Components planned for later phases (DXMT, DXVK, legendary, gogdl, nile,
-comet, the Swift MCP SDK) are not in the repository yet. They will be added
-here when they are.
+The Swift MCP SDK, planned for the agent control phase (P11), is not in the
+repository yet. It will be added here when it is.

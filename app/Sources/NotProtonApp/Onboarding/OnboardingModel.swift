@@ -32,7 +32,7 @@ struct ConsoleSetup: Sendable {
     var bios: @Sendable (Console) -> BIOSStatus
     var biosFolder: URL
 
-    static func live(paths: RetroArchPaths, source: CoreSource = .buildbot, session: URLSession = .shared) -> ConsoleSetup {
+    static func live(paths: RetroArchPaths, source: CoreSource = .qa, session: URLSession = .shared) -> ConsoleSetup {
         let shelf = ConsoleShelf(paths: paths, cores: CoreManager(paths: paths, source: source, session: session))
         return ConsoleSetup(
             added: { await shelf.added().map(\.id) },

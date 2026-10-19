@@ -273,7 +273,7 @@ enum PrefixTools {
         let script = try await PinnedDownload.obtain(
             file: "winetricks",
             sha256: winetricksSHA256,
-            bases: [URL(string: "https://raw.githubusercontent.com/Winetricks/winetricks/\(winetricksRelease)/src")!],
+            bases: [QAEnvironment.url(URL(string: "https://raw.githubusercontent.com/Winetricks/winetricks/\(winetricksRelease)/src")!)],
             into: SupportPaths.winetricksDownloads,
             step: step,
             from: "GitHub"

@@ -31,7 +31,9 @@ struct CoverStore: Sendable {
     var thumbnails: Thumbnails?
 
     var consoleThumbnails: Thumbnails {
-        thumbnails ?? Thumbnails(cache: cache.appending(path: "consoles", directoryHint: .isDirectory), fetch: fetch)
+        var chosen = thumbnails ?? Thumbnails(cache: cache.appending(path: "consoles", directoryHint: .isDirectory), fetch: fetch)
+        chosen.base = QAEnvironment.url(chosen.base)
+        return chosen
     }
 
     // Box art in the grid; a screenshot, else the title screen, else the box at the top of the panel
@@ -46,7 +48,7 @@ struct CoverStore: Sendable {
     }
 
     static func cdn(_ appID: Int, _ kind: ArtKind) -> URL {
-        URL(string: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/\(appID)/\(kind.rawValue).jpg")!
+        QAEnvironment.url(URL(string: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/\(appID)/\(kind.rawValue).jpg")!)
     }
 
     // What is on disk now, without the network

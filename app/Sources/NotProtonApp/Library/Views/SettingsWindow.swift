@@ -58,6 +58,7 @@ struct SettingsWindow: View {
 
     @State private var tab: SettingsTab = .general
     @Environment(ControlsCenter.self) private var controls: ControlsCenter?
+    // Achievements, iCloud Drive and translation in Settings > Consoles (P14); emulators (P16)
     @Environment(ConsoleCenter.self) private var consoleCenter: ConsoleCenter?
 
     var body: some View {
@@ -79,7 +80,7 @@ struct SettingsWindow: View {
         case .accounts: AccountsSettingsView(model: model)
         case .compatibility: CompatibilitySettingsView(model: model)
         case .privacy: PrivacySettingsView(center: permissions)
-        case .consoles: ConsolesSettingsView(model: consoles, emulators: consoleCenter?.emulators)
+        case .consoles: ConsolesSettingsView(model: consoles, extras: consoleCenter?.extras, emulators: consoleCenter?.emulators)
         case .controllers: if let controls { ControllersSettingsView(center: controls) }
         }
     }
@@ -88,12 +89,14 @@ struct SettingsWindow: View {
     static let retroArchPaths = RetroArchPaths(root: SupportPaths.support.appending(path: "retroarch", directoryHint: .isDirectory))
 
     @MainActor
-    static func consolesModel(cores: CoreManager = CoreManager(paths: retroArchPaths)) -> ConsolesSettingsModel {
+    static func consolesModel(
+        cores: CoreManager = CoreManager(paths: retroArchPaths, source: .qa)
+    ) -> ConsolesSettingsModel {
         ConsolesSettingsModel(
             paths: retroArchPaths,
             includedApp: Bundle.main.bundleURL.appending(path: "Contents/Helpers/RetroArch.app"),
             cores: cores,
-            official: OfficialRelease(paths: retroArchPaths))
+            official: OfficialRelease(paths: retroArchPaths, base: QAEnvironment.url(OfficialRelease.stable)))
     }
 }
 

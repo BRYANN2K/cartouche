@@ -17,7 +17,9 @@ final class SteamSetup {
         case failed(String)
     }
 
-    nonisolated static let valveInstaller = URL(string: "https://cdn.fastly.steamstatic.com/client/installer/steam.dmg")!
+    nonisolated static var valveInstaller: URL {
+        QAEnvironment.url(URL(string: "https://cdn.fastly.steamstatic.com/client/installer/steam.dmg")!)
+    }
     static let homebrewCommand = "brew install --cask steam"
     nonisolated static let brewPaths = ["/opt/homebrew/bin/brew", "/usr/local/bin/brew"]
 

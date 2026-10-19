@@ -58,23 +58,26 @@ enum WineRunnerInstaller {
         downloads: URL = WineRunnerInstaller.downloads,
         session: URLSession = WineRunnerInstaller.session
     ) async throws -> Receipt {
-        let archive = try await download(build, into: downloads, session: session)
+        let extras = await QAEnvironment.extraHashes(session: session)
+        let archive = try await download(build, into: downloads, session: session, extraHashes: extras)
         defer { try? FileManager.default.removeItem(at: archive) }
-        return try unpack(archive, build: build, runners: runners)
+        return try unpack(archive, build: build, runners: runners, extraHashes: extras)
     }
 
-    // The archive, kept only if its size and SHA-256 match the manifest
+    // The archive, kept only if its size and SHA-256 match the manifest — or, in
+    // QA mode, a hash the mock server lists in __pins.json (QAEnvironment)
     static func download(
-        _ build: RunnerManifest.Build, into downloads: URL, session: URLSession = WineRunnerInstaller.session
+        _ build: RunnerManifest.Build, into downloads: URL, session: URLSession = WineRunnerInstaller.session,
+        extraHashes: Set<String> = []
     ) async throws -> URL {
         let fm = FileManager.default
         let archive = downloads.appending(path: build.archiveName)
-        if Digest.sha256IfPresent(archive) == build.sha256 { return archive }
+        if let onDisk = Digest.sha256IfPresent(archive), onDisk == build.sha256 || extraHashes.contains(onDisk) { return archive }
         try? fm.removeItem(at: archive)
 
         let body: URL, response: URLResponse
         do {
-            (body, response) = try await session.download(from: build.url)
+            (body, response) = try await session.download(from: QAEnvironment.url(build.url))
         } catch {
             AppLog.note("\(build.id): \(build.url.absoluteString) unreachable: \(error.localizedDescription)")
             throw StepFailure(step: step, detail: String(localized: "Cartouche could not download \(build.title). Check your internet connection and try again."))
@@ -87,7 +90,7 @@ enum WineRunnerInstaller {
 
         let size = (try? fm.attributesOfItem(atPath: body.path(percentEncoded: false))[.size] as? Int64) ?? -1
         let got = try Digest.sha256(of: body)
-        guard size == build.size, got == build.sha256 else {
+        guard (size == build.size && got == build.sha256) || extraHashes.contains(got) else {
             AppLog.note("\(build.id): got \(size) bytes with SHA-256 \(got), the pin is \(build.size) bytes, \(build.sha256)")
             throw StepFailure(step: step, detail: damaged)
         }
@@ -97,10 +100,13 @@ enum WineRunnerInstaller {
     }
 
     // Unpacks next to the runners folder and moves the build in only when it is complete
-    static func unpack(_ archive: URL, build: RunnerManifest.Build, runners: URL) throws -> Receipt {
+    static func unpack(
+        _ archive: URL, build: RunnerManifest.Build, runners: URL, extraHashes: Set<String> = []
+    ) throws -> Receipt {
         let fm = FileManager.default
         // A file swapped since the download was checked is not unpacked either
-        guard Digest.sha256IfPresent(archive) == build.sha256 else {
+        guard let archiveHash = Digest.sha256IfPresent(archive),
+              archiveHash == build.sha256 || extraHashes.contains(archiveHash) else {
             try? fm.removeItem(at: archive)
             throw StepFailure(step: step, detail: damaged)
         }

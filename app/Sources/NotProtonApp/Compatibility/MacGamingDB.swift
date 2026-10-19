@@ -100,7 +100,7 @@ struct MacReport: Codable, Sendable, Equatable {
 // at most two at a time
 actor MacGamingDBClient {
 
-    static let api = URL(string: "https://macgamingdb.app/api/rest/games/")!
+    static var api: URL { QAEnvironment.url(URL(string: "https://macgamingdb.app/api/rest/games/")!) }
     static let maxConcurrent = 2
 
     typealias Fetch = @Sendable (URL) async throws -> (Data, Int)

@@ -31,6 +31,8 @@ public struct RetroArchLaunch: Sendable {
     public var mcp: Bool
     public var environment: [String: String]?
     public var verbose = false
+    // Netplay starts with the content RetroArch loads next
+    public var netplay: NetplayRole?
 
     public init(executable: URL, config: AppendConfig, baseConfig: BaseConfig = .cartouche, mcp: Bool = true) {
         self.executable = Self.binary(executable)
@@ -70,6 +72,15 @@ public struct RetroArchLaunch: Sendable {
         if verbose { arguments.append("-v") }
         if let file = baseConfigFile { arguments += ["-c", file.path(percentEncoded: false)] }
         arguments += ["--appendconfig", config.paths.appendConfig.path(percentEncoded: false)]
+        switch netplay {
+        case .host(let port, _):
+            arguments += ["--host", "--port", String(port)]
+        case .join(let target):
+            arguments += ["--connect", target.address, "--port", String(target.port)]
+            if let session = target.session { arguments += ["--mitm-session", session] }
+        case nil:
+            break
+        }
         if let core, let content {
             arguments += ["-L", core.path(percentEncoded: false), content.path(percentEncoded: false)]
         }
@@ -202,6 +213,46 @@ public actor RetroArchSession {
         try await call(.setOption, ["option": .string(option), "state": .string(on ? "on" : "off")])
     }
 
+    // An option's value as GET_OPTION reports it: "cheevos_hardcore" gives "on"
+    public func option(_ option: String) async throws -> String? {
+        let reply = try await call(.getOption, ["option": .string(option)]).text
+        for line in reply.split(separator: "\n") {
+            let fields = line.split(separator: "\t", maxSplits: 1, omittingEmptySubsequences: false)
+            if fields.count == 2, fields[0] == option { return String(fields[1]) }
+        }
+        return nil
+    }
+
+    // The lines RetroArch logged since a line number, and where to go on from
+    public func log(since: Int) async throws -> (lines: [String], next: Int) {
+        let result = try await call(.log, ["since": .number(Double(since))])
+        var lines: [String] = []
+        var next = since
+        for line in result.text.split(separator: "\n", omittingEmptySubsequences: false) {
+            if line.hasPrefix("NEXT "), let n = Int(line.dropFirst(5)) {
+                next = n
+            } else if !line.hasPrefix("SKIPPED "), !line.isEmpty {
+                lines.append(String(line))
+            }
+        }
+        if let n = result.structured?["next"]?.int { next = n }
+        return (lines, next)
+    }
+
+    // Presses RetroPad buttons for some frames; RetroArch refuses it in hardcore
+    public func press(player: Int, control: String, frames: Int) async throws -> String {
+        try await call(.press, ["player": .number(Double(player)), "control": .string(control),
+                                "frames": .number(Double(frames))]).text
+    }
+
+    // A hotkey that is not an MCP tool, AI_SERVICE among them, over the UDP
+    // commands on this Mac; they are on when the launch asked for them
+    public func command(_ name: String) throws {
+        guard isRunning else { throw RetroArchSessionError.notRunning }
+        guard launch.config.networkCommands else { throw RetroArchSessionError.toolUnavailable(name) }
+        _ = NetworkCommands.send(name, port: launch.config.networkCommandPort)
+    }
+
     public enum DiskAction: String, Sendable { case eject, next, prev }
 
     public func disk(_ action: DiskAction) async throws {
@@ -212,7 +263,8 @@ public actor RetroArchSession {
     public func readMemory(address: Int, bytes: Int) async throws -> [UInt8] {
         let reply = try await call(.readMemory, ["address": .string(String(address, radix: 16)), "bytes": .number(Double(bytes))]).text
         // "READ_CORE_MEMORY 0 1c 02 00 00"
-        return reply.split(separator: " ").dropFirst(2).compactMap { UInt8($0, radix: 16) }
+        // The reply ends with a line break, which must not cost the last byte
+        return reply.split(whereSeparator: \.isWhitespace).dropFirst(2).compactMap { UInt8($0, radix: 16) }
     }
 
     public func closeContent() async throws {

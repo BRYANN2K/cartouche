@@ -1,0 +1,13 @@
+{
+  "_about": "TO VERIFY AFTER P10 MERGES. Shape guessed from gogdl's game list; comet covers GOG online features in the P10 design.",
+  "account": {"username": "QAPlayer", "id": "qa-gog-0001"},
+  "games": [
+    {"id": "1207658930", "slug": "wasteland-2-directors-cut", "title": "Wasteland 2: Director's Cut",
+     "installed": true, "size_bytes": 9500000000, "cloud_saves": true,
+     "install_path": "Wasteland 2/WL2.exe"},
+    {"id": "1423049311", "slug": "qa-rpg", "title": "QA RPG", "installed": false,
+     "size_bytes": 14000000000, "cloud_saves": true},
+    {"id": "1598646374", "slug": "qa-platformer", "title": "QA Platformer", "installed": false,
+     "size_bytes": 600000000, "cloud_saves": false}
+  ]
+}
