@@ -18,6 +18,9 @@ struct CartoucheApp: App {
     @State private var permissions = PermissionCenter.live()
     @State private var consoles = SettingsWindow.consolesModel()
     @State private var network = NetworkWatch()
+    @State private var gameFolders = GameFolders()
+    @State private var relaunch = RelaunchService()
+    @State private var onboarding: OnboardingModel?
     @AppStorage(GeneralSettings.showInMenuBarKey) private var showInMenuBar = true
     @AppStorage(AfterLaunch.key) private var afterLaunch = AfterLaunch.hide
     private let updater = AppUpdater()
@@ -45,6 +48,10 @@ struct CartoucheApp: App {
         Window("Cartouche", id: Self.mainWindow) {
             LibraryWindow(model: library, compat: compat, steamSetup: steamSetup, actions: actions)
                 .frame(minWidth: 900, minHeight: 560)
+                .sheet(isPresented: Binding(get: { onboarding?.isPresented ?? false },
+                                            set: { onboarding?.isPresented = $0 })) {
+                    if let onboarding { OnboardingView(model: onboarding).interactiveDismissDisabled() }
+                }
                 .task { await start() }
         }
         .defaultSize(width: 1280, height: 820)
@@ -65,6 +72,8 @@ struct CartoucheApp: App {
 
         Settings {
             SettingsWindow(model: library, permissions: permissions, consoles: consoles)
+                .environment(onboarding)
+                .environment(gameFolders)
         }
 
         MenuBarExtra(isInserted: $showInMenuBar) {
@@ -79,6 +88,17 @@ struct CartoucheApp: App {
     }
 
     private func start() async {
+        if onboarding == nil {
+            // Before anything else: a copy outside Applications offers to move and relaunch
+            guard MoveToApplications.check() else { return }
+            let model = makeOnboarding()
+            onboarding = model
+            if let route = relaunch.restore(), route.screen == "onboarding" {
+                model.reopen(on: route)
+            } else {
+                model.presentIfDue()
+            }
+        }
         steamSetup.onInstalled = { [library] in Task { await library.load() } }
         network.start { [library] offline in library.isOffline = offline }
         compat.load()
@@ -86,6 +106,19 @@ struct CartoucheApp: App {
         library.watch()
         await loadRunners()
         await compat.refresh()
+    }
+
+    private func makeOnboarding() -> OnboardingModel {
+        relaunch.center = permissions
+        let step = SteamStep(
+            flow: PermissionFlow(center: permissions),
+            install: { try await OnboardingSteam.install() },
+            relaunch: { [relaunch] route in Task { await relaunch.relaunch(to: route) } })
+        let model = OnboardingModel(
+            consoles: .live(paths: consoles.paths), steamStep: step, folders: gameFolders,
+            privacy: compat.choices, library: library)
+        model.play = { [actions] game in actions.perform(.play, on: game) }
+        return model
     }
 
     // Runners are read through the registry, off the main thread

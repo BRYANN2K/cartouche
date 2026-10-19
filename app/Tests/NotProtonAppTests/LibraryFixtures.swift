@@ -239,6 +239,9 @@ func windowSnapshot<V: View>(_ view: V, named name: String, size: CGSize = CGSiz
     let window = NSWindow(contentRect: CGRect(origin: .zero, size: size),
                           styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                           backing: .buffered, defer: false)
+    // No window animation: each animated order-out left a thread stuck in the test process,
+    // and past 64 of them the dispatch pool stops running work
+    window.animationBehavior = .none
     window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
     window.isReleasedWhenClosed = false
     let host = NSHostingController(rootView: view)
@@ -264,6 +267,6 @@ func windowSnapshot<V: View>(_ view: V, named name: String, size: CGSize = CGSiz
     }
     let shown = frame.bounds.size
     window.orderOut(nil)
-    window.close()
+    window.contentViewController = nil
     return shown
 }

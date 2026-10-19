@@ -6,6 +6,42 @@ Cartouche is a fork of [NotProton](https://github.com/NotProtonNot/NotProton) an
 
 **Status: early development.** There is no release yet. Expect missing features and breaking changes.
 
+## Install
+
+Cartouche needs a Mac with Apple silicon and macOS 15 or later.
+
+### Recommended: the install script
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/BRYANN2K/NotProton/main/install.sh | sh
+```
+
+The script downloads the latest release and checks it against the SHA-256 published with the release. It checks that the app is signed with Cartouche's own certificate. Then it installs Cartouche in /Applications and opens it. A file downloaded with curl carries no quarantine mark, so macOS opens Cartouche without the "Not Opened" warning and without Open Anyway. [install.sh](install.sh) is short: read it before you run it.
+
+### Disk image
+
+Download `Cartouche-<version>.dmg` from the [latest release](https://github.com/BRYANN2K/NotProton/releases/latest) and drag Cartouche to Applications. The first time you open it, macOS 15 and 26 block it once:
+
+1. macOS says it can't check Cartouche. Click Done.
+2. Open System Settings > Privacy & Security, scroll down, click Open Anyway.
+3. Confirm with your password. Updates won't ask again.
+
+![The disk image window: Cartouche, an arrow to Applications, and the three steps above](docs/images/install/dmg-window.png)
+
+If you open Cartouche straight from the disk image or from Downloads, it offers to move itself to Applications first. Permissions and updates are tied to that location.
+
+### Homebrew
+
+```sh
+brew install --cask bryann2k/cartouche/cartouche
+```
+
+The tap installs the same signed app. The first open goes through the same three steps.
+
+### Why macOS asks
+
+Cartouche is free and signed with its own certificate. It is not notarized by Apple, because notarization needs a paid Apple developer membership. The certificate does not remove the first-open warning. It keeps Cartouche's identity the same across releases, so updates install without a prompt and the permissions you grant do not reset. The install script avoids the warning because curl does not mark the download as quarantined.
+
 ## What it does today
 
 Cartouche forcibly enables the Steam Play functionality in macOS Steam (which is present and inert) and ports some components of Valve's Proton to macOS. This is NotProton's design, unchanged so far.

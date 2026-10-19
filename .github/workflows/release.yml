@@ -115,6 +115,18 @@ jobs:
           echo "Designated requirement: \`$dr\`" >> "$GITHUB_STEP_SUMMARY"
           echo "$dr" > dist/designated-requirement.txt
 
+      # install.sh refuses any app whose certificate it does not pin
+      - name: Check the certificate install.sh pins
+        env:
+          KIND: ${{ needs.meta.outputs.kind }}
+        run: |
+          signed=$(sed -n 's/.*certificate leaf = H"\([0-9a-f]*\)".*/\1/p' dist/designated-requirement.txt)
+          pinned=$(sed -n 's/^cert_sha1=//p' install.sh)
+          if [ "$signed" != "$pinned" ]; then
+            msg="install.sh pins certificate '${pinned:-none}' but this release is signed with '$signed' (docs/RELEASE.md)"
+            if [ "$KIND" = test ]; then echo "::warning::$msg"; else echo "::error::$msg"; exit 1; fi
+          fi
+
       - name: Remove the signing keychain
         if: always()
         run: security delete-keychain "$RUNNER_TEMP/cartouche-signing.keychain-db" 2>/dev/null || true
@@ -123,6 +135,10 @@ jobs:
         run: |
           ditto -c -k --keepParent work/Cartouche.app "dist/$ARCHIVE"
           sh packaging/redist-scan.sh work/Cartouche.app "dist/$ARCHIVE"
+
+      # Same signed app; its window shows the three steps of the first open
+      - name: Make the disk image
+        run: sh packaging/dmg/make-dmg.sh work/Cartouche.app "dist/Cartouche-$VERSION.dmg"
 
       # install.sh reads releases/latest/download/SHA256SUMS to learn the archive
       # name and check it, so the file name never changes
@@ -180,7 +196,7 @@ jobs:
           PRERELEASE: ${{ needs.meta.outputs.prerelease }}
           LATEST: ${{ steps.previous.outputs.latest }}
         run: |
-          set -- "dist/$ARCHIVE" dist/SHA256SUMS dist/appcast.xml
+          set -- "dist/$ARCHIVE" "dist/Cartouche-$VERSION.dmg" dist/SHA256SUMS dist/appcast.xml
           while read -r delta; do set -- "$@" "dist/$delta"; done < dist/deltas.txt
           if [ "$PRERELEASE" = true ]; then
             gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --prerelease --latest=false \

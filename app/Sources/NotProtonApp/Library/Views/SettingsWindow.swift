@@ -104,6 +104,7 @@ struct GeneralSettingsView: View {
                 }
             }
             UpdatesSection()
+            SetupAssistantSection()
         }
         .formStyle(.grouped)
     }
@@ -144,6 +145,7 @@ struct LibrarySettingsView: View {
             } footer: {
                 Text("Hidden games stay installed. They are left out of the library and search.")
             }
+            LibraryFoldersSection()
         }
         .formStyle(.grouped)
     }
@@ -212,6 +214,7 @@ struct CompatibilitySettingsView: View {
                     }
                 }
             }
+            FreeRunnerSection()
             Section {
                 LabeledContent {
                     Button("Open Steam Play Setup") { openWindow(id: CartoucheApp.setupWindow) }

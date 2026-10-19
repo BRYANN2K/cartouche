@@ -724,6 +724,8 @@ packagingcheck:
 	@sh packaging/tests/redist-scan-test.sh
 	@python3 packaging/tests/workflow_check.py
 	@sh packaging/tests/signing-test.sh
+	@sh packaging/tests/install-test.sh
+	@sh packaging/tests/dmg-test.sh
 	@python3 -m unittest discover -s packaging/tests -p 'test_*.py'
 
 clean:

@@ -8,7 +8,13 @@ Cartouche is a free game launcher that runs Windows games through Steam Play on 
 brew install --cask bryann2k/cartouche/cartouche
 ```
 
-Cartouche is signed with its own free certificate and is not notarized. The first time you open it, macOS says it cannot check the app. Open System Settings > Privacy & Security and click Open Anyway. Updates come through the app itself and do not ask again.
+Cartouche is free and signed with its own certificate, not notarized by Apple, so macOS blocks the first open. To open it the first time:
+
+1. Open Cartouche. macOS says it can't check it. Click Done.
+2. Open System Settings > Privacy & Security, scroll down, click Open Anyway.
+3. Confirm with your password. Updates come through the app itself and do not ask again.
+
+The certificate does not remove this warning, but it keeps updates and the permissions you grant from resetting. The install script in the Cartouche README avoids the warning: https://github.com/BRYANN2K/NotProton#install
 
 ## How this tap is updated
 

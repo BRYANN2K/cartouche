@@ -15,6 +15,7 @@ Every release is signed with one self-signed certificate (ADR 0003). Its SHA-1 i
    - Secret `SIGNING_CERT_PASSWORD`: the content of `cartouche-signing.password`.
    - Variable `SIGNING_IDENTITY`: `Cartouche Self-Signed` (the certificate's common name).
 4. Copy the whole folder to an offline place (an encrypted disk image on a USB drive, for example). Then delete it from the Mac.
+5. Put the SHA-1 it printed, in lowercase, on the `cert_sha1=` line of `install.sh` and merge that change. The script refuses any app signed with another certificate, and the release workflow refuses a release whose certificate `install.sh` does not name (test tags only get a warning).
 
 The certificate is valid for 20 years. It does not need to be trusted in any keychain: `codesign` signs with it from a throwaway keychain, as `packaging/tests/signing-test.sh` shows.
 
@@ -81,7 +82,7 @@ The `release` workflow then:
 3. Signs it with the certificate in a throwaway keychain and prints the designated requirement in the job summary.
 4. Scans the app and the zip for Game Porting Toolkit files.
 5. Downloads the live appcast and the last three archives, and runs `packaging/make-appcast.sh`: Sparkle's `generate_appcast` signs the archive and makes deltas, the older items are kept as published, then `sign_update` signs the whole feed. The app requires a signed feed (`SURequireSignedFeed`).
-6. Publishes the GitHub release with `Cartouche-<version>.zip`, `SHA256SUMS`, the deltas and `appcast.xml`.
+6. Publishes the GitHub release with `Cartouche-<version>.zip`, `Cartouche-<version>.dmg` (made by `packaging/dmg/make-dmg.sh`, the same signed app with the first-open steps in its window), `SHA256SUMS`, the deltas and `appcast.xml`.
 
 ### Checksum for install.sh
 

@@ -18,6 +18,17 @@ cask "cartouche" do
 
   app "Cartouche.app"
 
+  caveats <<~EOS
+    Cartouche is signed with its own certificate and is not notarized by Apple,
+    so macOS blocks the first open. To open it the first time:
+      1. Open Cartouche. macOS says it can't check it. Click Done.
+      2. Open System Settings > Privacy & Security, scroll down, click Open Anyway.
+      3. Confirm with your password. Updates won't ask again.
+    The certificate does not remove this warning, but it keeps updates and the
+    permissions you grant from resetting. The install script avoids the warning:
+      https://github.com/BRYANN2K/NotProton#install
+  EOS
+
   zap trash: [
     "~/Library/Application Support/Cartouche",
     "~/Library/Caches/dev.bryann2k.cartouche",
