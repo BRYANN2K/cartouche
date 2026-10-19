@@ -708,3 +708,5 @@ rebuild: clean all
 -include $(DEPS)
 
 FORCE:
+
+include retroarch/retroarch.mk

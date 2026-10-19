@@ -1,0 +1,4 @@
+[submodule "vendor/RetroArch"]
+	path = vendor/RetroArch
+	url = https://github.com/libretro/RetroArch.git
+	shallow = true

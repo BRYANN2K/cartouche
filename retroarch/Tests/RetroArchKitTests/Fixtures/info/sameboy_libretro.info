@@ -1,0 +1,8 @@
+# Written for the tests in the shape of the libretro .info files
+display_name = "Nintendo - Game Boy / Color (SameBoy)"
+corename = "SameBoy"
+supported_extensions = "gb|gbc"
+license = "MIT"
+systemname = "Game Boy/Game Boy Color"
+systemid = "game_boy"
+firmware_count = 0

@@ -1,0 +1,8 @@
+// RetroArch as Cartouche ships it: upstream's CI settings plus the MCP server,
+// which the Apple project leaves out
+#include "../../vendor/RetroArch/pkg/apple/GitHubCI.xcconfig"
+
+OTHER_CFLAGS = $(inherited) -DHAVE_MCP
+
+// Cartouche's own minimum. Xcode 27 refuses the project's 10.13.
+MACOSX_DEPLOYMENT_TARGET = 15.0
