@@ -1,0 +1,117 @@
+Cartouche third-party licenses
+=============================
+
+What Cartouche ships or builds from, and under which license. Read by users,
+packagers and reviewers. NOTICE explains the licensing of the repository itself.
+This file lists the components. Where a license text is in the repository, this
+file names the path.
+
+Cartouche is licensed under the GNU General Public License version 3 (GPL-3.0),
+see LICENSE. It is an independent fork of NotProton (GPL-3.0) and is not
+affiliated with NotProton, Valve, Apple or CodeWeavers.
+
+Game Porting Toolkit and D3DMetal
+---------------------------------
+
+Cartouche does not ship Apple's Game Porting Toolkit or D3DMetal, and no file
+from either is in the repository or in a release. The release workflow scans
+the app and its zip for them.
+
+Components in the app
+---------------------
+
+RetroArch
+  License: GPL-3.0-or-later
+  Source: https://github.com/libretro/RetroArch, git submodule vendor/RetroArch
+  Version: commit ed3187ec8e1fe55145366789718dc77f34abaeca (reports 1.22.2,
+           plus "Git ed3187e")
+  Where: Cartouche.app/Contents/Helpers/RetroArch.app, built by CI from the
+         submodule and unmodified except for build settings
+         (retroarch/xcode/Cartouche.xcconfig). No binary is stored in git.
+  RetroArch includes code from other projects under their own licenses. They
+  are in the RetroArch source at the commit above.
+  Libretro cores are not part of Cartouche. Cartouche downloads each core, on
+  the user's request, from the libretro buildbot. A core carries its own
+  license, and some cores are non-commercial. Cartouche does not ship or link
+  to BIOS files or games.
+
+  Source offer. Cartouche ships RetroArch built from the commit above,
+  unmodified except for build settings. The complete corresponding source is
+  the submodule at that commit, and the release tag of Cartouche records it.
+  Anyone who received Cartouche can get that source from the Cartouche
+  repository, or from upstream at the same commit, under GPL-3.0. Settings >
+  Consoles links to RetroArch's source.
+
+Sparkle 2.10.0
+  License: MIT, with the notices of the components Sparkle includes
+  Source: https://github.com/sparkle-project/Sparkle
+  License text: https://github.com/sparkle-project/Sparkle/blob/2.10.0/LICENSE
+  Where: embedded in Cartouche.app. It checks for and installs updates.
+
+Dobby
+  License: Apache-2.0
+  Source: https://github.com/jmpews/Dobby, commit
+          5dfc8546954ce3b3198132ab13fddb89ee92cdd7 (see vendor/README.md)
+  Where: not tracked in the repository. Built from source by make dobby and
+         linked into the Steam-side dylib.
+
+cJSON
+  License: MIT
+  Source: vendor/cJSON.c, vendor/cJSON.h (the original notice is in the files)
+  Where: the signature database loader in the dylib.
+
+JsonCpp
+  License: public domain or MIT
+  Source: steam-shim/jsoncpp.cpp, steam-shim/json/json.h,
+          steam-shim/json/json-forwards.h (the original notice is in the files)
+  Where: steam-shim.
+
+Parts from Valve
+----------------
+
+lsteamclient
+  License: Steamworks SDK License
+  License text: LICENSE.lsteamclient
+  Where: built into the payload (lsteamclient.dll and lsteamclient.so).
+
+steam-shim
+  License: BSD-3-Clause, a port of steam_helper from Proton 9.0
+  License text: LICENSE.steam-shim
+  Where: built into the payload (steam.exe).
+  It compiles against Steamworks SDK headers (Steamworks SDK License), OpenVR
+  headers (BSD-3-Clause) and Wine headers (LGPL, see NOTICE).
+
+Fonts
+  Source: fonts/ holds the font sources from Valve's Proton repository: Liberation
+          fonts, Noto fonts, Source Han Sans and UME fonts.
+  License: each font family under its own license, see the LICENSE file in each
+           family's folder. The Proton build files (fonts/Makefile,
+           fonts/scripts, fonts/patches, fonts/ranges) are covered by
+           LICENSE.fonts.
+
+Downloaded, not shipped
+-----------------------
+
+These are fetched at run time, checked against pinned SHA-256 values where
+the app pins them, and are not part of Cartouche's release.
+
+  Valve Steam client packages     Steamworks SDK License / Valve terms, from
+                                  Valve's content servers, listed in
+                                  app/Sources/NotProtonApp/Resources/valve-packages.manifest
+  Winetricks                      LGPL, from github.com/Winetricks/winetricks
+  Libretro cores and core info    Per core, from buildbot.libretro.com
+
+Community data
+--------------
+
+Data licenses are listed in docs/DATA-SCHEMA.md: AppleGamingWiki (CC BY-NC-SA
+3.0), ProtonDB export (ODbL 1.0) and AreWeAntiCheatYet (MIT) are in the nightly
+file. MacGamingDB publishes no data license, so Cartouche reads it live and
+never redistributes it.
+
+Not yet shipped
+---------------
+
+Components planned for later phases (free Wine runners, DXMT, DXVK, innoextract,
+legendary, gogdl, nile, comet, the Swift MCP SDK) are not in the repository
+yet. They will be added here when they are.

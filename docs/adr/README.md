@@ -17,3 +17,5 @@ Format: Status, Context, Decision, Alternatives rejected, Consequences. Files ar
 | [0010](0010-swiftui-native-app.md) | SwiftUI native app | Accepted, 2026-10-19 |
 | [0011](0011-one-scope-first-release-v0-1-0.md) | One scope, consoles included, first release v0.1.0 | Accepted, 2026-10-19 |
 | [0012](0012-install-script-avoids-gatekeeper-warning.md) | Install script to avoid the Gatekeeper warning (amends 0003) | Accepted, 2026-10-19 |
+| [0013](0013-macgamingdb-read-live.md) | MacGamingDB is read live by the app and never redistributed (supersedes 0005 in part) | Accepted, 2026-10-19 |
+| [0014](0014-bundle-identifier-dev-bryann2k-cartouche.md) | Bundle identifier dev.bryann2k.cartouche (supersedes 0002 in part) | Accepted, 2026-10-19 |

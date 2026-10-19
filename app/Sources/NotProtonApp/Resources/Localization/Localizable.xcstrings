@@ -465,6 +465,22 @@
         }
       }
     },
+    "%@ settings" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impostazioni %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@画质"
+          }
+        }
+      }
+    },
     "%@ templates %@" : {
       "localizations" : {
         "it" : {
@@ -732,6 +748,22 @@
         }
       }
     },
+    "%lld of %lld recent ProtonDB reports say it doesn’t run on Linux." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld segnalazioni ProtonDB recenti su %lld dicono che non funziona su Linux."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld/%lld 份近期 ProtonDB 报告称其无法在 Linux 上运行。"
+          }
+        }
+      }
+    },
     ", copy damaged" : {
       "localizations" : {
         "it" : {
@@ -988,6 +1020,22 @@
         }
       }
     },
+    "About %lld fps" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Circa %lld fps"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "约 %lld fps"
+          }
+        }
+      }
+    },
     "About Cartouche" : {
       "localizations" : {
         "it" : {
@@ -1196,6 +1244,22 @@
         }
       }
     },
+    "Anti-cheat blocks Linux" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’anti-cheat blocca Linux"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "反作弊阻止 Linux"
+          }
+        }
+      }
+    },
     "Any data in it will be lost." : {
       "localizations" : {
         "it" : {
@@ -1352,6 +1416,86 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "确定要继续吗？"
+          }
+        }
+      }
+    },
+    "AreWeAntiCheatYet lists %@ as broken on Linux." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stato di %@ su Linux secondo AreWeAntiCheatYet: non funziona."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AreWeAntiCheatYet：%@ 在 Linux 上无法正常工作。"
+          }
+        }
+      }
+    },
+    "AreWeAntiCheatYet lists %@ as denied on Linux by the developer." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stato di %@ su Linux secondo AreWeAntiCheatYet: negato dallo sviluppatore."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AreWeAntiCheatYet：开发者不允许 %@ 在 Linux 上运行。"
+          }
+        }
+      }
+    },
+    "AreWeAntiCheatYet lists %@ as running on Linux without official support." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stato di %@ su Linux secondo AreWeAntiCheatYet: funziona senza supporto ufficiale."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AreWeAntiCheatYet：%@ 可在 Linux 上运行，但没有官方支持。"
+          }
+        }
+      }
+    },
+    "AreWeAntiCheatYet lists %@ as supported on Linux." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stato di %@ su Linux secondo AreWeAntiCheatYet: supportato."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AreWeAntiCheatYet：%@ 在 Linux 上受支持。"
+          }
+        }
+      }
+    },
+    "AreWeAntiCheatYet lists Linux support for %@ as planned." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stato di %@ su Linux secondo AreWeAntiCheatYet: supporto previsto."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AreWeAntiCheatYet：%@ 计划支持 Linux。"
           }
         }
       }
@@ -1528,6 +1672,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已备份“%@”的游戏容器。"
+          }
+        }
+      }
+    },
+    "Barely Playable" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appena giocabile"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "勉强可玩"
           }
         }
       }
@@ -2367,6 +2527,22 @@
         }
       }
     },
+    "Compatibility data from %lld days ago." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dati di compatibilità di %lld giorni fa."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "兼容性数据来自 %lld 天前。"
+          }
+        }
+      }
+    },
     "Compatibility tool is already set up." : {
       "localizations" : {
         "it" : {
@@ -3170,6 +3346,22 @@
         }
       }
     },
+    "Doesn’t run on Linux" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non funziona su Linux"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法在 Linux 上运行"
+          }
+        }
+      }
+    },
     "Done" : {
       "localizations" : {
         "it" : {
@@ -3330,6 +3522,22 @@
         }
       }
     },
+    "Excellent" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eccellente"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "极佳"
+          }
+        }
+      }
+    },
     "Extracting" : {
       "localizations" : {
         "it" : {
@@ -3358,6 +3566,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "操作失败"
+          }
+        }
+      }
+    },
+    "Fetch Mac reports from MacGamingDB" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scarica le segnalazioni Mac da MacGamingDB"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从 MacGamingDB 获取 Mac 报告"
           }
         }
       }
@@ -3470,6 +3694,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "游戏准备就绪时通知你吗？"
+          }
+        }
+      }
+    },
+    "Good" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buono"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "良好"
+          }
+        }
+      }
+    },
+    "High" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "alte"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "高"
           }
         }
       }
@@ -3986,6 +4242,54 @@
         }
       }
     },
+    "Low" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "basse"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "低"
+          }
+        }
+      }
+    },
+    "Mac reports are turned off in Settings > Privacy" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le segnalazioni Mac sono disattivate in Impostazioni > Privacy"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac 报告已在“设置 > 隐私”中关闭"
+          }
+        }
+      }
+    },
+    "Medium" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "medie"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中"
+          }
+        }
+      }
+    },
     "Missing components: %@. Run make app-payload and build the app again." : {
       "localizations" : {
         "it" : {
@@ -4078,6 +4382,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "更多操作，%@"
+          }
+        }
+      }
+    },
+    "Most reported layer: %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Livello più segnalato: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "报告最多的转译层：%@"
           }
         }
       }
@@ -4210,6 +4530,22 @@
         }
       }
     },
+    "No estimate for this Mac yet" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ancora nessuna stima per questo Mac"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无此 Mac 的估算"
+          }
+        }
+      }
+    },
     "No file at %@." : {
       "localizations" : {
         "it" : {
@@ -4238,6 +4574,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已卸载"
+          }
+        }
+      }
+    },
+    "No recent ProtonDB report tried online play on Linux." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessuna segnalazione ProtonDB recente ha provato il gioco online su Linux."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "近期没有 ProtonDB 报告在 Linux 上尝试联机游玩。"
+          }
+        }
+      }
+    },
+    "No reports yet for this version" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ancora nessuna segnalazione per questa versione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此版本暂无报告"
           }
         }
       }
@@ -4414,6 +4782,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "好"
+          }
+        }
+      }
+    },
+    "Offline. Compatibility data from %lld days ago." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Offline. Dati di compatibilità di %lld giorni fa."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "离线。兼容性数据来自 %lld 天前。"
+          }
+        }
+      }
+    },
+    "Online fails on Linux in %lld of %lld reports" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’online non funziona su Linux in %lld segnalazioni su %lld"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Linux 上联机失败：%lld/%lld 份报告"
+          }
+        }
+      }
+    },
+    "Online untested on Linux" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Online non provato su Linux"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未在 Linux 上测试联机"
+          }
+        }
+      }
+    },
+    "Online works on Linux, %lld of %lld reports" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’online funziona su Linux, %lld segnalazioni su %lld"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Linux 上联机可用：%lld/%lld 份报告"
           }
         }
       }
@@ -4622,6 +5054,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "与你网络中的其他人一起玩吗？"
+          }
+        }
+      }
+    },
+    "Playable" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Giocabile"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可玩"
           }
         }
       }
@@ -5458,6 +5906,38 @@
         }
       }
     },
+    "Reports used: %lld, all from other Macs" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Segnalazioni usate: %lld, tutte da altri Mac"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用的报告：%lld 份，均来自其他 Mac"
+          }
+        }
+      }
+    },
+    "Reports used: %lld, including %lld on %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Segnalazioni usate: %lld, di cui %lld su %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用的报告：%lld 份，其中 %lld 份来自 %@"
+          }
+        }
+      }
+    },
     "Reset" : {
       "localizations" : {
         "it" : {
@@ -5698,6 +6178,22 @@
         }
       }
     },
+    "Runs on Linux in %lld of %lld recent ProtonDB reports." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Funziona su Linux in %lld segnalazioni ProtonDB recenti su %lld."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld/%lld 份近期 ProtonDB 报告称其可在 Linux 上运行。"
+          }
+        }
+      }
+    },
     "Select a copy of CrossOver." : {
       "localizations" : {
         "it" : {
@@ -5918,6 +6414,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下载的文件存在问题。请检查是否有新版 Cartouche。"
+          }
+        }
+      }
+    },
+    "Sources: %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fonti: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "来源：%@"
           }
         }
       }
@@ -7317,6 +7829,22 @@
         }
       }
     },
+    "Ultra" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ultra"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "极致"
+          }
+        }
+      }
+    },
     "Unknown" : {
       "localizations" : {
         "it" : {
@@ -7361,6 +7889,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在解包"
+          }
+        }
+      }
+    },
+    "Unplayable" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ingiocabile"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法游玩"
           }
         }
       }
@@ -7541,6 +8085,22 @@
         }
       }
     },
+    "Very Good" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Molto buono"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "很好"
+          }
+        }
+      }
+    },
     "Waiting for a relaunch" : {
       "localizations" : {
         "it" : {
@@ -7569,6 +8129,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "监视你的“下载”文件夹吗？"
+          }
+        }
+      }
+    },
+    "When you open a game, Cartouche asks MacGamingDB for its Mac reports. MacGamingDB sees which game, but no account or Mac identifier." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quando apri un gioco, Cartouche chiede a MacGamingDB le sue segnalazioni Mac. MacGamingDB vede quale gioco, ma nessun account né identificativo del Mac."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开游戏时，Cartouche 会向 MacGamingDB 获取该游戏的 Mac 报告。MacGamingDB 能看到是哪款游戏，但看不到任何账户或 Mac 标识符。"
           }
         }
       }

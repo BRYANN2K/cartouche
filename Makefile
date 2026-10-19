@@ -146,6 +146,10 @@ l10ncheck:
 	python3 dylib/tests/l10ncheck.py app/Sources/NotProtonApp/Resources/Localization/Localizable.xcstrings \
 		"$$bin/../../Intermediates.noindex/NotProtonApp.build/$$(basename "$$bin")" zh-Hans it
 
+.PHONY: compat-data-tests
+compat-data-tests:
+	@python3 -I -m unittest discover -s tools/compat/tests -t tools/compat
+
 # runcheck owns compat_run.sh, whose warnings wait for a change that can move
 # the embedded __text baseline
 SCRIPTS := $(shell git ls-files '*.sh' 2>/dev/null | grep -v '^dylib/feats/compat_run\.sh$$')

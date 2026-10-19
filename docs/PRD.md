@@ -144,7 +144,7 @@ Each measure comes from a scenario in an OpenSpec change. A phase is done only w
 
 | Measure | Target | Phase |
 |---|---|---|
-| Bundle ID and name | `app.cartouche.Cartouche`, `Cartouche` | P0 |
+| Bundle ID and name | `dev.bryann2k.cartouche`, `Cartouche` | P0 |
 | NotProton files touched by a first launch | 0 (modification times unchanged) | P0 |
 | Existing tests after the runner refactor | All pass, none removed or skipped | P1 |
 | Free runner download | SHA-256 matches manifest; `winecfg` window within 60 s | P2 |
@@ -175,7 +175,7 @@ Each measure comes from a scenario in an OpenSpec change. A phase is done only w
 - Cartouche does not ship D3DMetal or Game Porting Toolkit files. It detects the user's own copy.
 - Anti-cheat is shown as Linux data from ProtonDB and AreWeAntiCheatYet. It is never presented as a Mac verdict.
 - The project is not affiliated with NotProton, Valve, Apple or CodeWeavers.
-- Community data keeps its licenses and is credited in the app: AppleGamingWiki (CC BY-NC-SA 3.0), ProtonDB export (ODbL), AreWeAntiCheatYet (MIT), MacGamingDB (MIT).
+- Community data keeps its licenses and is credited in the app: AppleGamingWiki (CC BY-NC-SA 3.0), ProtonDB export (ODbL), AreWeAntiCheatYet (MIT). MacGamingDB publishes no data license, so the app reads it live and never redistributes it (ADR 0013).
 
 ## Interface rules
 

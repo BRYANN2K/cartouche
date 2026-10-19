@@ -46,6 +46,6 @@ And everyone who has positively contributed to macOS gaming.
 
 ## License
 
-Cartouche is free software, licensed under the GNU General Public License version 3 (GPL-3.0), like NotProton. See LICENSE. Some parts carry the licenses of their original authors (Valve, the Steamworks SDK, Sparkle, fonts and others); NOTICE lists them.
+Cartouche is free software, licensed under the GNU General Public License version 3 (GPL-3.0), like NotProton. See LICENSE. Some parts carry the licenses of their original authors (Valve, the Steamworks SDK, Sparkle, fonts and others); NOTICE and THIRD-PARTY-LICENSES list them. What Cartouche asks macOS for and what it sends over the network is in docs/PRIVACY.md.
 
 Cartouche is an independent project. It is not affiliated with NotProton, Valve, Apple or CodeWeavers.

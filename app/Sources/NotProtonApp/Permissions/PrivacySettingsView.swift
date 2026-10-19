@@ -30,10 +30,16 @@ struct PrivacyRow: Equatable, Identifiable {
 struct PrivacySettingsView: View {
 
     let center: PermissionCenter
+    @Bindable var choices: PrivacyChoices = PrivacyChoices()
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
+                Toggle("Fetch Mac reports from MacGamingDB", isOn: $choices.fetchMacReports)
+                Text("When you open a game, Cartouche asks MacGamingDB for its Mac reports. MacGamingDB sees which game, but no account or Mac identifier.")
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Divider()
                 Text("Cartouche asks for a permission the first time you use the feature that needs it.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

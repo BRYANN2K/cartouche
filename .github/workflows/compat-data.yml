@@ -1,0 +1,108 @@
+name: compat-data
+
+# Builds compat.json.gz every night and publishes it on the compat-data release,
+# where the app fetches it. Pull requests touching the builder only run its tests.
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "tools/compat/**"
+      - "docs/schema/**"
+      - ".github/workflows/compat-data.yml"
+
+permissions:
+  contents: read
+
+env:
+  REFERENCE_VALIDATOR: "jsonschema==4.23.0 rfc3339-validator==0.1.4"
+
+jobs:
+  test:
+    name: builder tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run the builder tests
+        run: make -s compat-data-tests
+
+      - name: Install the reference validator
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install $REFERENCE_VALIDATOR
+
+      # The builder's validator knows only the keywords the schema uses. This
+      # checks it agrees with a complete one on the fixture build.
+      - name: Check the fixture build with the reference validator
+        run: |
+          python3 tools/compat/build_compat.py --fixtures tools/compat/fixtures/2026-10-19 \
+            --now 2026-10-19T03:17:00Z --out "$RUNNER_TEMP/fixture.json.gz"
+          "$RUNNER_TEMP/venv/bin/python" tools/compat/check_published.py "$RUNNER_TEMP/fixture.json.gz" \
+            --night 2026-10-19 --reference
+
+  publish:
+    name: build and publish
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    concurrency:
+      group: compat-data
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore the fetch cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .compat-cache
+          key: compat-cache-${{ github.run_id }}
+          restore-keys: compat-cache-
+
+      # A source that is down keeps its records from this file
+      - name: Download the previous file
+        run: |
+          mkdir -p previous
+          gh release download compat-data --pattern compat.json.gz --dir previous \
+            || echo "No previous compat.json.gz, so every source must answer"
+
+      - name: Build compat.json.gz
+        run: |
+          previous=""
+          [ -f previous/compat.json.gz ] && previous="--previous previous/compat.json.gz"
+          python3 tools/compat/build_compat.py --out out/compat.json.gz --cache .compat-cache $previous
+
+      - name: Install the reference validator
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install $REFERENCE_VALIDATOR
+
+      - name: Check size, schema and date
+        run: |
+          "$RUNNER_TEMP/venv/bin/python" tools/compat/check_published.py out/compat.json.gz \
+            --night "$(date -u +%F)" --reference
+
+      - name: Save the fetch cache
+        uses: actions/cache/save@v4
+        with:
+          path: .compat-cache
+          key: compat-cache-${{ github.run_id }}
+
+      # A prerelease is never "latest", so the Sparkle feed at
+      # releases/latest/download/appcast.xml is unaffected
+      - name: Publish
+        run: |
+          if ! gh release view compat-data >/dev/null 2>&1; then
+            gh release create compat-data --prerelease --latest=false \
+              --title "Compatibility data" \
+              --notes "Nightly compatibility data for Cartouche, built by .github/workflows/compat-data.yml. Sources: AppleGamingWiki (CC BY-NC-SA 3.0); ProtonDB (ODbL 1.0, the ProtonDB counts are shared under the same license); AreWeAntiCheatYet (MIT). Format: docs/schema/compat.schema.json."
+          fi
+          gh release upload compat-data out/compat.json.gz --clobber

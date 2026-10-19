@@ -1,0 +1,243 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Cartouche compatibility data",
+  "description": "The nightly compat.json built by tools/compat. Records are keyed by Steam App ID, and every value sits under the source it came from. MacGamingDB is never in this file: it publishes no data license, so the app reads it live.",
+  "$comment": "Only these keywords are used, because the builder and the app each carry a small validator for them: $schema, $id, $comment, title, description, $defs, $ref, type, enum, const, properties, required, additionalProperties, propertyNames, minProperties, items, minItems, minLength, pattern, minimum, maximum, exclusiveMinimum, format (date, date-time).",
+  "type": "object",
+  "required": ["schema_version", "generated", "sources", "gpu_strength", "records"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "generated": {
+      "description": "When the builder wrote the file, in UTC.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "sources": {
+      "type": "object",
+      "required": ["applegamingwiki", "protondb", "areweanticheatyet"],
+      "additionalProperties": false,
+      "properties": {
+        "applegamingwiki": {
+          "$ref": "#/$defs/source"
+        },
+        "protondb": {
+          "$ref": "#/$defs/source"
+        },
+        "areweanticheatyet": {
+          "$ref": "#/$defs/source"
+        }
+      }
+    },
+    "gpu_strength": {
+      "description": "Rough relative GPU strength per chip, M1 = 1. The app uses it with MacGamingDB reports it reads live, only to find comparable Macs.",
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "$ref": "#/$defs/chip"
+      },
+      "additionalProperties": {
+        "type": "number",
+        "exclusiveMinimum": 0
+      }
+    },
+    "records": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[1-9][0-9]{0,9}$"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/record"
+      }
+    }
+  },
+  "$defs": {
+    "date": {
+      "description": "A day in UTC. The fetched date of a source block is the day its source last answered for it, so a block kept from an earlier build keeps its earlier date.",
+      "type": "string",
+      "format": "date"
+    },
+    "chip": {
+      "type": "string",
+      "pattern": "^(M[1-9]|A[1-9][0-9])( Pro| Max| Ultra)?$"
+    },
+    "source": {
+      "type": "object",
+      "required": ["name", "credit", "url", "license", "license_url", "attribution", "fetched", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "credit": {
+          "description": "How the app names the source next to its data, with its license when it has one.",
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "pattern": "^https://"
+        },
+        "license": {
+          "type": "string",
+          "minLength": 1
+        },
+        "license_url": {
+          "type": "string",
+          "pattern": "^https://"
+        },
+        "attribution": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fetched": {
+          "description": "When this source last answered. Older than generated when the source was down.",
+          "$ref": "#/$defs/date"
+        },
+        "status": {
+          "description": "stale: the source failed during this build, so its records are the previous ones, with their old dates.",
+          "enum": ["fresh", "stale"]
+        },
+        "export": {
+          "description": "ProtonDB only: the monthly export the records come from.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "record": {
+      "type": "object",
+      "required": ["name"],
+      "minProperties": 2,
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "applegamingwiki": {
+          "$ref": "#/$defs/applegamingwiki"
+        },
+        "protondb": {
+          "$ref": "#/$defs/protondb"
+        },
+        "areweanticheatyet": {
+          "$ref": "#/$defs/areweanticheatyet"
+        }
+      }
+    },
+    "applegamingwiki": {
+      "type": "object",
+      "required": ["fetched", "page", "revision", "ratings"],
+      "additionalProperties": false,
+      "properties": {
+        "fetched": {
+          "$ref": "#/$defs/date"
+        },
+        "page": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "ratings": {
+          "description": "The {{Compatibility/macOS}} rating per method.",
+          "type": "object",
+          "required": ["native", "rosetta2", "crossover", "wine", "parallels"],
+          "additionalProperties": false,
+          "properties": {
+            "native": {
+              "$ref": "#/$defs/agw_rating"
+            },
+            "rosetta2": {
+              "$ref": "#/$defs/agw_rating"
+            },
+            "crossover": {
+              "$ref": "#/$defs/agw_rating"
+            },
+            "wine": {
+              "$ref": "#/$defs/agw_rating"
+            },
+            "parallels": {
+              "$ref": "#/$defs/agw_rating"
+            }
+          }
+        }
+      }
+    },
+    "agw_rating": {
+      "description": "The values of AppleGamingWiki's {{Rating}} template. menu: reaches the menu only. na: the method does not apply.",
+      "enum": ["perfect", "playable", "runs", "menu", "unplayable", "unknown", "na"]
+    },
+    "protondb": {
+      "description": "Linux reports from the ProtonDB export, counted over the year before the export's newest report.",
+      "type": "object",
+      "required": ["fetched", "since", "reports", "works", "online_tried", "online_played", "verdict"],
+      "additionalProperties": false,
+      "properties": {
+        "fetched": {
+          "description": "The date of the export these counts come from.",
+          "$ref": "#/$defs/date"
+        },
+        "since": {
+          "description": "Reports older than this date are not counted.",
+          "$ref": "#/$defs/date"
+        },
+        "reports": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "works": {
+          "$ref": "#/$defs/count"
+        },
+        "online_tried": {
+          "$ref": "#/$defs/count"
+        },
+        "online_played": {
+          "$ref": "#/$defs/count"
+        },
+        "verdict": {
+          "description": "runs: at least 3 in 4 reports say it runs on Linux. doesnt_run: at most 1 in 4. mixed: in between.",
+          "enum": ["runs", "mixed", "doesnt_run"]
+        }
+      }
+    },
+    "areweanticheatyet": {
+      "description": "Linux anti-cheat status from AreWeAntiCheatYet.",
+      "type": "object",
+      "required": ["fetched", "status", "anticheats", "native", "changed"],
+      "additionalProperties": false,
+      "properties": {
+        "fetched": {
+          "$ref": "#/$defs/date"
+        },
+        "status": {
+          "enum": ["Supported", "Running", "Planned", "Broken", "Denied"]
+        },
+        "anticheats": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "native": {
+          "type": "boolean"
+        },
+        "changed": {
+          "$ref": "#/$defs/date"
+        }
+      }
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}
