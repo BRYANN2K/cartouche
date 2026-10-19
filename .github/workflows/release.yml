@@ -35,7 +35,7 @@ jobs:
       archive: ${{ steps.meta.outputs.archive }}
       bump_tap: ${{ steps.meta.outputs.bump_tap }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ inputs.tag || github.ref }}
 
@@ -76,11 +76,11 @@ jobs:
     outputs:
       sha256: ${{ steps.checksum.outputs.sha256 }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.meta.outputs.tag }}
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: Cartouche
           path: build
@@ -94,6 +94,25 @@ jobs:
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$plist")" = "$BUNDLE_VERSION"
           test -n "$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' "$plist")"
           make -s mincheck APP_BUNDLE=work/Cartouche.app
+
+      # QA mode re-points the app's downloads at a given server; it is compiled
+      # into debug builds only, so a release build must ignore the variable
+      - name: Check QA mode is compiled out
+        run: |
+          CARTOUCHE_QA_BASE_URL=http://127.0.0.1:9 work/Cartouche.app/Contents/MacOS/Cartouche &
+          pid=$!
+          sleep 5
+          kill $pid 2>/dev/null || true
+          wait $pid 2>/dev/null || true
+          log="$HOME/Library/Logs/Cartouche/app.log"
+          if [ ! -f "$log" ]; then
+            echo "::error::Cartouche did not start, its log is missing"
+            exit 1
+          fi
+          if grep -q "QA mode" "$log"; then
+            echo "::error::the release build honored CARTOUCHE_QA_BASE_URL"
+            exit 1
+          fi
 
       - name: Import the signing certificate
         env:
@@ -127,27 +146,33 @@ jobs:
             if [ "$KIND" = test ]; then echo "::warning::$msg"; else echo "::error::$msg"; exit 1; fi
           fi
 
-      - name: Remove the signing keychain
-        if: always()
-        run: security delete-keychain "$RUNNER_TEMP/cartouche-signing.keychain-db" 2>/dev/null || true
-
       - name: Zip and scan
         run: |
           ditto -c -k --keepParent work/Cartouche.app "dist/$ARCHIVE"
           sh packaging/redist-scan.sh work/Cartouche.app "dist/$ARCHIVE"
 
-      # Same signed app; its window shows the three steps of the first open
-      - name: Make the disk image
-        run: sh packaging/dmg/make-dmg.sh work/Cartouche.app "dist/Cartouche-$VERSION.dmg"
+      # Same signed app; its window shows the three steps of the first open.
+      # The image is signed too, so Gatekeeper knows who made it before mounting
+      - name: Make and sign the disk image
+        env:
+          SIGNING_IDENTITY: ${{ vars.SIGNING_IDENTITY || 'Cartouche Self-Signed' }}
+        run: |
+          sh packaging/dmg/make-dmg.sh work/Cartouche.app "dist/Cartouche-$VERSION.dmg"
+          codesign -s "$SIGNING_IDENTITY" --keychain "$RUNNER_TEMP/cartouche-signing.keychain-db" \
+            "dist/Cartouche-$VERSION.dmg"
+
+      - name: Remove the signing keychain
+        if: always()
+        run: security delete-keychain "$RUNNER_TEMP/cartouche-signing.keychain-db" 2>/dev/null || true
 
       # install.sh reads releases/latest/download/SHA256SUMS to learn the archive
       # name and check it, so the file name never changes
       - name: Write the checksum
         id: checksum
         run: |
-          python3 packaging/release.py checksums "dist/$ARCHIVE" --out dist/SHA256SUMS
+          python3 packaging/release.py checksums "dist/$ARCHIVE" "dist/Cartouche-$VERSION.dmg" --out dist/SHA256SUMS
           (cd dist && shasum -a 256 -c SHA256SUMS)
-          echo "sha256=$(cut -d' ' -f1 dist/SHA256SUMS)" >> "$GITHUB_OUTPUT"
+          echo "sha256=$(shasum -a 256 "dist/$ARCHIVE" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
           echo "SHA-256: \`$(cat dist/SHA256SUMS)\`" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Write the release notes
@@ -231,12 +256,12 @@ jobs:
             exit 1
           fi
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.meta.outputs.tag }}
           path: cartouche
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: ${{ env.TAP_REPOSITORY }}
           token: ${{ secrets.TAP_TOKEN }}

@@ -20,11 +20,14 @@ struct GameProcesses: Sendable {
     }
 
     // The processes of this game. Steam itself and Cartouche never are.
-    func pids(appID: Int, tracked: [pid_t] = [], installFolder: URL? = nil) -> [pid_t] {
+    // tracked PIDs count only after trusted(_:added:folder:) clears them: a
+    // crashed Steam leaves "adding PID" entries forever, and a reused PID must
+    // never be taken for the game.
+    func pids(appID: Int, tracked: [pid_t: Date] = [:], installFolder: URL? = nil) -> [pid_t] {
         let me = getpid()
         let all = candidates().filter { $0 > 1 && $0 != me }
-        var found = Set(tracked.filter(Self.isAlive))
         let folder = installFolder.map { Self.folderPrefix($0) }
+        var found = Set(tracked.filter { pid, added in Self.trusted(pid, added: added, folder: folder) }.keys)
         let wanted = String(appID)
         for pid in all where !found.contains(pid) {
             guard let info = Self.info(of: pid) else { continue }
@@ -51,7 +54,7 @@ struct GameProcesses: Sendable {
 
     // SIGTERM, then SIGKILL for what is left after the grace period. Returns how many were asked to quit.
     @discardableResult
-    func quit(appID: Int, tracked: [pid_t] = [], installFolder: URL? = nil) -> Int {
+    func quit(appID: Int, tracked: [pid_t: Date] = [:], installFolder: URL? = nil) -> Int {
         let targets = pids(appID: appID, tracked: tracked, installFolder: installFolder)
         guard !targets.isEmpty else { return 0 }
         for pid in targets { kill(pid, SIGTERM) }
@@ -83,6 +86,41 @@ struct GameProcesses: Sendable {
         var info = proc_bsdinfo()
         let size = proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, Int32(MemoryLayout<proc_bsdinfo>.size))
         return size > 0 ? pid_t(info.pbi_ppid) : nil
+    }
+
+    static func start(of pid: pid_t) -> Date? {
+        var info = proc_bsdinfo()
+        let size = proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, Int32(MemoryLayout<proc_bsdinfo>.size))
+        return size > 0 ? Date(timeIntervalSince1970: TimeInterval(info.pbi_start_tvsec)) : nil
+    }
+
+    // A pid from gameprocess_log.txt counts only while the live process can
+    // still be the game: it started when Steam logged it (macOS reuses PIDs),
+    // and it or an ancestor runs from the game's install folder or from Steam.
+    static func trusted(_ pid: pid_t, added: Date, folder: String?) -> Bool {
+        guard isAlive(pid), let start = start(of: pid),
+              start >= added.addingTimeInterval(-1) else { return false }
+        var current = pid
+        for _ in 0..<16 {
+            guard let info = info(of: current) else { return false }
+            if isGamePath(info.path, args: info.arguments, folder: folder) { return true }
+            guard let parent = parent(of: current), parent > 1, parent != current else { return false }
+            current = parent
+        }
+        return false
+    }
+
+    // The executable, or an argument like the script or exe under the folder,
+    // or a process inside a Steam bundle
+    static func isGamePath(_ path: String, args: [String], folder: String?) -> Bool {
+        if let folder, path.hasPrefix(folder) || args.contains(where: { $0.hasPrefix(folder) }) { return true }
+        return steamRoots.contains { path.hasPrefix($0) }
+    }
+
+    // Steam.app and the real client inside Steam.AppBundle
+    static var steamRoots: [String] {
+        [SupportPaths.Steam.app.standardizedFileURL.path(percentEncoded: false) + "/",
+         SupportPaths.Steam.innerApp.standardizedFileURL.path(percentEncoded: false) + "/"]
     }
 
     static func allProcesses() -> [pid_t] {
@@ -132,10 +170,12 @@ struct GameProcesses: Sendable {
         return info
     }
 
-    // Steam's gameprocess_log.txt: "AppID 1245620 adding PID 4321 as a tracked process ..."
-    // and "AppID 1245620 no longer tracking PID 4321, exit code 0". The PIDs still tracked, by app.
-    static func tracked(inLog text: String) -> [Int: [pid_t]] {
-        var out: [Int: [pid_t]] = [:]
+    // Steam's gameprocess_log.txt: "[2026-10-19 21:00:00] AppID 1245620 adding
+    // PID 4321 as a tracked process ..." and "AppID 1245620 no longer tracking
+    // PID 4321, exit code 0". The PIDs still tracked, by app, each with the
+    // time Steam logged it; a PID without a dated add counts as stale.
+    static func tracked(inLog text: String) -> [Int: [pid_t: Date]] {
+        var out: [Int: [pid_t: Date]] = [:]
         for line in text.split(separator: "\n") {
             guard let range = line.range(of: "AppID ") else { continue }
             let rest = line[range.upperBound...]
@@ -143,12 +183,27 @@ struct GameProcesses: Sendable {
             guard let appID = Int(digits), let pidRange = rest.range(of: "PID ") else { continue }
             guard let pid = pid_t(rest[pidRange.upperBound...].prefix { $0.isNumber }) else { continue }
             if rest.contains("adding PID") {
-                out[appID, default: []].append(pid)
+                guard let added = logStamp(line) else { continue }
+                out[appID, default: [:]][pid] = added
             } else if rest.contains("no longer tracking PID") {
-                out[appID]?.removeAll { $0 == pid }
+                out[appID]?[pid] = nil
                 if out[appID]?.isEmpty == true { out[appID] = nil }
             }
         }
         return out
     }
+
+    // The "[yyyy-MM-dd HH:mm:ss]" a Steam log line starts with, in local time
+    static func logStamp(_ line: Substring) -> Date? {
+        guard line.hasPrefix("["), line.count >= 21 else { return nil }
+        let stamp = line.dropFirst().prefix(19)
+        return logDate.date(from: String(stamp))
+    }
+
+    static let logDate: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter
+    }()
 }

@@ -28,7 +28,7 @@ struct YourPlayTests {
             try fixture.writeExport()
             try fixture.addArt([1_245_620])
             model = libraryModel(fixture, defaults: scratch)
-            compat = try fixtureCompat(fixture.root, defaults: scratch)
+            compat = try await fixtureCompat(fixture.root, defaults: scratch)
             let store = PerformanceStore(folder: fixture.root.appending(path: "performance"))
             for (i, session) in sessions.enumerated() { try store.add(session, folder: "fixture-\(i)") }
             performance = PerformanceModel(store: store, defaults: scratch.defaults)
@@ -70,7 +70,7 @@ struct YourPlayTests {
         defer { scene.fixture.remove() }
         let content = scene.content
         #expect(content.sections.prefix(3) == [.play, .yourPlay, .expected])
-        #expect(content.titles.contains("Your Play"))
+        #expect(content.sections.contains(.yourPlay))
         let play = try #require(content.play)
         #expect(YourPlayText.fps(play.average) == "54 fps")
         #expect(YourPlayText.fps(play.average) != "45 fps")

@@ -29,12 +29,7 @@ public struct InstallerAnalysis: Sendable {
         Analyzer.missingParts(scan: scan, manifest: manifest, checksums: checksums)
     }
 
-    public var damaged: [String] {
-        checksums.compactMap { url, result in
-            if case .mismatch = result { return url.lastPathComponent }
-            return nil
-        }.sorted()
-    }
+    public var damaged: [String] { Checksums.damaged(checksums) }
 
     public var verified: Bool { !checksums.isEmpty }
     public var checksumsOK: Bool { verified && checksums.values.allSatisfy { $0 == .ok || $0 == .absent } && damaged.isEmpty }
@@ -99,7 +94,7 @@ public enum Analyzer {
         let start = Date()
         var analysis = try inspect(dropped, tool: tool, runner: runner)
         if verify, let manifest = analysis.manifest {
-            analysis.checksums = await Checksums.verify(manifest)
+            analysis.checksums = try await Checksums.verify(manifest, root: analysis.folder)
         }
         analysis.seconds = Date().timeIntervalSince(start)
         return analysis

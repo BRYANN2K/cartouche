@@ -88,7 +88,7 @@ struct PerformanceSharingTests {
         let fixture = try PerformanceFixture("share-off")
         defer { fixture.remove() }
         let scratch = ScratchDefaults()
-        #expect(PrivacyChoices(defaults: scratch.defaults).sharePerformance == false)
+        #expect(scratch.defaults.bool(forKey: PrivacyChoices.sharePerformanceKey) == false)
         // Even with an address to send to, the default setting sends nothing
         let model = model(fixture, scratch, endpoint: Self.testEndpoint)
         RequestCapture.start()
@@ -108,8 +108,7 @@ struct PerformanceSharingTests {
         let fixture = try PerformanceFixture("share-none")
         defer { fixture.remove() }
         let scratch = ScratchDefaults()
-        let choices = PrivacyChoices(defaults: scratch.defaults)
-        choices.sharePerformance = true
+        scratch.defaults.set(true, forKey: PrivacyChoices.sharePerformanceKey)
         #expect(!PerformanceSharing().isAvailable)
         try endedSession(fixture)
         let model = PerformanceModel(store: fixture.store, sharing: PerformanceSharing(mac: { Self.mac }), defaults: scratch.defaults)
@@ -125,7 +124,7 @@ struct PerformanceSharingTests {
         let fixture = try PerformanceFixture("share-on")
         defer { fixture.remove() }
         let scratch = ScratchDefaults()
-        PrivacyChoices(defaults: scratch.defaults).sharePerformance = true
+        scratch.defaults.set(true, forKey: PrivacyChoices.sharePerformanceKey)
         try endedSession(fixture)
         let model = model(fixture, scratch, endpoint: Self.testEndpoint)
         RequestCapture.start()

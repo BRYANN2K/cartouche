@@ -25,9 +25,27 @@ enum PinnedDownload {
         return URLSession(configuration: config)
     }
 
+    // A single-URL pin: its directory is the only base
+    static func obtain(
+        _ url: URL,
+        sha256: String,
+        size: Int64? = nil,
+        into downloads: URL,
+        step: String,
+        from source: String,
+        session: URLSession = PinnedDownload.session,
+        report: @Sendable (Progress) -> Void = { _ in }
+    ) async throws -> URL {
+        try await obtain(
+            file: url.lastPathComponent, sha256: sha256, size: size,
+            bases: [url.deletingLastPathComponent()], into: downloads,
+            step: step, from: source, session: session, report: report)
+    }
+
     static func obtain(
         file: String,
         sha256: String,
+        size: Int64? = nil,
         bases: [URL],
         into downloads: URL,
         step: String,
@@ -43,6 +61,7 @@ enum PinnedDownload {
             report(.reusing)
             return archive
         }
+        try? FileManager.default.removeItem(at: archive)
 
         var refusals: [String] = []
         var kinds: Set<Refusal> = []
@@ -65,9 +84,11 @@ enum PinnedDownload {
                 continue
             }
 
+            let gotSize = (try? FileManager.default.attributesOfItem(
+                atPath: body.path(percentEncoded: false))[.size] as? Int64) ?? -1
             let got = try Digest.sha256(of: body)
-            guard got == sha256 || extras.contains(got) else {
-                refusals.append("\(host) served \(got.prefix(16)) rather than \(sha256.prefix(16))")
+            guard (got == sha256 && (size == nil || gotSize == size)) || extras.contains(got) else {
+                refusals.append("\(host) served \(got.prefix(16)) (\(gotSize) bytes) rather than \(sha256.prefix(16))")
                 kinds.insert(.mismatch)
                 continue
             }

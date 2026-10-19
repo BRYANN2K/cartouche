@@ -140,8 +140,11 @@ public struct AppendConfig: Sendable, Equatable {
 
     public func write() throws {
         try paths.create()
+        // The atomic write's temporary file would be readable before the
+        // chmod below; a 0700 folder keeps the token covered either way
+        try FileManager.default.setAttributes([.posixPermissions: 0o700],
+                                              ofItemAtPath: paths.appendConfig.deletingLastPathComponent().path(percentEncoded: false))
         try Data(render().utf8).write(to: paths.appendConfig, options: .atomic)
-        // It holds the RetroAchievements token while RetroArch starts
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: paths.appendConfig.path(percentEncoded: false))
     }
 }

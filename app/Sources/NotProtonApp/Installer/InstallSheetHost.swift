@@ -13,10 +13,17 @@ private struct InstallSheetHost: ViewModifier {
     let library: LibraryModel
     let compat: CompatibilityModel
     @Bindable var center: InstallCenter
+    @State private var pendingConsoles = false
 
     func body(content: Content) -> some View {
         content
-            .sheet(isPresented: $center.isSheetPresented) { InstallSheet(center: center) }
+            .sheet(isPresented: $center.isSheetPresented, onDismiss: {
+                // Console Games from the first step opens once this sheet is gone.
+                if pendingConsoles {
+                    pendingConsoles = false
+                    library.addGames = .consoles
+                }
+            }) { InstallSheet(center: center) }
             .onChange(of: library.addGames) {
                 // The Windows kind is this sheet; consoles keep the Add Games sheet.
                 if library.addGames == .windows {
@@ -30,10 +37,7 @@ private struct InstallSheetHost: ViewModifier {
                 center.onGameReady = { _ in library.showInstalledGames(InstalledGames.all()) }
                 center.showConsoleGames = {
                     center.isSheetPresented = false
-                    Task {
-                        try? await Task.sleep(for: .milliseconds(350))
-                        library.addGames = .consoles
-                    }
+                    pendingConsoles = true
                 }
                 library.showInstalledGames(InstalledGames.all())
             }

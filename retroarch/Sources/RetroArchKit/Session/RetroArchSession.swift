@@ -108,7 +108,6 @@ public actor RetroArchSession {
 
     public let launch: RetroArchLaunch
     public private(set) var tools = ToolMap([])
-    public private(set) var serverVersion: String?
 
     private var child: ChildProcess?
     private var client: MCPClient?
@@ -146,8 +145,7 @@ public actor RetroArchSession {
         }
 
         do {
-            let hello = try await client.initialize(client: "Cartouche", version: "1")
-            serverVersion = hello["serverInfo"]?["version"]?.string
+            _ = try await client.initialize(client: "Cartouche", version: "1")
             tools = ToolMap(try await client.listTools())
         } catch {
             _ = await stop(within: .seconds(1))
@@ -179,7 +177,11 @@ public actor RetroArchSession {
     public func status() async throws -> GameStatus {
         if !launch.mcp, launch.config.networkCommands {
             guard isRunning else { throw RetroArchSessionError.notRunning }
-            let reply = NetworkCommands.send("GET_STATUS", port: launch.config.networkCommandPort, wait: .seconds(2)) ?? ""
+            // recv blocks for up to the wait: off the cooperative pool
+            let port = launch.config.networkCommandPort
+            let reply = await Task.detached {
+                NetworkCommands.send("GET_STATUS", port: port, wait: .seconds(2))
+            }.value ?? ""
             guard let status = GameStatus(reply: reply) else { throw RetroArchSessionError.unexpectedReply(reply) }
             return status
         }
@@ -267,12 +269,9 @@ public actor RetroArchSession {
         return reply.split(whereSeparator: \.isWhitespace).dropFirst(2).compactMap { UInt8($0, radix: 16) }
     }
 
-    public func closeContent() async throws {
-        try await call(.closeContent)
-    }
-
-    public var recentLog: [String] {
-        get async { await client?.recentLog ?? [] }
+    // Resolves when RetroArch's process ends
+    public func waitUntilExit() async {
+        if let child { _ = await child.exited() }
     }
 
     // RetroArch quits when its stdin closes, or on the UDP QUIT, through the
@@ -291,7 +290,7 @@ public actor RetroArchSession {
             child.signal(SIGTERM)
             way = .terminated
         }
-        let grace = limit - .milliseconds(600)
+        let grace = max(limit - .milliseconds(600), .milliseconds(100))
         if await !child.waitForExit(within: grace) {
             child.signal(SIGTERM)
             way = .terminated

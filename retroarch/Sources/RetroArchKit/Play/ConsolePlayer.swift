@@ -80,27 +80,31 @@ public actor ConsolePlayer {
         launch.config.extra = launch.config.extra.merging(extra) { $1 }
         let session = RetroArchSession(launch: launch)
 
-        guard launch.mcp else {
-            try await session.start(core: request.core, content: request.content)
-            self.session = session
-            self.request = request
-            started = .now
-            return
-        }
-        try await session.start()
         do {
-            try await session.load(core: request.core, content: request.content)
-            // RetroArch reads its configuration again as it loads the core, and
-            // has signed in by now: the token does not stay in cartouche.cfg
-            if request.achievements != nil { try? launch.config.withoutSecrets.write() }
-            self.session = session
-            self.request = request
-            started = .now
-            if request.disc > 0 { try await insert(disc: request.disc, from: 0) }
-            if let slot = request.slot { try await session.loadState(slot: slot) }
-            if request.look != .original { try await apply(request.look) }
+            if launch.mcp {
+                try await session.start()
+                try await session.load(core: request.core, content: request.content)
+                // RetroArch reads its configuration again as it loads the core, and
+                // has signed in by now: the token does not stay in cartouche.cfg
+                if request.achievements != nil { try? launch.config.withoutSecrets.write() }
+                self.session = session
+                self.request = request
+                started = .now
+                if request.disc > 0 { try await insert(disc: request.disc, from: 0) }
+                if let slot = request.slot { try await session.loadState(slot: slot) }
+                if request.look != .original { try await apply(request.look) }
+            } else {
+                try await session.start(core: request.core, content: request.content)
+                self.session = session
+                self.request = request
+                started = .now
+                // The -L launch re-reads nothing: the token leaves the config now
+                if request.achievements != nil { Self.scrubSecrets(in: paths) }
+            }
         } catch {
             _ = await session.stop()
+            // A failed start or load still wrote the token into cartouche.cfg
+            Self.scrubSecrets(in: paths)
             self.session = nil
             self.request = nil
             started = nil
@@ -155,7 +159,6 @@ public actor ConsolePlayer {
         try await session.disk(.eject)
     }
 
-    // Quits as RetroArch's own Quit does, so the auto state is written
     @discardableResult
     public func quit() async -> PlayReport {
         guard let session else { return PlayReport(stop: StopReport(way: .notRunning, duration: .zero), played: .zero) }
@@ -195,7 +198,7 @@ public actor ConsolePlayer {
     // RetroAchievements token in retroarch-keychain.cfg beside a key file of
     // its own. Cartouche keeps the token in the macOS keychain only, so both
     // copies go once RetroArch is gone.
-    static func scrubSecrets(in paths: RetroArchPaths) {
+    public static func scrubSecrets(in paths: RetroArchPaths) {
         let files = FileManager.default
         let folder = paths.baseConfig.deletingLastPathComponent()
         try? files.removeItem(at: folder.appending(path: "retroarch-keychain.cfg"))

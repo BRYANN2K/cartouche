@@ -37,8 +37,6 @@ public enum InnoInspector {
         case notInno(String)
     }
 
-    public static func innoextractPath() -> String? { Innoextract.path() }
-
     // Only innoextract runs, with the setup as a file to read.
     public static func inspect(
         _ setup: URL, tool: String? = Innoextract.path(), runner: any ToolRunning = ProcessToolRunner()

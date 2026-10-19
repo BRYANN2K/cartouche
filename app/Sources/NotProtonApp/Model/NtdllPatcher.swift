@@ -732,16 +732,14 @@ enum NtdllPatcher {
         bridge.appending(path: "wine/\(build)/\(arch.rawValue)/ntdll.dll")
     }
 
-    // Also clears the wine/<arch> copies 1.0/1.0.1 left behind.
+    // Anything under wine/ that no kept build needs goes: old staged copies too
     static func pruneBuilds(
-        keeping builds: Set<String>, in bridge: URL = SupportPaths.bridge, keepingLegacy: Bool = false
+        keeping builds: Set<String>, in bridge: URL = SupportPaths.bridge
     ) {
         let wine = bridge.appending(path: "wine")
         let fm = FileManager.default
-        let legacy = keepingLegacy ? Set(WineArch.allCases.map(\.rawValue)) : []
         let entries = (try? fm.contentsOfDirectory(at: wine, includingPropertiesForKeys: nil)) ?? []
-        for entry in entries
-        where !builds.contains(entry.lastPathComponent) && !legacy.contains(entry.lastPathComponent) {
+        for entry in entries where !builds.contains(entry.lastPathComponent) {
             try? fm.removeItem(at: entry)
         }
     }

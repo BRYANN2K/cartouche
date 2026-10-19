@@ -43,7 +43,12 @@ enum AppLocation: Equatable, Sendable {
 
 struct AppMover {
     var destination = URL(filePath: "/Applications/Cartouche.app")
-    var relauncher: @MainActor (URL) -> Void = { LiveRelauncher(bundle: $0).relaunch() }
+    var relauncher: @MainActor (URL) -> Void = { _ = LiveRelauncher(bundle: $0).relaunch() }
+    var destinationRunning: @MainActor (URL) -> Bool = { destination in
+        let id = Bundle.main.bundleIdentifier
+        return NSRunningApplication.runningApplications(withBundleIdentifier: id ?? "")
+            .contains { $0.bundleURL?.standardizedFileURL == destination.standardizedFileURL }
+    }
 
     struct Failed: LocalizedError {
         let errorDescription: String?
@@ -64,6 +69,8 @@ struct AppMover {
         guard copy.terminationStatus == 0 else {
             throw Failed(errorDescription: String(localized: "Cartouche couldn’t copy itself to \(folder.path(percentEncoded: false)). Drag it to Applications in Finder."))
         }
+        // A ditto copy of a quarantined or translocated app stays quarantined; the moved copy is not
+        _ = try? Shell.check("/usr/bin/xattr", ["-dr", "com.apple.quarantine", staging.path(percentEncoded: false)])
         if fm.fileExists(atPath: destination.path(percentEncoded: false)) {
             _ = try fm.replaceItemAt(destination, withItemAt: staging)
         } else {
@@ -73,6 +80,9 @@ struct AppMover {
 
     @MainActor
     func moveAndRelaunch(_ bundle: URL) throws {
+        guard !destinationRunning(destination) else {
+            throw Failed(errorDescription: String(localized: "Cartouche is already open from \(destination.path(percentEncoded: false)). Quit that copy, then move Cartouche again."))
+        }
         try move(bundle)
         AppLog.note("moved to \(destination.path(percentEncoded: false)), relaunching")
         relauncher(destination)

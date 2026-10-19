@@ -15,14 +15,13 @@ enum NotificationOffer {
         event != .launch && state == .notAsked && !offeredBefore
     }
 
-    // Downloads (P7) and installs call this when they finish
+    // Downloads and installs call this when they finish
     @MainActor
     static func offer(after event: Event, flow: PermissionFlow, then: @escaping @MainActor (PermissionFlow.Outcome) -> Void = { _ in }) {
         let ledger = flow.center.ledger
-        let key = "permissions.notifications.offered"
         guard shouldOffer(after: event, state: flow.center.state(.notifications),
-                          offeredBefore: ledger.defaults.bool(forKey: key)) else { return }
-        ledger.defaults.set(true, forKey: key)
+                          offeredBefore: ledger.offered(.notifications)) else { return }
+        ledger.noteOffered(.notifications)
         flow.start(.notifications, then: then)
     }
 }

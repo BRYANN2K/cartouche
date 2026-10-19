@@ -1,14 +1,13 @@
-// Console games that play in a standalone emulator the user installed (P16):
-// Dolphin, PCSX2, PPSSPP, Azahar, xemu or Ryubing. The emulator starts the
-// game with its documented arguments and its own settings; the activity slot
-// shows it until the emulator quits.
-
 import Foundation
 import RetroArchKit
 
 extension StandalonePlayer: ConsoleRunning {
     // The emulator is the user's own app: Cartouche quitting leaves it running
     func leaveForTermination() async -> PlayReport { release() }
+
+    func waitForExit() async {
+        if isPlaying { await waitUntilExit() } else { try? await Task.sleep(for: .milliseconds(100)) }
+    }
 }
 
 extension ConsoleCenter {

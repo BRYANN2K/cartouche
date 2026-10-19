@@ -11,6 +11,8 @@ enum CoverReveal {
         var fraction: Double
         // When the download completed, for the finish ring
         var finishedAt: Date?
+        // The shader runs only while the download moves or the finish ring shows
+        var animating = true
     }
 
     // The still split for Reduce Motion: no moving edge, no embers
@@ -26,19 +28,18 @@ struct RevealCover: View {
     let progress: CoverReveal.Progress
 
     @Environment(\.covers) private var covers
-    @State private var art: CoverArt?
+    @State private var loaded: CoverLoader.Loaded?
 
     var body: some View {
         Group {
-            if case .image(let url) = art ?? covers.local(for: game, kind: .cover, override: override),
-               let color = CoverImages.image(url), let gray = CoverImages.image(url, gray: true) {
-                RevealImage(color: color, gray: gray, progress: progress)
+            if let loaded, case .image = loaded.art,
+               let color = loaded.color, let gray = loaded.gray, let cg = loaded.colorCG {
+                RevealImage(color: color, image: cg, gray: gray, progress: progress)
             }
         }
         .task(id: "\(game.id)|\(override?.path ?? "")") {
-            art = nil
-            if covers.local(for: game, kind: .cover, override: override) != nil { return }
-            art = await covers.art(for: game, kind: .cover, override: override)
+            loaded = nil
+            loaded = await CoverLoader.load(game, kind: .cover, override: override, covers: covers, gray: true)
         }
         .accessibilityHidden(true)
     }
@@ -51,6 +52,7 @@ extension EnvironmentValues {
 
 struct RevealImage: View {
     let color: NSImage
+    let image: CGImage
     let gray: NSImage
     let progress: CoverReveal.Progress
 
@@ -58,8 +60,7 @@ struct RevealImage: View {
     @Environment(\.revealStill) private var still
 
     var body: some View {
-        if !still, CoverReveal.usesShader(reduceMotion: reduceMotion),
-           let image = color.cgImage(forProposedRect: nil, context: nil, hints: nil) {
+        if !still, CoverReveal.usesShader(reduceMotion: reduceMotion) {
             MetalReveal(image: image, progress: progress)
         } else {
             StaticReveal(color: color, gray: gray, fraction: progress.fraction)
@@ -88,7 +89,8 @@ struct StaticReveal: View {
     }
 }
 
-// One small MTKView per revealing cover, drawn at 60 fps on the main thread
+// One small MTKView per revealing cover, drawn at 30 fps on the main thread and
+// paused outright while the download is still
 struct MetalReveal: NSViewRepresentable {
     let image: CGImage
     let progress: CoverReveal.Progress
@@ -101,12 +103,11 @@ struct MetalReveal: NSViewRepresentable {
         return view
     }
 
-    // 60 fps, drawn by the display link
     static func view(drawer: RevealDrawer) -> MTKView {
         let view = MTKView(frame: .zero, device: RevealRenderer.shared?.device)
         view.colorPixelFormat = RevealRenderer.pixelFormat
         view.framebufferOnly = true
-        view.preferredFramesPerSecond = 60
+        view.preferredFramesPerSecond = 30
         view.enableSetNeedsDisplay = false
         view.isPaused = false
         view.layer?.isOpaque = true
@@ -116,6 +117,8 @@ struct MetalReveal: NSViewRepresentable {
 
     func updateNSView(_ view: MTKView, context: Context) {
         context.coordinator.update(image: image, progress: progress)
+        view.isPaused = !progress.animating
+        if !progress.animating { view.draw() }
     }
 
     static func dismantleNSView(_ view: MTKView, coordinator: RevealDrawer) {
@@ -128,9 +131,10 @@ final class RevealDrawer: NSObject, MTKViewDelegate {
 
     private var image: CGImage?
     private var target = CoverReveal.Progress(fraction: 0)
-    // Eases toward the target, 6% of the gap each frame like the mockup
+    // Eases toward the target, 6% of the gap per sixtieth of a second like the mockup
     private var shown: Double?
     private let start = CACurrentMediaTime()
+    private var lastDraw = CACurrentMediaTime()
     // Frames drawn, for the FPS measurement
     private(set) var frames = 0
     // The benchmark's window counts as covered, since a test process is not a foreground app
@@ -150,24 +154,27 @@ final class RevealDrawer: NSObject, MTKViewDelegate {
         guard let renderer = RevealRenderer.shared, let image, let texture = renderer.texture(for: image),
               let pass = view.currentRenderPassDescriptor, let drawable = view.currentDrawable,
               let buffer = renderer.queue.makeCommandBuffer() else { return }
-        let value = uniforms(size: view.drawableSize, image: image, now: Date())
+        let now = CACurrentMediaTime()
+        let elapsed = now - lastDraw
+        lastDraw = now
+        let value = uniforms(size: view.drawableSize, image: image, now: now, elapsed: elapsed)
         renderer.encode(buffer, pass: pass, texture: texture, uniforms: value)
         buffer.present(drawable)
         buffer.commit()
         frames += 1
     }
 
-    func uniforms(size: CGSize, image: CGImage, now: Date) -> RevealUniforms {
+    func uniforms(size: CGSize, image: CGImage, now: CFTimeInterval, elapsed: CFTimeInterval) -> RevealUniforms {
         var current = shown ?? target.fraction
-        current += (target.fraction - current) * 0.06
+        current += (target.fraction - current) * min(1, elapsed * 3.6)
         shown = current
         var u = RevealUniforms()
-        u.time = Float(CACurrentMediaTime() - start)
+        u.time = Float(now - start)
         u.motion = 1
         if let finished = target.finishedAt {
-            let elapsed = now.timeIntervalSince(finished) / ActivityCenter.seconds(ActivityCenter.finishFlash)
+            let done = Date().timeIntervalSince(finished) / (ActivityCenter.finishFlash / .seconds(1))
             u.progress = 1
-            u.finish = Float(max(0, 1 - min(1, elapsed)))
+            u.finish = Float(max(0, 1 - min(1, done)))
         } else {
             u.progress = Float(current)
         }

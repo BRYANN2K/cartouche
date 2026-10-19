@@ -13,6 +13,7 @@ struct GamePanel: View {
     @Environment(\.activity) private var activity
     @Environment(ConsoleCenter.self) private var consoles: ConsoleCenter?
     @Environment(ControlsCenter.self) private var controls: ControlsCenter?
+    @Environment(StoreCenter.self) private var stores: StoreCenter?
 
     private var content: GamePanelContent {
         GamePanelContent(game: game, compat: compat.panel(appID: game.steamAppID ?? game.compatAppID ?? -1, method: .wine),
@@ -73,7 +74,7 @@ struct GamePanel: View {
     private func block(_ section: GamePanelContent.Section, _ content: GamePanelContent) -> some View {
         switch section {
         case .play:
-            // While Steam downloads the game, its progress and controls take Play's place (P7)
+            // While Steam downloads the game, its progress and controls take Play's place
             if let download = activity.download(for: game) {
                 DownloadBlock(download: download, center: activity)
             } else {
@@ -90,7 +91,7 @@ struct GamePanel: View {
                     .disabled(!game.installed && model.isOffline)
                     .help(!game.installed && model.isOffline ? Text("Connect to the internet to download") : Text(verbatim: ""))
                     Menu {
-                        GameMenuContent(items: GameMenu.items(for: game, in: model)) { actions.perform($0, on: game) }
+                        GameMenuContent(items: GameMenu.items(for: game, in: model, stores: stores)) { actions.perform($0, on: game) }
                     } label: {
                         Image(systemName: "ellipsis")
                     }
@@ -208,7 +209,7 @@ struct SetupRows: View {
         let resolved = model.resolution(for: game).setup
         // Installer games pick from the install runners: ready free Wine builds included
         let runners = game.source == .installer ? model.installRunners : model.runners.filter(\.isOffered)
-        // A game with a Mac build runs it unless the Windows version is picked (P3)
+        // A game with a Mac build runs it unless the Windows version is picked
         if model.hasMacBuild(game) {
             Picker("Run", selection: Binding(
                 get: { resolved.version },
@@ -250,7 +251,7 @@ struct SetupRows: View {
         }
         .disabled(resolved.runner == nil)
         // An older Wine than the one that last ran the prefix: noted, still allowed
-        if let notice = model.setupNotice {
+        if let notice = model.setupNotices[game.id] {
             Label(notice, systemImage: "exclamationmark.triangle")
                 .font(.callout).foregroundStyle(.secondary)
         }

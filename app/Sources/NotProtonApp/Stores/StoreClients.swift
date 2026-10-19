@@ -8,7 +8,6 @@ import Foundation
 enum StoreClient: String, Codable, CaseIterable, Sendable {
     case legendary, gogdl, comet, nile
 
-    // Product names, not translated
     var name: String { rawValue }
 }
 
@@ -80,6 +79,27 @@ struct StoreClientManifest: Codable, Sendable, Equatable {
 }
 
 // Where each client lives once downloaded, and the download itself
+// The (size, mtime, inode) of a client file whose SHA-256 already matched its
+// pin, so each call doesn't hash tens of MB again.
+final class PinChecks: @unchecked Sendable {
+    struct Stamp: Equatable {
+        var size: Int64
+        var modified: Date
+        var inode: UInt64
+    }
+
+    private let lock = NSLock()
+    private var verified: [String: (stamp: Stamp, sha256: String)] = [:]
+
+    func known(_ path: String, stamp: Stamp, sha256: String) -> Bool {
+        lock.withLock { verified[path]?.stamp == stamp && verified[path]?.sha256 == sha256 }
+    }
+
+    func remember(_ path: String, stamp: Stamp, sha256: String) {
+        lock.withLock { verified[path] = (stamp, sha256) }
+    }
+}
+
 struct StoreClientFiles: Sendable {
 
     // stores/clients/<client>-<version>/<client>
@@ -89,6 +109,7 @@ struct StoreClientFiles: Sendable {
     // Tests point a client at a stand-in executable
     var overrides: [StoreClient: URL] = [:]
     var session: URLSession = PinnedDownload.session
+    let checks = PinChecks()
 
     init(root: URL, downloads: URL, manifest: StoreClientManifest? = try? .bundled()) {
         self.root = root
@@ -108,14 +129,19 @@ struct StoreClientFiles: Sendable {
     func isReady(_ client: StoreClient) -> Bool {
         if let override = overrides[client] { return FileManager.default.isExecutableFile(atPath: override.path(percentEncoded: false)) }
         guard let pin = manifest?.pin(client), let file = location(client) else { return false }
-        return Self.matches(file, pin)
+        return matches(file, pin)
     }
 
-    static func matches(_ file: URL, _ pin: StoreClientManifest.Pin) -> Bool {
+    func matches(_ file: URL, _ pin: StoreClientManifest.Pin) -> Bool {
         let path = file.path(percentEncoded: false)
-        guard let size = (try? FileManager.default.attributesOfItem(atPath: path))?[.size] as? Int64, size == pin.size
-        else { return false }
-        return Digest.sha256IfPresent(file) == pin.sha256
+        guard let attrs = try? FileManager.default.attributesOfItem(atPath: path),
+              let size = attrs[.size] as? Int64, size == pin.size else { return false }
+        let stamp = PinChecks.Stamp(size: size, modified: attrs[.modificationDate] as? Date ?? .distantPast,
+                                    inode: (attrs[.systemFileNumber] as? UInt64) ?? 0)
+        if checks.known(path, stamp: stamp, sha256: pin.sha256) { return true }
+        guard Digest.sha256IfPresent(file) == pin.sha256 else { return false }
+        checks.remember(path, stamp: stamp, sha256: pin.sha256)
+        return true
     }
 
     func ensure(_ client: StoreClient, report: @Sendable (PinnedDownload.Progress) -> Void = { _ in }) async throws -> URL {
@@ -124,13 +150,13 @@ struct StoreClientFiles: Sendable {
         guard let pin = manifest?.pin(client), let file = location(client) else {
             throw StepFailure(step: step, detail: String(localized: "\(client.name) is not pinned in this version of Cartouche."))
         }
-        if Self.matches(file, pin) { return file }
+        if matches(file, pin) { return file }
         try? FileManager.default.removeItem(at: file)
         let fetched = try await PinnedDownload.obtain(
             file: pin.file, sha256: pin.sha256, bases: [pin.url.deletingLastPathComponent()],
             into: downloads, step: step, from: "GitHub", session: session, report: report)
         defer { try? FileManager.default.removeItem(at: fetched) }
-        guard Self.matches(fetched, pin) else {
+        guard matches(fetched, pin) else {
             throw StepFailure(step: step, detail: String(localized: "Something is wrong with the downloaded files. Please check for a Cartouche update."))
         }
         try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -187,10 +213,14 @@ enum ClientProcess {
         }
     }
 
+    // A blocking read on a Dispatch thread, not the cooperative pool. Not handle.bytes:
+    // its reads are serialized with stderr's, so progress lines would wait for stdout's end.
     private static func drain(_ handle: FileHandle) async throws -> String {
-        try await Task.detached {
-            String(decoding: try handle.readToEnd() ?? Data(), as: UTF8.self)
-        }.value
+        try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .utility).async {
+                continuation.resume(with: Result { String(decoding: try handle.readToEnd() ?? Data(), as: UTF8.self) })
+            }
+        }
     }
 
     // A carriage return also ends a line, as progress bars use it

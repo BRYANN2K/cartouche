@@ -5,6 +5,7 @@
 // tokens the store hands the client after the user signs in on the store's page.
 
 import Foundation
+import RetroArchKit
 import Security
 
 // What the Keychain holds for one store: the client's token files and the account name
@@ -24,7 +25,10 @@ protocol TokenVault: Sendable {
 // never synced to other devices
 struct KeychainVault: TokenVault {
 
-    static let service = "dev.bryann2k.cartouche.store"
+    // QA sign-ins use their own service so the real Keychain items are never read
+    static var service: String {
+        QAEnvironment.isActive ? "dev.bryann2k.cartouche.store.qa" : "dev.bryann2k.cartouche.store"
+    }
 
     var service = KeychainVault.service
 
@@ -41,28 +45,23 @@ struct KeychainVault: TokenVault {
     }
 
     func read(_ store: GameSource) throws -> StoreSecret? {
-        var item: CFTypeRef?
-        var query = query(store)
-        query[kSecReturnData as String] = true
-        query[kSecMatchLimit as String] = kSecMatchLimitOne
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-        if status == errSecItemNotFound { return nil }
-        guard status == errSecSuccess, let data = item as? Data else { throw Self.failure(status) }
+        let data = try run { try Keychain.read(query(store)) }
+        guard let data else { return nil }
         return try JSONDecoder().decode(StoreSecret.self, from: data)
     }
 
     func write(_ secret: StoreSecret, for store: GameSource) throws {
         let data = try JSONEncoder().encode(secret)
-        let update = SecItemUpdate(query(store) as CFDictionary, attributes(data) as CFDictionary)
-        if update == errSecSuccess { return }
-        guard update == errSecItemNotFound else { throw Self.failure(update) }
-        let added = SecItemAdd(query(store).merging(attributes(data)) { $1 } as CFDictionary, nil)
-        guard added == errSecSuccess else { throw Self.failure(added) }
+        try run { try Keychain.write(data, matching: query(store), attributes: attributes(data)) }
     }
 
     func delete(_ store: GameSource) throws {
-        let status = SecItemDelete(query(store) as CFDictionary)
-        guard status == errSecSuccess || status == errSecItemNotFound else { throw Self.failure(status) }
+        try run { try Keychain.delete(query(store)) }
+    }
+
+    private func run<T>(_ body: () throws -> T) throws -> T {
+        do { return try body() }
+        catch SecretStoreError.keychain(let status) { throw Self.failure(status) }
     }
 
     static func failure(_ status: OSStatus) -> StepFailure {
@@ -92,33 +91,44 @@ actor StoreSecrets {
 
     func secret(_ store: GameSource) throws -> StoreSecret? { try vault.read(store) }
 
-    // Runs body with the store's token files in place. Signing in starts with none;
-    // the account name of a new sign-in comes from the body's result.
-    func using<T: Sendable>(_ store: GameSource, account: String? = nil,
+    // Runs body with the store's token files in place. `fresh` starts the client
+    // from an empty folder instead of the vault's copy — a sign-in (nile refuses
+    // to register over a saved token) — and a failed body then leaves the vault's
+    // older session alone. The account name of a new sign-in comes from the body's
+    // result.
+    func using<T: Sendable>(_ store: GameSource, account: String? = nil, fresh: Bool = false,
                             _ body: @Sendable () async throws -> T) async throws -> T {
-        try open(store, account: account)
+        try open(store, account: account, fresh: fresh)
         do {
             let result = try await body()
-            try close(store)
+            do {
+                try close(store, collect: true)
+            } catch {
+                // The Keychain can be unreachable on a locked Mac; the files stay
+                // (0600) and sweep() picks them up at the next start.
+                AppLog.note("store \(store.id): tokens could not be stored: \(error.localizedDescription)")
+            }
             return result
         } catch {
-            try? close(store)
+            try? close(store, collect: !fresh)
             throw error
         }
     }
 
     func setAccount(_ name: String, for store: GameSource) { accounts[store] = name }
 
-    private func open(_ store: GameSource, account: String?) throws {
+    private func open(_ store: GameSource, account: String?, fresh: Bool) throws {
         if let account { accounts[store] = account }
-        if users[store, default: 0] == 0 { try materialize(store) }
+        if users[store, default: 0] == 0 {
+            guard let folder = folders[store] else { users[store] = 1; return }
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true,
+                                                    attributes: [.posixPermissions: 0o700])
+            if fresh { clearFiles(store) } else { try materialize(store, in: folder) }
+        }
         users[store, default: 0] += 1
     }
 
-    private func materialize(_ store: GameSource) throws {
-        guard let folder = folders[store] else { return }
-        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true,
-                                                attributes: [.posixPermissions: 0o700])
+    private func materialize(_ store: GameSource, in folder: URL) throws {
         guard let secret = try vault.read(store) else { return }
         if accounts[store] == nil { accounts[store] = secret.account }
         for (path, data) in secret.files where RunnerManifest.isInside(path) {
@@ -129,18 +139,26 @@ actor StoreSecrets {
         }
     }
 
-    private func close(_ store: GameSource) throws {
+    private func close(_ store: GameSource, collect: Bool) throws {
         users[store, default: 1] -= 1
         guard users[store] == 0 else { return }
-        try collect(store)
+        if collect { try self.collect(store) } else { clearFiles(store) }
     }
 
-    // Puts whatever token files the client left back into the vault and deletes
-    // them. With none left, the client signed out, and so does the vault.
+    // Deletes the token files a client was given; the vault keeps its copy.
+    func clearFiles(_ store: GameSource) {
+        guard let folder = folders[store] else { return }
+        for (_, url) in Self.files(in: folder, matching: patterns[store] ?? []) {
+            try? FileManager.default.removeItem(at: url)
+        }
+    }
+
+    // Puts whatever token files the client left back into the vault. With none
+    // left, the client signed out, and so does the vault. The files are deleted
+    // only once the vault holds them.
     func collect(_ store: GameSource) throws {
         guard let folder = folders[store] else { return }
         let files = Self.files(in: folder, matching: patterns[store] ?? [])
-        defer { for (_, url) in files { try? FileManager.default.removeItem(at: url) } }
         var contents: [String: Data] = [:]
         for (path, url) in files { contents[path] = try Data(contentsOf: url) }
         if contents.isEmpty {
@@ -150,6 +168,7 @@ actor StoreSecrets {
             let account = accounts[store] ?? (try? vault.read(store))?.account ?? ""
             try vault.write(StoreSecret(account: account, files: contents), for: store)
         }
+        for (_, url) in files { try? FileManager.default.removeItem(at: url) }
     }
 
     // Token files a crash left on disk go back into the vault at the next start
@@ -178,5 +197,24 @@ actor StoreSecrets {
             }
         }
         return out
+    }
+}
+
+extension StoreSecrets {
+    // Drops a store's tokens from the vault and from disk
+    func forget(_ store: GameSource) throws {
+        clearFiles(store)
+        try vault.delete(store)
+    }
+
+    // Names the account of the tokens a sign-in just saved. With a run still open
+    // (a GOG game keeping comet alive), the vault is left alone: that run's close
+    // writes the files under this account.
+    func remember(account: String, for store: GameSource) throws {
+        setAccount(account, for: store)
+        guard (users[store] ?? 0) == 0 else { return }
+        guard var secret = try vault.read(store) else { throw StoreError.failed(String(localized: "The sign-in left no login token.")) }
+        secret.account = account
+        try vault.write(secret, for: store)
     }
 }

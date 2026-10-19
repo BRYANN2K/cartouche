@@ -1,10 +1,18 @@
 // macOS notifications for the end of a download or an install, each with one
 // action. They go out only when notifications are already allowed: the prompt
-// itself comes from NotificationOffer, after Cartouche's explanation (P17).
+// itself comes from NotificationOffer, after Cartouche's explanation.
 
 import AppKit
 import Foundation
 import UserNotifications
+
+// One button under a banner
+struct NotificationButton: Equatable, Sendable {
+    let id: String
+    let title: String
+    // The Mac must be unlocked first, for actions that run programs
+    var requiresUnlock = false
+}
 
 // One notification, as Cartouche builds it
 struct NotificationSpec: Equatable, Sendable {
@@ -12,9 +20,29 @@ struct NotificationSpec: Equatable, Sendable {
     let title: String
     let body: String
     let category: String
-    let action: String
-    let actionTitle: String
+    // The buttons under the banner, in order
+    let actions: [NotificationButton]
     let userInfo: [String: String]
+
+    // The first button, for the one-button notifications
+    var action: String { actions.first?.id ?? "" }
+    var actionTitle: String { actions.first?.title ?? "" }
+
+    init(identifier: String, title: String, body: String, category: String,
+         action: String, actionTitle: String, userInfo: [String: String]) {
+        self.init(identifier: identifier, title: title, body: body, category: category,
+                  actions: [NotificationButton(id: action, title: actionTitle)], userInfo: userInfo)
+    }
+
+    init(identifier: String, title: String, body: String, category: String,
+         actions: [NotificationButton], userInfo: [String: String]) {
+        self.identifier = identifier
+        self.title = title
+        self.body = body
+        self.category = category
+        self.actions = actions
+        self.userInfo = userInfo
+    }
 }
 
 @MainActor
@@ -37,6 +65,11 @@ final class NotificationRouter: NSObject, NotificationPosting, @preconcurrency U
         Bundle.main.bundleIdentifier == nil ? nil : UNUserNotificationCenter.current()
     }
 
+    // Called once at launch so responses arriving before the first post still route
+    func install() {
+        center?.delegate = self
+    }
+
     func handle(category: String, _ handler: @escaping @MainActor (String, [String: String]) -> Void) {
         handlers[category] = handler
     }
@@ -44,8 +77,11 @@ final class NotificationRouter: NSObject, NotificationPosting, @preconcurrency U
     func post(_ spec: NotificationSpec) {
         guard let center else { return }
         center.delegate = self
-        let action = UNNotificationAction(identifier: spec.action, title: spec.actionTitle, options: [.foreground])
-        categories[spec.category] = UNNotificationCategory(identifier: spec.category, actions: [action], intentIdentifiers: [])
+        categories[spec.category] = UNNotificationCategory(
+            identifier: spec.category,
+            actions: spec.actions.map { UNNotificationAction(identifier: $0.id, title: $0.title,
+                                                 options: $0.requiresUnlock ? [.foreground, .authenticationRequired] : [.foreground]) },
+            intentIdentifiers: [])
         center.setNotificationCategories(Set(categories.values))
         let content = UNMutableNotificationContent()
         content.title = spec.title

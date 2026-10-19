@@ -147,23 +147,6 @@ struct CompatToolOrderTests {
         #expect(Set(tools.map(\.display)).count == tools.count)
     }
 
-    @Test("The Rosetta-only Preview can hold the legacy name")
-    func rosettaPreviewAlone() throws {
-        let tools = SupportedRunners.tools(for: [try build("27.0.0.40921")], legacy: .build("27.0.0.40921"))
-        #expect(tools.map(\.name) == ["cartouche-proton"])
-        #expect(tools.first?.tool.flavor == .rosetta)
-    }
-
-    @Test("A named holder keeps the legacy name, and nobody leaves every Preview on its own name")
-    func explicitHolder() throws {
-        let builds = [try build("27.0.0.40921-fex"), try build("27.0.0.40921")]
-        let held = SupportedRunners.tools(for: builds, legacy: .build("27.0.0.40921"))
-        #expect(held.map(\.name) == ["cartouche-proton", "cartouche-proton-fex", "cartouche-proton-fex-rosetta"])
-        #expect(held.first?.build == "27.0.0.40921")
-        let none = SupportedRunners.tools(for: builds, legacy: .nobody)
-        #expect(none.map(\.name) == ["cartouche-proton-fex", "cartouche-proton-fex-rosetta", "cartouche-proton-preview"])
-    }
-
     @Test("Every tool name is one the dylib accepts")
     func namesParse() {
         for tool in SupportedRunners.all.flatMap(\.tools) {

@@ -6,13 +6,10 @@ struct CompatEstimate: Equatable, Sendable {
 
     let rating: CompatRating
     let fps: Int?
-    let fpsRange: ClosedRange<Int>?
     let settings: GraphicsSettings?
     let reportCount: Int
     let sameChipCount: Int
     let chip: String
-    // Fewer than 3 reports were comparable, so the 5 closest were used
-    let usedFallback: Bool
 
     enum Result: Equatable, Sendable {
         case estimate(CompatEstimate)
@@ -27,7 +24,8 @@ struct CompatEstimate: Equatable, Sendable {
     static func compute(
         reports: [MacReport], method: PlayMethod, chip: String?, gpu: [String: Double]
     ) -> Result {
-        let rows = reports.filter { $0.method == method && gpu[$0.chip] != nil }
+        // A missing or zero strength would put the report at distance infinity, or NaN on log(0)
+        let rows = reports.filter { $0.method == method && gpu[$0.chip].map { $0 > 0 } == true }
         guard !rows.isEmpty else { return .noReports }
         guard let chip, let mine = gpu[chip] else { return .unknownMac }
 
@@ -59,12 +57,10 @@ struct CompatEstimate: Equatable, Sendable {
         return .estimate(CompatEstimate(
             rating: rating,
             fps: fps,
-            fpsRange: fpsValues.first.map { $0...fpsValues.last! },
             settings: settings,
             reportCount: near.count,
             sameChipCount: near.filter { $0.chip == chip }.count,
-            chip: chip,
-            usedFallback: usedFallback
+            chip: chip
         ))
     }
 }

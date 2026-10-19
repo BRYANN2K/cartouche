@@ -103,7 +103,8 @@ actor MacGamingDBClient {
     static var api: URL { QAEnvironment.url(URL(string: "https://macgamingdb.app/api/rest/games/")!) }
     static let maxConcurrent = 2
 
-    typealias Fetch = @Sendable (URL) async throws -> (Data, Int)
+    typealias Fetch = HTTPFetch.Fetch
+    static let userAgent = "Cartouche/\(AppVersion.bundled) (+https://cartouche.bryann2k.dev)"
 
     let directory: URL
     private let fetch: Fetch
@@ -111,7 +112,8 @@ actor MacGamingDBClient {
     private var running = 0
     private var waiting: [CheckedContinuation<Void, Never>] = []
 
-    init(directory: URL, fetch: @escaping Fetch = MacGamingDBClient.download) {
+    init(directory: URL, fetch: @escaping Fetch = HTTPFetch.download(
+        timeout: 20, userAgent: MacGamingDBClient.userAgent)) {
         self.directory = directory
         self.fetch = fetch
     }
@@ -200,17 +202,5 @@ actor MacGamingDBClient {
         } else {
             waiting.removeFirst().resume()
         }
-    }
-
-    static let session: URLSession = {
-        let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 20
-        config.httpAdditionalHeaders = ["User-Agent": "Cartouche/\(AppVersion.bundled) (+https://cartouche.bryann2k.dev)"]
-        return URLSession(configuration: config)
-    }()
-
-    @Sendable static func download(_ url: URL) async throws -> (Data, Int) {
-        let (data, response) = try await session.data(from: url)
-        return (data, (response as? HTTPURLResponse)?.statusCode ?? 0)
     }
 }

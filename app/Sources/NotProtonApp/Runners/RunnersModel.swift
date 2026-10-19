@@ -1,5 +1,5 @@
 // What the Runners screen shows and does. The screen itself belongs to the library
-// app (P5); this is its model, reading runners only through RunnerRegistry.
+// app; this is its model, reading runners only through RunnerRegistry.
 
 import CryptoKit
 import Foundation
@@ -16,6 +16,8 @@ final class RunnersModel {
             case setUp
             // Download or copy again, for a damaged runner
             case repair
+            // Delete the runner folder, for a runner that cannot be downloaded again
+            case remove
             case none
         }
 
@@ -31,6 +33,8 @@ final class RunnersModel {
         let status: String
         let state: Runner.State?
         let action: Action
+        // A damaged free runner can also be deleted outright
+        var removable = false
         var link: Link?
     }
 
@@ -71,6 +75,8 @@ final class RunnersModel {
     @ObservationIgnored let defaults: UserDefaults
     // How a view offers to copy a toolkit from a new location; nil shows nothing
     @ObservationIgnored var chooseToolkitFolder: @MainActor () -> URL? = { nil }
+    // Bumped at every scan start: a slower scan that finishes late drops its result
+    @ObservationIgnored private var refreshGeneration = 0
 
     static let manifestCheckKey = "runnerManifestLastCheck"
 
@@ -84,7 +90,8 @@ final class RunnersModel {
         manifestFeed: URL? = CompatibilityClient.feed.map(RunnerManifest.feed(fromCompatibilityFeed:)),
         manifestCache: URL = RunnerManifest.cacheFile,
         manifestKey: Curve25519.Signing.PublicKey? = RunnerManifest.signingKey(),
-        fetch: @escaping CompatibilityClient.Fetch = CompatibilityClient.download,
+        fetch: @escaping CompatibilityClient.Fetch = HTTPFetch.download(
+            timeout: 30, resourceTimeout: 5 * 60, userAgent: "Cartouche/\(AppVersion.bundled)"),
         defaults: UserDefaults = .standard
     ) {
         self.manifestFeed = manifestFeed
@@ -99,28 +106,39 @@ final class RunnersModel {
         self.crossOver = registry
     }
 
-    // Where D3DMetal comes from. Nil means it is not offered as a graphics backend.
-    var d3dMetal: D3DMetalProvider? { registry.d3dMetal(runners: runnersFolder) }
-
     var portingToolkitMissing: Bool { !registry.runners.contains { $0.kind == .portingToolkit } }
 
-    // Lists runners, and asks once how each newly found toolkit should be set up
+    // Lists what is on disk now; a newer manifest, when due, refreshes the list again
     func refresh() async {
-        await refreshManifestIfDue()
+        refreshGeneration += 1
+        let generation = refreshGeneration
         let scan = self.scan, crossOver = self.crossOver, folder = runnersFolder
         let (scanned, listed) = await Task.detached { let s = scan(); return (s, crossOver(folder, s)) }.value
+        guard generation == refreshGeneration else { return }
         manifest = scanned.manifest
         toolkits = scanned.toolkits
         registry = listed
         if toolkitQuestion == nil, let install = toolkits.first(where: unanswered) {
-            toolkitQuestion = ToolkitQuestion(
-                install: install, copySize: PortingToolkitSource.copySize(of: install.lib))
+            let lib = install.lib
+            let size = await Task.detached {
+                PortingToolkitSource.copySize(of: lib.appending(path: "external"))
+            }.value
+            guard generation == refreshGeneration else { return }
+            toolkitQuestion = ToolkitQuestion(install: install, copySize: size)
         }
         rows = makeRows()
+        Task { await refreshManifestInBackground() }
+    }
+
+    private func refreshManifestInBackground() async {
+        guard case .updated = await refreshManifestIfDue() else { return }
+        await refresh()
     }
 
     private func unanswered(_ install: PortingToolkitInstall) -> Bool {
-        registry.runner(id: install.id)?.state == .available
+        // A mounted image is never asked about on its own: it may be gone at the next launch
+        !install.mountedImage
+            && registry.runner(id: install.id)?.state == .available
             && !PortingToolkitSource.isAsked(version: install.version, defaults)
     }
 
@@ -140,27 +158,33 @@ final class RunnersModel {
     }
 
     // Shows the question again for a toolkit that was never set up
-    func askToolkit(_ id: String) {
+    func askToolkit(_ id: String) async {
         guard let install = toolkits.first(where: { $0.id == id }) else { return }
-        toolkitQuestion = ToolkitQuestion(
-            install: install, copySize: PortingToolkitSource.copySize(of: install.lib))
+        let lib = install.lib
+        let size = await Task.detached {
+            PortingToolkitSource.copySize(of: lib.appending(path: "external"))
+        }.value
+        toolkitQuestion = ToolkitQuestion(install: install, copySize: size)
     }
 
     // At most once a day, like the compatibility data
-    func refreshManifestIfDue(now: Date = .now) async {
-        guard let feed = manifestFeed, DailyChecks.enabled(defaults) else { return }
+    @discardableResult
+    func refreshManifestIfDue(now: Date = .now) async -> RunnerManifest.RefreshOutcome {
+        guard let feed = manifestFeed, DailyChecks.enabled(defaults) else { return .unavailable }
         if let last = defaults.object(forKey: Self.manifestCheckKey) as? Date, now.timeIntervalSince(last) < 24 * 60 * 60 {
-            return
+            return .unchanged
         }
         let outcome = await RunnerManifest.refresh(from: feed, cache: manifestCache, fetch: fetch, key: manifestKey)
         if outcome != .unavailable { defaults.set(now, forKey: Self.manifestCheckKey) }
+        return outcome
     }
 
     func perform(_ action: Row.Action, on id: String) async {
         guard action != .none, !busy.contains(id), let runner = registry.runner(id: id) else { return }
         switch (runner.kind, action) {
+        case (.wineBuild, .remove), (.portingToolkit, .remove): await remove(id)
         case (.wineBuild, _): await download(id)
-        case (.portingToolkit, .setUp): askToolkit(id)
+        case (.portingToolkit, .setUp): await askToolkit(id)
         case (.portingToolkit, _): await copy(id)
         case (.crossOver, _): return
         }
@@ -171,10 +195,35 @@ final class RunnersModel {
         guard let build = manifest.build(id: id), !busy.contains(id) else { return }
         message = nil
         busy.insert(id)
+        refreshGeneration += 1
         registry.apply(.install, to: id)
         rows = makeRows()
         do {
             try await WineRunnerInstaller.install(build, runners: runnersFolder, downloads: downloads, session: session)
+        } catch let failure as StepFailure {
+            message = failure.detail
+        } catch {
+            message = error.localizedDescription
+        }
+        busy.remove(id)
+        await refresh()
+    }
+
+    // Deletes a free runner folder; CrossOver and unpinned supported builds never reach here
+    func remove(_ id: String) async {
+        guard !busy.contains(id), let runner = registry.runner(id: id), runner.kind != .crossOver else { return }
+        message = nil
+        busy.insert(id)
+        rows = makeRows()
+        let folder = runnersFolder
+        do {
+            try await Task.detached {
+                switch runner.kind {
+                case .wineBuild: try WineRunnerInstaller.remove(id, runners: folder)
+                case .portingToolkit: try PortingToolkitSource.remove(version: runner.version, runners: folder)
+                case .crossOver: break
+                }
+            }.value
         } catch let failure as StepFailure {
             message = failure.detail
         } catch {
@@ -214,7 +263,10 @@ final class RunnersModel {
         guard let lib = PortingToolkitSource.lib(in: folder),
               let version = PortingToolkitSource.version(ofLib: lib) else { return nil }
         PortingToolkitSource.addManualFolder(folder, defaults)
-        return PortingToolkitInstall(lib: lib, version: version, origin: folder)
+        let volumes = PortingToolkitSource.Search().volumes.standardizedFileURL.path(percentEncoded: false)
+        return PortingToolkitInstall(
+            lib: lib, version: version, origin: folder,
+            mountedImage: folder.standardizedFileURL.path(percentEncoded: false).hasPrefix(volumes + "/"))
     }
 
     private func setUp(_ install: PortingToolkitInstall, placement: ToolkitPlacement) async {
@@ -225,7 +277,8 @@ final class RunnersModel {
         let folder = runnersFolder
         do {
             _ = try await Task.detached {
-                switch placement {
+                // A mounted image is never used in place: ejecting it would strand the runner
+                switch install.mountedImage ? .copy : placement {
                 case .copy: return try PortingToolkitSource.copy(install, runners: folder)
                 case .inPlace: return try PortingToolkitSource.useInPlace(install, runners: folder)
                 }
@@ -235,8 +288,7 @@ final class RunnersModel {
         } catch {
             message = error.localizedDescription
         }
-        let crossOver = self.crossOver, scan = FreeRunnerScan(manifest: manifest, toolkits: toolkits)
-        registry = await Task.detached { crossOver(folder, scan) }.value
+        await refresh()
     }
 
     private func makeRows() -> [Row] {
@@ -281,10 +333,13 @@ final class RunnersModel {
 
         let status: String
         var action = Row.Action.none
+        var removable = false
         var shown = detail
         switch runner.state {
         case .available:
-            status = busy ? String(localized: "Copying") : String(localized: "Not installed")
+            status = busy
+                ? (runner.kind == .wineBuild ? String(localized: "Downloading") : String(localized: "Copying"))
+                : String(localized: "Not installed")
             if runner.kind == .wineBuild { action = .download }
             if runner.kind == .portingToolkit { action = .setUp }
         case .installing:
@@ -293,15 +348,16 @@ final class RunnersModel {
             status = String(localized: "Ready")
         case .damaged:
             status = String(localized: "Damaged")
-            if runner.kind != .crossOver { action = .repair }
+            if runner.kind != .crossOver { action = .repair; removable = true }
             // A toolkit folder that is gone says so here, next to the repair offer
             if runner.kind == .portingToolkit, let reason = runner.reason { shown = reason }
         case .unsupported:
             status = String(localized: "Not supported")
+            if runner.kind != .crossOver { action = .remove }
         }
         return Row(
             id: runner.id, kind: runner.kind, title: title, detail: shown, status: status, state: runner.state,
-            action: busy ? .none : action
+            action: busy ? .none : action, removable: removable && !busy
         )
     }
 }

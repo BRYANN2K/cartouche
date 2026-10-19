@@ -1,8 +1,3 @@
-// Couch mode: the library, the game panel and Play with a controller only.
-// The D-pad or left stick moves through the games, the shoulder buttons through
-// the sidebar, A (Cross) goes in and plays, B (Circle) goes back. The selected
-// card and the focused Play button carry a ring at every step.
-
 import CoreGraphics
 import Foundation
 import Observation

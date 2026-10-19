@@ -121,9 +121,9 @@ struct BIOSTests {
         #expect(catalog.firstMatch(of: link) == nil, "a UI string holds a link")
 
         // The only addresses in the code: where cores and core info come from,
-        // where RetroArch's source is, and the game database and box art (P13),
+        // where RetroArch's source is, and the game database and box art,
         // which name games and hold no game file; libretro's netplay lobby and
-        // RetroAchievements (P14), which hold no game file either
+        // RetroAchievements, which hold no game file either
         let allowed: Set<String> = [
             "http://lobby.libretro.com/",
             "https://retroachievements.org/",

@@ -17,16 +17,12 @@ final class ActivityCenter {
     nonisolated static let finishFlash: Duration = .milliseconds(1100)
 
     private(set) var steamGame: RunningGame?
-    // Set by the console library (P13) while RetroArch plays
-    var consoleGame: RunningGame?
-    // Or read from it: what RetroArch plays now (P13's ConsoleCenter)
+    // What the console library plays now, read from ConsoleCenter
     @ObservationIgnored var consoleSource: @MainActor () -> RunningGame? = { nil }
-    // The running store job, from StoreCenter (P10); the app sets both
+    // The running store job, from StoreCenter; the app sets both
     @ObservationIgnored var storeSource: @MainActor () -> StoreActivity? = { nil }
     @ObservationIgnored var stopStore: @MainActor (StoreActivity) -> Void = { _ in }
     private(set) var downloads: [DownloadActivity] = []
-    // Runner and backend updates; their phases fill this in
-    var updates: [UpdateActivity] = []
     // Downloads that just finished, by app ID, for the reveal's finish ring
     private(set) var finishing: [Int: Date] = [:]
     // The last thing that went wrong while asking Steam, in words for the user
@@ -37,22 +33,22 @@ final class ActivityCenter {
     @ObservationIgnored var control: any SteamDownloadControlling
     @ObservationIgnored var processes: GameProcesses
     @ObservationIgnored var notifier: any ActivityNotifying
-    // Set by the host so the first finished download offers notifications (P17)
+    // Set by the host so the first finished download offers notifications
     @ObservationIgnored var permissionFlow: PermissionFlow?
     // Notifications only go out while Cartouche is in the background
     @ObservationIgnored var isAppActive: @MainActor () -> Bool = { NSApp?.isActive ?? false }
     // The library reloads Steam's installed games when a download ends
     @ObservationIgnored var onDownloadFinished: @MainActor (Int) -> Void = { _ in }
-    // Frames per second of the running game, from P8's counter
-    @ObservationIgnored var fps: @MainActor (RunningGame) -> Int? = { _ in nil }
-    // Quits the console session (P13)
+    // The performance model ingests the session a game just recorded
+    @ObservationIgnored var onGameEnded: @MainActor () -> Void = {}
+    // Quits the console session
     @ObservationIgnored var quitConsole: @MainActor () async -> Void = {}
     @ObservationIgnored var now: () -> Date = { Date() }
     @ObservationIgnored private var watcher: Task<Void, Never>?
     // App IDs the user asked to pause or resume, until Steam's files agree
     @ObservationIgnored private var asked: [Int: (state: DownloadActivity.State, at: Date)] = [:]
     @ObservationIgnored private var hasRead = false
-    @ObservationIgnored private var tracked: [pid_t] = []
+    @ObservationIgnored private var tracked: [pid_t: Date] = [:]
 
     init(installs: InstallCenter? = nil, reader: SteamActivityReader = SteamActivityReader(),
          control: (any SteamDownloadControlling)? = nil, processes: GameProcesses = GameProcesses(),
@@ -65,19 +61,17 @@ final class ActivityCenter {
     }
 
     var playing: RunningGame? {
-        guard var game = consoleGame ?? consoleSource() ?? steamGame else { return nil }
-        game.fps = game.fps ?? fps(game)
-        return game
+        consoleSource() ?? steamGame
     }
 
     var slot: ActivitySlot? {
         ActivitySlot.pick(playing: playing, install: installs.activity, store: storeSource(),
-                          downloads: downloads, updates: updates)
+                          downloads: downloads)
     }
 
     var menuSections: [ActivityMenuSection] {
         ActivityMenuSection.all(playing: playing, install: installs.activity, store: storeSource(),
-                                downloads: downloads, updates: updates)
+                                downloads: downloads)
     }
 
     func download(for game: Game) -> DownloadActivity? {
@@ -90,7 +84,7 @@ final class ActivityCenter {
         guard let appID = game.steamAppID, game.source == .steam else { return nil }
         if let started = finishing[appID] { return CoverReveal.Progress(fraction: 1, finishedAt: started) }
         guard let download = downloads.first(where: { $0.appID == appID }), !download.isFailed else { return nil }
-        return CoverReveal.Progress(fraction: download.fraction, finishedAt: nil)
+        return CoverReveal.Progress(fraction: download.fraction, finishedAt: nil, animating: download.state == .downloading)
     }
 
     // MARK: Reading Steam
@@ -135,14 +129,22 @@ final class ActivityCenter {
             }
         }
         hasRead = true
-        downloads = next
+        // Assign only on change: @Observable reports every write, and this runs every second
+        if downloads != next { downloads = next }
         tracked = snapshot.trackedPIDs
-        steamGame = snapshot.runningAppID.map { appID in
+        let nextGame = snapshot.runningAppID.map { appID in
             RunningGame(id: "steam:\(appID)", name: snapshot.names[appID] ?? String(localized: "A Steam game"),
                         target: .steam(appID: appID))
         }
-        let cutoff = now().addingTimeInterval(-Self.seconds(Self.finishFlash) - 0.2)
-        finishing = finishing.filter { $0.value > cutoff }
+        if steamGame != nextGame {
+            if steamGame != nil && nextGame == nil { onGameEnded() }
+            steamGame = nextGame
+        }
+        if !finishing.isEmpty {
+            let cutoff = now().addingTimeInterval(-(Self.finishFlash / .seconds(1)) - 0.2)
+            let kept = finishing.filter { $0.value > cutoff }
+            if kept.count != finishing.count { finishing = kept }
+        }
     }
 
     // Drops a pause or resume once Steam's files show it, or after 10 seconds
@@ -164,10 +166,6 @@ final class ActivityCenter {
         if !isAppActive() { notifier.downloadFailed(name: download.name, appID: download.appID, reason: reason) }
     }
 
-    nonisolated static func seconds(_ duration: Duration) -> Double {
-        Double(duration.components.seconds) + Double(duration.components.attoseconds) / 1e18
-    }
-
     // MARK: Actions
 
     func pause(_ appID: Int) {
@@ -183,6 +181,15 @@ final class ActivityCenter {
     func togglePause(_ appID: Int) {
         guard let item = downloads.first(where: { $0.appID == appID }) else { return }
         item.isPaused ? resume(appID) : pause(appID)
+    }
+
+    // The download ring's mark: pause every running download, or resume them all
+    func toggleAll(_ items: [DownloadActivity]) {
+        switch DownloadSummary(downloads: items).mark {
+        case .downloading: for item in items where !item.isPaused { pause(item.appID) }
+        case .paused: for item in items { resume(item.appID) }
+        case .failed: break
+        }
     }
 
     // Steam asks for confirmation and removes what was downloaded
@@ -217,7 +224,7 @@ final class ActivityCenter {
         }
     }
 
-    // Console sessions share the slot: "Playing on RetroArch", and Quit goes to RetroArch (P13)
+    // Console sessions share the slot: "Playing on RetroArch", and Quit goes to RetroArch
     func follow(_ consoles: ConsoleCenter) {
         consoleSource = { [weak consoles] in
             guard let consoles, let playing = consoles.playing, let game = consoles.game(playing.gameID) else { return nil }
@@ -232,7 +239,6 @@ final class ActivityCenter {
         switch game.target {
         case .console:
             await quitConsole()
-            consoleGame = nil
         case .steam(let appID):
             let processes = processes, tracked = tracked
             let folder = reader.files.installFolder(appID: appID)

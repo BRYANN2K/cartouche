@@ -12,6 +12,7 @@ final class ChildProcess: @unchecked Sendable {
 
     private struct ExitState {
         var status: Int32?
+        var waiting: [CheckedContinuation<Int32, Never>] = []
     }
 
     // stdout arrives here split into lines; nil marks its end
@@ -27,6 +28,9 @@ final class ChildProcess: @unchecked Sendable {
         if pipes {
             let input = Pipe()
             let output = Pipe()
+            // RetroArch can die between an isRunning check and the write: fail
+            // with EPIPE instead of SIGPIPE ending the app
+            _ = fcntl(input.fileHandleForWriting.fileDescriptor, F_SETNOSIGPIPE, 1)
             process.standardInput = input
             process.standardOutput = output
             stdinPipe = input
@@ -58,7 +62,11 @@ final class ChildProcess: @unchecked Sendable {
 
         self.process = process
         process.terminationHandler = { [weak self] done in
-            self?.exit.withLock { $0.status = done.terminationStatus }
+            self?.exit.withLock { state in
+                state.status = done.terminationStatus
+                for waiter in state.waiting { waiter.resume(returning: done.terminationStatus) }
+                state.waiting = []
+            }
         }
         try process.run()
     }
@@ -74,6 +82,18 @@ final class ChildProcess: @unchecked Sendable {
 
     func closeInput() {
         try? stdinPipe?.fileHandleForWriting.close()
+    }
+
+    // The exit status, once the process ends
+    func exited() async -> Int32 {
+        await withCheckedContinuation { continuation in
+            let status = exit.withLock { state -> Int32? in
+                if let status = state.status { return status }
+                state.waiting.append(continuation)
+                return nil
+            }
+            if let status { continuation.resume(returning: status) }
+        }
     }
 
     // True when it exited within the time. Polled, so a wait that gives up
@@ -94,19 +114,21 @@ final class ChildProcess: @unchecked Sendable {
 }
 
 private final class LineSplitter: Sendable {
-    private let buffer = Mutex(Data())
+    private let buffer = Mutex((data: Data(), scanned: 0))
     private let onLine: @Sendable (Data?) -> Void
 
     init(_ onLine: @escaping @Sendable (Data?) -> Void) { self.onLine = onLine }
 
     func feed(_ chunk: Data) {
-        let lines = buffer.withLock { buffer -> [Data] in
-            buffer.append(chunk)
+        let lines = buffer.withLock { state -> [Data] in
+            state.data.append(chunk)
             var lines: [Data] = []
-            while let newline = buffer.firstIndex(of: 0x0A) {
-                lines.append(Data(buffer[buffer.startIndex..<newline]))
-                buffer.removeSubrange(buffer.startIndex...newline)
+            while let newline = state.data.dropFirst(state.scanned).firstIndex(of: 0x0A) {
+                lines.append(Data(state.data[state.data.startIndex..<newline]))
+                state.data.removeSubrange(state.data.startIndex...newline)
+                state.scanned = 0
             }
+            state.scanned = state.data.count
             return lines
         }
         for line in lines where !line.isEmpty { onLine(line) }

@@ -738,6 +738,7 @@ def build(directory: Path, profile: str, damage: bool = False, stale: bool = Fal
             (home / folder).mkdir(parents=True, exist_ok=True)
 
     support = home / "Library" / "Application Support" / "Cartouche"
+    prefs = {}
 
     if profile == "beginner":
         # Nothing to find: no Steam, no runners, no game folders.
@@ -754,7 +755,7 @@ def build(directory: Path, profile: str, damage: bool = False, stale: bool = Fal
         write_free_runner(support)
         note(f"{steam} and {app}")
 
-        prefs = {"steamAppPath": str(app)}
+        prefs["steamAppPath"] = str(app)
         if profile in ("retro", "senior"):
             prefs["library.gameFolders"] = [str(home / "Games" / "ROMs")]
             write_console_state(support, home)
@@ -769,8 +770,12 @@ def build(directory: Path, profile: str, damage: bool = False, stale: bool = Fal
         if damage:
             write_broken_runner(support)
             note("damaged crossover-26.3.0.39832 clone, corrupt compat.json.gz")
-        write_preferences(home, prefs)
-        note(f"{BUNDLE_ID}.plist: {sorted(prefs)}")
+
+    # Every profile pins steamAppPath inside the scratch home; a profile with
+    # no Steam.app points at the missing fixture, never the real /Applications.
+    prefs.setdefault("steamAppPath", str(home / "Applications" / "Steam.app"))
+    write_preferences(home, prefs)
+    note(f"{BUNDLE_ID}.plist: {sorted(prefs)}")
 
     manifest = home / "cartouche-world.json"
     _write(manifest, json.dumps(made, indent=1, sort_keys=True).encode() + b"\n")

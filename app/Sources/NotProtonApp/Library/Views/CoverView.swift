@@ -13,9 +13,43 @@ extension EnvironmentValues {
     }
 }
 
-@MainActor
+// Resolves a cover's file and decodes its images off the main actor, so a view's
+// body never touches the filesystem or the decoder. Both cover views use it.
+enum CoverLoader {
+
+    // Everything a cover view needs to draw: the art plus its decoded images
+    struct Loaded: @unchecked Sendable {
+        var art: CoverArt
+        var color: NSImage?
+        var gray: NSImage?
+        // The same CGImage every body pass, so the Metal texture cache hits
+        var colorCG: CGImage?
+    }
+
+    static func load(_ game: Game, kind: ArtKind, override: URL?, covers: CoverStore, gray: Bool) async -> Loaded {
+        await Task.detached { () -> Loaded in
+            let art = await covers.art(for: game, kind: kind, override: override)
+            guard case .image(let url) = art else { return Loaded(art: art) }
+            var loaded = Loaded(art: art)
+            loaded.color = CoverImages.image(url)
+            loaded.gray = gray ? CoverImages.image(url, gray: true) : nil
+            loaded.colorCG = loaded.color?.cgImage(forProposedRect: nil, context: nil, hints: nil)
+            return loaded
+        }.value
+    }
+}
+
+// Decoded covers by file, bounded in memory. Reads and the gray filter run
+// wherever the loader asks; NSCache and CIContext are safe across threads.
 enum CoverImages {
-    private static let cache = NSCache<NSString, NSImage>()
+    // NSCache and CIContext are safe across threads
+    nonisolated(unsafe) private static let cache: NSCache<NSString, NSImage> = {
+        let cache = NSCache<NSString, NSImage>()
+        cache.totalCostLimit = 256 * 1024 * 1024
+        return cache
+    }()
+
+    private static let context = CIContext()
 
     // The black and white copy is made once per cover, so the grid never filters live
     static func image(_ url: URL, gray: Bool = false) -> NSImage? {
@@ -23,7 +57,8 @@ enum CoverImages {
         if let hit = cache.object(forKey: key) { return hit }
         guard let image = NSImage(contentsOf: url), image.isValid, image.size.width > 0 else { return nil }
         let result = gray ? (blackAndWhite(image) ?? image) : image
-        cache.setObject(result, forKey: key)
+        let pixels = image.representations.first.map { $0.pixelsWide * $0.pixelsHigh } ?? 0
+        cache.setObject(result, forKey: key, cost: pixels * 4)
         return result
     }
 
@@ -31,7 +66,7 @@ enum CoverImages {
         guard let cg = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return nil }
         let input = CIImage(cgImage: cg)
         let output = input.applyingFilter("CIColorControls", parameters: [kCIInputSaturationKey: 0])
-        guard let rendered = CIContext().createCGImage(output, from: input.extent) else { return nil }
+        guard let rendered = context.createCGImage(output, from: input.extent) else { return nil }
         return NSImage(cgImage: rendered, size: image.size)
     }
 }
@@ -45,7 +80,7 @@ struct CoverView: View {
     var gray = false
 
     @Environment(\.covers) private var covers
-    @State private var art: CoverArt?
+    @State private var loaded: CoverLoader.Loaded?
 
     var body: some View {
         ZStack {
@@ -53,10 +88,9 @@ struct CoverView: View {
             if game.coverShape == .square && kind == .cover {
                 Rectangle().fill(Color.primary.opacity(0.06))
             }
-            // What is on disk shows at once; only the CDN waits for the task
-            switch art ?? covers.local(for: game, kind: kind, override: override) {
-            case .image(let url):
-                if let image = CoverImages.image(url, gray: gray) {
+            switch loaded?.art {
+            case .image:
+                if let image = gray ? loaded?.gray ?? loaded?.color : loaded?.color {
                     Image(nsImage: image)
                         .resizable()
                         .aspectRatio(contentMode: game.coverShape == .square && kind == .cover ? .fit : .fill)
@@ -69,10 +103,9 @@ struct CoverView: View {
                 Rectangle().fill(.quaternary)
             }
         }
-        .task(id: "\(game.id)|\(override?.path ?? "")|\(kind.rawValue)|\(game.artwork?.absoluteString ?? "")") {
-            art = nil
-            if covers.local(for: game, kind: kind, override: override) != nil { return }
-            art = await covers.art(for: game, kind: kind, override: override)
+        .task(id: "\(game.id)|\(override?.path ?? "")|\(kind.rawValue)|\(game.artwork?.absoluteString ?? "")|\(gray)") {
+            loaded = nil
+            loaded = await CoverLoader.load(game, kind: kind, override: override, covers: covers, gray: gray)
         }
     }
 }

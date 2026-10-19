@@ -48,8 +48,15 @@ if let manifest = Checksums.findManifest(in: folder), let parsed = try? Checksum
                             "entries": parsed.entries.count, "mentionsOptionalParts": parsed.mentionsOptionalParts]
     if args.contains("--verify") {
         let start = Date()
-        let results = await Checksums.verify(parsed)
-        m["results"] = Dictionary(uniqueKeysWithValues: results.map { ($0.key.lastPathComponent, "\($0.value)") })
+        let results = (try? await Checksums.verify(parsed, root: folder)) ?? [:]
+        // Same-named files in different folders collide on lastPathComponent.
+        var named: [String: String] = [:]
+        for (url, result) in results {
+            var name = url.lastPathComponent
+            while named[name] != nil { name += "+" }
+            named[name] = "\(result)"
+        }
+        m["results"] = named
         m["seconds"] = Int(Date().timeIntervalSince(start).rounded())
     }
     report["checksums"] = m

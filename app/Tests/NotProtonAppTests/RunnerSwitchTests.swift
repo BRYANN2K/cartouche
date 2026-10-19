@@ -9,8 +9,6 @@ struct RunnerPrepareTests {
     private static let rosetta = SupportedRunners.all.first { $0.id == "27.0.0.40921" }!
     private static let fex = SupportedRunners.all.first { $0.flavor == "fex" }!
     private static let release = SupportedRunners.all.first { $0.id == "26.3.0.39832" }!
-    private static let preview41069 = SupportedRunners.all.first { $0.id == "27.0.0.41069" }!
-    private static let fex41069 = SupportedRunners.all.first { $0.id == "27.0.0.41069-fex" }!
 
     private static let licensed = CrossOverLicense.Status(
         licensed: true, detail: "CrossOver is activated.", diagnostic: "test"
@@ -169,7 +167,7 @@ struct RunnerPrepareTests {
         #expect(toolList(runners) == nil)
     }
 
-    @Test("Copies and links left by the single-build layout are cleared")
+    @Test("Copies left by the single-build layout are cleared")
     func clearsLegacyLayout() throws {
         let runners = try makeRunners(cloning: [Self.fex])
         defer { try? FileManager.default.removeItem(at: runners) }
@@ -179,18 +177,12 @@ struct RunnerPrepareTests {
         for file in [legacy, gone] {
             try atomicReplace(file, with: Data("old".utf8), step: "test")
         }
-        try FileManager.default.createSymbolicLink(
-            atPath: runners.appending(path: "current").path(percentEncoded: false),
-            withDestinationPath: "crossover-\(Self.fex.id)/CrossOver"
-        )
 
         _ = try prepare(Self.fex, runners: runners, calls: Calls())
 
         let fm = FileManager.default
         #expect(!fm.fileExists(atPath: legacy.deletingLastPathComponent().path(percentEncoded: false)))
         #expect(!fm.fileExists(atPath: gone.path(percentEncoded: false)))
-        #expect((try? fm.destinationOfSymbolicLink(
-            atPath: runners.appending(path: "current").path(percentEncoded: false))) == nil)
         #expect(Self.staged(Self.fex, in: bridge).count == Self.fex.patchedNtdll.count)
     }
 
@@ -217,136 +209,14 @@ struct RunnerPrepareTests {
         )
     }
 
-    private func holder(_ runners: URL) -> String? {
-        toolList(runners)?.split(separator: "\n").map { $0.split(separator: "\t") }
-            .first { $0.first == "cartouche-proton" }.map { String($0[1]) }
-    }
-
-    @Test("A 1.0 install keeps the legacy name on the build runners/current pointed at")
-    func legacyNameFollowsCurrent() throws {
+    @Test("Installed builds list their own tool names, preferred first")
+    func toolsFollowInstalledBuilds() throws {
         let runners = try makeRunners(cloning: [Self.rosetta, Self.fex])
         defer { try? FileManager.default.removeItem(at: runners) }
-        let current = runners.appending(path: "current").path(percentEncoded: false)
-        try FileManager.default.createSymbolicLink(
-            atPath: current, withDestinationPath: "crossover-\(Self.rosetta.id)/CrossOver"
-        )
 
         try sync(runners)
-        #expect(holder(runners) == Self.rosetta.id)
-        #expect((try? FileManager.default.destinationOfSymbolicLink(atPath: current)) == nil)
-
-        try sync(runners)
-        #expect(holder(runners) == Self.rosetta.id)
-        #expect(toolList(runners)?.contains("cartouche-proton-fex\t\(Self.fex.id)\tfex\t") == true)
-    }
-
-    @Test("Without FEX support a 1.0 FEX install keeps its legacy name")
-    func legacyFEXNameSurvivesWithoutFEX() throws {
-        let runners = try makeRunners(cloning: [Self.fex])
-        defer { try? FileManager.default.removeItem(at: runners) }
-        try FileManager.default.createSymbolicLink(
-            atPath: runners.appending(path: "current").path(percentEncoded: false),
-            withDestinationPath: "crossover-\(Self.fex.id)/CrossOver"
-        )
-        let sync = {
-            try CompatToolList.sync(
-                runners: runners, bridge: runners.appending(path: "bridge"), file: runners.appending(path: "tools"),
-                compatTools: runners.appending(path: "compatibilitytools.d"), fexAvailable: false
-            )
-        }
-
-        try sync()
-        #expect(holder(runners) == Self.fex.id)
-        try sync()
-        #expect(holder(runners) == Self.fex.id)
-    }
-
-    @Test("Setting up a second Preview leaves the legacy name where it is")
-    func secondPreviewRenamesNothing() throws {
-        let runners = try makeRunners(cloning: [Self.fex])
-        defer { try? FileManager.default.removeItem(at: runners) }
-        try FileManager.default.createSymbolicLink(
-            atPath: runners.appending(path: "current").path(percentEncoded: false),
-            withDestinationPath: "crossover-\(Self.fex.id)/CrossOver"
-        )
-        try sync(runners)
-        #expect(holder(runners) == Self.fex.id)
-
-        try FileManager.default.createDirectory(
-            at: SupportPaths.clonedRoot(forBuild: Self.rosetta.id, runners: runners).appending(path: "lib/wine"),
-            withIntermediateDirectories: true
-        )
-        try sync(runners)
-        #expect(holder(runners) == Self.fex.id)
+        #expect(toolList(runners)?.hasPrefix("cartouche-proton-fex\t\(Self.fex.id)\tfex\t") == true)
         #expect(toolList(runners)?.contains("cartouche-proton-preview\t\(Self.rosetta.id)\t") == true)
-        #expect(toolList(runners)?.contains("cartouche-proton-fex-rosetta\t\(Self.fex.id)\t") == true)
-    }
-
-    @Test("A fresh install gives the legacy name to nobody")
-    func freshInstallHasNoLegacyName() throws {
-        let runners = try makeRunners(cloning: [Self.preview41069, Self.fex41069])
-        defer { try? FileManager.default.removeItem(at: runners) }
-
-        try sync(runners)
-        #expect(holder(runners) == nil)
-        #expect(toolList(runners)?.hasPrefix("cartouche-proton-fex-41069\t\(Self.fex41069.id)\tfex\t") == true)
-        #expect(toolList(runners)?.contains("cartouche-proton-preview-41069\t\(Self.preview41069.id)\t") == true)
-    }
-
-    @Test("A 1.0.3 install keeps the legacy name on 41069")
-    func legacyNameFollows41069() throws {
-        let runners = try makeRunners(cloning: [Self.preview41069, Self.fex41069])
-        defer { try? FileManager.default.removeItem(at: runners) }
-        try FileManager.default.createSymbolicLink(
-            atPath: runners.appending(path: "current").path(percentEncoded: false),
-            withDestinationPath: "crossover-\(Self.preview41069.id)/CrossOver"
-        )
-
-        try sync(runners)
-        #expect(holder(runners) == Self.preview41069.id)
-        try sync(runners)
-        #expect(holder(runners) == Self.preview41069.id)
-        #expect(toolList(runners)?.contains("cartouche-proton-fex-41069\t\(Self.fex41069.id)\tfex\t") == true)
-    }
-
-    @Test("A Preview listed under its own name does not take the legacy name later")
-    func ownNameSticks() throws {
-        let runners = try makeRunners(cloning: [Self.rosetta, Self.fex])
-        defer { try? FileManager.default.removeItem(at: runners) }
-        try CompatToolList.contents(SupportedRunners.tools(for: [Self.rosetta, Self.fex], legacy: .nobody))
-            .write(to: runners.appending(path: "tools"), atomically: true, encoding: .utf8)
-
-        try sync(runners)
-        #expect(holder(runners) == nil)
-    }
-
-    @Test("The single-build layout stays while Steam still runs a tool that reads it")
-    func keepsLegacyLayoutForOldRunScript() throws {
-        let runners = try makeRunners(cloning: [Self.fex])
-        defer { try? FileManager.default.removeItem(at: runners) }
-        let bridge = runners.appending(path: "bridge")
-        let legacy = bridge.appending(path: "wine/x86_64-windows/ntdll.dll")
-        try atomicReplace(legacy, with: Data("old".utf8), step: "test")
-        let current = runners.appending(path: "current").path(percentEncoded: false)
-        try FileManager.default.createSymbolicLink(
-            atPath: current, withDestinationPath: "crossover-\(Self.fex.id)/CrossOver"
-        )
-        let run = runners.appending(path: "compatibilitytools.d/cartouche-proton/run")
-        try atomicReplace(
-            run, with: Data("CX_ROOT=\"$HOME/Library/Application Support/cartouche/runners/current\"\n".utf8),
-            step: "test"
-        )
-
-        _ = try prepare(Self.fex, runners: runners, calls: Calls())
-
-        let fm = FileManager.default
-        #expect(fm.fileExists(atPath: legacy.path(percentEncoded: false)))
-        #expect((try? fm.destinationOfSymbolicLink(atPath: current)) != nil)
-
-        try atomicReplace(run, with: Data("CX_ROOT=\"$np_support/runners/crossover-$np_build\"\n".utf8), step: "test")
-        _ = try prepare(Self.fex, runners: runners, calls: Calls())
-        #expect(!fm.fileExists(atPath: legacy.path(percentEncoded: false)))
-        #expect((try? fm.destinationOfSymbolicLink(atPath: current)) == nil)
     }
 
     @Test("A build with no clone is refused without touching anything")

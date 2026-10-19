@@ -130,6 +130,50 @@ struct AppLocationTests {
                                           destination.appending(path: "Contents/MacOS/Cartouche")))
     }
 
+    @Test("A copy running from the destination is never replaced")
+    func destinationRunning() throws {
+        let work = try scratchDirectory("running-move")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let source = work.appending(path: "Cartouche.app/Contents/MacOS")
+        try FileManager.default.createDirectory(at: source, withIntermediateDirectories: true)
+        try Data("new".utf8).write(to: source.appending(path: "Cartouche"))
+        let destination = work.appending(path: "Applications/Cartouche.app")
+        try FileManager.default.createDirectory(
+            at: destination.appending(path: "Contents/MacOS"), withIntermediateDirectories: true)
+        try Data("old".utf8).write(to: destination.appending(path: "Contents/MacOS/Cartouche"))
+
+        var relaunched = 0
+        let mover = AppMover(destination: destination, relauncher: { _ in relaunched += 1 },
+                             destinationRunning: { _ in true })
+        #expect(throws: AppMover.Failed.self) {
+            try mover.moveAndRelaunch(work.appending(path: "Cartouche.app"))
+        }
+        #expect(relaunched == 0)
+        #expect(try Data(contentsOf: destination.appending(path: "Contents/MacOS/Cartouche")) == Data("old".utf8))
+    }
+
+    @Test("A quarantined copy arrives in Applications without the mark")
+    func stripsQuarantine() throws {
+        let work = try scratchDirectory("quarantine-move")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let source = work.appending(path: "source/Cartouche.app")
+        let macos = source.appending(path: "Contents/MacOS")
+        try FileManager.default.createDirectory(at: macos, withIntermediateDirectories: true)
+        try FileManager.default.copyItem(at: URL(filePath: "/usr/bin/true"), to: macos.appending(path: "Cartouche"))
+        try Shell.check("/usr/bin/xattr",
+            ["-w", "com.apple.quarantine", "0081;00000000;Cartouche;", source.path(percentEncoded: false)])
+
+        let destination = work.appending(path: "Applications/Cartouche.app")
+        try FileManager.default.createDirectory(
+            at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try AppMover(destination: destination, relauncher: { _ in }).move(source)
+
+        #expect(FileManager.default.fileExists(atPath: destination.appending(path: "Contents/MacOS/Cartouche").path(percentEncoded: false)))
+        let probe = try Shell.run("/usr/bin/xattr",
+            ["-p", "com.apple.quarantine", destination.path(percentEncoded: false)])
+        #expect(!probe.succeeded, "the moved copy is still quarantined")
+    }
+
     @Test("Quit leaves everything as it was")
     func quit() throws {
         let image = try MountedImage()

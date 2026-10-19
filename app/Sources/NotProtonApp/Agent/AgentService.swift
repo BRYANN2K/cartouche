@@ -14,10 +14,10 @@ struct AgentAction: Identifiable, Equatable {
     let detail: String
     var outcome: Outcome
     var undone = false
-    var canUndo: Bool { undo != nil }
+    var canUndo: Bool { undo != nil && !undone }
 
     enum Outcome: Equatable {
-        case ok, refused(String), denied, error(String), undone
+        case ok, refused(String), denied, error(String)
     }
 
     var undo: (() async throws -> Void)? = nil
@@ -46,6 +46,9 @@ final class AgentService {
     let backend: AgentBackend
     private(set) var tools: [String: AgentTool]
     var level: AgentLevel
+    // The model flips this off with the transports; an approval granted just
+    // before "off" must not still run.
+    var enabled = true
     // How long an approval waits for the user before it answers Denied.
     var approvalTimeout: Duration = .seconds(300)
     // Posts the "Claude wants to…" notification; injected for tests.
@@ -53,6 +56,7 @@ final class AgentService {
 
     private(set) var actions: [AgentAction] = []
     private(set) var pending: [AgentApproval] = []
+    private var timeouts: [UUID: Task<Void, Never>] = [:]
     // Who the MCP client said it was at initialize; the action log records it.
     var clientName = "agent"
     var home: URL
@@ -64,19 +68,6 @@ final class AgentService {
         self.home = home
         tools = Dictionary(AgentTools.all(providers: providers).map { ($0.name, $0) },
                            uniquingKeysWith: { a, _ in a })
-    }
-
-    // Registers a tool after init: AgentControls uses this for P15.
-    func register(_ new: [AgentTool]) {
-        for tool in new { tools[tool.name] = tool }
-    }
-
-    // MARK: - tools/list
-
-    var toolList: [[String: JSONValue]] {
-        tools.values.sorted { $0.name < $1.name }.map {
-            ["name": .string($0.name), "description": .string($0.detail), "inputSchema": $0.schema]
-        }
     }
 
     // MARK: - tools/call: level, hardcore, approval, run, scan, log
@@ -95,9 +86,15 @@ final class AgentService {
                           client: client)
         }
         if tool.approval {
-            let text = tool.approvalText?(backend, args) ?? name
+            let text = await tool.approvalText?(backend, args) ?? name
             guard await ask(client: client, tool: name, text: text) else {
                 return deny(tool, client: client)
+            }
+            // The wait gave the user time to lower the level or switch agents
+            // off; the checks run again before the tool does.
+            guard enabled, tool.level <= level else {
+                return refuse(tool, "the level was lowered or agents were turned off while you answered",
+                              client: client)
             }
         }
         let undo = snapshotUndo(tool: name, args: args)
@@ -131,7 +128,7 @@ final class AgentService {
                                          asked: Date(), answer: continuation)
             pending.append(approval)
             notify(approval)
-            Task { [weak self, id = approval.id] in
+            timeouts[approval.id] = Task { [weak self, id = approval.id] in
                 try? await Task.sleep(for: self?.approvalTimeout ?? .seconds(300))
                 self?.answer(id, allow: false)
             }
@@ -140,8 +137,20 @@ final class AgentService {
 
     func answer(_ id: UUID, allow: Bool) {
         guard let index = pending.firstIndex(where: { $0.id == id }) else { return }
+        timeouts.removeValue(forKey: id)?.cancel()
         let approval = pending.remove(at: index)
+        AgentNotifier.dismiss(id)
         approval.answer.resume(returning: allow)
+    }
+
+    // Switching agents off denies every waiting approval.
+    func denyPending() {
+        for approval in pending {
+            timeouts.removeValue(forKey: approval.id)?.cancel()
+            AgentNotifier.dismiss(approval.id)
+            approval.answer.resume(returning: false)
+        }
+        pending.removeAll()
     }
 
     // MARK: - Action log and undo
@@ -156,40 +165,39 @@ final class AgentService {
     }
 
     func undo(_ id: UUID) async throws {
-        guard let index = actions.firstIndex(where: { $0.id == id }),
-              let undo = actions[index].undo else { return }
+        guard let entry = actions.first(where: { $0.id == id }),
+              !entry.undone, let undo = entry.undo else { return }
         try await undo()
+        // The entry is found again after the await: the log may have trimmed
+        // or grown while the undo ran.
+        guard let index = actions.firstIndex(where: { $0.id == id }),
+              !actions[index].undone else { return }
         actions[index].undone = true
-        record(client: actions[index].client, tool: actions[index].tool,
-               detail: "undo \(actions[index].detail)", outcome: .undone, undo: nil)
+        record(client: entry.client, tool: entry.tool,
+               detail: "undo \(entry.detail)", outcome: .ok, undo: nil)
+    }
+
+    private struct ActionLine: Encodable {
+        var time: String
+        var client: String
+        var tool: String
+        var detail: String
+        var outcome: String
     }
 
     // The log file keeps the record across restarts; the undo closures cannot.
     private func appendToLog(_ entry: AgentAction) {
-        let folder = backend.roots.support.appending(path: "agents")
-        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let outcome: String
         switch entry.outcome {
         case .ok: outcome = "ok"
         case .refused(let why): outcome = "refused: \(why)"
         case .denied: outcome = "denied"
         case .error(let why): outcome = "error: \(why)"
-        case .undone: outcome = "undone"
         }
-        let line = "{\"time\":\"\(AgentTools.stamp.string(from: entry.time))\","
-            + "\"client\":\(Self.quote(entry.client)),\"tool\":\(Self.quote(entry.tool)),"
-            + "\"detail\":\(Self.quote(entry.detail)),\"outcome\":\(Self.quote(outcome))}\n"
-        if let data = line.data(using: .utf8),
-           let handle = try? FileHandle(forWritingTo: folder.appending(path: "actions.jsonl")) {
-            handle.seekToEndOfFile(); handle.write(data); try? handle.close()
-        } else if let data = line.data(using: .utf8) {
-            try? data.write(to: folder.appending(path: "actions.jsonl"))
-        }
-    }
-
-    static func quote(_ text: String) -> String {
-        "\"" + text.replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"") + "\""
+        try? JSONLines.append(
+            ActionLine(time: AgentTools.stamp.string(from: entry.time), client: entry.client,
+                       tool: entry.tool, detail: entry.detail, outcome: outcome),
+            to: backend.roots.support.appending(path: "agents/actions.jsonl"))
     }
 
     private func describe(_ args: JSONValue) -> String {
@@ -236,7 +244,7 @@ final class AgentService {
     // default runner, console setup. Installs and deletions cannot be undone.
     private func snapshotUndo(tool: String, args: JSONValue) -> (() async throws -> Void)? {
         let backend = backend
-        let gameID = (try? AgentTools.find(backend, args))?.id
+        let gameID = (try? AgentTools.findStrict(backend, args))?.id
         switch tool {
         case "set_game_config", "set_version", "apply_recommended_setup", "launch_game":
             guard let gameID, backend.game(gameID) != nil else { return nil }
@@ -251,8 +259,9 @@ final class AgentService {
             let was = backend.isHidden(gameID)
             return { backend.hide(gameID, on: was) }
         case "set_default_runner":
-            let was = backend.defaultRunner()
-            return { if let was { backend.setDefaultRunner(was) } }
+            // No earlier default means there is nothing to restore: no Undo.
+            guard let was = backend.defaultRunner() else { return nil }
+            return { backend.setDefaultRunner(was) }
         case "set_console_setup":
             guard let id = args["game"]?.string,
                   let before = backend.consoleGame(id)?.setup else { return nil }

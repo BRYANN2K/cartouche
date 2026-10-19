@@ -107,9 +107,10 @@ final class InstallSheetModel {
                 return
             case .success(var found):
                 analysis = found
-                identify(found)
+                await identify(found)
+                guard !Task.isCancelled else { return }
                 if let manifest = found.manifest {
-                    found.checksums = await verify(manifest)
+                    found.checksums = await verify(manifest, root: found.folder)
                     guard !Task.isCancelled else { return }
                 }
                 found.seconds = Date().timeIntervalSince(start)
@@ -124,7 +125,7 @@ final class InstallSheetModel {
         }
     }
 
-    private func verify(_ manifest: ChecksumManifest) async -> [URL: ChecksumResult] {
+    private func verify(_ manifest: ChecksumManifest, root: URL) async -> [URL: ChecksumResult] {
         let total = max(1, manifest.entries.reduce(Int64(0)) { sum, entry in
             sum + ((try? entry.file.resourceValues(forKeys: [.fileSizeKey]).fileSize).flatMap { $0 }.map(Int64.init) ?? 0)
         })
@@ -137,14 +138,15 @@ final class InstallSheetModel {
                 self?.verifyFraction = min(1, Double(counter.value) / Double(total))
             }
         }
-        let results = await Checksums.verify(manifest) { counter.add($0) }
+        let results = (try? await Checksums.verify(manifest, root: root) { counter.add($0) }) ?? [:]
         ticker.cancel()
         verifyFraction = nil
         return results
     }
 
-    private func identify(_ found: InstallerAnalysis) {
-        index = GameIndex(compat: center?.compat())
+    private func identify(_ found: InstallerAnalysis) async {
+        let data = await center?.compat()
+        index = await center?.titles.index(for: data) ?? GameIndex([])
         let product = found.scan.setup.flatMap(PEVersion.productName)
         identification = GameIdentification.identify(
             gogID: GOGInfo.id(inFileList: found.inno?.files ?? []), installerTitle: found.inno?.title,

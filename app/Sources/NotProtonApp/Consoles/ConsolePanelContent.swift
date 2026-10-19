@@ -1,6 +1,3 @@
-// What the console game panel shows, in order: can I play it, where do I
-// continue from, how much did I play, with which setup. The rest is behind More….
-
 import Foundation
 import RetroArchKit
 
@@ -28,10 +25,10 @@ struct ConsolePanelContent {
     let states: [SaveState]
     let bios: BIOSStatus?
     let playing: Playing?
-    // RetroAchievements: the account, and this game's counts once read (P14)
+    // RetroAchievements: the account, and this game's counts once read
     var signedIn = false
     var progress: AchievementProgress?
-    // RetroArch, or the standalone emulator the console plays in (P16)
+    // RetroArch, or the standalone emulator the console plays in
     var route: ConsoleRoute = .retroArch
 
     var biosMissing: Bool { bios.map { !$0.isReady } ?? false }

@@ -72,23 +72,9 @@ private struct ProminentButton: ViewModifier {
     }
 }
 
-private struct PlainGlassButton: ViewModifier {
-    @Environment(\.glassMode) private var mode
-
-    func body(content: Content) -> some View {
-        if #available(macOS 26, *), mode == .liquid {
-            content.buttonStyle(.glass)
-        } else {
-            content.buttonStyle(.bordered)
-        }
-    }
-}
-
 extension View {
     // A grouped block of the panel: glass on 26, material on 15
     func groupBackground(radius: CGFloat = 12) -> some View { modifier(GroupBackground(radius: radius)) }
 
     func prominentButton() -> some View { modifier(ProminentButton()) }
-
-    func glassButton() -> some View { modifier(PlainGlassButton()) }
 }

@@ -5,7 +5,7 @@ import RetroArchKit
 
 enum GameSource: Hashable, Sendable, Identifiable {
     case steam, epic, gog, amazon, installer
-    // A console added through RetroArch, by its catalog id (P13)
+    // A console added through RetroArch, by its catalog id
     case console(String)
 
     static let pc: [GameSource] = [.steam, .epic, .gog, .amazon, .installer]
@@ -78,12 +78,12 @@ struct Game: Identifiable, Sendable, Equatable {
     var executable: URL?
     // The RetroArch side of a console game
     var console: ConsoleGame?
-    // Set for a Steam game that has a macOS build too: the version it runs (P3)
+    // Set for a Steam game that has a macOS build too: the version it runs
     var version: GameVersion?
-    // A store game's box art, as its store lists it (P10)
+    // A store game's box art, as its store lists it
     var artwork: URL?
     // The Steam App ID the compatibility data knows a store game by, matched by name,
-    // for its estimate. Never used to start the game (P10)
+    // for its estimate. Never used to start the game
     var compatAppID: Int?
     // For a Windows installer game: the setup its install ran with, used as the
     // default of its game setup until the user picks another one

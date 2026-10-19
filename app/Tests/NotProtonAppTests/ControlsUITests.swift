@@ -37,7 +37,7 @@ struct ControlsScene {
         await permissions.refresh()
         model = libraryModel(self.fixture, defaults: scratch)
         await model.load()
-        compat = try fixtureCompat(self.fixture.root.appending(path: "compat-\(UUID().uuidString)"), defaults: scratch)
+        compat = try await fixtureCompat(self.fixture.root.appending(path: "compat-\(UUID().uuidString)"), defaults: scratch)
         files = ControlsFiles(installs: self.fixture.root.appending(path: "installs"),
                               setups: self.fixture.root.appending(path: "setups"),
                               retroArch: RetroArchPaths(root: self.fixture.root.appending(path: "retroarch")))
@@ -209,11 +209,11 @@ struct ControlsUITests {
         #expect(scene.center.keyboardPlayGames.map(\.id) == [game.id])
         #expect(scene.poster.posted == [.key(49, down: true)])
 
-        // Another app in front: nothing more is posted
+        // Another app in front: the held key goes up, and nothing more is posted
         scene.focus.front = nil
         scene.pad.state = PadState(pressed: [.east])
         scene.center.tick(now: 2)
-        #expect(scene.poster.posted == [.key(49, down: true)])
+        #expect(scene.poster.posted == [.key(49, down: true), .key(49, down: false)])
         scene.center.session?.opensOnKeyboard = true
         let sheet = UIHost(ControlsSheet(center: scene.center, session: scene.center.session!), size: CGSize(width: 560, height: 620))
         defer { sheet.close() }

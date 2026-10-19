@@ -555,9 +555,9 @@ APPINFO := $(OUT_DIR)/appinfo
 
 appinfo: $(APPINFO)
 
-$(APPINFO): helpers/appinfo.swift
+$(APPINFO): helpers/appinfo/main.swift app/Sources/NotProtonApp/Setup/AppInfoVDF.swift
 	@mkdir -p $(OUT_DIR)
-	swiftc -O -target $(ARCH)-apple-macos$(MIN_VER) -o $@ $<
+	swiftc -O -target $(ARCH)-apple-macos$(MIN_VER) -o $@ $^
 	@echo "==> Built $@"
 
 helpers-install: $(ICONMAKER) $(APPINFO)

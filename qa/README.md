@@ -45,9 +45,10 @@ them; `qa/mocks/README.md` documents the routes.
 
 `app/Sources/NotProtonApp/Support/QAEnvironment.swift` re-points every fetched
 URL to `$CARTOUCHE_QA_BASE_URL` keeping the path, and lets pinned downloads
-also accept the sha256s in `<base>/__pins.json`. Covered: Sparkle feed (and
-the compat/runner feeds derived from it), all pinned downloads, MacGamingDB,
+also accept the sha256s in `<base>/__pins.json`. Covered: the compat and
+runner feeds, all pinned downloads, MacGamingDB,
 Steam CDN/installer, winetricks, libretro buildbot/thumbnails/database.
+The Sparkle feed is not covered: the updater never starts in debug builds.
 Not covered: real binaries (all stubs), Keychain, real signing, the mount step
 of dmgs — see `qa/mocks/README.md` and `qa/world/README.md`.
 

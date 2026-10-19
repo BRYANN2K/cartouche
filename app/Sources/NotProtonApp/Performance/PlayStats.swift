@@ -1,4 +1,4 @@
-// Frame rates from the counter's samples (P8): which seconds count, a session's
+// Frame rates from the counter's samples: which seconds count, a session's
 // average and 1% low, and a game's numbers per setup, weighted by play time.
 
 import Foundation

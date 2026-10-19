@@ -89,30 +89,34 @@ public struct ProcessGroup: Sendable {
 
     public init(root: pid_t, prefix: String?) { self.root = root; self.prefix = prefix }
 
-    public func members() -> [pid_t] {
+    // With `environments` false the KERN_PROCARGS2 scans are skipped: only the
+    // root's own descendants are found (wine re-parents can lag a scan or two).
+    public func members(environments: Bool = true) -> [pid_t] {
+        // Root 0/1 would make launchd's whole tree "the installer's processes".
+        guard root > 1 else { return [] }
         let all = Self.allPIDs()
-        var parent: [pid_t: pid_t] = [:]
+        var children: [pid_t: [pid_t]] = [:]
+        var wineish: [pid_t] = []
         for pid in all {
             var info = proc_bsdinfo()
-            if proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, Int32(MemoryLayout<proc_bsdinfo>.size)) > 0 {
-                parent[pid] = pid_t(info.pbi_ppid)
-            }
+            guard proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, Int32(MemoryLayout<proc_bsdinfo>.size)) > 0 else { continue }
+            children[pid_t(info.pbi_ppid), default: []].append(pid)
+            guard environments else { continue }
+            let comm = withUnsafeBytes(of: info.pbi_comm) { String(decoding: $0.prefix { $0 != 0 }, as: UTF8.self) }
+            if comm.hasPrefix("wine") || comm == "arch" { wineish.append(pid) }
         }
         var found: Set<pid_t> = [root]
-        var changed = true
-        while changed {
-            changed = false
-            for (pid, ppid) in parent where found.contains(ppid) && !found.contains(pid) {
-                found.insert(pid); changed = true
-            }
+        var queue = children[root] ?? []
+        while let next = queue.popLast() {
+            if found.insert(next).inserted { queue += children[next] ?? [] }
         }
-        if let prefix {
+        if let prefix, environments {
             let marker = "WINEPREFIX=" + prefix
-            for pid in all where !found.contains(pid) && Self.environment(of: pid).contains(marker) {
+            for pid in wineish where !found.contains(pid) && Self.environment(of: pid).contains(marker) {
                 found.insert(pid)
             }
         }
-        return found.filter { kill($0, 0) == 0 }.sorted()
+        return found.filter { $0 > 1 && kill($0, 0) == 0 }.sorted()
     }
 
     // Total CPU time of the processes, in seconds.
@@ -172,6 +176,7 @@ public final class InstallRun: @unchecked Sendable {
     private var stopped = false
     private var status: Int32?
     private var waiters: [CheckedContinuation<Int32, Never>] = []
+    private var outputHandle: FileHandle?
 
     public init(_ launch: InstallLaunch, output: URL? = nil) {
         self.launch = launch
@@ -184,6 +189,7 @@ public final class InstallRun: @unchecked Sendable {
         process.terminationHandler = { [weak self] p in self?.finished(p.terminationStatus) }
         if let output, FileManager.default.createFile(atPath: output.path(percentEncoded: false), contents: nil),
            let handle = try? FileHandle(forWritingTo: output) {
+            outputHandle = handle
             process.standardOutput = handle
             process.standardError = handle
         } else {
@@ -193,6 +199,7 @@ public final class InstallRun: @unchecked Sendable {
     }
 
     public var pid: pid_t { process.processIdentifier }
+    public var isRunning: Bool { lock.withLock { status == nil } && process.isRunning }
     public var wasStopped: Bool { lock.withLock { stopped } }
 
     public var group: ProcessGroup { ProcessGroup(root: pid, prefix: launch.environment["WINEPREFIX"]) }
@@ -207,12 +214,15 @@ public final class InstallRun: @unchecked Sendable {
         var tracker = ProgressTracker(expected: expected, start: Date(), stuckAfter: policy.stuckAfter, stuckCPU: policy.stuckCPU)
         var lastCPU = ProcessGroup.cpuSeconds(group.members())
         var lastTime = Date()
+        var tick = 0
         while lock.withLock({ status == nil }) {
             try? await Task.sleep(for: .seconds(policy.interval))
             if Task.isCancelled { stop() }
             onTick()
             let now = Date()
-            let cpuNow = ProcessGroup.cpuSeconds(group.members())
+            // The per-pid environment scan is the expensive part; every 10 ticks.
+            tick += 1
+            let cpuNow = ProcessGroup.cpuSeconds(group.members(environments: tick % 10 == 0))
             // A process that exited takes its CPU time with it, so the sum can drop.
             let cpu = max(0, cpuNow - lastCPU) / max(now.timeIntervalSince(lastTime), 0.001) * 100
             lastCPU = cpuNow; lastTime = now
@@ -237,12 +247,16 @@ public final class InstallRun: @unchecked Sendable {
             defer { waiters = [] }
             return waiters
         }
+        try? outputHandle?.close()
         for waiter in pending { waiter.resume(returning: code) }
     }
 
     // SIGTERM to every process of the installer, SIGKILL to what is left after 3 s.
+    // Refuses to signal anything before the process started or after it exited: pid 0
+    // is the caller's own process group, and an exited pid may have been reused.
     public func stop() {
         lock.withLock { stopped = true }
+        guard pid > 1, lock.withLock({ status == nil }) else { return }
         let members = group.members()
         for pid in members { kill(pid, SIGTERM) }
         DispatchQueue.global().asyncAfter(deadline: .now() + 3) {

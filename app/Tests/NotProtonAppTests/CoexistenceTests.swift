@@ -164,7 +164,7 @@ struct CoexistenceTests {
         let outcome = try await Uninstall.run(
             app: fixture.app, innerPlist: fixture.innerPlist, updateBlocks: [fixture.updateBlock],
             legacyCompat: fixture.legacyCompat, compatTools: SupportPaths.Steam.cartoucheTools(in: fixture.tools),
-            directories: [fixture.support], libraries: [fixture.library],
+            support: fixture.support, directories: [], libraries: [fixture.library],
             modifications: fixture.modifications, lockFolder: fixture.root,
             repair: { _, _ in repaired.set() }, stop: { _, _ in false })
 
@@ -190,7 +190,7 @@ struct CoexistenceTests {
         let outcome = try await Uninstall.run(
             app: fixture.app, innerPlist: fixture.innerPlist, updateBlocks: [fixture.updateBlock],
             legacyCompat: fixture.legacyCompat, compatTools: SupportPaths.Steam.cartoucheTools(in: fixture.tools),
-            directories: [fixture.support], libraries: [fixture.library],
+            support: fixture.support, directories: [], libraries: [fixture.library],
             modifications: fixture.modifications, lockFolder: fixture.root,
             repair: { _, _ in Issue.record("Steam was restored over NotProton") }, stop: { _, _ in false })
 

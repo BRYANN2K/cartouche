@@ -57,28 +57,8 @@ struct RunnerRegistry: Sendable {
             damaged: damaged
         )
     }
-
-    // What no longer matches its pin in a runner's copy, file by file. Empty means ready.
-    static func verify(
-        _ runner: Runner, runners: URL = SupportPaths.runners, bridge: URL = SupportPaths.bridge
-    ) -> [String] {
-        switch runner.kind {
-        case .crossOver:
-            guard let build = runner.build else { return [] }
-            guard RunnerInstaller.hasClone(forBuild: build.id, runners: runners) else {
-                return [CrossOverSource.missingWine]
-            }
-            return RunnerPatcher.verify(
-                build: build, root: SupportPaths.clonedRoot(forBuild: build.id, runners: runners), bridge: bridge)
-        case .wineBuild:
-            return WineRunnerInstaller.verify(runner.id, runners: runners)
-        case .portingToolkit:
-            return PortingToolkitSource.verify(version: runner.version, runners: runners)
-        }
-    }
 }
 
-// Reads for features that need one fact rather than the whole list.
 extension RunnerRegistry {
 
     static func state(runners: URL = SupportPaths.runners) -> RunnerState {
@@ -97,12 +77,10 @@ extension RunnerRegistry {
         RunnerStore.cloneSize(forBuild: build, runners: runners)
     }
 
-    // The tools Steam is offered, as the list file records them.
     static func tools(runners: URL = SupportPaths.runners, file: URL = SupportPaths.toolList) -> [InstalledTool] {
         CompatToolList.installed(runners: runners, file: file)
     }
 
-    // One tool per runner tool and graphics backend pair, as Steam is offered them
     static func backendTools(runners: URL = SupportPaths.runners, file: URL = SupportPaths.toolList) -> [BackendTool] {
         CompatToolList.backendTools(for: CompatToolList.installed(runners: runners, file: file), runners: runners)
     }
@@ -120,8 +98,6 @@ extension RunnerRegistry {
     }
 
     static var versionList: String { SupportedRunners.versionList }
-
-    // Copies of CrossOver the user picks by hand.
 
     static func looksLikeCrossOver(_ bundle: URL) -> Bool {
         CrossOverSource.looksLikeCrossOver(bundle)

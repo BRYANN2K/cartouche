@@ -13,6 +13,8 @@ actor FakeRunner: ConsoleRunning {
     private(set) var quits = 0
     private var started: ContinuousClock.Instant?
     private var exitedByItself = false
+    // When set, quit() reports this instead of the real elapsed time
+    private var fakePlayed: Duration?
     let states: URL
     let picture: Data
     // The process the session record watches for; nil unless the test gives one
@@ -36,9 +38,11 @@ actor FakeRunner: ConsoleRunning {
     func setHardcore(_ on: Bool) async throws {}
     func setDisc(_ disc: Int) async throws { discs.append(disc) }
 
+    func pretend(played: Duration) { fakePlayed = played }
+
     func quit() async -> PlayReport {
         quits += 1
-        let played = started.map { .now - $0 } ?? .zero
+        let played = fakePlayed ?? started.map { .now - $0 } ?? .zero
         if started != nil, let content = requests.last?.content {
             let folder = states.appending(path: "Fake Core", directoryHint: .isDirectory)
             try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)

@@ -80,8 +80,8 @@ struct PrivacySettingsTests {
         let (center, _) = center(scratch)
         await center.refresh()
         for dark in [false, true] {
-            let size = snapshot(PrivacySettingsView(center: center).frame(width: 640, height: 760),
-                                named: "privacy", dark: dark)
+            let size = snapshot(PrivacySettingsView(center: center, choices: PrivacyChoices(defaults: scratch.defaults))
+                                .frame(width: 640, height: 760), named: "privacy", dark: dark)
             #expect(size.width >= 640)
         }
     }

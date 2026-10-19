@@ -83,9 +83,14 @@ struct GameFolderTests {
         #expect(!scene.library.showAddConsoles)
         print("evidence: quest.gb copied into the watched folder, in Game Boy as 'Cartouche Quest' after \(after)")
 
-        // A file the database does not know stays out
+        // A file the database does not know is scanned (the folder's count
+        // rises) but stays out of the library
         try Data(repeating: 9, count: 2048).write(to: folder.appending(path: "unknown.gb"))
-        try await Task.sleep(for: .seconds(3))
+        let deadline = ContinuousClock.now + .seconds(12)
+        while scene.center.folderCounts[folder.plainPath] != 2, ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(100))
+        }
+        #expect(scene.center.folderCounts[folder.plainPath] == 2, "the scan never saw unknown.gb")
         #expect(scene.library.games(in: .source(.console("gb"))).count == 1)
     }
 

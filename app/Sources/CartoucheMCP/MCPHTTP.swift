@@ -7,20 +7,18 @@ import Network
 public final class MCPHTTPServer: @unchecked Sendable {
 
     public enum HTTPError: LocalizedError {
-        case notStarted
         case alreadyStarted
         case failed(String)
 
         public var errorDescription: String? {
             switch self {
-            case .notStarted: "the HTTP transport is not running"
             case .alreadyStarted: "the HTTP transport is already running"
             case .failed(let detail): detail
             }
         }
     }
 
-    // One request: method, target, headers (lowercased keys) and body.
+    // Header keys are stored lowercased.
     struct Request {
         var method: String
         var target: String
@@ -36,10 +34,15 @@ public final class MCPHTTPServer: @unchecked Sendable {
     private var listener: NWListener?
     private var connections: [UUID: NWConnection] = [:]
     private var buffers: [UUID: Data] = [:]
+    private var boundPort: UInt16 = 0
 
     public let queue = DispatchQueue(label: "cartouche.mcp.http")
 
-    public private(set) var port: UInt16 = 0
+    public var port: UInt16 { lock.withLock { boundPort } }
+
+    // Reports "running" once bound or the failure reason — the listener can
+    // only say "port in use" asynchronously, after start() already returned.
+    public var onState: (@Sendable (String) -> Void)?
 
     public init(token: String, handler: @escaping @Sendable (Data) async -> Data) {
         self.token = token
@@ -59,9 +62,17 @@ public final class MCPHTTPServer: @unchecked Sendable {
             let endpoint = NWEndpoint.Port(rawValue: port) ?? .any
             let listener = try NWListener(using: Self.parameters(), on: endpoint)
             listener.newConnectionHandler = { [weak self] connection in self?.accept(connection) }
-            listener.stateUpdateHandler = { [weak self] state in
-                if case .ready = state, let self, let port = listener.port {
-                    self.port = port.rawValue
+            listener.stateUpdateHandler = { [weak self, weak listener] state in
+                guard let self else { return }
+                switch state {
+                case .ready:
+                    if let port = listener?.port {
+                        lock.withLock { boundPort = port.rawValue }
+                    }
+                    onState?("running")
+                case .waiting(let error), .failed(let error):
+                    onState?(error.localizedDescription)
+                default: break
                 }
             }
             listener.start(queue: queue)
@@ -76,11 +87,9 @@ public final class MCPHTTPServer: @unchecked Sendable {
             for connection in connections.values { connection.cancel() }
             connections = [:]
             buffers = [:]
-            port = 0
+            boundPort = 0
         }
     }
-
-    public var isRunning: Bool { lock.withLock { listener != nil } }
 
     // MARK: Connections
 
@@ -110,13 +119,22 @@ public final class MCPHTTPServer: @unchecked Sendable {
             guard let self else { return }
             var buffer = lock.withLock { buffers[id] ?? Data() }
             if let data { buffer.append(data) }
-            if let request = Self.request(in: buffer) {
-                Task {
-                    let reply = await self.answer(request)
-                    connection.send(content: reply, completion: .contentProcessed { [weak self] _ in
-                        self?.drop(id)
-                    })
+            do {
+                if let request = try Self.request(in: buffer) {
+                    Task {
+                        let reply = await self.answer(request)
+                        connection.send(content: reply, completion: .contentProcessed { _ in
+                            self.drop(id)
+                        })
+                    }
+                    return
                 }
+            } catch {
+                // Bad framing (negative or malformed Content-Length, chunked):
+                // answer 400 and close rather than wait for bytes that never
+                // make a whole request.
+                connection.send(content: Self.response(400, #"{"error":"bad request"}"#),
+                                completion: .contentProcessed { [weak self] _ in self?.drop(id) })
                 return
             }
             lock.withLock { buffers[id] = buffer }
@@ -131,8 +149,12 @@ public final class MCPHTTPServer: @unchecked Sendable {
     // MARK: The request/answer
 
     private func answer(_ request: Request) async -> Data {
-        // The token is checked before the route, so a wrong one always says 401.
-        guard request.authorization == "Bearer \(token)" else {
+        // A browser on another site could reach the loopback port through DNS
+        // rebinding: Host must name loopback, and a sent Origin must too.
+        guard Self.acceptsHost(request) else {
+            return Self.response(403, #"{"error":"forbidden"}"#)
+        }
+        guard Self.authorized(request.authorization, token: token) else {
             return Self.response(401, #"{"error":"unauthorized"}"#)
         }
         guard request.target.split(separator: "?").first.map(String.init) == "/mcp" else {
@@ -154,7 +176,7 @@ public final class MCPHTTPServer: @unchecked Sendable {
 
     static func response(_ status: Int, _ body: String, type: String = "application/json") -> Data {
         let phrases = [200: "OK", 202: "Accepted", 400: "Bad Request", 401: "Unauthorized",
-                       404: "Not Found", 405: "Method Not Allowed"]
+                       403: "Forbidden", 404: "Not Found", 405: "Method Not Allowed"]
         var head = "HTTP/1.1 \(status) \(phrases[status] ?? "Error")\r\n"
         if !body.isEmpty {
             head += "Content-Type: \(type)\r\nContent-Length: \(body.utf8.count)\r\n"
@@ -163,8 +185,38 @@ public final class MCPHTTPServer: @unchecked Sendable {
         return Data((head + body).utf8)
     }
 
-    // Nil until the buffer holds the whole request.
-    static func request(in buffer: Data) -> Request? {
+    // Compared at constant cost so a guessing token learns nothing from how
+    // far in it differs.
+    static func authorized(_ header: String?, token: String) -> Bool {
+        guard let header else { return false }
+        let expected = "Bearer \(token)"
+        var difference = header.utf8.count ^ expected.utf8.count
+        for (a, b) in zip(header.utf8, expected.utf8) { difference |= Int(a ^ b) }
+        return difference == 0
+    }
+
+    static func acceptsHost(_ request: Request) -> Bool {
+        func loopback(_ value: String) -> Bool {
+            var host = value
+            if host.hasPrefix("["), let end = host.firstIndex(of: "]") {
+                host = String(host[host.index(after: host.startIndex)..<end])
+            } else if let colon = host.firstIndex(of: ":") {
+                host = String(host[..<colon])
+            }
+            return ["127.0.0.1", "localhost", "::1"].contains(host.lowercased())
+        }
+        guard let host = request.headers["host"], loopback(host) else { return false }
+        if let origin = request.headers["origin"] {
+            guard let url = URL(string: origin), let name = url.host, loopback(name)
+            else { return false }
+        }
+        return true
+    }
+
+    // Nil until the buffer holds the whole request; throws when the framing is
+    // wrong so the caller can answer 400 instead of waiting on a size that
+    // never arrives (or trapping on a negative one).
+    static func request(in buffer: Data) throws -> Request? {
         guard let end = buffer.range(of: Data("\r\n\r\n".utf8)) else { return nil }
         let head = String(decoding: buffer[..<end.lowerBound], as: UTF8.self)
         var lines = head.split(separator: "\r\n", omittingEmptySubsequences: false).map(String.init)
@@ -176,7 +228,18 @@ public final class MCPHTTPServer: @unchecked Sendable {
             headers[String(line[..<colon]).lowercased()] = line[line.index(after: colon)...]
                 .trimmingCharacters(in: .whitespaces)
         }
-        let length = headers["content-length"].flatMap(Int.init) ?? 0
+        if headers["transfer-encoding"]?.lowercased().contains("chunked") == true {
+            throw HTTPError.failed("chunked requests are not supported")
+        }
+        let length: Int
+        if let declared = headers["content-length"] {
+            guard let value = Int(declared), (0...(1 << 22)).contains(value) else {
+                throw HTTPError.failed("bad Content-Length")
+            }
+            length = value
+        } else {
+            length = 0
+        }
         let body = buffer[end.upperBound...]
         guard body.count >= length else { return nil }
         return Request(

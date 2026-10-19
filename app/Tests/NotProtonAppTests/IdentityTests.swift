@@ -156,7 +156,6 @@ struct IdentityTests {
         #expect(try Self.headerDefine("CARTOUCHE_DYLIB_NAME") == SupportPaths.dylibName)
         #expect(SupportPaths.dylibName == "cartouche.dylib")
         #expect(SupportPaths.toolPrefix == tool && SupportPaths.steamPrefix == steam)
-        #expect(SupportedRunners.legacyToolName == tool)
         for runnerTool in SupportedRunners.all.flatMap(\.tools) {
             #expect(runnerTool.name.hasPrefix(tool))
         }

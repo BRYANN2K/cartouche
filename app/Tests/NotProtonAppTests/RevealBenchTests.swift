@@ -87,19 +87,4 @@ struct RevealBenchTests {
                      result.fps, result.cpu * 100, result.idle * 100))
         #expect(result.fps >= 55)
     }
-
-    @Test("GPU time of one frame at the grid's size")
-    func gpuTime() throws {
-        let renderer = try #require(RevealRenderer.shared)
-        let image = revealFixtureCover(width: 600, height: 900)
-        var u = RevealUniforms()
-        u.progress = 0.5
-        _ = renderer.render(image, width: 360, height: 540, uniforms: u)
-        let perFrame = (0..<120).map { i -> Double in
-            u.time = Float(i) / 60
-            return renderer.gpuSeconds(image, width: 360, height: 540, uniforms: u)
-        }.sorted()[60]
-        print(String(format: "reveal bench: GPU %.3f ms per 360x540 frame (median of 120)", perFrame * 1000))
-        #expect(perFrame < 1.0 / 60)
-    }
 }

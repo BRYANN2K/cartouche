@@ -1,4 +1,4 @@
-// Cartouche payload manifest stuff
+// The list of payload files a staged Cartouche build carries
 
 import Foundation
 

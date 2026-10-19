@@ -26,7 +26,9 @@ struct SteamShortcuts: Sendable {
         guard !accounts.isEmpty else { return .noAccount }
 
         let exe = "\"" + launcher.path(percentEncoded: false) + "\""
-        var outcome = Outcome.alreadyThere
+        // Parse every account first: a file that will not parse fails before any
+        // account is written.
+        var writes: [(file: URL, root: [(String, BinaryVDF)])] = []
         for account in accounts.sorted(by: { $0.path < $1.path }) {
             let file = account.appending(path: "config/shortcuts.vdf")
             var root: [(String, BinaryVDF)] = [("shortcuts", .map([]))]
@@ -38,16 +40,26 @@ struct SteamShortcuts: Sendable {
                 return .failed(String(localized: "Steam's shortcuts file could not be read."))
             }
             if entries.contains(where: { $0.1.string("exe") == exe }) { continue }
-            entries.append((String(entries.count), BinaryVDF.shortcut(name: name, exe: exe, startDir: startDir)))
+            // The first numeric key no entry uses; keys need not be contiguous.
+            var key = entries.count
+            while entries.contains(where: { $0.0 == String(key) }) { key += 1 }
+            entries.append((String(key), BinaryVDF.shortcut(name: name, exe: exe, startDir: startDir)))
             root[index].1 = .map(entries)
+            writes.append((file, root))
+        }
+        guard !writes.isEmpty else { return .alreadyThere }
+        for (file, root) in writes {
+            // A copy next to Steam's file, so a bad write never costs the shortcuts.
+            if fm.fileExists(atPath: file.path(percentEncoded: false)) {
+                try? fm.copyItem(at: file, to: file.appendingPathExtension("cartouche"))
+            }
             do {
                 try atomicReplace(file, with: BinaryVDF.serialize(root), step: String(localized: "Add the game to Steam"))
-                outcome = .added
             } catch {
                 return .failed(error.localizedDescription)
             }
         }
-        return outcome
+        return .added
     }
 }
 

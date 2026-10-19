@@ -11,10 +11,11 @@ struct InstallEngine: Sendable {
     var installs: URL = GameFolder.installs
     var runners: URL = SupportPaths.runners
     var registry: @Sendable () -> RunnerRegistry = { RunnerRegistry.refresh(free: .standard) }
-    var environment: [String: String] = ProcessInfo.processInfo.environment
+    var environment: [String: String] = SetupEnvironment.base
     var policy = InstallRun.Policy()
     var keepAwake = true
-    var winetricks: @Sendable (_ verbs: [String], _ prefix: URL, _ wine: WineRunner, _ log: URL) async throws -> Void
+    // Returns the run unstarted: the engine starts it so Stop can kill it.
+    var winetricks: @Sendable (_ verbs: [String], _ prefix: URL, _ wine: WineRunner, _ log: URL) async throws -> InstallRun
         = InstallerWinetricks.run
 
     // The install runners in the order the review step offers them.
@@ -27,19 +28,23 @@ struct InstallEngine: Sendable {
         job.problem = nil
         job.diagnosis = nil
         job.progress = InstallProgress(expected: request.expectedBytes)
+        job.run = nil
 
         if inputs.verifyFirst, let manifest = request.manifest {
             job.phase = .verifying
-            let results = await Checksums.verify(manifest)
-            let damaged = results.compactMap { url, result -> String? in
-                if case .mismatch = result { return url.lastPathComponent }
-                return nil
-            }.sorted()
-            if let first = damaged.first {
-                job.fail(String(localized: "\(first) is damaged. Download it again."))
+            do {
+                let results = try await Checksums.verify(manifest, root: request.source)
+                let damaged = Checksums.damaged(results)
+                if let first = damaged.first {
+                    job.fail(String(localized: "\(first) is damaged. Download it again."))
+                    return
+                }
+            } catch {
+                stopped(job)
                 return
             }
         }
+        guard !Task.isCancelled else { stopped(job); return }
 
         job.phase = .preparing
         let registry = registry()
@@ -54,25 +59,27 @@ struct InstallEngine: Sendable {
         do {
             folder = try GameFolder.fresh(for: request.name, in: installs)
             job.folder = folder
-            let create = InstallRun(WineInstall.createPrefix(runner: wine, prefix: folder.prefix, base: environment),
-                                    output: folder.root.appending(path: "prefix.log"))
-            job.run = create
-            try create.start()
-            let status = await create.exitStatus()
-            if create.wasStopped {
-                stopped(job)
-                return
+            if let create = try WineBootstrap.createRun(wine: wine, prefix: folder.prefix, base: environment,
+                                                     log: folder.root.appending(path: "prefix.log")) {
+                job.run = create
+                try create.start()
+                let status = await create.exitStatus()
+                if create.wasStopped || Task.isCancelled {
+                    stopped(job)
+                    return
+                }
+                guard status == 0 else {
+                    job.fail(String(localized: "The prefix could not be created (status \(status))."))
+                    return
+                }
+                await waitForWine(wine, prefix: folder.prefix)
             }
-            guard status == 0 else {
-                job.fail(String(localized: "The prefix could not be created (status \(status))."))
-                return
-            }
-            await waitForWine(wine, prefix: folder.prefix)
             if inputs.shortSource { try WineInstall.mapSource(request.source, prefix: folder.prefix) }
         } catch {
             job.fail(error.localizedDescription)
             return
         }
+        guard !Task.isCancelled else { stopped(job); return }
 
         job.phase = .installing
         let launch = WineInstall.runSetup(request.setup, runner: wine, prefix: folder.prefix, inputs: job.inputs, base: environment)
@@ -91,7 +98,7 @@ struct InstallEngine: Sendable {
             Task { @MainActor in if job.phase == .installing { job.progress = progress } }
         }
         await waitForWine(wine, prefix: folder.prefix)
-        if run.wasStopped {
+        if run.wasStopped || Task.isCancelled {
             stopped(job)
             return
         }
@@ -120,11 +127,21 @@ struct InstallEngine: Sendable {
         job.redistributables = Redistributables.find(in: scan.installFolder)
         let verbs = Redistributables.verbs(job.redistributables)
         if !verbs.isEmpty {
+            guard !Task.isCancelled else { stopped(job); return }
             job.phase = .redistributables
+            let log = folder.root.appending(path: PrefixTools.winetricksLogName)
             do {
-                try await winetricks(verbs, folder.prefix, wine, folder.root.appending(path: PrefixTools.winetricksLogName))
-                job.redistributablesInstalled = true
+                let run = try await winetricks(verbs, folder.prefix, wine, log)
+                job.run = run
+                try run.start()
+                let status = await run.exitStatus()
+                if run.wasStopped || Task.isCancelled { stopped(job); return }
+                job.redistributablesInstalled = status == 0
+                if status != 0 {
+                    AppLog.note("installer: winetricks \(verbs) stopped with status \(status); its output is in \(log.path(percentEncoded: false))")
+                }
             } catch {
+                if Task.isCancelled { stopped(job); return }
                 AppLog.note("installer: winetricks \(verbs) failed: \(error.localizedDescription)")
                 job.redistributablesInstalled = false
             }
@@ -140,9 +157,11 @@ struct InstallEngine: Sendable {
         guard let folder = job.folder else { return nil }
         let registry = registry()
         let runner = registry.runner(id: job.inputs.runnerID)
-        if let wine = runner.flatMap({ InstallRunners.wine(for: $0, runners: runners) }) {
-            try GameLauncher.write(exe: exe, folder: folder, wine: wine, backend: .wined3d)
+        guard let wine = runner.flatMap({ InstallRunners.wine(for: $0, runners: runners) }) else {
+            throw StepFailure(step: String(localized: "Write the game's launcher"),
+                              detail: String(localized: "The runner that installed the game is not set up anymore."))
         }
+        try GameLauncher.write(exe: exe, folder: folder, wine: wine, backend: .wined3d)
         // The setup defaults to what the install ran: the installer's runner, plain Wine (wined3d)
         var game = InstalledGame(
             id: folder.root.lastPathComponent, name: job.request.name, appID: job.request.appID, gogID: job.request.gogID,
@@ -180,22 +199,9 @@ struct InstallEngine: Sendable {
         }
     }
 
-    // wineserver -w returns once every process of the prefix has exited; -k after 30 s.
     private func waitForWine(_ wine: WineRunner, prefix: URL) async {
         let env = WineInstall.environment(runner: wine, prefix: prefix, inputs: nil, base: environment)
-        let wait = InstallRun(InstallLaunch(executable: wine.server.path(percentEncoded: false), arguments: ["-w"], environment: env))
-        guard (try? wait.start()) != nil else { return }
-        let done = Task { await wait.exitStatus() }
-        let timeout = Task {
-            try? await Task.sleep(for: .seconds(30))
-            if !Task.isCancelled {
-                wait.stop()
-                let kill = InstallRun(InstallLaunch(executable: wine.server.path(percentEncoded: false), arguments: ["-k"], environment: env))
-                try? kill.start()
-            }
-        }
-        _ = await done.value
-        timeout.cancel()
+        await WineServer.wait(server: wine.server, env: env, timeout: 30)
     }
 
     // caffeinate -i -w keeps the Mac awake until the installer exits.
@@ -227,32 +233,26 @@ final class CLSPatches: @unchecked Sendable {
 enum InstallerWinetricks {
 
     // The same pinned winetricks as Prefixes > Winetricks, run on the game's own prefix.
+    // The run comes back unstarted so the engine can track and stop it.
     @Sendable
-    static func run(_ verbs: [String], prefix: URL, wine: WineRunner, log: URL) async throws {
-        let step = String(localized: "Run Winetricks")
+    static func run(_ verbs: [String], prefix: URL, wine: WineRunner, log: URL) async throws -> InstallRun {
         let script = try await PinnedDownload.obtain(
             file: "winetricks", sha256: PrefixTools.winetricksSHA256,
             bases: [QAEnvironment.url(URL(string: "https://raw.githubusercontent.com/Winetricks/winetricks/\(PrefixTools.winetricksRelease)/src")!)],
-            into: SupportPaths.winetricksDownloads, step: step, from: "GitHub"
+            into: SupportPaths.winetricksDownloads, step: String(localized: "Run Winetricks"), from: "GitHub"
         )
-        try await run(verbs, prefix: prefix, wine: wine, log: log, script: script)
+        return try run(verbs, prefix: prefix, wine: wine, log: log, script: script)
     }
 
-    static func run(_ verbs: [String], prefix: URL, wine: WineRunner, log: URL, script: URL) async throws {
-        let step = String(localized: "Run Winetricks")
+    static func run(_ verbs: [String], prefix: URL, wine: WineRunner, log: URL, script: URL) throws -> InstallRun {
         let wrapper = script.deletingLastPathComponent().appending(path: "cartouche-wine")
         try Data(PrefixTools.winetricksWine.utf8).write(to: wrapper, options: .atomic)
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: wrapper.path(percentEncoded: false))
-        var env = WineInstall.environment(runner: wine, prefix: prefix, inputs: nil, base: ProcessInfo.processInfo.environment)
+        var env = WineInstall.environment(runner: wine, prefix: prefix, inputs: nil, base: SetupEnvironment.base)
         env["WINE"] = wrapper.path(percentEncoded: false)
         env["CARTOUCHE_WINE"] = wine.loader.path(percentEncoded: false)
         env["WINE_BIN"] = wine.loader.path(percentEncoded: false)
-        let run = InstallRun(InstallLaunch(executable: "/bin/sh", arguments: [script.path(percentEncoded: false), "-q"] + verbs,
-                                           environment: env), output: log)
-        try run.start()
-        let status = await run.exitStatus()
-        guard status == 0 else {
-            throw StepFailure(step: step, detail: String(localized: "Winetricks stopped with status \(status). Its output is in \(log.path(percentEncoded: false))."))
-        }
+        return InstallRun(InstallLaunch(executable: "/bin/sh", arguments: [script.path(percentEncoded: false), "-q"] + verbs,
+                                        environment: env), output: log)
     }
 }

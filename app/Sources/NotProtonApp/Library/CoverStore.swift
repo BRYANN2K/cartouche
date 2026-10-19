@@ -1,6 +1,6 @@
 // Where a game's cover comes from. The user's own image wins; then Steam's library
 // art for the App ID, from Steam's own cache first, then Cartouche's copy of Steam's
-// CDN art; then the store's art (P10); and last a cover drawn from the name.
+// CDN art; then the store's art; and last a cover drawn from the name.
 
 import Foundation
 import RetroArchKit
@@ -20,13 +20,11 @@ enum ArtKind: String, Sendable {
 
 struct CoverStore: Sendable {
 
-    typealias Fetch = @Sendable (URL) async throws -> (Data, Int)
+    typealias Fetch = HTTPFetch.Fetch
 
     var steamCache: URL = SupportPaths.Steam.userData.appending(path: "appcache/librarycache")
     var cache: URL = SupportPaths.home.appending(path: "Library/Caches/\(SupportPaths.supportDirName)/covers")
-    var fetch: Fetch = CoverStore.download
-    // Store art arrives with P10
-    var storeArt: @Sendable (Game, ArtKind) -> URL? = { _, _ in nil }
+    var fetch: Fetch = HTTPFetch.download(timeout: 15)
     // libretro-thumbnails for console games; nil uses the project's server
     var thumbnails: Thumbnails?
 
@@ -59,7 +57,7 @@ struct CoverStore: Sendable {
             let mine = cached(appID, kind)
             if exists(mine) { return .image(mine) }
         }
-        if let store = storeArt(game, kind) ?? storeFile(game), exists(store) { return .image(store) }
+        if let store = storeFile(game), exists(store) { return .image(store) }
         if let (system, name) = consoleName(game) {
             // A picture not tried yet comes before a fallback already here
             for art in Self.thumbnailKinds(kind) {
@@ -104,7 +102,7 @@ struct CoverStore: Sendable {
         cache.appending(path: "\(appID)/\(kind.rawValue).jpg")
     }
 
-    // A store game's art, one file for the grid and the panel (P10)
+    // A store game's art, one file for the grid and the panel
     func storeFile(_ game: Game) -> URL? {
         guard game.source.isStore, game.artwork != nil else { return nil }
         return cache.appending(path: "store/\(game.source.id)/\(StoreFolders.safe(game.id)).img")
@@ -115,9 +113,18 @@ struct CoverStore: Sendable {
     }
 
     private func download(_ url: URL, to file: URL) async -> URL? {
+        // A recent failure is remembered: without it every redraw retries the
+        // CDN for a cover that is not there
+        let mark = file.appendingPathExtension("missing")
+        if let date = (try? FileManager.default.attributesOfItem(
+            atPath: mark.path(percentEncoded: false)))?[.modificationDate] as? Date,
+           Date().timeIntervalSince(date) < Self.missingTTL { return nil }
         guard let (data, status) = try? await fetch(url), status == 200, Self.looksLikeImage(data) else {
+            try? FileManager.default.createDirectory(at: mark.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try? Data().write(to: mark)
             return nil
         }
+        try? FileManager.default.removeItem(at: mark)
         do {
             try atomicReplace(file, with: data, step: "cover")
             return file
@@ -126,6 +133,8 @@ struct CoverStore: Sendable {
         }
     }
 
+    static let missingTTL: TimeInterval = 3600
+
     // JPEG or PNG, so an error page is never shown as a cover
     static func looksLikeImage(_ data: Data) -> Bool {
         data.starts(with: [0xFF, 0xD8, 0xFF]) || data.starts(with: [0x89, 0x50, 0x4E, 0x47])
@@ -133,16 +142,5 @@ struct CoverStore: Sendable {
 
     private func exists(_ url: URL) -> Bool {
         FileManager.default.fileExists(atPath: url.path(percentEncoded: false))
-    }
-
-    static let session: URLSession = {
-        let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 15
-        return URLSession(configuration: config)
-    }()
-
-    @Sendable static func download(_ url: URL) async throws -> (Data, Int) {
-        let (data, response) = try await session.data(from: url)
-        return (data, (response as? HTTPURLResponse)?.statusCode ?? 0)
     }
 }

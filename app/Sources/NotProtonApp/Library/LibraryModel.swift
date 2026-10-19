@@ -23,7 +23,7 @@ enum SidebarItem: Hashable, Sendable {
     case source(GameSource)
 }
 
-// A store's sign-in, as the sidebar and Settings > Accounts show it. Stores arrive in P10.
+// A store's sign-in, as the sidebar and Settings > Accounts show it
 enum StoreConnection: Equatable, Sendable {
     case notConnected
     case waiting
@@ -49,18 +49,6 @@ enum LibraryScreen: Equatable {
     case noResults(String)
     case emptyFavorites
     case emptySource(GameSource)
-    case failed(String)
-
-    static func == (a: LibraryScreen, b: LibraryScreen) -> Bool {
-        switch (a, b) {
-        case (.loading, .loading), (.welcome, .welcome), (.steamInstall, .steamInstall), (.emptyFavorites, .emptyFavorites):
-            true
-        case (.signIn(let x), .signIn(let y)), (.emptySource(let x), .emptySource(let y)): x == y
-        case (.grid(let x), .grid(let y)): x == y
-        case (.noResults(let x), .noResults(let y)), (.failed(let x), .failed(let y)): x == y
-        default: false
-        }
-    }
 
     var showsPanel: Bool {
         switch self {
@@ -74,25 +62,26 @@ enum LibraryScreen: Equatable {
 @Observable
 final class LibraryModel {
 
-    enum Phase: Equatable {
-        case loading
-        case ready
-        case failed(String)
+    var loading = true
+    private(set) var steam = SteamImport(presence: .closed, account: nil, games: [], exported: nil) {
+        didSet { rebuildGames() }
     }
-
-    private(set) var phase: Phase = .loading
-    private(set) var steam = SteamImport(presence: .closed, account: nil, games: [], exported: nil)
-    // Windows installers (P6) and console games (P13) are added here by their phases
-    var otherGames: [Game] = []
+    // Windows installers and console games are added here by their phases
+    var otherGames: [Game] = [] { didSet { rebuildGames() } }
     // Console catalog ids, and their games, which ConsoleCenter keeps here
     var consoles: [String] = []
-    var consoleGames: [Game] = []
+    var consoleGames: [Game] = [] { didSet { rebuildGames() } }
     var stores: [GameSource: StoreConnection] = [:]
     var runners: [Runner] = []
-    // From the registry and Steam's appinfo cache, set by the app (P3)
+    // From the registry and Steam's appinfo cache, set by the app
     var backendAvailability = BackendAvailability()
     var backendTools: [BackendTool] = []
-    var macBuilds: Set<Int> = []
+    var macBuilds: Set<Int> = [] { didSet { rebuildGames() } }
+
+    // allGames recomputes only when one of its inputs changes, and game(_:)
+    // answers from an index instead of scanning the whole list
+    private(set) var allGames: [Game] = []
+    @ObservationIgnored private var gamesByID: [String: Game] = [:]
 
     var selection: SidebarItem = .all {
         didSet { if selection != oldValue { keepSelectionVisible() } }
@@ -109,11 +98,13 @@ final class LibraryModel {
         didSet { defaults.set(showNotInstalled, forKey: Self.showNotInstalledKey) }
     }
 
-    private(set) var choices: LibraryChoices
+    private(set) var choices: LibraryChoices {
+        didSet { if choices.setups != oldValue.setups { rebuildGames() } }
+    }
     var problem: String?
-    // A non-blocking setup note, for example switching an installer game to an
-    // older Wine than the one that last ran its prefix
-    var setupNotice: String?
+    // A non-blocking setup note per game, for example switching an installer
+    // game to an older Wine than the one that last ran its prefix
+    var setupNotices: [String: String] = [:]
 
     // Folders the setup and launch paths read; tests point them at scratch dirs
     @ObservationIgnored var installsFolder: URL = GameFolder.installs
@@ -140,7 +131,7 @@ final class LibraryModel {
     // MARK: Loading
 
     func load() async {
-        if steam.games.isEmpty { phase = .loading }
+        if steam.games.isEmpty { loading = true }
         let importer = importer
         let result = await Task.detached { importer.load() }.value
         apply(result)
@@ -148,11 +139,9 @@ final class LibraryModel {
 
     func apply(_ result: SteamImport) {
         steam = result
-        phase = .ready
+        loading = false
         if selectedGameID == nil || game(selectedGameID) == nil { keepSelectionVisible() }
     }
-
-    func fail(_ message: String) { phase = .failed(message) }
 
     // Reloads when a new export lands or Steam starts or quits, checked every 2 seconds
     func watch(every interval: Duration = .seconds(2)) {
@@ -165,28 +154,38 @@ final class LibraryModel {
             var tick = 0
             while !Task.isCancelled {
                 try? await Task.sleep(for: interval)
-                // Off the main thread; whether Steam runs is asked every fifth tick, as it spawns ps
                 tick += 1
-                let was = running, askRunning = tick % 5 == 0
-                let (newStamp, nowRunning) = await Task.detached {
-                    (importer.exportStamp(), askRunning ? importer.isRunning() : was)
-                }.value
-                if newStamp != stamp || nowRunning != running {
-                    stamp = newStamp
-                    running = nowRunning
-                    await self?.load()
-                }
+                guard let self else { return }
+                await self.watchTick(tick: tick, stamp: &stamp, running: &running)
             }
+        }
+    }
+
+    // One watcher pass. Whether Steam runs is asked every fifth tick, as it
+    // spawns ps; the file reads stay off the main thread.
+    func watchTick(tick: Int, stamp: inout Date?, running: inout Bool) async {
+        let importer = importer
+        let was = running, askRunning = tick % 5 == 0
+        let (newStamp, nowRunning) = await Task.detached {
+            (importer.exportStamp(), askRunning ? importer.isRunning() : was)
+        }.value
+        if newStamp != stamp || nowRunning != running {
+            stamp = newStamp
+            running = nowRunning
+            await load()
         }
     }
 
     // MARK: Games
 
-    var allGames: [Game] { (steam.games + otherGames).map(withVersion) + consoleGames }
+    private func rebuildGames() {
+        allGames = (steam.games + otherGames).map(withVersion) + consoleGames
+        gamesByID = Dictionary(allGames.map { ($0.id, $0) }, uniquingKeysWith: { _, last in last })
+    }
 
     func game(_ id: String?) -> Game? {
         guard let id else { return nil }
-        return allGames.first { $0.id == id }
+        return gamesByID[id]
     }
 
     var selectedGame: Game? { game(selectedGameID) }
@@ -241,8 +240,7 @@ final class LibraryModel {
     // MARK: Screen
 
     var screen: LibraryScreen {
-        if case .failed(let message) = phase { return .failed(message) }
-        if phase == .loading { return .loading }
+        if loading { return .loading }
         if isSearching {
             let results = searchResults
             return results.isEmpty
@@ -321,9 +319,6 @@ final class LibraryModel {
         return count
     }
 
-    // What the toolbar reads aloud: "Search, 0 results"
-    var toolbarText: String { "\(title), \(subtitle)" }
-
     static func count(_ n: Int, result: Bool) -> String {
         if result { return n == 1 ? String(localized: "1 result") : String(localized: "\(n) results") }
         return n == 1 ? String(localized: "1 game") : String(localized: "\(n) games")
@@ -371,39 +366,38 @@ final class LibraryModel {
     func select(_ id: String?) { selectedGameID = id }
 
     func toggleFavorite(_ id: String) {
-        if let i = choices.favorites.firstIndex(of: id) {
-            choices.favorites.remove(at: i)
-        } else {
-            choices.favorites.append(id)
-        }
+        choices.favorites.formSymmetricDifference([id])
         persist()
     }
 
     func hide(_ id: String) {
-        guard !choices.hidden.contains(id) else { return }
-        choices.hidden.append(id)
+        guard choices.hidden.insert(id).inserted else { return }
         persist()
         if selectedGameID == id { keepSelectionVisible() }
     }
 
     func unhide(_ id: String) {
-        choices.hidden.removeAll { $0 == id }
+        choices.hidden.remove(id)
         persist()
     }
 
     func setCover(_ image: URL, for id: String) {
         do {
             let name = try store.keepCover(image, for: id)
+            let old = choices.covers[id]
             choices.covers[id] = name
             persist()
+            old.map(store.deleteCover)
         } catch {
             problem = String(localized: "Cartouche couldn’t use this image: \(error.localizedDescription)")
         }
     }
 
     func clearCover(for id: String) {
+        guard let old = choices.covers[id] else { return }
         choices.covers[id] = nil
         persist()
+        store.deleteCover(old)
     }
 
     func coverOverride(for id: String) -> URL? {
@@ -422,7 +416,7 @@ final class LibraryModel {
         }
     }
 
-    // Several setups at once, saved once, as Steam already has them (P3)
+    // Several setups at once, saved once, as Steam already has them
     func adoptSetups(_ updates: [String: GameSetupChoice]) {
         guard !updates.isEmpty else { return }
         choices.setups.merge(updates) { _, new in new }

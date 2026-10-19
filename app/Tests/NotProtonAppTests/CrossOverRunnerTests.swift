@@ -157,7 +157,10 @@ struct CrossOverRunnerTests {
         #expect(outcome.build.id == found.id)
         #expect(outcome.installed.ntdll == CrossOverFixture.arches)
 
-        let problems = RunnerRegistry.verify(found, runners: fixture.runners, bridge: fixture.bridge)
+        let problems = RunnerPatcher.verify(
+            build: try #require(found.build),
+            root: SupportPaths.clonedRoot(forBuild: found.id, runners: fixture.runners),
+            bridge: fixture.bridge)
         #expect(problems.isEmpty)
         registry.apply(.verified(problems: problems), to: found.id)
         #expect(registry.runner(id: found.id)?.state == .ready)

@@ -17,6 +17,28 @@
         }
       }
     },
+    "%@ is already running. Quit the open %@ first." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ is already running. Quit the open %2$@ first."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ è già in esecuzione. Chiudi prima il %2$@ aperto."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 已在运行。请先退出已打开的 %2$@。"
+          }
+        }
+      }
+    },
     "%@ is missing" : {
       "localizations" : {
         "it" : {
@@ -643,6 +665,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在独立模拟器中运行"
+          }
+        }
+      }
+    },
+    "Quit the game first to change this setting." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Quit the game first to change this setting."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esci prima dal gioco per modificare questa impostazione."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先退出游戏再更改此设置。"
           }
         }
       }

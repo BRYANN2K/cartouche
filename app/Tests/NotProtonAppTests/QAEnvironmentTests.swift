@@ -121,6 +121,31 @@ struct QAEnvironmentTests {
         }
     }
 
+    @Test("In QA mode the Steam fallback stays inside the QA home")
+    func qaSteamFallback() {
+        withEnv(nil) {
+            #expect(SupportPaths.Steam.defaultApp == URL(filePath: "/Applications/Steam.app"))
+        }
+        withEnv("http://127.0.0.1:8890") {
+            let fallback = SupportPaths.Steam.defaultApp
+            #expect(fallback.path(percentEncoded: false) != "/Applications/Steam.app")
+            #expect(fallback.path(percentEncoded: false)
+                .hasPrefix(SupportPaths.home.path(percentEncoded: false)))
+        }
+    }
+
+    @Test("Store sign-ins use their own Keychain service in QA mode")
+    func qaKeychainService() {
+        withEnv(nil) {
+            #expect(KeychainVault.service == "dev.bryann2k.cartouche.store")
+            #expect(KeychainVault().service == "dev.bryann2k.cartouche.store")
+        }
+        withEnv("http://127.0.0.1:8890") {
+            #expect(KeychainVault.service == "dev.bryann2k.cartouche.store.qa")
+            #expect(KeychainVault().service == "dev.bryann2k.cartouche.store.qa")
+        }
+    }
+
     @Test("__pins.json yields its sha256s in either shape")
     func pinsParse() throws {
         let a = Digest.sha256(of: Data("a".utf8))
@@ -233,18 +258,21 @@ struct QAEnvironmentTests {
                 pin, backends: backends, downloads: downloads, session: StubServer.session)
         }
 
-        // The receipt carries the pin, and every deployed file verifies
+        // The receipt carries the pin, and every deployed file matches it
         #expect(receipt.archiveSHA256 == pin.sha256)
         #expect(receipt.version == shipped.version)
-        #expect(BackendInstaller.verify(.dxmt, in: backends).isEmpty)
+        let deployed = BackendInstaller.folder(for: .dxmt, in: backends)
+        #expect(receipt.files.allSatisfy { path, hash in
+            Digest.sha256IfPresent(deployed.appending(path: path)) == hash
+        })
     }
 
     // https literals that intentionally stay unwrapped: display-only links
     // (shown or opened by the user, never fetched), the User-Agent contact,
     // package defaults the app overrides at injection points (CoreSource.qa,
     // DatabaseSource.qa, OfficialRelease's base, Thumbnails.base), and Info.plist's
-    // SUFeedURL — re-pointed by UpdateChannelDelegate.feedURLString and
-    // CompatibilityClient.feed. A fetched endpoint must instead sit inside
+    // SUFeedURL — Sparkle never runs in a QA build, so nothing fetches it.
+    // A fetched endpoint must instead sit inside
     // QAEnvironment.url(...) on its own line (the run script uses the variable).
     private static let allowedLiterals: [String: [String]] = [
         "app/Sources/NotProtonApp/Support/Attribution.swift": [

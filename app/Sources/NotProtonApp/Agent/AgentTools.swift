@@ -56,6 +56,20 @@ enum AgentTools {
         return game
     }
 
+    // Write tools get a stricter lookup: the exact id or the only name match —
+    // a bare "a" must not pick an arbitrary game for a change the user sees.
+    static func findStrict(_ backend: AgentBackend, _ args: JSONValue) throws -> Game {
+        let id = try args.require("game")
+        if let game = backend.game(id) { return game }
+        let named = backend.games().filter {
+            $0.name.range(of: id, options: .caseInsensitive) != nil
+        }
+        if named.count == 1 { return named[0] }
+        guard !named.isEmpty else { throw AgentToolError("no game \"\(id)\" in the library") }
+        throw AgentToolError("\"\(id)\" matches \(named.count) games: "
+            + named.prefix(5).map(\.name).joined(separator: ", "))
+    }
+
     static func requireConsole(_ backend: AgentBackend, _ args: JSONValue) throws -> ConsoleGame {
         let id = try args.require("game")
         guard let game = backend.consoleGame(id) else { throw AgentToolError("no console game \"\(id)\"") }
@@ -108,13 +122,36 @@ enum AgentTools {
         return job
     }
 
+    // Only the last megabyte is read: Wine logs can grow to gigabytes.
     static func tail(_ url: URL, lines n: Int, grep: String?) -> String {
-        guard let data = try? Data(contentsOf: url) else { return "" }
-        let text = String(decoding: data.suffix(1 << 20), as: UTF8.self)
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return "" }
+        defer { try? handle.close() }
+        guard let size = try? handle.seekToEnd() else { return "" }
+        try? handle.seek(toOffset: size > 1 << 20 ? size - (1 << 20) : 0)
+        guard let data = try? handle.readToEnd() else { return "" }
+        let text = String(decoding: data, as: UTF8.self)
         var lines = text.components(separatedBy: .newlines)
         if let grep, !grep.isEmpty {
             lines = lines.filter { $0.range(of: grep, options: .caseInsensitive) != nil }
         }
         return lines.suffix(max(1, n)).joined(separator: "\n")
+    }
+}
+
+// One JSON object per line: the action and report logs, where a hand-quoted
+// "\n" in a field would forge extra entries.
+enum JSONLines {
+    static func append(_ value: some Encodable, to file: URL) throws {
+        try FileManager.default.createDirectory(
+            at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+        var data = try JSONEncoder().encode(value)
+        data.append(0x0A)
+        if let handle = try? FileHandle(forWritingTo: file) {
+            defer { try? handle.close() }
+            handle.seekToEndOfFile()
+            handle.write(data)
+        } else {
+            try data.write(to: file)
+        }
     }
 }

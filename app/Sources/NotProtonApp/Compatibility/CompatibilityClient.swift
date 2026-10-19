@@ -22,11 +22,12 @@ struct CompatibilityClient: Sendable {
     }
 
     // Body and HTTP status. Throws when the server cannot be reached.
-    typealias Fetch = @Sendable (URL) async throws -> (Data, Int)
+    typealias Fetch = HTTPFetch.Fetch
 
     let directory: URL
     var feed: URL? = CompatibilityClient.feed
-    var fetch: Fetch = CompatibilityClient.download
+    var fetch: Fetch = HTTPFetch.download(timeout: 30, resourceTimeout: 5 * 60,
+                                        userAgent: "Cartouche/\(AppVersion.bundled)")
 
     var cacheFile: URL { directory.appending(path: "compat.json.gz") }
     var stateFile: URL { directory.appending(path: "fetch-state.json") }
@@ -108,18 +109,5 @@ struct CompatibilityClient: Sendable {
             AppLog.note("compatibility download not saved: \(error)")
         }
         return .updated(fresh)
-    }
-
-    static let session: URLSession = {
-        let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 30
-        config.timeoutIntervalForResource = 5 * 60
-        config.httpAdditionalHeaders = ["User-Agent": "Cartouche/\(AppVersion.bundled)"]
-        return URLSession(configuration: config)
-    }()
-
-    @Sendable static func download(_ url: URL) async throws -> (Data, Int) {
-        let (data, response) = try await session.data(from: url)
-        return (data, (response as? HTTPURLResponse)?.statusCode ?? 0)
     }
 }

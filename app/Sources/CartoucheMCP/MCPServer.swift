@@ -8,7 +8,6 @@ public enum MCP {
     public static let serverName = "cartouche"
 }
 
-// One tool as tools/list describes it.
 public struct MCPToolInfo: Sendable, Equatable {
     public var name: String
     public var detail: String
@@ -38,13 +37,12 @@ public struct MCPToolInfo: Sendable, Equatable {
 }
 
 public enum MCPError: LocalizedError {
-    case parse(String)
     case methodNotFound(String)
     case invalidParams(String)
 
     public var errorDescription: String? {
         switch self {
-        case .parse(let detail), .methodNotFound(let detail), .invalidParams(let detail): detail
+        case .methodNotFound(let detail), .invalidParams(let detail): detail
         }
     }
 }
@@ -81,20 +79,19 @@ public struct MCPServer: Sendable {
     public init(handler: any MCPHandling) { self.handler = handler }
 
     public func handle(_ message: JSONValue) async -> JSONValue? {
-        // A batch is answered as a batch, keeping the client's order.
         if case .array(let batch) = message {
             var out: [JSONValue] = []
             for item in batch { if let reply = await handle(item) { out.append(reply) } }
             return out.isEmpty ? nil : .array(out)
         }
         guard let method = message["method"]?.string else {
-            return message["id"] == nil ? nil : reply(to: message, error: (-32600, "request without method"))
+            return message["id"] == nil ? nil : Self.reply(to: message, error: (-32600, "request without method"))
         }
         switch method {
         case "initialize":
             let client = message["params"]?["clientInfo"]?["name"]?.string ?? "agent"
             await handler.initialize(client: client)
-            return reply(to: message, result: [
+            return Self.reply(to: message, result: [
                 "protocolVersion": .string(MCP.protocolVersion),
                 "capabilities": [
                     "tools": ["listChanged": .bool(false)],
@@ -107,42 +104,53 @@ public struct MCPServer: Sendable {
         case let m where m.hasPrefix("notifications/"):
             return nil
         case "ping":
-            return reply(to: message, result: [:])
+            return Self.reply(to: message, result: [:])
         case "tools/list":
             let tools = await handler.tools(client: handler.clientName)
-            return reply(to: message, result: ["tools": .array(tools.map(\.json))])
+            return Self.reply(to: message, result: ["tools": .array(tools.map(\.json))])
         case "tools/call":
             guard let name = message["params"]?["name"]?.string else {
-                return reply(to: message, error: (-32602, "tools/call without a name"))
+                return Self.reply(to: message, error: (-32602, "tools/call without a name"))
             }
             let arguments = message["params"]?["arguments"] ?? .object([:])
             do {
-                // The handler answers a whole tools/call result payload.
                 let result = try await handler.callTool(name, arguments: arguments, client: handler.clientName)
-                return reply(to: message, result: result)
+                return Self.reply(to: message, result: result)
             } catch let failure as MCPError {
-                return reply(to: message, error: (-32602, Self.describe(failure)))
+                let code = switch failure {
+                case .methodNotFound: -32601
+                case .invalidParams: -32602
+                }
+                return Self.reply(to: message, error: (code, failure.localizedDescription))
             } catch {
-                return reply(to: message, result: Self.errorContent(error.localizedDescription))
+                return Self.reply(to: message, result: Self.errorContent(error.localizedDescription))
             }
         case "resources/list":
             let resources = await handler.resources(client: handler.clientName)
-            return reply(to: message, result: ["resources": .array(resources)])
+            return Self.reply(to: message, result: ["resources": .array(resources)])
         case "resources/read":
             guard let uri = message["params"]?["uri"]?.string else {
-                return reply(to: message, error: (-32602, "resources/read without a uri"))
+                return Self.reply(to: message, error: (-32602, "resources/read without a uri"))
             }
             do {
                 let text = try await handler.readResource(uri, client: handler.clientName)
-                return reply(to: message, result: [
+                return Self.reply(to: message, result: [
                     "contents": [["uri": .string(uri), "mimeType": "application/json", "text": .string(text)]],
                 ])
             } catch {
-                return reply(to: message, error: (-32602, error.localizedDescription))
+                return Self.reply(to: message, error: (-32602, error.localizedDescription))
             }
         default:
-            return reply(to: message, error: (-32601, "no such method \(method)"))
+            return Self.reply(to: message, error: (-32601, "no such method \(method)"))
         }
+    }
+
+    // The transport-level entry: JSON-RPC bytes in, reply bytes out; a
+    // notification (or undecodable line) answers empty.
+    public func handle(data: Data) async -> Data {
+        guard let message = try? JSONDecoder().decode(JSONValue.self, from: data),
+              let reply = await handle(message) else { return Data() }
+        return (try? JSONEncoder().encode(reply)) ?? Data()
     }
 
     // One tool result: structured content plus its JSON as the text block
@@ -163,23 +171,15 @@ public struct MCPServer: Sendable {
         ]
     }
 
-    private func reply(to message: JSONValue, result: JSONValue) -> JSONValue {
+    public static func reply(to message: JSONValue, result: JSONValue) -> JSONValue {
         ["jsonrpc": "2.0", "id": message["id"] ?? .null, "result": result]
     }
 
-    private func reply(to message: JSONValue, error: (Int, String)) -> JSONValue {
+    public static func reply(to message: JSONValue, error: (Int, String)) -> JSONValue {
         [
             "jsonrpc": "2.0",
             "id": message["id"] ?? .null,
             "error": ["code": .number(Double(error.0)), "message": .string(error.1)],
         ]
-    }
-
-    static func describe(_ error: MCPError) -> String {
-        switch error {
-        case .parse(let detail): detail
-        case .methodNotFound(let detail): detail
-        case .invalidParams(let detail): detail
-        }
     }
 }

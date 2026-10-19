@@ -98,7 +98,7 @@ struct StandaloneConsoleTests {
         #expect(FakeEmulatorApp.arguments(args) == ["-b", "-e", game.fileURL.path])
         #expect(await retroArch.requests.isEmpty)
 
-        let compat = try fixtureCompat(scene.work, defaults: scene.scratch)
+        let compat = try await fixtureCompat(scene.work, defaults: scene.scratch)
         let slot = try await renderedTexts(sidebar(scene), size: CGSize(width: 280, height: 560), named: "p16-activity-dolphin")
         _ = try await renderedTexts(sidebar(scene), size: CGSize(width: 280, height: 560), named: "p16-activity-dolphin", dark: true)
         #expect(seen(slot, "Playing on Dolphin") && seen(slot, "Cartouche Homebrew") && seen(slot, "Quit"))
@@ -151,7 +151,7 @@ struct StandaloneConsoleTests {
         let retroArch = scene.useFakeRunner(picture: try ConsolePanelTests.screen("RA"))
         await scene.center.emulators.refresh()
 
-        let compat = try fixtureCompat(scene.work, defaults: scene.scratch)
+        let compat = try await fixtureCompat(scene.work, defaults: scene.scratch)
         let texts = try await renderedTexts(try panel(scene, game.id, compat), size: CGSize(width: 360, height: 980), named: "p16-panel-not-installed")
         _ = try await renderedTexts(try panel(scene, game.id, compat), size: CGSize(width: 360, height: 980), named: "p16-panel-not-installed", dark: true)
         #expect(seen(texts, "Dolphin is not installed"))

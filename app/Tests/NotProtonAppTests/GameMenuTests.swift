@@ -79,7 +79,7 @@ struct GameMenuTests {
         let (model, runner, opened, fixture) = try await setUp("menubar")
         defer { fixture.remove() }
         let game = try #require(model.game("steam:730"))
-        let actions = GameMenu.actions(GameMenu.items(for: game, in: model))
+        let actions = GameMenu.items(for: game, in: model).flatMap(\.flatActions)
         #expect(actions.contains(.play) && actions.contains(.toggleFavorite) && actions.contains(.getInfo))
         #expect(actions.contains(.graphics(.dxmt)) && actions.contains(.hide) && actions.contains(.changeCover))
         #expect(actions.contains(.showInFinder) && actions.contains(.uninstall))
@@ -87,8 +87,8 @@ struct GameMenuTests {
         // The Game menu renders GameMenu.items for the selected game, the same call as the context menu
         let app = try String(contentsOf: IdentityTests.repoRoot.appending(path: "app/Sources/NotProtonApp/App.swift"), encoding: .utf8)
         let grid = try String(contentsOf: IdentityTests.repoRoot.appending(path: "app/Sources/NotProtonApp/Library/Views/LibraryGrid.swift"), encoding: .utf8)
-        #expect(app.contains("GameMenuContent(items: GameMenu.items(for: game, in: model))"))
-        #expect(grid.contains("menu: { GameMenu.items(for: game, in: model) }"))
+        #expect(app.contains("GameMenuContent(items: GameMenu.items(for: game, in: model, stores: stores))"))
+        #expect(grid.contains("menu: { GameMenu.items(for: game, in: model, stores: stores) }"))
 
         runner.perform(.graphics(.dxmt), on: game)
         #expect(model.setup(for: game.id).graphics == .dxmt)

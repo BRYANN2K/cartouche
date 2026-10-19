@@ -15,7 +15,7 @@ struct StoreExpiryTests {
         await scene.signIn(.epic, code: "epic-good-code")
         let game = try #require(scene.model.game("epic:Fennec"))
         scene.center.install(game)
-        await scene.waitForJobs()
+        #expect(await scene.waitForJobs())
         #expect(scene.center.record("epic:Fennec") != nil)
         return scene
     }
@@ -67,7 +67,7 @@ struct StoreExpiryTests {
         await scene.center.refresh(.epic)
         let game = try #require(scene.model.game("epic:Fennec"))
         GameActionRunner(model: scene.model, stores: scene.center).perform(.play, on: game)
-        await scene.waitUntil { !scene.center.playing.contains(game.id) && scene.text("wine.calls").contains("Game.exe") }
+        #expect(await scene.waitUntil { !scene.center.playing.contains(game.id) && scene.text("wine.calls").contains("Game.exe") })
         let wine = scene.text("wine.calls")
         #expect(wine.contains("Binaries/Game.exe -windowed -epicapp=Fennec"))
         #expect(!wine.contains("AUTH_PASSWORD"))
@@ -83,7 +83,7 @@ struct StoreExpiryTests {
         await scene.center.refresh(.epic)
         scene.model.selection = .source(.epic)
         scene.model.select("epic:Fennec")
-        let compat = try fixtureCompat(scene.work, defaults: scene.defaults)
+        let compat = try await fixtureCompat(scene.work, defaults: scene.defaults)
         for dark in [false, true] {
             let view = LibraryWindow(model: scene.model, compat: compat, steamSetup: SteamSetup(defaults: scene.defaults.defaults),
                                      actions: GameActionRunner(model: scene.model, open: { _ in }, stores: scene.center))

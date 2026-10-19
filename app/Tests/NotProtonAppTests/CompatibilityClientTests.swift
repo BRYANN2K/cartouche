@@ -149,7 +149,7 @@ struct CompatibilityClientTests {
 
         let model = CompatibilityModel(client: client)
         model.now = { CompatFixture.generated.addingTimeInterval(86400) }
-        model.load()
+        await model.load()
         let outcome = await model.refresh()
 
         guard case .rejected = outcome else { Issue.record("\(kind): got \(String(describing: outcome))"); return }

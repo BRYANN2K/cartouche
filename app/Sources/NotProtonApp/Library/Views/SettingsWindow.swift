@@ -57,12 +57,14 @@ struct SettingsWindow: View {
     let model: LibraryModel
     let permissions: PermissionCenter
     let consoles: ConsolesSettingsModel
+    // The choices CompatibilityModel reads, so the toggles reach it
+    let choices: PrivacyChoices
 
     @State private var tab: SettingsTab = .general
     @Environment(ControlsCenter.self) private var controls: ControlsCenter?
-    // Achievements, iCloud Drive and translation in Settings > Consoles (P14); emulators (P16)
+    // Achievements, iCloud Drive and translation in Settings > Consoles; emulators
     @Environment(ConsoleCenter.self) private var consoleCenter: ConsoleCenter?
-    // Level, transports, pending approvals and the action log (P11)
+    // Level, transports, pending approvals and the action log
     @Environment(AgentControlModel.self) private var agents: AgentControlModel?
 
     var body: some View {
@@ -83,7 +85,7 @@ struct SettingsWindow: View {
         case .library: LibrarySettingsView(model: model)
         case .accounts: AccountsSettingsView(model: model)
         case .compatibility: CompatibilitySettingsView(model: model)
-        case .privacy: PrivacySettingsView(center: permissions)
+        case .privacy: PrivacySettingsView(center: permissions, choices: choices)
         case .consoles: ConsolesSettingsView(model: consoles, extras: consoleCenter?.extras, emulators: consoleCenter?.emulators)
         case .controllers: if let controls { ControllersSettingsView(center: controls) }
         case .agents: if let agents { AgentsSettingsView(model: agents) }
@@ -127,6 +129,7 @@ struct GeneralSettingsView: View {
 struct LibrarySettingsView: View {
     @Bindable var model: LibraryModel
     @State private var steamPath = SupportPaths.Steam.app.path(percentEncoded: false)
+    @State private var locateError: String?
 
     var body: some View {
         Form {
@@ -137,10 +140,21 @@ struct LibrarySettingsView: View {
                         Text(verbatim: steamPath).font(.callout.monospaced()).foregroundStyle(.secondary)
                             .lineLimit(1).truncationMode(.middle)
                         Button("Locate Steam…") {
-                            if let app = SteamInstallView.chooseSteam(), SteamSetup().locate(app) {
+                            guard let app = SteamInstallView.chooseSteam() else { return }
+                            // The throwaway model carries the "not Steam" text
+                            // in its stage; show it instead of dropping it
+                            let setup = SteamSetup()
+                            if setup.locate(app) {
                                 steamPath = app.path(percentEncoded: false)
                                 Task { await model.load() }
+                            } else if case .failed(let message) = setup.stage {
+                                locateError = message
                             }
+                        }
+                        .alert(String(localized: "Locate Steam"), isPresented: Binding(
+                            get: { locateError != nil }, set: { if !$0 { locateError = nil } })
+                        ) {} message: {
+                            if let locateError { Text(verbatim: locateError) }
                         }
                     }
                 }

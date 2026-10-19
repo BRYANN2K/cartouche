@@ -1,4 +1,4 @@
-// The game panel's Your Play section and its Compare Setups sheet (P8)
+// The game panel's Your Play section and its Compare Setups sheet
 
 import SwiftUI
 

@@ -32,9 +32,10 @@ public struct CloudSaves: Sendable {
          (paths.states, cloud.appending(path: "States", directoryHint: .isDirectory))]
     }
 
-    private static func path(_ url: URL) -> String { url.path(percentEncoded: false).trimmingSuffix("/") }
+    static func path(_ url: URL) -> String { url.path(percentEncoded: false).trimmingSuffix("/") }
 
-    private static func link(at url: URL) -> String? {
+    // Where a folder link points, for the iCloud-Linked Saves and States folders
+    static func link(at url: URL) -> String? {
         try? FileManager.default.destinationOfSymbolicLink(atPath: path(url))
     }
 
@@ -58,13 +59,23 @@ public struct CloudSaves: Sendable {
         }
     }
 
-    // Folders of this Mac again, with a copy of what iCloud Drive holds
+    // Folders of this Mac again, with a copy of what iCloud Drive holds. The
+    // copy is staged and swapped in, so a failed one leaves the link in place.
     public func turnOff() throws {
         let files = FileManager.default
         for (local, remote) in pairs where Self.link(at: local) != nil {
+            let staging = local.deletingLastPathComponent()
+                .appending(path: ".\(local.lastPathComponent).cartouche-staging", directoryHint: .isDirectory)
+            try? files.removeItem(at: staging)
+            try files.createDirectory(at: staging, withIntermediateDirectories: true)
+            do {
+                if files.fileExists(atPath: Self.path(remote)) { try Self.merge(from: remote, into: staging, move: false) }
+            } catch {
+                try? files.removeItem(at: staging)
+                throw error
+            }
             try files.removeItem(atPath: Self.path(local))
-            try files.createDirectory(at: local, withIntermediateDirectories: true)
-            if files.fileExists(atPath: Self.path(remote)) { try Self.merge(from: remote, into: local, move: false) }
+            try files.moveItem(at: staging, to: local)
         }
     }
 
@@ -81,6 +92,9 @@ public struct CloudSaves: Sendable {
         // Paths relative to the folder, whatever links lead to it
         guard let walker = files.enumerator(atPath: base) else { return }
         while let relative = walker.nextObject() as? String {
+            // iCloud Drive's dataless stubs, named .name.icloud, are not saves
+            let name = (relative as NSString).lastPathComponent
+            if name.hasPrefix("."), name.hasSuffix(".icloud") { continue }
             let file = URL(fileURLWithPath: base).appending(path: relative)
             let values = try file.resourceValues(forKeys: [.isDirectoryKey, .contentModificationDateKey])
             let destination = target.appending(path: relative)

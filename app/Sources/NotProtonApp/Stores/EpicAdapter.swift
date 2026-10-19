@@ -16,7 +16,7 @@ struct EpicAdapter: StoreAdapter {
     static let clientID = "34a02cf8f4414e29b15921876da36f9a"
 
     var capabilities: StoreCapabilities {
-        StoreCapabilities(client: "legendary", downloads: true, cloudSaves: true, online: .dependsOnGame)
+        StoreCapabilities(client: "legendary", cloudSaves: true, online: .dependsOnGame)
     }
 
     func signInPage() async throws -> SignInPage {
@@ -34,7 +34,7 @@ struct EpicAdapter: StoreAdapter {
     }
 
     func finishSignIn(code: String) async throws -> String {
-        let output = try await legendary(["auth", "--code", code])
+        let output = try await legendary(["auth", "--code", code], fresh: true)
         guard output.succeeded, !output.stderr.contains("Login attempt failed") else {
             throw StoreError.failed(String(localized: "Epic Games did not accept the sign-in. Try again."))
         }
@@ -103,6 +103,10 @@ struct EpicAdapter: StoreAdapter {
 
     func uninstall(_ id: String, install: StoreInstall) async throws {
         _ = try await checked(["-y", "uninstall", id, "--skip-uninstaller"])
+    }
+
+    func forget(_ id: String) async throws {
+        _ = try await checked(["-y", "uninstall", id, "--keep-files", "--skip-uninstaller"])
     }
 
     func importGame(at folder: URL, library: [StoreGame]) async throws -> (StoreGame, StoreInstall) {
@@ -202,8 +206,9 @@ struct EpicAdapter: StoreAdapter {
 
     // MARK: Running legendary
 
-    private func legendary(_ arguments: [String], progress: (@Sendable (Double) -> Void)? = nil) async throws -> ClientOutput {
-        try await context.run(.legendary, store: .epic, arguments) { line in
+    private func legendary(_ arguments: [String], fresh: Bool = false,
+                           progress: (@Sendable (Double) -> Void)? = nil) async throws -> ClientOutput {
+        try await context.run(.legendary, store: .epic, arguments, fresh: fresh) { line in
             if let fraction = ClientProgress.fraction(line) { progress?(fraction) }
         }
     }

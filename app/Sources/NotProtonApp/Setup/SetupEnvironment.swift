@@ -10,15 +10,24 @@ import InstallerKit
 
 enum SetupEnvironment {
 
+    // The minimal environment every game, installer and store client starts from:
+    // nothing of the calling process leaks through.
+    static let base: [String: String] = [
+        "HOME": SupportPaths.home.path(percentEncoded: false),
+        "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
+        "LANG": "en_US.UTF-8",
+    ]
+
     // Wine's own variables plus the backend and the game's extra variables.
     // Only the names GameSetupResolver forwards are kept.
     static func make(
         wine: WineRunner, prefix: URL, backend: GraphicsBackend?,
         environment: [String: String] = [:],
-        backends: URL = BackendInstaller.folder, base: [String: String]
+        backends: URL = BackendInstaller.folder, runners: URL = SupportPaths.runners,
+        base: [String: String]
     ) -> [String: String] {
         var env = WineInstall.environment(runner: wine, prefix: prefix, inputs: nil, base: base)
-        applyBackend(&env, backend: backend, wine: wine, backends: backends)
+        applyBackend(&env, backend: backend, wine: wine, backends: backends, runners: runners)
         for (name, value) in environment where GameSetupResolver.isAllowed(name: name, value: value) {
             env[name] = value
         }
@@ -26,14 +35,24 @@ enum SetupEnvironment {
     }
 
     // The backend part: CX_GRAPHICS_BACKEND always, and for a non-CrossOver Wine
-    // the pinned DLLs ahead of WINEDLLPATH with their builtin overrides.
-    static func applyBackend(_ env: inout [String: String], backend: GraphicsBackend?, wine: WineRunner, backends: URL) {
+    // the user's libd3dshared or the pinned DXMT or DXVK DLLs ahead of WINEDLLPATH.
+    static func applyBackend(
+        _ env: inout [String: String], backend: GraphicsBackend?, wine: WineRunner,
+        backends: URL, runners: URL = SupportPaths.runners
+    ) {
         guard let backend else { return }
         env["CX_GRAPHICS_BACKEND"] = backend.rawValue
         let crossOver = FileManager.default.fileExists(atPath: wine.root.appending(path: "share/crossover").path(percentEncoded: false))
-        if !crossOver, let dlls = dlls(backend, backends: backends) {
-            env["WINEDLLPATH"] = dlls.path + ":" + (env["WINEDLLPATH"] ?? "")
-            env["WINEDLLOVERRIDES"] = (env["WINEDLLOVERRIDES"].map { $0 + ";" } ?? "") + dlls.overrides
+        guard !crossOver else { return }
+        // A Wine built from CodeWeavers' source loads the user's D3DMetal through this
+        if backend == .d3dmetal, let shared = PortingToolkitSource.libd3dshared(runners: runners) {
+            env["CX_APPLEGPTK_LIBD3DSHARED_PATH"] = shared.path(percentEncoded: false)
+        }
+        if let dlls = dlls(backend, backends: backends) {
+            env["WINEDLLPATH"] = ([dlls.path] + [env["WINEDLLPATH"]])
+                .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ":")
+            env["WINEDLLOVERRIDES"] = ([env["WINEDLLOVERRIDES"]] + [dlls.overrides])
+                .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ";")
         }
     }
 

@@ -21,26 +21,32 @@ final class InstallCenter {
     static let shared = InstallCenter()
 
     var isSheetPresented = false
-    // Console Games in the first step's picker: the library's Add Games sheet (P13)
+    // Console Games in the first step's picker: the library's Add Games sheet
     @ObservationIgnored var showConsoleGames: (@MainActor () -> Void)?
     private(set) var jobs: [InstallJob] = []
     let sheet: InstallSheetModel
 
     @ObservationIgnored var engine: InstallEngine
     @ObservationIgnored var notifier: any InstallNotifying
-    // Set by the host so the first finished install offers notifications (P17).
+    // Set by the host so the first finished install offers notifications.
     @ObservationIgnored var permissionFlow: PermissionFlow?
     // Called when a finished install is in the library record, for the library to show it.
     @ObservationIgnored var onGameReady: @MainActor (InstalledGame) -> Void = { _ in }
+    // One compat-name index for every analysis, shared with the store sign-in.
+    @ObservationIgnored let titles = TitleIndex()
     // Where game matches come from; the host can pass its CompatibilityModel's data.
-    @ObservationIgnored var compat: @MainActor () -> CompatData? = {
-        let model = CompatibilityModel()
-        model.load()
-        return model.data
-    }
+    @ObservationIgnored var compat: @MainActor () async -> CompatData?
+    @MainActor private static var compatModel: CompatibilityModel?
 
     init(engine: InstallEngine = InstallEngine(), notifier: (any InstallNotifying)? = nil) {
         self.engine = engine
+        self.compat = {
+            if let model = InstallCenter.compatModel { return model.data }
+            let model = CompatibilityModel()
+            await model.load()
+            InstallCenter.compatModel = model
+            return model.data
+        }
         let user = UserInstallNotifier()
         self.notifier = notifier ?? user
         self.sheet = InstallSheetModel()
@@ -50,7 +56,6 @@ final class InstallCenter {
 
     var running: InstallJob? { jobs.first { $0.isRunning } }
 
-    // For the activity card: the running install, or nil.
     var activity: InstallActivity? {
         guard let job = running else { return nil }
         return InstallActivity(title: job.title, fraction: job.progress.fraction, stuck: job.isStuck,
@@ -87,17 +92,26 @@ final class InstallCenter {
     }
 
     func retry(_ job: InstallJob, with fix: RetryFix) {
-        guard let next = job.inputs.applying(fix, runners: engine.runnerIDs()) else { return }
-        job.tried.append(fix)
-        job.inputs = next
+        retry(job, fixes: [fix])
+    }
+
+    // All the fixes of one retry applied to the inputs first, then the job queues
+    // once. A job that is waiting or running is left alone: retrying it again
+    // would start a second engine run on the same job.
+    func retry(_ job: InstallJob, fixes: [RetryFix]) {
+        guard job.phase == .failed || job.phase == .stopped else { return }
+        for fix in fixes {
+            guard let next = job.inputs.applying(fix, runners: engine.runnerIDs()) else { continue }
+            job.tried.append(fix)
+            job.inputs = next
+        }
         job.phase = .waiting
         pump()
     }
 
-    // A retry the RetryFix list does not name (the agent's single_thread,
-    // copy_to_internal_disk): the inputs were changed by hand, so the job
-    // just queues again.
+    // A retry that changed the inputs by hand (the agent's single_thread).
     func requeue(_ job: InstallJob) {
+        guard job.phase == .failed || job.phase == .stopped else { return }
         job.phase = .waiting
         pump()
     }

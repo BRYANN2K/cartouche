@@ -181,7 +181,7 @@ struct SteamInstallView: View {
     }
 }
 
-// A store that is not connected yet: its page and sign-in (P10)
+// A store that is not connected yet: its page and sign-in
 struct SignInView: View {
     let source: GameSource
     @Environment(StoreCenter.self) private var stores: StoreCenter?
@@ -240,14 +240,6 @@ struct EmptyLibraryView: View {
                 Label { Text("No \(source.name) games yet") } icon: { Image(systemName: "gamecontroller") }
             } description: {
                 Text("Games you own show up here once \(source.name) is running and signed in.")
-            }
-        case .failed(let message):
-            ContentUnavailableView {
-                Label { Text("Cartouche couldn’t read your library") } icon: { Image(systemName: "exclamationmark.triangle") }
-            } description: {
-                Text(message)
-            } actions: {
-                Button("Try Again", action: retry)
             }
         default:
             EmptyView()

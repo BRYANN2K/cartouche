@@ -28,31 +28,6 @@ struct CompatibilityPanel: Sendable {
         sourcesLine = CompatibilityCredits.sourcesLine(data)
         self.ageNotice = ageNotice
     }
-
-    // MacGamingDB's own rating and the layer most reports name
-    var macLines: [String] {
-        guard let mac, let rating = mac.rating else { return [] }
-        return [rating.label] + (mac.topLayer.map { [String(localized: "Most reported layer: \($0.label)")] } ?? [])
-    }
-
-    // No number is shown without reports
-    var estimateLines: [String] {
-        guard macReportsOn else { return [String(localized: "Mac reports are turned off in Settings > Privacy")] }
-        switch estimate {
-        case .noReports:
-            return [String(localized: "No reports yet for this version")]
-        case .unknownMac:
-            return [String(localized: "No estimate for this Mac yet")]
-        case .estimate(let e):
-            var lines = [e.rating.label]
-            if let fps = e.fps { lines.append(String(localized: "About \(fps) fps")) }
-            if let settings = e.settings { lines.append(String(localized: "\(settings.label) settings")) }
-            lines.append(e.sameChipCount > 0
-                ? String(localized: "Reports used: \(e.reportCount), including \(e.sameChipCount) on \(e.chip)")
-                : String(localized: "Reports used: \(e.reportCount), all from other Macs"))
-            return lines
-        }
-    }
 }
 
 extension CompatibilityModel {

@@ -54,6 +54,9 @@ public final class ConsoleExtras {
     @ObservationIgnored public var cloud: CloudSaves
     // Read once from the keychain, so it is not asked at every launch
     @ObservationIgnored private var token: String?
+    // The app sets this; turning cloud saves on or off moves the folders
+    // RetroArch is reading, so it is refused while a game plays
+    @ObservationIgnored public var isPlaying: @Sendable () -> Bool = { false }
 
     public init(paths: RetroArchPaths, client: AchievementsClient = AchievementsClient(),
                 secrets: any SecretStore = KeychainSecrets(service: ConsoleExtras.keychainService),
@@ -181,17 +184,23 @@ public final class ConsoleExtras {
 
     public var cloudSaves: Bool { settings.cloudSaves }
 
-    public func setCloudSaves(_ on: Bool) {
+    public func setCloudSaves(_ on: Bool) async {
         problem = nil
+        guard !isPlaying() else {
+            problem = String(localized: "Quit the game first to change this setting.", bundle: .module)
+            return
+        }
+        let cloud = cloud
         do {
             if on {
-                guard cloud.isAvailable else {
+                let available = await Task.detached { cloud.isAvailable }.value
+                guard available else {
                     problem = String(localized: "iCloud Drive is off on this Mac. Turn it on in System Settings, then try again.", bundle: .module)
                     return
                 }
-                try cloud.turnOn()
+                try await Task.detached { try cloud.turnOn() }.value
             } else {
-                try cloud.turnOff()
+                try await Task.detached { try cloud.turnOff() }.value
             }
             change { $0.cloudSaves = on }
         } catch {

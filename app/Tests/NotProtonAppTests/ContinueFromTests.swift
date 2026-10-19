@@ -63,7 +63,7 @@ struct ContinueFromTests {
         await scene.center.quit()
 
         // Quit wrote the auto state; Auto now leads Continue From
-        let states = scene.center.states(for: game)
+        let states = await scene.center.states(for: game)
         #expect(states.map(\.title) == ["Auto", "Slot 3"])
         await scene.center.play(game.id, slot: nil, resume: true, reduceMotion: true)
         #expect(await runner.requests.last?.slot == nil)
@@ -92,7 +92,7 @@ struct ContinueFromTests {
         try await Task.sleep(for: .milliseconds(800))
         await scene.center.quit()
 
-        let states = scene.center.states(for: game)
+        let states = await scene.center.states(for: game)
         #expect(states.map(\.title) == ["Auto", "Slot 3"])
         let pictures = LiveRetroArch.video != "null"
         if pictures { #expect(states.allSatisfy { $0.picture != nil }) }
@@ -100,7 +100,7 @@ struct ContinueFromTests {
         // The panel shows them; Slot 3 is clicked
         let texts = try await renderedTexts(
             GamePanel(game: try #require(scene.library.game(game.id)), model: scene.library,
-                      compat: try fixtureCompat(scene.work, defaults: scene.scratch),
+                      compat: try await fixtureCompat(scene.work, defaults: scene.scratch),
                       actions: GameActionRunner(model: scene.library, open: { _ in }))
                 .environment(scene.center).environment(\.covers, scene.covers).frame(width: 360, height: 900),
             size: CGSize(width: 360, height: 900), named: "continue-from-live")

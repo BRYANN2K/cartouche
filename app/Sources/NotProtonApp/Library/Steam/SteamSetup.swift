@@ -109,8 +109,30 @@ final class SteamSetup {
         let attach = try Shell.run("/usr/bin/hdiutil", ["attach", "-nobrowse", "-readonly", "-mountpoint", mount.path, dmg.path])
         guard attach.succeeded else { throw Failed(errorDescription: attach.stderr) }
         defer { _ = try? Shell.run("/usr/bin/hdiutil", ["detach", mount.path, "-force"]) }
-        let copy = try Shell.run("/usr/bin/ditto", [mount.appending(path: "Steam.app").path, applications.appending(path: "Steam.app").path])
+        let app = mount.appending(path: "Steam.app")
+        try verifyValveApp(app)
+        // ditto merges into an existing app, so refuse rather than write over one
+        let destination = applications.appending(path: "Steam.app")
+        guard !FileManager.default.fileExists(atPath: destination.path(percentEncoded: false)) else {
+            throw Failed(errorDescription: String(localized: "Steam is already in \(applications.lastPathComponent)."))
+        }
+        let copy = try Shell.run("/usr/bin/ditto", [app.path, destination.path])
         guard copy.succeeded else { throw Failed(errorDescription: copy.stderr) }
+    }
+
+    // Only Valve's signature may land in Applications; HTTPS alone does not
+    // prove the DMG is Valve's, as the URL can be re-pointed in QA mode
+    nonisolated static func verifyValveApp(_ app: URL) throws {
+        let check = try Shell.run("/usr/bin/codesign", ["--verify", "--deep", "--strict", app.path(percentEncoded: false)])
+        guard check.succeeded else {
+            throw Failed(errorDescription: check.stderr.isEmpty
+                ? String(localized: "The downloaded Steam app is not signed.")
+                : check.stderr)
+        }
+        let signature = try Shell.run("/usr/bin/codesign", ["-dv", "--verbose=2", app.path(percentEncoded: false)])
+        guard (signature.stdout + signature.stderr).contains("TeamIdentifier=MXGJJ98X76") else {
+            throw Failed(errorDescription: String(localized: "The downloaded Steam app is not signed by Valve."))
+        }
     }
 
     @Sendable static func brewInstall(_ brew: String) async throws {

@@ -5,9 +5,11 @@
 
 import Foundation
 
-struct BackendManifest: Sendable, Equatable, Codable {
+struct BackendManifest: PinnedManifest {
 
+    typealias Invalid = ManifestInvalid
     static let format = 1
+    static let resource = "backends"
 
     struct Pin: Sendable, Equatable, Codable, Identifiable {
         let backend: GraphicsBackend
@@ -32,20 +34,8 @@ struct BackendManifest: Sendable, Equatable, Codable {
 
     func pin(_ backend: GraphicsBackend) -> Pin? { backends.first { $0.backend == backend } }
 
-    struct Invalid: Error, Equatable, CustomStringConvertible {
-        let problems: [String]
-        var description: String { problems.joined(separator: "; ") }
-    }
-
     // The only backends Cartouche may download
     static let downloadable: Set<GraphicsBackend> = [.dxmt, .dxvk]
-
-    static func read(_ data: Data) throws -> BackendManifest {
-        let manifest = try JSONDecoder().decode(BackendManifest.self, from: data)
-        let problems = manifest.problems()
-        guard problems.isEmpty else { throw Invalid(problems: problems) }
-        return manifest
-    }
 
     func problems() -> [String] {
         var found: [String] = []
@@ -59,20 +49,13 @@ struct BackendManifest: Sendable, Equatable, Codable {
                 found.append("\(at): \(pin.url.absoluteString) is not an https URL on github.com")
             }
             if pin.size <= 0 { found.append("\(at): size \(pin.size)") }
-            if !RunnerManifest.isSHA256(pin.sha256) { found.append("\(at): \(pin.sha256) is not a SHA-256") }
+            if !Self.isSHA256(pin.sha256) { found.append("\(at): \(pin.sha256) is not a SHA-256") }
             if pin.files.isEmpty { found.append("\(at): no files") }
-            for path in pin.files where !RunnerManifest.isInside(path) || !BackendInstaller.folders.contains(where: { path.hasPrefix($0 + "/") }) {
+            for path in pin.files where !Self.isInside(path) || !BackendInstaller.folders.contains(where: { path.hasPrefix($0 + "/") }) {
                 found.append("\(at): \(path) is outside \(BackendInstaller.folders.joined(separator: ", "))")
             }
         }
         return found
-    }
-
-    static func bundled() throws -> BackendManifest {
-        guard let url = Bundle.module.url(forResource: "backends", withExtension: "json") else {
-            throw Invalid(problems: ["backends.json is not in the app"])
-        }
-        return try read(Data(contentsOf: url))
     }
 
     static func current() -> BackendManifest {
@@ -122,59 +105,18 @@ enum BackendInstaller {
         BackendManifest.downloadable.sorted { $0.rawValue < $1.rawValue }.compactMap { receipt(for: $0, in: backends) }
     }
 
-    // Files that no longer match the receipt. Empty means ready.
-    static func verify(_ backend: GraphicsBackend, in backends: URL = folder) -> [String] {
-        guard let receipt = receipt(for: backend, in: backends) else { return [] }
-        let root = folder(for: backend, in: backends)
-        return receipt.files.keys.sorted().compactMap { path in
-            Digest.sha256IfPresent(root.appending(path: path)) == receipt.files[path]
-                ? nil : String(localized: "\(path) changed since it was installed.")
-        }
-    }
-
     @discardableResult
     static func install(
         _ pin: BackendManifest.Pin, backends: URL = folder, downloads: URL = BackendInstaller.downloads,
         session: URLSession = PinnedDownload.session
     ) async throws -> Receipt {
-        let extras = await QAEnvironment.extraHashes(session: session)
-        let archive = try await download(pin, into: downloads, session: session, extraHashes: extras)
+        let archive = try await PinnedDownload.obtain(
+            pin.url, sha256: pin.sha256, size: pin.size,
+            into: downloads, step: step, from: "GitHub", session: session)
         defer { try? FileManager.default.removeItem(at: archive) }
+        // A swapped archive is checked again before it is unpacked
+        let extras = await QAEnvironment.extraHashes(session: session)
         return try unpack(archive, pin: pin, backends: backends, extraHashes: extras)
-    }
-
-    // The archive, kept only if its size and SHA-256 match the pin — or, in QA
-    // mode, a hash the mock server lists in __pins.json (QAEnvironment)
-    static func download(
-        _ pin: BackendManifest.Pin, into downloads: URL, session: URLSession, extraHashes: Set<String> = []
-    ) async throws -> URL {
-        let fm = FileManager.default
-        let archive = downloads.appending(path: pin.archiveName)
-        if let onDisk = Digest.sha256IfPresent(archive), onDisk == pin.sha256 || extraHashes.contains(onDisk) { return archive }
-        try? fm.removeItem(at: archive)
-
-        let unreachable = String(localized: "Cartouche could not download \(pin.title). Check your internet connection and try again.")
-        let body: URL, response: URLResponse
-        do {
-            (body, response) = try await session.download(from: QAEnvironment.url(pin.url))
-        } catch {
-            AppLog.note("\(pin.id): \(pin.url.absoluteString) unreachable: \(error.localizedDescription)")
-            throw StepFailure(step: step, detail: unreachable)
-        }
-        defer { try? fm.removeItem(at: body) }
-        if let http = response as? HTTPURLResponse, http.statusCode != 200 {
-            AppLog.note("\(pin.id): \(pin.url.absoluteString) answered \(http.statusCode)")
-            throw StepFailure(step: step, detail: unreachable)
-        }
-        let size = (try? fm.attributesOfItem(atPath: body.path(percentEncoded: false))[.size] as? Int64) ?? -1
-        let got = try Digest.sha256(of: body)
-        guard (size == pin.size && got == pin.sha256) || extraHashes.contains(got) else {
-            AppLog.note("\(pin.id): got \(size) bytes with SHA-256 \(got), the pin is \(pin.size) bytes, \(pin.sha256)")
-            throw StepFailure(step: step, detail: WineRunnerInstaller.damaged)
-        }
-        try fm.createDirectory(at: downloads, withIntermediateDirectories: true)
-        try fm.moveItem(at: body, to: archive)
-        return archive
     }
 
     // Unpacks beside the backends folder and moves the result in only when it is complete
@@ -228,17 +170,8 @@ enum BackendInstaller {
         let receipt = Receipt(backend: pin.backend, version: pin.version, archiveSHA256: pin.sha256, files: files)
         try JSONEncoder().encode(receipt).write(to: result.appending(path: receiptName))
 
-        try? fm.removeItem(at: target)
-        try fm.moveItem(at: result, to: target)
+        try swapIn(result, at: target)
         return receipt
-    }
-
-    static func remove(_ backend: GraphicsBackend, in backends: URL = folder) throws {
-        let target = folder(for: backend, in: backends)
-        guard FileManager.default.fileExists(atPath: target.path(percentEncoded: false)) else { return }
-        try WriteRefused.catching(target.path(percentEncoded: false)) {
-            try FileManager.default.removeItem(at: target)
-        }
     }
 
     // The folder holding x86_64-windows (or x64), at the top or one level down

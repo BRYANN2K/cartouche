@@ -8,9 +8,14 @@ final class MemoryVault: TokenVault, @unchecked Sendable {
     private let lock = NSLock()
     private var items: [String: StoreSecret] = [:]
     private(set) var writes = 0
+    // Set to make the next writes fail, as the Keychain does on a locked Mac
+    var writeError: (any Error)?
 
     func read(_ store: GameSource) throws -> StoreSecret? { lock.withLock { items[store.id] } }
-    func write(_ secret: StoreSecret, for store: GameSource) throws { lock.withLock { items[store.id] = secret; writes += 1 } }
+    func write(_ secret: StoreSecret, for store: GameSource) throws {
+        if let writeError { throw writeError }
+        lock.withLock { items[store.id] = secret; writes += 1 }
+    }
     func delete(_ store: GameSource) throws { lock.withLock { items[store.id] = nil } }
 }
 
@@ -76,7 +81,7 @@ enum StoreStubs {
           [ -n "$offline" ] || signed
           dir="$(cat "$state/epic-installed-$app")"
           code="-AUTH_PASSWORD=exchange-code"; [ -n "$offline" ] && code=""
-          printf '{"game_executable": "Binaries/Game.exe", "game_directory": "%s", "game_parameters": ["-windowed"], "egl_parameters": ["%s", "-epicapp=%s"], "user_parameters": [], "launch_command": [], "working_directory": "%s/Binaries", "environment": {"EOS_TEST": "1"}, "pre_launch_command": "", "pre_launch_wait": false}\n' "$dir" "$code" "$app" "$dir" ;;
+          printf '{"game_executable": "Binaries/Game.exe", "game_directory": "%s", "game_parameters": ["-windowed"], "egl_parameters": ["%s", "-epicapp=%s"], "user_parameters": [], "launch_command": [], "working_directory": "%s/Binaries", "environment": {"DXVK_LOG_LEVEL": "none", "HOME": "/tmp/legendary-home"}, "pre_launch_command": "", "pre_launch_wait": false}\n' "$dir" "$code" "$app" "$dir" ;;
         uninstall) rm -f "$state/epic-installed-$1" ;;
         import) echo "$2" > "$state/epic-installed-$1" ;;
         sync-saves) signed; echo "$*" >> "$state/legendary.saves" ;;
@@ -109,7 +114,9 @@ enum StoreStubs {
         download|update|repair)
           id="$1"; base=""
           while [ $# -gt 0 ]; do [ "$1" = --path ] && base="$2"; shift; done
-          dir="$base/Sample GOG Game"
+          # gogdl's contract: download puts the game folder under --path; update
+          # and repair take the game folder itself (gogdl/args.py).
+          if [ "$cmd" = download ]; then dir="$base/Sample GOG Game"; else dir="$base"; fi
           mkdir -p "$dir/bin"; printf 'MZ' > "$dir/bin/game.exe"
           printf '{"gameId": "%s", "rootGameId": "%s", "clientId": "5310", "name": "Sample GOG Game", "playTasks": [{"category": "game", "isPrimary": true, "name": "Play", "path": "bin\\\\game.exe", "arguments": "-skipintro", "type": "FileTask"}]}' "$id" "$id" > "$dir/goggame-$id.info"
           printf '{"buildId": "5310700"}' > "$dir/goggame-$id.id"
@@ -210,7 +217,7 @@ enum StoreStubs {
         {
           echo "args: $*"
           echo "pwd: $(pwd)"
-          for v in WINEPREFIX CX_GRAPHICS_BACKEND WINEDLLOVERRIDES WINEDLLPATH DXVK_HUD MTL_HUD_ENABLED EOS_TEST HOME; do
+          for v in WINEPREFIX CX_GRAPHICS_BACKEND WINEDLLOVERRIDES WINEDLLPATH DXVK_HUD MTL_HUD_ENABLED DXVK_LOG_LEVEL HOME; do
             eval "echo \"$v=\${$v}\""
           done
           [ -f "$save" ] && echo "found save: $(cat "$save")"
@@ -393,16 +400,20 @@ final class StoreScene {
         await center.finishSignIn(store, code: code)
     }
 
-    func waitForJobs(within limit: Duration = .seconds(20)) async {
+    @discardableResult
+    func waitForJobs(within limit: Duration = .seconds(20)) async -> Bool {
         let end = ContinuousClock.now + limit
         while ContinuousClock.now < end, center.jobs.contains(where: { $0.phase == .running || $0.phase == .waiting }) {
             try? await Task.sleep(for: .milliseconds(50))
         }
+        return !center.jobs.contains { $0.phase == .running || $0.phase == .waiting }
     }
 
-    func waitUntil(within limit: Duration = .seconds(20), _ condition: () -> Bool) async {
+    @discardableResult
+    func waitUntil(within limit: Duration = .seconds(20), _ condition: () -> Bool) async -> Bool {
         let end = ContinuousClock.now + limit
         while ContinuousClock.now < end, !condition() { try? await Task.sleep(for: .milliseconds(50)) }
+        return condition()
     }
 
     func remove() {

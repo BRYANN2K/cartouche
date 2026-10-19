@@ -29,9 +29,7 @@ public enum SaveStates {
 
     public static func list(contentName: String, in folder: URL) -> [SaveState] {
         // The folder is a link into iCloud Drive when saves follow the user
-        let path = folder.path(percentEncoded: false)
-        let linked = (try? FileManager.default.destinationOfSymbolicLink(atPath: path.hasSuffix("/") ? String(path.dropLast()) : path))
-            .map { URL(fileURLWithPath: $0, isDirectory: true) }
+        let linked = CloudSaves.link(at: folder).map { URL(fileURLWithPath: $0, isDirectory: true) }
         let walker = FileManager.default.enumerator(at: linked ?? folder, includingPropertiesForKeys: [.contentModificationDateKey])
         var states: [SaveState] = []
         while let file = walker?.nextObject() as? URL {

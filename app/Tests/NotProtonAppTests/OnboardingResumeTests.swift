@@ -160,5 +160,5 @@ struct OnboardingResumeTests {
 
 @MainActor
 struct NoRelaunch: Relauncher {
-    func relaunch() {}
+    func relaunch() -> Bool { true }
 }

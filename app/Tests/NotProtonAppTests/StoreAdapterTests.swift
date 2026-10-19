@@ -80,7 +80,7 @@ struct StoreAdapterTests {
         #expect(launch.executable == install.path.appending(path: "Binaries/Game.exe"))
         #expect(launch.arguments == ["-windowed", "-AUTH_PASSWORD=exchange-code", "-epicapp=Fennec"])
         #expect(launch.workingDirectory.lastPathComponent == "Binaries")
-        #expect(launch.environment == ["EOS_TEST": "1"])
+        #expect(launch.environment == ["DXVK_LOG_LEVEL": "none", "HOME": "/tmp/legendary-home"])
         try await epic.uninstall("Fennec", install: install)
         let calls = scene.calls("legendary")
         #expect(calls.contains("-y install Fennec --base-path \(base.path(percentEncoded: false)) --platform Windows --skip-sdl"))
@@ -185,6 +185,25 @@ struct StoreAdapterTests {
         let calls = scene.calls("gogdl")
         let auth = scene.folders.home(.gog).appending(path: GOGAdapter.authFile).path(percentEncoded: false)
         #expect(calls.contains("--auth-config-path \(auth) download 1207658924 --platform windows --path \(base.path(percentEncoded: false)) --skip-dlcs"))
+    }
+
+    @Test("GOG: gogdl update and repair take the game folder itself as --path, not its parent")
+    func gogUpdatePath() async throws {
+        let scene = try await StoreScene("gog-update", gogServer: true)
+        defer { scene.remove() }
+        let gog = try adapter(scene, .gog)
+        _ = try await gog.finishSignIn(code: "gog-good-code")
+        let install = try await gog.install(StoreGame(id: "1207658924", title: "Sample GOG Game"), base: scene.work.appending(path: "g")) { _ in }
+        _ = try await gog.update("1207658924", install: install) { _ in }
+        try await gog.verify("1207658924", install: install) { _ in }
+        let auth = scene.folders.home(.gog).appending(path: GOGAdapter.authFile).path(percentEncoded: false)
+        let game = install.path.clientPath
+        let calls = scene.calls("gogdl")
+        #expect(calls.contains("--auth-config-path \(auth) update 1207658924 --platform windows --path \(game) --skip-dlcs"))
+        #expect(calls.contains("--auth-config-path \(auth) repair 1207658924 --platform windows --path \(game) --skip-dlcs"))
+        // The files went into the game folder itself, not a new subfolder.
+        #expect(FileManager.default.fileExists(atPath: install.path.appending(path: "goggame-1207658924.info").path))
+        #expect(!FileManager.default.fileExists(atPath: install.path.appending(path: "Sample GOG Game").path))
     }
 
     @Test("GOG: save locations from GOG's remote config, in the prefix; gogdl's sync time is kept")

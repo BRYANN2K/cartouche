@@ -84,7 +84,7 @@ struct AgentsSettingsView: View {
                 }
                 ForEach(model.actions.reversed()) { action in
                     LabeledContent {
-                        if action.canUndo && !action.undone {
+                        if action.canUndo {
                             Button("Undo") { Task { await model.undo(action) } }
                         }
                     } label: {
@@ -119,7 +119,6 @@ struct AgentsSettingsView: View {
         case .refused(let why): String(localized: "Refused: \(why)")
         case .denied: String(localized: "Denied")
         case .error(let why): String(localized: "Failed: \(why)")
-        case .undone: String(localized: "Undone")
         }
     }
 

@@ -90,8 +90,13 @@ private struct RunnerRow: View {
                         Button("Choose…") { Task { await model.copyPickedToolkit() } }
                     }
                     Button("Repair") { Task { await model.perform(.repair, on: row.id) } }
+                case .remove:
+                    Button("Remove") { Task { await model.perform(.remove, on: row.id) } }
                 case .none:
                     EmptyView()
+                }
+                if row.removable {
+                    Button("Remove") { Task { await model.perform(.remove, on: row.id) } }
                 }
                 if let link = row.link {
                     Button(link.title) { NSWorkspace.shared.open(link.url) }
@@ -116,14 +121,18 @@ struct ToolkitQuestionSheet: View {
                 .font(.title2.weight(.bold))
             VStack(spacing: 4) {
                 Text(String(localized: "Found in \(path)")).multilineTextAlignment(.center)
-                Text(String(localized: "A copy needs \(size) on disk and keeps working after the original is removed. Use in Place reads it where it is."))
+                Text(question.install.mountedImage
+                    ? String(localized: "A copy needs \(size) on disk. The disk image goes away on eject, so it is always copied.")
+                    : String(localized: "A copy needs \(size) on disk and keeps working after the original is removed. Use in Place reads it where it is."))
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
             }
             HStack(spacing: 12) {
                 Button("Cancel", role: .cancel) { model.dismissToolkitQuestion() }
                     .keyboardShortcut(.cancelAction)
-                Button("Use in Place") { Task { await model.answerToolkit(.inPlace) } }
+                if !question.install.mountedImage {
+                    Button("Use in Place") { Task { await model.answerToolkit(.inPlace) } }
+                }
                 Button("Copy") { Task { await model.answerToolkit(.copy) } }
                     .keyboardShortcut(.defaultAction)
                     .buttonStyle(.borderedProminent)

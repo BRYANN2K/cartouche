@@ -147,11 +147,22 @@ final class LiveGameFocus: GameFocus {
         var buffer = [UInt8](repeating: 0, count: size)
         guard sysctl(&mib, 3, &buffer, &size, nil, 0) == 0 else { return nil }
         let argc = buffer.withUnsafeBytes { $0.load(as: Int32.self) }
-        let strings = buffer[MemoryLayout<Int32>.size..<size].split(separator: 0, omittingEmptySubsequences: true)
-            .map { String(decoding: $0, as: UTF8.self) }
-        // The executable path, then argc arguments, then the environment
+        var i = MemoryLayout<Int32>.size
+        func nulTerminated() -> String? {
+            guard i < size, let nul = buffer[i..<size].firstIndex(of: 0) else { return nil }
+            defer { i = nul + 1 }
+            return String(decoding: buffer[i..<nul], as: UTF8.self)
+        }
+        // The executable path, NUL padding, argc arguments (empty ones count),
+        // padding, then the environment
+        guard nulTerminated() != nil else { return nil }
+        while i < size, buffer[i] == 0 { i += 1 }
+        for _ in 0..<argc {
+            guard nulTerminated() != nil else { return nil }
+        }
+        while i < size, buffer[i] == 0 { i += 1 }
         var environment: [String: String] = [:]
-        for entry in strings.dropFirst(1 + Int(argc)) {
+        while let entry = nulTerminated() {
             guard let equals = entry.firstIndex(of: "=") else { continue }
             environment[String(entry[..<equals])] = String(entry[entry.index(after: equals)...])
         }
@@ -179,7 +190,7 @@ final class KeyboardPlayBridge {
     // controller holds is pressed again.
     func tick(_ game: Game) {
         guard focus.isFrontmost(game) else {
-            posted = .idle
+            release()
             return
         }
         let now = reader.read() ?? .idle
@@ -188,5 +199,13 @@ final class KeyboardPlayBridge {
         if !events.isEmpty { poster.post(events) }
     }
 
-    func reset() { posted = .idle }
+    func reset() { release() }
+
+    // Clearing `posted` alone would leave the .hidSystemState source holding
+    // keys and mouse buttons down: tell the game they are up first
+    private func release() {
+        let events = KeyboardPlay.events(from: posted, to: .idle)
+        posted = .idle
+        if !events.isEmpty { poster.post(events) }
+    }
 }

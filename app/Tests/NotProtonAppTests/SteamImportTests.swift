@@ -76,9 +76,9 @@ struct SteamImportTests {
         #expect(model.game("steam:1245620")?.collections == ["Souls"])
     }
 
-    @Test("Import from Steam: a new export shows in the library within 10 seconds")
+    @Test("Import from Steam: a new export shows on the next watcher tick")
     @MainActor
-    func newExportWithinTenSeconds() async throws {
+    func newExportOnTick() async throws {
         let fixture = try SteamFixture("watch")
         defer { fixture.remove() }
         let scratch = ScratchDefaults()
@@ -87,16 +87,11 @@ struct SteamImportTests {
         // Before any export, only the installed games are known
         #expect(model.steam.games.count == 6)
 
-        model.watch(every: .milliseconds(200))
-        let start = Date()
+        var stamp = model.importer.exportStamp()
+        var running = model.importer.isRunning()
         try fixture.writeExport()
-        while model.steam.games.count != 8, Date().timeIntervalSince(start) < 10 {
-            try await Task.sleep(for: .milliseconds(50))
-        }
-        let elapsed = Date().timeIntervalSince(start)
+        await model.watchTick(tick: 1, stamp: &stamp, running: &running)
         #expect(model.steam.games.count == 8)
-        #expect(elapsed < 10)
-        print("import shown after \(String(format: "%.2f", elapsed)) s")
     }
 
     @Test("Steam closed: the cached games show, installed status from Steam's manifests")
@@ -141,7 +136,7 @@ struct SteamImportTests {
         let elden = try #require(result.games.first { $0.steamAppID == 1_245_620 })
         #expect(elden.playtimeMinutes == 954)
         #expect(elden.collections == ["Souls"])
-        #expect(elden.status(now: Date()) == "Played yesterday")
+        #expect(elden.status(now: fixture.now) == "Played yesterday")
     }
 
     @Test("An export from another account on this Mac is not used")

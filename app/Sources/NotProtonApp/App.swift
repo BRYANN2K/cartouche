@@ -1,5 +1,3 @@
-// Self-explanatory
-
 import Network
 import RetroArchKit
 import SwiftUI
@@ -14,30 +12,32 @@ struct CartoucheApp: App {
     @State private var prefixes = PrefixesModel()
     @State private var pane: Pane = .status
     @State private var library: LibraryModel
-    @State private var compat = CompatibilityModel()
+    @State private var compat: CompatibilityModel
     @State private var steamSetup = SteamSetup()
     @State private var permissions: PermissionCenter
-    // Hosts the explanation that comes before the notifications prompt (P17)
     @State private var permissionFlow: PermissionFlow
     @State private var controls: ControlsCenter
     @State private var consoles: ConsolesSettingsModel
     @State private var consoleCenter: ConsoleCenter
     @State private var network = NetworkWatch()
     @State private var gameFolders = GameFolders()
-    @State private var relaunch = RelaunchService()
+    @State private var relaunch: RelaunchService
     @State private var onboarding: OnboardingModel?
     @State private var performance = PerformanceModel()
-    // The free runners and the Game Porting Toolkit, for Settings > Compatibility (P2)
+    // The free runners and the Game Porting Toolkit, for Settings > Compatibility
     @State private var runners: RunnersModel
-    // Epic, GOG and Amazon (P10)
     @State private var stores: StoreCenter
     @State private var agents: AgentControlModel
     @AppStorage(GeneralSettings.showInMenuBarKey) private var showInMenuBar = true
     @AppStorage(AfterLaunch.key) private var afterLaunch = AfterLaunch.hide
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
+    @State private var started = false
     private let updater = AppUpdater()
     private let agentBackend: AgentLiveBackend
 
     init() {
+        // A write into a dead child's pipe fails with EPIPE, not a fatal SIGPIPE
+        signal(SIGPIPE, SIG_IGN)
         // The first launch claims Cartouche's own folder, even before anything is installed
         try? FileManager.default.createDirectory(at: SupportPaths.support, withIntermediateDirectories: true)
         AppLog.start()
@@ -46,7 +46,7 @@ struct CartoucheApp: App {
         _permissions = State(initialValue: permissions)
         _permissionFlow = State(initialValue: PermissionFlow(center: permissions))
         let library = LibraryModel()
-        // Controllers, layouts and the options that need a permission (P15)
+        // Controllers, layouts and the options that need a permission
         let controls = ControlsCenter(
             permissions: permissions, files: ControlsFiles(retroArch: SettingsWindow.retroArchPaths))
         _controls = State(initialValue: controls)
@@ -57,16 +57,20 @@ struct CartoucheApp: App {
         let compat = CompatibilityModel()
         let runners = RunnersModel()
         runners.chooseToolkitFolder = ToolkitFolderPicker.choose
+        _relaunch = State(initialValue: RelaunchService(
+            games: CompositeGameActivity([RunnerGameActivity(), ConsoleGameActivity(center: consoleCenter)])))
         _runners = State(initialValue: runners)
         _library = State(initialValue: library)
         _consoles = State(initialValue: consoles)
         _consoleCenter = State(initialValue: consoleCenter)
         _compat = State(initialValue: compat)
-        _stores = State(initialValue: StoreCenter.live(library: library))
+        let storeCenter = StoreCenter.live(library: library)
+        _stores = State(initialValue: storeCenter)
         // The agent server reads the same models the windows do; off until
         // the user turns it on (Settings > Agents).
         let backend = AgentLiveBackend(library: library, consoles: consoleCenter,
-                                       installs: .shared, compat: compat, controls: controls)
+                                       installs: .shared, compat: compat, controls: controls,
+                                       stores: storeCenter)
         agentBackend = backend
         _agents = State(initialValue: AgentControlModel(
             service: AgentService(backend: backend, providers: [AgentControls()])))
@@ -106,11 +110,11 @@ struct CartoucheApp: App {
                 .task { await start() }
                 // Onboarding may have added consoles and game folders
                 .onChange(of: onboarding?.isPresented ?? false) { _, shown in
-                    if !shown { Task { await consoleCenter.reload(); await consoleCenter.scanFolders() } }
+                    if shown == false { Task { await consoleCenter.reload(); await consoleCenter.rescanFolders() } }
                 }
-                // Back from a game: its session is read in (P8)
+                // Back from a game: its session is read in
                 .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-                    Task { await performance.refresh() }
+                    Task { await performance.refreshIfNeeded() }
                 }
         }
         .defaultSize(width: 1280, height: 820)
@@ -129,14 +133,13 @@ struct CartoucheApp: App {
         }
         .defaultSize(width: 900, height: 760)
 
-        // The store's own sign-in page (P10)
         Window("Sign In", id: Self.signInWindow) {
             StoreSignInWindow(center: stores)
         }
         .defaultSize(width: 560, height: 760)
 
         Settings {
-            SettingsWindow(model: library, permissions: permissions, consoles: consoles)
+            SettingsWindow(model: library, permissions: permissions, consoles: consoles, choices: compat.choices)
                 .environment(consoleCenter)
                 .environment(runners)
                 .environment(onboarding)
@@ -160,11 +163,14 @@ struct CartoucheApp: App {
         }
     }
 
+    // The window's .task re-fires each time the window reopens; the bootstrap runs once
     private func start() async {
+        guard !started else { await library.load(); return }
+        started = true
+        updater.start()
+        permissions.watchActivation()
         var route: ScreenRoute?
         if onboarding == nil {
-            // Before anything else: a copy outside Applications offers to move and relaunch
-            guard MoveToApplications.check() else { return }
             let model = makeOnboarding()
             onboarding = model
             route = relaunch.restore()
@@ -174,9 +180,12 @@ struct CartoucheApp: App {
                 model.presentIfDue()
             }
         }
+        NotificationRouter.shared.install()
+        AgentNotifier.register()
         steamSetup.onInstalled = { [library] in Task { await library.load() } }
         network.start { [library] offline in library.isOffline = offline }
-        compat.load()
+        await compat.load()
+        await performance.refresh()
         await library.load()
         library.watch()
         await consoleCenter.reload()
@@ -191,22 +200,23 @@ struct CartoucheApp: App {
         if let route, route.screen == "controls" { await controls.reopen(route) }
         // A console game still running when Cartouche quits is quit and counted first
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main) {
-            [consoleCenter] _ in MainActor.assumeIsolated { consoleCenter.endForTermination() }
+            [consoleCenter, controls] _ in MainActor.assumeIsolated {
+                controls.endForTermination()
+                consoleCenter.endForTermination()
+            }
         }
         await startActivity()
         await loadRunners()
         startStores()
         await compat.refresh()
-        // With the library and folders loaded the agent's readable roots are known
-        agentBackend.refreshRoots()
     }
 
-    // Store accounts from the Keychain, then each store's list in the background (P10)
+    // Store accounts from the Keychain, then each store's list in the background
     private func startStores() {
         stores.afterLaunch = actions.afterLaunch
         let index = TitleIndex()
         stores.matchAppID = { [compat] title in index.appID(title, data: compat.data) }
-        // The store's running job joins the shared activity slot (P7)
+        // The store's running job joins the shared activity slot
         let activity = ActivityCenter.shared
         activity.storeSource = { [stores] in stores.activity }
         activity.stopStore = { [stores] in stores.stop($0) }
@@ -214,7 +224,7 @@ struct CartoucheApp: App {
     }
 
     // The activity slot: Steam's downloads and running game, and the first finished
-    // download or install offers notifications (P7, P17)
+    // download or install offers notifications
     private func startActivity() async {
         RevealRenderer.warmUp()
         await permissions.refresh(.notifications)
@@ -223,16 +233,31 @@ struct CartoucheApp: App {
         InstallCenter.shared.permissionFlow = permissionFlow
         activity.follow(consoleCenter)
         activity.onDownloadFinished = { [library] _ in Task { await library.load() } }
+        activity.onGameEnded = { [performance] in Task { await performance.refresh() } }
         activity.watch()
     }
 
     private func makeOnboarding() -> OnboardingModel {
         relaunch.center = permissions
+        let systemStatus = status
         let step = SteamStep(
             flow: PermissionFlow(center: permissions),
-            install: { try await OnboardingSteam.install() },
+            install: { [systemStatus] in try await OnboardingSteam.install(through: systemStatus) },
             relaunch: { [relaunch] route in Task { await relaunch.relaunch(to: route) } })
         let model = OnboardingModel(
+            runners: RunnerOffer(
+                build: { RunnerOffer.recommended(RunnerManifest.current()) },
+                isInstalled: { WineRunnerInstaller.isInstalled($0) },
+                install: { [runners, library] build in
+                    await runners.download(build.id)
+                    guard WineRunnerInstaller.isInstalled(build.id) else {
+                        let detail = await runners.message
+                        throw StepFailure(
+                            step: WineRunnerInstaller.step,
+                            detail: detail ?? String(localized: "The download did not install."))
+                    }
+                    await Self.syncRunnerList(runners: runners, into: library)
+                }),
             consoles: .live(paths: consoles.paths), steamStep: step, folders: gameFolders,
             privacy: compat.choices, library: library)
         model.play = { [actions] game in actions.perform(.play, on: game) }
@@ -240,7 +265,7 @@ struct CartoucheApp: App {
     }
 
     // Runners are read through the registry, off the main thread — free builds and
-    // the Game Porting Toolkit included, so game setups can offer them (P2, P3)
+    // the Game Porting Toolkit included, so game setups can offer them
     private func loadRunners() async {
         await runners.refresh()
         await syncRunnerList()
@@ -253,8 +278,11 @@ struct CartoucheApp: App {
         library.adoptSteamChoices(mappings.0, written: mappings.1)
     }
 
-    // What the Runners screen's registry knows, handed to the setups (P3)
     private func syncRunnerList() async {
+        await Self.syncRunnerList(runners: runners, into: library)
+    }
+
+    static func syncRunnerList(runners: RunnersModel, into library: LibraryModel) async {
         let registry = runners.registry
         let manifest = runners.manifest
         library.runners = registry.runners
@@ -425,14 +453,22 @@ struct CartoucheApp: App {
     }
 }
 
-// The Game menu: the selected game's menu, the same list as its context menu
+// Runs before any scene exists and before the updater starts: a copy outside
+// Applications offers to move there and relaunch (permissions and updates stay with it)
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        MainActor.assumeIsolated { _ = MoveToApplications.check() }
+    }
+}
+
 struct GameCommands: View {
     let model: LibraryModel
     let actions: GameActionRunner
+    @Environment(StoreCenter.self) private var stores: StoreCenter?
 
     var body: some View {
         if let game = model.selectedGame, model.screen.showsPanel {
-            GameMenuContent(items: GameMenu.items(for: game, in: model)) { actions.perform($0, on: game) }
+            GameMenuContent(items: GameMenu.items(for: game, in: model, stores: stores)) { actions.perform($0, on: game) }
         } else {
             Button("Play") {}.shortcut(GameMenu.play).disabled(true)
             Divider()
@@ -462,7 +498,7 @@ struct StatusItemMenu: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        // Everything going on, even what the sidebar slot leaves out (P7)
+        // Everything going on, even what the sidebar slot leaves out
         ActivityMenuContent(center: ActivityCenter.shared)
         let recent = model.recentlyPlayed
         if !recent.isEmpty {

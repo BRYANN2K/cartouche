@@ -10,6 +10,9 @@ final class FakeControllerSource: ControllerSource {
     var controllers: [ControllerInfo] = []
     private var changed: (@MainActor () -> Void)?
     var started = 0
+    var batteryPolls: [Bool] = []
+
+    func pollBattery(_ on: Bool) { batteryPolls.append(on) }
 
     func start(_ changed: @escaping @MainActor () -> Void) {
         started += 1
@@ -76,6 +79,20 @@ struct ControllerMonitorTests {
         #expect(monitor.primary?.shortName == "Xbox One")
         source.disconnect("pad2")
         #expect(monitor.primary == nil)
+    }
+
+    @Test("The battery poll runs only while a view showing it is on screen")
+    func batteryPollGated() {
+        let source = FakeControllerSource()
+        let monitor = ControllerMonitor(source: source)
+        monitor.start()
+        monitor.batteryShown(true)
+        monitor.batteryShown(true)
+        #expect(source.batteryPolls == [true])
+        monitor.batteryShown(false)
+        #expect(source.batteryPolls == [true])
+        monitor.batteryShown(false)
+        #expect(source.batteryPolls == [true, false])
     }
 
     @Test("Starting twice listens once")

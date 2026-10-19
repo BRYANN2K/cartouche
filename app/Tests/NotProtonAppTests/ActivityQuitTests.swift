@@ -77,15 +77,15 @@ struct ActivityQuitTests {
         let game = try await scene.addGame(console: "snes", name: "Cartouche Homebrew")
         let before = try #require(scene.center.game(game.id)).playSeconds
         await scene.center.play(game.id, reduceMotion: true)
-        try await Task.sleep(for: .seconds(1.2))
+        await runner.pretend(played: .seconds(90))
         await scene.center.quit()
 
         #expect(await runner.quits == 1)
         #expect(scene.center.playing == nil)
         let after = try #require(scene.center.game(game.id))
-        #expect(after.playSeconds - before >= 1.2 && after.playSeconds - before < 3, "play time grew by \(after.playSeconds - before)")
+        #expect(after.playSeconds - before == 90, "play time grew by \(after.playSeconds - before)")
         #expect(after.lastPlayed != nil)
-        let states = scene.center.states(for: after)
+        let states = await scene.center.states(for: after)
         #expect(states.first?.isAuto == true && states.first?.picture != nil)
         let system = try #require(scene.center.console(of: after))
         let content = ConsolePanelContent(game: after, console: system, states: states, bios: nil, playing: nil)
@@ -127,7 +127,7 @@ struct ActivityQuitTests {
         #expect(await !player.isPlaying)
         let after = try #require(scene.center.game(game.id))
         #expect(after.playSeconds >= 1.5 && after.playSeconds < 4)
-        let auto = try #require(scene.center.states(for: after).first { $0.isAuto })
+        let auto = try #require(await scene.center.states(for: after).first { $0.isAuto })
         #expect(auto.date >= started.addingTimeInterval(-1))
         if LiveRetroArch.video != "null" { #expect(auto.picture != nil) }
         print("evidence: RetroArch quit from the activity slot, play time \(after.playSeconds) s, auto state \(auto.file.lastPathComponent) with picture \(auto.picture?.lastPathComponent ?? "none")")

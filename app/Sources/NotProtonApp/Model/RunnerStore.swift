@@ -147,42 +147,17 @@ enum CompatToolList {
         }
     }
 
-    // legacyHolder reads runners/current, so this has to run before prune deletes that symlink.
     private static func resolved(
         runners: URL, file: URL, fexAvailable: Bool = CompatTool.Flavor.fexAvailable
     ) -> (builds: [RunnerBuild], listed: String?, tools: [InstalledTool]) {
         let builds = RunnerStore.installedBuilds(in: runners)
         let listed = try? String(contentsOf: file, encoding: .utf8)
-        let holder = legacyHolder(builds: builds, listed: listed, runners: runners)
         // On Sequoia a FEX tool stays only if an earlier install listed it.
-        var kept = Set((listed ?? "").split(separator: "\n").compactMap {
+        let kept = Set((listed ?? "").split(separator: "\n").compactMap {
             $0.split(separator: "\t").first.map(String.init)
         })
-        if case .build = holder { kept.insert(SupportedRunners.legacyToolName) }
         return (builds, listed, SupportedRunners.tools(
-            for: builds, legacy: holder, fexAvailable: fexAvailable, keeping: kept))
-    }
-
-    // 1.0.x used the single 'cartouche-proton' tool name and wrote no tool list, so the
-    // runners/current symlink is the record of which version of CrossOver was deployed.
-    static func legacyHolder(
-        builds: [RunnerBuild], listed: String?, runners: URL = SupportPaths.runners
-    ) -> SupportedRunners.LegacyHolder {
-        let ids = Set(builds.map(\.id))
-        let rows = (listed ?? "").split(separator: "\n").map { $0.split(separator: "\t").map(String.init) }
-            .filter { $0.count > 1 && ids.contains($0[1]) && SupportedRunners.legacyHolders.contains($0[1]) }
-        if let held = rows.first(where: { $0[0] == SupportedRunners.legacyToolName }) {
-            return .build(held[1])
-        }
-        if !rows.isEmpty { return .nobody }
-        let link = runners.appending(path: "current").path(percentEncoded: false)
-        if let target = try? FileManager.default.destinationOfSymbolicLink(atPath: link),
-           let id = target.split(separator: "/").first(where: { $0.hasPrefix("crossover-") })
-               .map({ String($0.dropFirst("crossover-".count)) }),
-           ids.contains(id), SupportedRunners.legacyHolders.contains(id) {
-            return .build(id)
-        }
-        return .nobody
+            for: builds, fexAvailable: fexAvailable, keeping: kept))
     }
 
     // Returns true when the list file changed.
@@ -199,7 +174,7 @@ enum CompatToolList {
         let pairs = backendFile(beside: file)
         changed = try write(backendContents(backendTools(for: tools, runners: runners)), to: pairs,
                             had: try? String(contentsOf: pairs, encoding: .utf8)) || changed
-        prune(keeping: Set(builds.map(\.id)), runners: runners, bridge: bridge, compatTools: compatTools)
+        NtdllPatcher.pruneBuilds(keeping: Set(builds.map(\.id)), in: bridge)
         return changed
     }
 
@@ -214,24 +189,4 @@ enum CompatToolList {
         return changed
     }
 
-    private static func prune(
-        keeping ids: Set<String>, runners: URL, bridge: URL, compatTools: URL
-    ) {
-        let legacyInUse = legacyLayoutInUse(compatTools: compatTools)
-        NtdllPatcher.pruneBuilds(keeping: ids, in: bridge, keepingLegacy: legacyInUse)
-        guard !legacyInUse else { return }
-        let legacy = runners.appending(path: "current").path(percentEncoded: false)
-        if (try? FileManager.default.destinationOfSymbolicLink(atPath: legacy)) != nil {
-            try? FileManager.default.removeItem(atPath: legacy)
-        }
-    }
-
-    // Old run scripts read runners/current and bridge/wine/<arch>. Steam keeps running them
-    // until it restarts, so those paths have to keep working until then.
-    static func legacyLayoutInUse(compatTools: URL = SupportPaths.Steam.compatTools) -> Bool {
-        SupportPaths.Steam.cartoucheTools(in: compatTools).contains { tool in
-            let run = try? String(contentsOf: tool.appending(path: "run"), encoding: .utf8)
-            return run?.contains("/runners/current") == true
-        }
-    }
 }

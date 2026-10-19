@@ -22,7 +22,7 @@ final class WineRunnerInstallerTests {
     deinit { try? FileManager.default.removeItem(at: work) }
 
     // An archive laid out like the CI build, with a shell script standing in for wine
-    func archive(named name: String = "wine-crossover-26.3.0-1-x86_64.tar.xz", version: String = "wine-11.0 (fixture)") throws -> URL {
+    static func archive(id: String, in work: URL, named name: String = "wine-crossover-26.3.0-1-x86_64.tar.xz", version: String = "wine-11.0 (fixture)") throws -> URL {
         let tree = work.appending(path: "tree-\(UUID().uuidString)")
         let root = tree.appending(path: id)
         let fm = FileManager.default
@@ -45,13 +45,21 @@ final class WineRunnerInstallerTests {
         return out
     }
 
-    func build(for archive: URL, sha256: String? = nil, size: Int64? = nil) throws -> RunnerManifest.Build {
+    static func build(id: String, for archive: URL, sha256: String? = nil, size: Int64? = nil) throws -> RunnerManifest.Build {
         let bytes = try FileManager.default.attributesOfItem(atPath: archive.path(percentEncoded: false))[.size] as! Int64
         return RunnerManifest.Build(
             id: id, kind: "wineBuild", origin: .cartouche, name: "Wine CrossOver", version: "26.3.0",
             displayVersion: "26.3", url: archive, size: size ?? bytes, sha256: try sha256 ?? Digest.sha256(of: archive),
             root: id, loader: "bin/wine", flavors: ["rosetta"]
         )
+    }
+
+    func archive(named name: String = "wine-crossover-26.3.0-1-x86_64.tar.xz", version: String = "wine-11.0 (fixture)") throws -> URL {
+        try Self.archive(id: id, in: work, named: name, version: version)
+    }
+
+    func build(for archive: URL, sha256: String? = nil, size: Int64? = nil) throws -> RunnerManifest.Build {
+        try Self.build(id: id, for: archive, sha256: sha256, size: size)
     }
 
     func registry(_ builds: [RunnerManifest.Build]) -> RunnerRegistry {
@@ -81,7 +89,8 @@ final class WineRunnerInstallerTests {
         #expect(try Shell.check(wine.path(percentEncoded: false), ["--version"]) == "wine-11.0 (fixture)\n")
         // The archive is not kept once unpacked, and nothing is left half done
         #expect(try FileManager.default.contentsOfDirectory(atPath: downloads.path(percentEncoded: false)).isEmpty)
-        #expect(try FileManager.default.contentsOfDirectory(atPath: runners.path(percentEncoded: false)) == ["wine-\(id)"])
+        #expect(try FileManager.default.contentsOfDirectory(atPath: runners.path(percentEncoded: false)) == [id])
+        #expect(receipt.loader == build.loader, "the manifest's loader is recorded for later")
     }
 
     @Test("A download whose SHA-256 differs from the manifest is deleted, nothing is installed, and the user is told it was damaged")
@@ -99,8 +108,7 @@ final class WineRunnerInstallerTests {
             try await WineRunnerInstaller.install(served, runners: runners, downloads: downloads)
             Issue.record("a tampered download was installed")
         } catch let failure as StepFailure {
-            #expect(failure.detail == "The download was damaged. Try again.")
-            #expect(failure.detail == WineRunnerInstaller.damaged)
+            #expect(failure.detail == "Something is wrong with the downloaded files. Please check for a Cartouche update.")
         }
 
         let fm = FileManager.default
@@ -165,7 +173,7 @@ final class WineRunnerInstallerTests {
             try await WineRunnerInstaller.install(gone, runners: runners, downloads: downloads)
             Issue.record("installed from nowhere")
         } catch let failure as StepFailure {
-            #expect(failure.detail.hasPrefix("Cartouche could not download Wine CrossOver 26.3."))
+            #expect(failure.detail.hasPrefix("Cartouche could not reach GitHub's servers."))
         }
     }
 
@@ -180,7 +188,7 @@ final class WineRunnerInstallerTests {
 
         let runner = try #require(registry([build]).runner(id: id))
         #expect(runner.state == .damaged(files: ["lib/wine/x86_64-windows/ntdll.dll changed since it was installed."]))
-        #expect(RunnerRegistry.verify(runner, runners: runners) == ["lib/wine/x86_64-windows/ntdll.dll changed since it was installed."])
+        #expect(WineRunnerInstaller.verify(id, runners: runners) == ["lib/wine/x86_64-windows/ntdll.dll changed since it was installed."])
 
         try await WineRunnerInstaller.install(build, runners: runners, downloads: downloads)
         #expect(registry([build]).runner(id: id)?.state == .ready)
@@ -195,6 +203,24 @@ final class WineRunnerInstallerTests {
         #expect(!runner.isOffered)
 
         try WineRunnerInstaller.remove(id, runners: runners)
+        #expect(registry([build]).runner(id: id)?.state == .available)
+    }
+
+    @Test("A build installed under the older wine-<id> folder name is still read and removed")
+    func legacyFolderName() async throws {
+        let build = try build(for: archive())
+        let receipt = try await WineRunnerInstaller.install(build, runners: runners, downloads: downloads)
+        // Move the new flat folder to the name a previous version wrote
+        try FileManager.default.moveItem(
+            at: WineRunnerInstaller.folder(for: id, runners: runners),
+            to: runners.appending(path: "wine-\(id)"))
+
+        #expect(WineRunnerInstaller.isInstalled(id, runners: runners))
+        #expect(WineRunnerInstaller.receipt(for: id, runners: runners) == receipt)
+        #expect(registry([build]).runner(id: id)?.state == .ready)
+
+        try WineRunnerInstaller.remove(id, runners: runners)
+        #expect(((try? FileManager.default.contentsOfDirectory(atPath: runners.path(percentEncoded: false))) ?? []).isEmpty)
         #expect(registry([build]).runner(id: id)?.state == .available)
     }
 

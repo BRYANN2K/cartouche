@@ -6,7 +6,7 @@ import Vision
 
 @testable import RetroArchKit
 
-// P16, scenario "Dolphin installed": Settings > Consoles lists Dolphin with
+// Settings > Consoles lists Dolphin with
 // its version, and GameCube and Wii offer it. Dolphin here is a fake app in
 // the scratch folder's Applications.
 @MainActor

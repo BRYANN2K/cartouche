@@ -771,6 +771,28 @@
         }
       }
     },
+    "%@ is playing. Quit the game first." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ is playing. Quit the game first."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ è in esecuzione. Esci prima dal gioco."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 正在运行。请先退出游戏。"
+          }
+        }
+      }
+    },
     "%@ is ready" : {
       "localizations" : {
         "it" : {
@@ -895,22 +917,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 截图"
-          }
-        }
-      }
-    },
-    "%@ settings" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Impostazioni %@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@画质"
           }
         }
       }
@@ -2014,6 +2020,22 @@
         }
       }
     },
+    "A copy needs %@ on disk. The disk image goes away on eject, so it is always copied." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una copia richiede %@ su disco. L'immagine disco scompare all'espulsione, quindi viene sempre copiata."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拷贝需要 %@ 磁盘空间。磁盘映像在推出后会消失，因此始终会进行拷贝。"
+          }
+        }
+      }
+    },
     "A damaged installer file" : {
       "localizations" : {
         "it" : {
@@ -2218,22 +2240,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "约需 %1$@，可用 %2$@"
-          }
-        }
-      }
-    },
-    "About %lld fps" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Circa %lld fps"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "约 %lld fps"
           }
         }
       }
@@ -2698,22 +2704,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "由你添加"
-          }
-        }
-      }
-    },
-    "Adding games this way comes in a later version of Cartouche." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aggiungere giochi in questo modo arriverà in una versione successiva di Cartouche."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "以这种方式添加游戏将在 Cartouche 的后续版本中推出。"
           }
         }
       }
@@ -4119,38 +4109,6 @@
         }
       }
     },
-    "Cartouche checks the files first and runs nothing until you choose Install." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cartouche controlla prima i file e non esegue nulla finché non scegli Installa."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cartouche 会先检查文件，在你选择“安装”之前不会运行任何内容。"
-          }
-        }
-      }
-    },
-    "Cartouche could not download %@. Check your internet connection and try again." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cartouche non è riuscito a scaricare %@. Controlla la connessione a Internet e riprova."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cartouche 无法下载 %@。请检查网络连接后重试。"
-          }
-        }
-      }
-    },
     "Cartouche could not download the files it needs from %@. Please try again later." : {
       "localizations" : {
         "it" : {
@@ -4215,6 +4173,22 @@
         }
       }
     },
+    "Cartouche couldn’t find %@’s launcher." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche non ha trovato il launcher di %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 找不到 %@ 的启动器。"
+          }
+        }
+      }
+    },
     "Cartouche couldn’t move itself" : {
       "localizations" : {
         "it" : {
@@ -4247,18 +4221,18 @@
         }
       }
     },
-    "Cartouche couldn’t read your library" : {
+    "Cartouche couldn’t read this install’s record." : {
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cartouche non è riuscito a leggere la tua libreria"
+            "value" : "Cartouche non è riuscita a leggere il record di questa installazione."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cartouche 无法读取你的游戏库"
+            "value" : "Cartouche 无法读取此安装的记录。"
           }
         }
       }
@@ -4291,6 +4265,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cartouche 无法保存你的游戏库选择：%@"
+          }
+        }
+      }
+    },
+    "Cartouche couldn’t start %@: %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche non è riuscita ad avviare %1$@: %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 无法启动 %1$@：%2$@"
           }
         }
       }
@@ -4407,18 +4397,18 @@
         }
       }
     },
-    "Cartouche identifies each file by its checksum and downloads only the cores it needs." : {
+    "Cartouche is already open from %@. Quit that copy, then move Cartouche again." : {
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cartouche riconosce ogni file dal suo checksum e scarica solo i core necessari."
+            "value" : "Cartouche è già aperto da %@. Chiudi quella copia, poi sposta di nuovo Cartouche."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cartouche 通过校验和识别每个文件，并只下载需要的核心。"
+            "value" : "Cartouche 已从 %@ 打开。请先退出该副本，然后再次移动 Cartouche。"
           }
         }
       }
@@ -5587,6 +5577,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "主机"
+          }
+        }
+      }
+    },
+    "Consoles are not set up on this Mac." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le console non sono configurate su questo Mac."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此 Mac 未设置主机。"
           }
         }
       }
@@ -7306,22 +7312,6 @@
         }
       }
     },
-    "Drop a setup.exe with its .bin files, or a game folder" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trascina un setup.exe con i suoi file .bin, o una cartella di gioco"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "拖入 setup.exe 及其 .bin 文件，或游戏文件夹"
-          }
-        }
-      }
-    },
     "Drop files or a folder here" : {
       "localizations" : {
         "it" : {
@@ -7334,22 +7324,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "将文件或文件夹拖到这里"
-          }
-        }
-      }
-    },
-    "Drop your own game dumps, or a folder of them" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trascina i dump dei tuoi giochi, o una cartella che li contiene"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "拖入你自己的游戏备份，或存放它们的文件夹"
           }
         }
       }
@@ -7862,38 +7836,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "位于 %@"
-          }
-        }
-      }
-    },
-    "Free Runner" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Runner gratuito"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "免费运行器"
-          }
-        }
-      }
-    },
-    "Free runner for Windows games" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Runner gratuito per i giochi Windows"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "用于 Windows 游戏的免费运行器"
           }
         }
       }
@@ -9802,6 +9744,22 @@
         }
       }
     },
+    "Locate Steam" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Individua Steam"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "定位 Steam"
+          }
+        }
+      }
+    },
     "Locate Steam…" : {
       "localizations" : {
         "it" : {
@@ -10246,22 +10204,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "大多数玩家使用 %@"
-          }
-        }
-      }
-    },
-    "Most reported layer: %@" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Livello più segnalato: %@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "报告最多的转译层：%@"
           }
         }
       }
@@ -10774,22 +10716,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 处没有文件。"
-          }
-        }
-      }
-    },
-    "No free runner is offered for this version of Cartouche." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nessun runner gratuito è offerto per questa versione di Cartouche."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "此版本的 Cartouche 未提供免费运行器。"
           }
         }
       }
@@ -11622,6 +11548,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在你的网络中"
+          }
+        }
+      }
+    },
+    "Once signed in, from Settings > Accounts: Cartouche checks the game is on your account." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una volta effettuato l'accesso, da Impostazioni > Account: Cartouche controlla che il gioco sia nel tuo account."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录后，在“设置 > 账户”中导入：Cartouche 会检查游戏是否属于你的账户。"
           }
         }
       }
@@ -13728,38 +13670,6 @@
         }
       }
     },
-    "Reports used: %lld, all from other Macs" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Segnalazioni usate: %lld, tutte da altri Mac"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "使用的报告：%lld 份，均来自其他 Mac"
-          }
-        }
-      }
-    },
-    "Reports used: %lld, including %lld on %@" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Segnalazioni usate: %lld, di cui %lld su %@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "使用的报告：%lld 份，其中 %lld 份来自 %@"
-          }
-        }
-      }
-    },
     "Reset" : {
       "localizations" : {
         "it" : {
@@ -14896,22 +14806,6 @@
         }
       }
     },
-    "Sign in first: Cartouche checks the game is on your account." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Accedi prima: Cartouche controlla che il gioco sia nel tuo account."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "请先登录：Cartouche 会检查该游戏是否在你的账户中。"
-          }
-        }
-      }
-    },
     "Sign in once to see your %@ library here. Games download with %@, an open-source client, and run with the runner you choose." : {
       "localizations" : {
         "it" : {
@@ -15443,18 +15337,18 @@
         }
       }
     },
-    "Steam at %@ isn't connected, so Cartouche can't be removed from it. All other Cartouche data is removed, except for Windows Games and prefixes." : {
+    "Steam at %@ isn't connected, so Cartouche can't be removed from it. All other Cartouche data is removed, except for your games, prefixes, console saves and BIOS files." : {
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam in %@ non è collegato, quindi Cartouche non può esserne rimosso. Tutti gli altri dati di Cartouche vengono rimossi, tranne i giochi Windows e i prefissi."
+            "value" : "Steam in %@ non è collegato, quindi Cartouche non può esserne rimosso. Tutti gli altri dati di Cartouche vengono rimossi, tranne i tuoi giochi, i prefissi, i salvataggi delle console e i file BIOS."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "位于 %@ 的 Steam 未连接，因此无法从中移除 Cartouche。其他所有 Cartouche 数据都会被移除，但 Windows 游戏及游戏容器除外。"
+            "value" : "位于 %@ 的 Steam 未连接，因此无法从中移除 Cartouche。其他所有 Cartouche 数据都会被移除，但你的游戏、游戏容器、主机存档和 BIOS 文件除外。"
           }
         }
       }
@@ -15683,6 +15577,22 @@
         }
       }
     },
+    "Steam is already in %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam è già in %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 已在 %@ 中。"
+          }
+        }
+      }
+    },
     "Steam is installed. Sign in once in Steam. Your library then shows up here, and Windows games run through Steam Play." : {
       "localizations" : {
         "it" : {
@@ -15731,18 +15641,18 @@
         }
       }
     },
-    "Steam is restored to its unmodified state and Cartouche is removed, including the compatibility tool that lives inside the Steam folder. Windows games and Steam Play prefixes are not removed." : {
+    "Steam is restored to its unmodified state and Cartouche is removed, including the compatibility tool that lives inside the Steam folder. Your games, prefixes, console saves and BIOS files are not removed." : {
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam viene riportato allo stato originale e Cartouche viene rimosso, compreso lo strumento di compatibilità nella cartella di Steam. I giochi Windows e i prefissi di Steam Play non vengono rimossi."
+            "value" : "Steam torna al suo stato originale e Cartouche viene rimosso, compreso lo strumento di compatibilità nella cartella di Steam. I tuoi giochi, i prefissi, i salvataggi delle console e i file BIOS non vengono rimossi."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此操作会将 Steam 恢复为未修改的状态，并移除 Cartouche（包括 Steam 文件夹内的兼容工具）。不会删除 Windows 游戏及 Steam Play 游戏容器。"
+            "value" : "Steam 会恢复到未修改的状态，Cartouche 会被移除，包括 Steam 文件夹中的兼容性工具。你的游戏、游戏容器、主机存档和 BIOS 文件不会被移除。"
           }
         }
       }
@@ -15999,6 +15909,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "停止"
+          }
+        }
+      }
+    },
+    "Stop Game" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interrompi il gioco"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止游戏"
           }
         }
       }
@@ -16691,6 +16617,38 @@
         }
       }
     },
+    "The downloaded Steam app is not signed by Valve." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’app Steam scaricata non è firmata da Valve."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载的 Steam 应用并非由 Valve 签名。"
+          }
+        }
+      }
+    },
+    "The downloaded Steam app is not signed." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’app Steam scaricata non è firmata."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载的 Steam 应用未签名。"
+          }
+        }
+      }
+    },
     "The folder at %@ is gone." : {
       "localizations" : {
         "it" : {
@@ -16979,6 +16937,22 @@
         }
       }
     },
+    "The prefix could not be created." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile creare il prefisso."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法创建游戏容器。"
+          }
+        }
+      }
+    },
     "The runner cannot run this installer" : {
       "localizations" : {
         "it" : {
@@ -16991,6 +16965,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "该运行器无法运行此安装程序"
+          }
+        }
+      }
+    },
+    "The runner that installed the game is not set up anymore." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il runner che ha installato il gioco non è più configurato."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装此游戏的运行器已不再可用。"
           }
         }
       }
@@ -17763,22 +17753,6 @@
         }
       }
     },
-    "Update available" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aggiornamento disponibile"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "有可用更新"
-          }
-        }
-      }
-    },
     "Update available (%@)." : {
       "localizations" : {
         "it" : {
@@ -17823,22 +17797,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "更新兼容工具"
-          }
-        }
-      }
-    },
-    "Updates" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aggiornamenti"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "更新"
           }
         }
       }

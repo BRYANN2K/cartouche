@@ -40,10 +40,12 @@ final class CompatibilityModel {
         }
     }
 
-    // Reads the cached copy, so the library has data before any network answer
-    func load() {
+    // Reads the cached copy, so the library has data before any network answer.
+    // Unpacking and validating run off the main actor; only the write stays here.
+    func load() async {
         guard let schema else { return }
-        data = client.cached(schema: schema)
+        let client = client
+        data = await Task.detached { client.cached(schema: schema) }.value
     }
 
     @discardableResult
@@ -52,7 +54,7 @@ final class CompatibilityModel {
             AppLog.note("compatibility schema missing from the app bundle")
             return nil
         }
-        if data == nil { load() }
+        if data == nil { await load() }
         // The daily switch keeps the cached copy in place and asks for nothing
         guard dailyChecks() else { return .skipped }
         let outcome = await client.refresh(now: now(), schema: schema)

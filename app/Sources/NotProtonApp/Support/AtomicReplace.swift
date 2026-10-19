@@ -26,6 +26,26 @@ func atomicReplace(_ destination: URL, from source: URL, step: String) throws {
     }
 }
 
+// The old folder moves aside before the new one lands, so a failed swap keeps
+// the previous install usable; the leftover is removed once the new one is in
+func swapIn(_ new: URL, at target: URL) throws {
+    let fm = FileManager.default
+    let aside = target.deletingLastPathComponent()
+        .appending(path: ".\(target.lastPathComponent).\(UUID().uuidString)")
+    var kept = false
+    if fm.fileExists(atPath: target.path(percentEncoded: false)) {
+        try fm.moveItem(at: target, to: aside)
+        kept = true
+    }
+    do {
+        try fm.moveItem(at: new, to: target)
+    } catch {
+        if kept { try? fm.moveItem(at: aside, to: target) }
+        throw error
+    }
+    if kept { try? fm.removeItem(at: aside) }
+}
+
 func atomicReplace(_ destination: URL, with data: Data, step: String) throws {
     let fm = FileManager.default
     let directory = destination.deletingLastPathComponent()

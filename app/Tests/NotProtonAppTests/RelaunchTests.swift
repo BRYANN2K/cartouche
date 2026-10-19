@@ -6,18 +6,41 @@ import Testing
 @testable import NotProtonApp
 
 final class FakeGames: GameActivity, Sendable {
-    private let running = Mutex(0)
+    private struct State {
+        var running: Int
+        var calls = 0
+        var waiter: CheckedContinuation<Void, Never>?
+    }
+
+    private let state: Mutex<State>
 
     // The game quits after this many checks
     init(runningFor checks: Int = 0) {
-        running.withLock { $0 = checks }
+        state = Mutex(State(running: checks))
     }
 
     func isGameRunning() async -> Bool {
-        running.withLock {
-            guard $0 > 0 else { return false }
-            $0 -= 1
+        let waiter = state.withLock { s -> CheckedContinuation<Void, Never>? in
+            s.calls += 1
+            defer { s.waiter = nil }
+            return s.waiter
+        }
+        waiter?.resume()
+        return state.withLock { s in
+            guard s.running > 0 else { return false }
+            s.running -= 1
             return true
+        }
+    }
+
+    // Resumes when the service first asks whether a game runs
+    func firstCall() async {
+        await withCheckedContinuation { continuation in
+            if state.withLock({ s -> Bool in
+                if s.calls > 0 { return true }
+                s.waiter = continuation
+                return false
+            }) { continuation.resume() }
         }
     }
 }
@@ -25,7 +48,9 @@ final class FakeGames: GameActivity, Sendable {
 @MainActor
 final class FakeRelauncher: Relauncher {
     var count = 0
-    func relaunch() { count += 1 }
+    // A relauncher that cannot start the helper reports false
+    var succeeds = true
+    func relaunch() -> Bool { count += 1; return succeeds }
 }
 
 // Each "process" is a fresh center, flow, option and service on one defaults domain.
@@ -140,10 +165,9 @@ struct RelaunchTests {
         copy.service.markWaiting(.inputMonitoring)
 
         let relaunch = Task { await copy.service.relaunch(to: Self.controls) }
-        for _ in 0..<200 where copy.service.phase != .waitingForGame {
-            try await Task.sleep(for: .milliseconds(1))
-        }
-        #expect(copy.service.phase == .waitingForGame)
+        await games.firstCall()
+        #expect(await waitFor(10) { copy.service.phase == .waitingForGame },
+                "the service never entered .waitingForGame")
         #expect(copy.service.banner?.title == "Cartouche relaunches when your game quits")
         #expect(copy.relauncher.count == 0, "relaunched while the game ran")
         snapshot(RelaunchBanner(service: copy.service, route: Self.controls).frame(width: 560),
@@ -155,14 +179,65 @@ struct RelaunchTests {
         #expect(copy.service.restore() == Self.controls)
     }
 
+    @Test("A game any source knows — runner clone or console — holds the relaunch the same way")
+    func consoleGameBlocks() async throws {
+        let scratch = ScratchDefaults()
+        let tcc = FakeTCC([.inputMonitoring: .granted])
+        // The first source sees nothing; the second (a console game) reports running.
+        // 100 checks at 5 ms keep it running well past waitFor's 50 ms poll.
+        let games = CompositeGameActivity([FakeGames(), FakeGames(runningFor: 100)])
+        let copy = await launch(tcc, scratch, games: FakeGames())
+        let service = RelaunchService(defaults: scratch.defaults, center: copy.center, games: games,
+                                      relauncher: copy.relauncher, pollInterval: .milliseconds(5))
+
+        let relaunch = Task { await service.relaunch(to: Self.controls) }
+        #expect(await waitFor(10) { service.phase == .waitingForGame },
+                "a running console game did not hold the relaunch")
+        #expect(copy.relauncher.count == 0, "relaunched while a console game ran")
+        await relaunch.value
+        #expect(copy.relauncher.count == 1)
+    }
+
+    @Test("A relauncher that cannot start puts the phase back to idle and clears the route")
+    func relaunchFails() async {
+        let scratch = ScratchDefaults()
+        let games = FakeGames()
+        let copy = await launch(FakeTCC(), scratch, games: games)
+        copy.relauncher.succeeds = false
+
+        await copy.service.relaunch(to: Self.controls)
+        #expect(copy.relauncher.count == 1)
+        #expect(copy.service.phase == .idle)
+        #expect(copy.service.restore() == nil, "the saved screen was left for the next launch")
+
+        // The service is not wedged: the next ask runs the relauncher again
+        await copy.service.relaunch(to: Self.controls)
+        #expect(copy.relauncher.count == 2)
+    }
+
+    @Test("A relaunch the user cancels is noticed once the helper's window ends")
+    func cancelledQuitResets() async throws {
+        let scratch = ScratchDefaults()
+        let copy = await launch(FakeTCC(), scratch, games: FakeGames())
+        let service = RelaunchService(defaults: scratch.defaults, games: FakeGames(),
+                                    relauncher: copy.relauncher,
+                                    pollInterval: .milliseconds(5), giveUpAfter: .milliseconds(100))
+
+        await service.relaunch(to: Self.controls)
+        #expect(service.phase == .relaunching)
+        #expect(await waitFor(10) { service.phase == .idle },
+                ".relaunching never reset after the give-up window")
+        #expect(service.restore() == nil)
+    }
+
     @Test("Cancel while waiting for the game: no relaunch, and no screen left to restore")
     func cancelWhileWaiting() async throws {
         let scratch = ScratchDefaults()
-        let copy = await launch(FakeTCC(), scratch, games: FakeGames(runningFor: 10_000))
+        let games = FakeGames(runningFor: 10_000)
+        let copy = await launch(FakeTCC(), scratch, games: games)
         let relaunch = Task { await copy.service.relaunch(to: Self.controls) }
-        for _ in 0..<200 where copy.service.phase != .waitingForGame {
-            try await Task.sleep(for: .milliseconds(1))
-        }
+        await games.firstCall()
+        #expect(await waitFor(10) { copy.service.phase == .waitingForGame })
         copy.service.cancel()
         await relaunch.value
         #expect(copy.relauncher.count == 0)
@@ -185,16 +260,19 @@ struct RelaunchTests {
         let work = try scratchDirectory("reopen")
         defer { try? FileManager.default.removeItem(at: work) }
         let marker = work.appending(path: "reopened")
+        // The "old process" stays up until the test has checked the marker,
+        // then is ended on purpose — no window where timing decides the order
         let old = Process()
         old.executableURL = URL(filePath: "/bin/sleep")
-        old.arguments = ["0.5"]
+        old.arguments = ["30"]
         try old.run()
 
         let helper = try LiveRelauncher.reopen(after: old.processIdentifier,
                                                run: ["/usr/bin/touch", marker.path(percentEncoded: false)])
-        try await Task.sleep(for: .milliseconds(200))
+        try await Task.sleep(for: .milliseconds(500))
         #expect(!FileManager.default.fileExists(atPath: marker.path), "ran before the old process ended")
 
+        old.terminate()
         old.waitUntilExit()
         let ended = ContinuousClock.now
         while !FileManager.default.fileExists(atPath: marker.path), ContinuousClock.now - ended < .seconds(5) {

@@ -77,9 +77,12 @@ enum InstallRunners {
             guard executable(layout.loader) else { return nil }
             return WineRunner(root: root, loader: layout.loader, server: layout.server, dllPath: dllPath(root, unix: layout.unixDir))
         case .wineBuild:
-            let root = WineRunnerInstaller.folder(for: runner.id, runners: runners)
+            let root = WineRunnerInstaller.dir(for: runner.id, runners: runners)
             let unix = root.appending(path: "lib/wine/x86_64-unix")
-            let loaders = [unix.appending(path: "wine"), root.appending(path: "bin/wine"), root.appending(path: "bin/wine64")]
+            // The receipt records the manifest's loader; guesses cover receipts that predate it
+            let loaders = [WineRunnerInstaller.receipt(for: runner.id, runners: runners)?.loader]
+                .compactMap { $0 }.map { root.appending(path: $0) }
+                + [unix.appending(path: "wine"), root.appending(path: "bin/wine"), root.appending(path: "bin/wine64")]
             guard let loader = loaders.first(where: executable) else { return nil }
             return WineRunner(root: root, loader: loader, server: root.appending(path: "bin/wineserver"), dllPath: dllPath(root, unix: unix))
         case .portingToolkit:

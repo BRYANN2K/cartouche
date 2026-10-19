@@ -79,6 +79,8 @@ public enum RDB {
     struct Reader {
         let bytes: UnsafeRawBufferPointer
         var at: Int
+        // A damaged file could nest arrays in arrays without end
+        var depth = 0
 
         mutating func byte() throws -> UInt8 {
             guard at < bytes.count else { throw Problem.damaged(at: at) }
@@ -134,12 +136,18 @@ public enum RDB {
         }
 
         private mutating func array(_ count: Int) throws -> Value {
+            depth += 1
+            defer { depth -= 1 }
+            guard depth <= 32 else { throw Problem.damaged(at: at) }
             var items: [Value] = []
             for _ in 0..<count { items.append(try value()) }
             return .array(items)
         }
 
         private mutating func map(_ count: Int) throws -> Value {
+            depth += 1
+            defer { depth -= 1 }
+            guard depth <= 32 else { throw Problem.damaged(at: at) }
             var fields: [(String, Value)] = []
             for _ in 0..<count {
                 guard case .string(let key) = try value() else { throw Problem.damaged(at: at) }

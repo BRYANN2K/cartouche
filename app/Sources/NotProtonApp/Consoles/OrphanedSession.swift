@@ -1,11 +1,7 @@
-// A console session survives Cartouche: while a game runs, a small record is
-// kept in the support folder and touched every minute. When Cartouche is
-// killed mid-game, the record is still there at the next launch — the
-// emulator it names may even still be running. A process that is still the
-// same one is picked up again and counted when it ends; one that is gone has
-// its time counted to the last heartbeat. A pid is never trusted alone: the
-// process's own start time must match, and a process found this way is never
-// signaled, only asked politely to quit.
+// A console session survives Cartouche: the record is kept beside it so a
+// killed Cartouche still counts the play time. A pid is never trusted alone —
+// the process's own start time must match — and a process found this way is
+// never signaled, only asked politely to quit.
 
 import AppKit
 import Darwin
@@ -139,15 +135,5 @@ actor OrphanedRunner: ConsoleRunning {
     private func report(way: StopReport.Way) -> PlayReport {
         let played = Duration.seconds(sessions.now().timeIntervalSince(record.started))
         return PlayReport(stop: StopReport(way: way, duration: .zero), played: played)
-    }
-}
-
-extension ConsolePlayer {
-    // The RetroArch process the session record watches for
-    var processIdentifier: Int32? {
-        get async {
-            guard let session else { return nil }
-            return await session.processIdentifier
-        }
     }
 }

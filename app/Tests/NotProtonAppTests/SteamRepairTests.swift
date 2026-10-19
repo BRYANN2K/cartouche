@@ -159,7 +159,7 @@ struct SteamRepairTests {
         let result = try await Uninstall.run(
             app: app, innerPlist: work.appending(path: "inner.plist"), updateBlocks: [],
             legacyCompat: work.appending(path: "legacycompat"), compatTools: [],
-            directories: [support], libraries: [], modifications: modifications, lockFolder: work,
+            support: support, directories: [], libraries: [], modifications: modifications, lockFolder: work,
             repair: { _, _ in Issue.record("A disconnected repaired copy needs no repair") },
             stop: { _, _ in false })
 

@@ -48,6 +48,8 @@ enum SchemaValue: Decodable, Equatable, Sendable {
 struct CompatSchema: Sendable {
 
     let root: SchemaValue
+    // Every "pattern" in the schema, compiled once instead of per checked string
+    private let patterns: [String: NSRegularExpression]
 
     static let annotations: Set<String> = ["$schema", "$id", "$comment", "title", "description", "$defs"]
     static let checks: Set<String> = [
@@ -61,8 +63,14 @@ struct CompatSchema: Sendable {
     }
 
     init(_ data: Data) throws {
-        root = try JSONDecoder().decode(SchemaValue.self, from: data)
+        let root = try JSONDecoder().decode(SchemaValue.self, from: data)
         try Self.checkKeywords(root)
+        self.root = root
+        var names: Set<String> = []
+        Self.patterns(root, into: &names)
+        patterns = names.reduce(into: [:]) { out, name in
+            out[name] = try? NSRegularExpression(pattern: name)
+        }
     }
 
     // The copy bundled with the app, kept equal to docs/schema by a test
@@ -86,6 +94,18 @@ struct CompatSchema: Sendable {
                 for sub in subs.values { try checkKeywords(sub) }
             } else if ["items", "additionalProperties", "propertyNames"].contains(key) {
                 try checkKeywords(value)
+            }
+        }
+    }
+
+    private static func patterns(_ node: SchemaValue, into out: inout Set<String>) {
+        guard case .object(let schema) = node else { return }
+        for (key, value) in schema {
+            if key == "pattern", case .string(let pattern) = value { out.insert(pattern) }
+            if key == "properties" || key == "$defs", case .object(let subs) = value {
+                for sub in subs.values { patterns(sub, into: &out) }
+            } else if ["items", "additionalProperties", "propertyNames"].contains(key) {
+                patterns(value, into: &out)
             }
         }
     }
@@ -152,7 +172,8 @@ struct CompatSchema: Sendable {
             if let length = number(schema["minLength"]), Double(s.count) < length {
                 found.append("\(path): too short")
             }
-            if case .string(let pattern) = schema["pattern"], s.range(of: pattern, options: .regularExpression) == nil {
+            if case .string(let pattern) = schema["pattern"],
+               patterns[pattern]?.firstMatch(in: s, range: NSRange(s.startIndex..., in: s)) == nil {
                 found.append("\(path): \(s) does not match \(pattern)")
             }
             if case .string(let format) = schema["format"], !Self.valid(s, format: format) {
@@ -195,14 +216,16 @@ struct CompatSchema: Sendable {
         }
     }
 
+    static let datePattern = try! NSRegularExpression(pattern: #"^\d{4}-\d{2}-\d{2}$"#)
+    static let instantPattern = try! NSRegularExpression(pattern: #"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$"#)
+
     static func valid(_ s: String, format: String) -> Bool {
+        let range = NSRange(s.startIndex..., in: s)
         switch format {
         case "date":
-            guard s.range(of: #"^\d{4}-\d{2}-\d{2}$"#, options: .regularExpression) != nil else { return false }
-            return CompatDate.day(s) != nil
+            return datePattern.firstMatch(in: s, range: range) != nil && CompatDate.day(s) != nil
         case "date-time":
-            let pattern = #"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$"#
-            return s.range(of: pattern, options: .regularExpression) != nil && CompatDate.instant(s) != nil
+            return instantPattern.firstMatch(in: s, range: range) != nil && CompatDate.instant(s) != nil
         default:
             return false
         }
@@ -211,21 +234,29 @@ struct CompatSchema: Sendable {
 
 enum CompatDate {
 
+    static let gregorianGMT: Calendar = {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .gmt
+        return calendar
+    }()
+
     static func day(_ s: String) -> Date? {
         let parts = s.split(separator: "-").compactMap { Int($0) }
         guard parts.count == 3 else { return nil }
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = .gmt
         let components = DateComponents(year: parts[0], month: parts[1], day: parts[2])
-        guard components.isValidDate(in: calendar) else { return nil }
-        return calendar.date(from: components)
+        guard components.isValidDate(in: gregorianGMT) else { return nil }
+        return gregorianGMT.date(from: components)
     }
 
+    // ISO8601DateFormatter is thread-safe
+    nonisolated(unsafe) static let plain = ISO8601DateFormatter()
+    nonisolated(unsafe) static let fractional: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
     static func instant(_ s: String) -> Date? {
-        let plain = ISO8601DateFormatter()
-        if let date = plain.date(from: s) { return date }
-        let fractional = ISO8601DateFormatter()
-        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return fractional.date(from: s)
+        plain.date(from: s) ?? fractional.date(from: s)
     }
 }

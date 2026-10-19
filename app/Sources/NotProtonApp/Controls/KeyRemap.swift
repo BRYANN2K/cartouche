@@ -1,5 +1,3 @@
-// The keys a game's remap list changes, kept with its other controls.
-
 import CoreGraphics
 import Foundation
 

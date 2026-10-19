@@ -35,6 +35,16 @@ struct SteamCollection: Equatable, Sendable {
     let apps: [Int]
 }
 
+// One appmanifest_*.acf: what the activity poll and the installed list need
+struct SteamManifest: Sendable {
+    let appID: Int
+    let name: String
+    let flags: Int
+    let installdir: String?
+    let lastPlayed: Date?
+    let state: VDF
+}
+
 struct SteamLocalFiles: Sendable {
 
     // ~/Library/Application Support/Steam
@@ -65,35 +75,84 @@ struct SteamLocalFiles: Sendable {
         }
     }
 
+    // Every manifest in every library. Activity polling calls this every
+    // second while Steam barely rewrites the files, so each is parsed once and
+    // re-read only when its modification date moves.
+    func manifests() -> [SteamManifest] {
+        var out: [SteamManifest] = []
+        var paths: Set<String> = []
+        for library in libraries() {
+            let steamapps = library.appending(path: "steamapps")
+            let names = (try? FileManager.default.contentsOfDirectory(atPath: steamapps.path(percentEncoded: false))) ?? []
+            for file in names where file.hasPrefix("appmanifest_") && file.hasSuffix(".acf") {
+                let url = steamapps.appending(path: file)
+                paths.insert(url.path(percentEncoded: false))
+                if let manifest = Self.manifest(at: url) { out.append(manifest) }
+            }
+        }
+        Self.manifestLock.lock()
+        Self.manifestCache = Self.manifestCache.filter { paths.contains($0.key) }
+        Self.manifestLock.unlock()
+        return out
+    }
+
+    private static let manifestLock = NSLock()
+    nonisolated(unsafe) private static var manifestCache: [String: (modified: Date, manifest: SteamManifest?)] = [:]
+
+    private static func manifest(at url: URL) -> SteamManifest? {
+        let path = url.path(percentEncoded: false)
+        let modified = (try? FileManager.default.attributesOfItem(atPath: path)[.modificationDate]) as? Date
+        manifestLock.lock()
+        if let modified, let hit = manifestCache[path], hit.modified == modified {
+            manifestLock.unlock()
+            return hit.manifest
+        }
+        manifestLock.unlock()
+        let manifest = VDF.read(url)?["AppState"].flatMap { state in
+            state["appid"]?.int.flatMap { appID in
+                state["name"]?.string.map { name in
+                    SteamManifest(appID: appID, name: name, flags: state["StateFlags"]?.int ?? 0,
+                                  installdir: state["installdir"]?.string,
+                                  lastPlayed: Self.date(state["LastPlayed"]?.int), state: state)
+                }
+            }
+        }
+        manifestLock.lock()
+        manifestCache[path] = (modified ?? .distantPast, manifest)
+        manifestLock.unlock()
+        return manifest
+    }
+
     // Fully installed apps, StateFlags bit 4. Tools Steam installs for itself are left out.
     func installed() -> [SteamInstalledApp] {
         var apps: [Int: SteamInstalledApp] = [:]
-        for library in libraries() {
-            let steamapps = library.appending(path: "steamapps")
-            let files = (try? FileManager.default.contentsOfDirectory(atPath: steamapps.path(percentEncoded: false))) ?? []
-            for file in files where file.hasPrefix("appmanifest_") && file.hasSuffix(".acf") {
-                guard let state = VDF.read(steamapps.appending(path: file))?["AppState"],
-                      let appID = state["appid"]?.int,
-                      let name = state["name"]?.string,
-                      let flags = state["StateFlags"]?.int, flags & 4 != 0,
-                      !Self.isTool(appID: appID, name: name)
-                else { continue }
-                apps[appID] = SteamInstalledApp(appID: appID, name: name, lastPlayed: Self.date(state["LastPlayed"]?.int))
-            }
+        for manifest in manifests() where manifest.flags & 4 != 0 && !Self.isTool(appID: manifest.appID, name: manifest.name) {
+            apps[manifest.appID] = SteamInstalledApp(appID: manifest.appID, name: manifest.name, lastPlayed: manifest.lastPlayed)
         }
         return apps.values.sorted { $0.appID < $1.appID }
     }
 
-    // steamapps/common/<installdir> of an installed app
+    // steamapps/common/<installdir> of an installed app; an empty or escaping
+    // installdir never yields a folder
     func installFolder(appID: Int) -> URL? {
         for library in libraries() {
             let steamapps = library.appending(path: "steamapps")
-            guard let dir = VDF.read(steamapps.appending(path: "appmanifest_\(appID).acf"))?[path: "AppState", "installdir"]?.string
+            guard let dir = VDF.read(steamapps.appending(path: "appmanifest_\(appID).acf"))?[path: "AppState", "installdir"]?.string,
+                  Self.validInstallDir(dir)
             else { continue }
-            let folder = steamapps.appending(path: "common").appending(path: dir)
-            if FileManager.default.fileExists(atPath: folder.path(percentEncoded: false)) { return folder }
+            let common = steamapps.appending(path: "common").standardizedFileURL.path(percentEncoded: false)
+            let prefix = common.hasSuffix("/") ? common : common + "/"
+            let folder = steamapps.appending(path: "common/\(dir)").standardizedFileURL.path(percentEncoded: false)
+            guard folder.hasPrefix(prefix), FileManager.default.fileExists(atPath: folder)
+            else { continue }
+            return URL(filePath: folder)
         }
         return nil
+    }
+
+    // One path component: an installdir naming a subdirectory or leaving common/ is not trusted
+    static func validInstallDir(_ dir: String) -> Bool {
+        !dir.isEmpty && !dir.contains("/") && !dir.contains("\\") && !dir.contains("..")
     }
 
     func userFolder(_ account: SteamAccount) -> URL? {

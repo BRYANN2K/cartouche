@@ -15,14 +15,21 @@ public enum LocalNetplayBrowser {
         try? await Task.sleep(for: limit)
         browser.cancel()
 
-        var rooms: [NetplayRoom] = []
-        for result in found.withLock({ $0 }) {
-            guard case .bonjour(let record) = result.metadata,
-                  let (address, port) = await resolve(result.endpoint)
-            else { continue }
-            if let room = LocalNetplay.room(txt: record.dictionary, address: address, port: port) { rooms.append(room) }
+        // Resolving one host can take its timeout: all at once, not in turn
+        let results = found.withLock { $0 }
+        return await withTaskGroup(of: NetplayRoom?.self) { group in
+            for result in results {
+                group.addTask {
+                    guard case .bonjour(let record) = result.metadata,
+                          let (address, port) = await resolve(result.endpoint)
+                    else { return nil }
+                    return LocalNetplay.room(txt: record.dictionary, address: address, port: port)
+                }
+            }
+            var rooms: [NetplayRoom] = []
+            for await room in group.compactMap({ $0 }) { rooms.append(room) }
+            return rooms
         }
-        return rooms
     }
 
     // The host's address and port. Network resolves a service only on the way

@@ -10,8 +10,9 @@ struct SteamActivitySnapshot: Equatable, Sendable {
     // Fully installed with nothing left to download
     var installed: Set<Int> = []
     var runningAppID: Int?
-    // The processes Steam tracks for the running game, still alive
-    var trackedPIDs: [pid_t] = []
+    // The processes Steam tracks for the running game, each with the time Steam
+    // logged it, still alive and still tracing back to the game
+    var trackedPIDs: [pid_t: Date] = [:]
     // Every app Steam has a manifest for, to name the running game
     var names: [Int: String] = [:]
 }
@@ -38,30 +39,25 @@ struct SteamActivityReader: Sendable {
     func read() -> SteamActivitySnapshot {
         var snapshot = SteamActivitySnapshot()
         let log = Self.logStates(Self.tail(of: contentLog))
-        for library in files.libraries() {
-            let steamapps = library.appending(path: "steamapps")
-            let names = (try? FileManager.default.contentsOfDirectory(atPath: steamapps.path(percentEncoded: false))) ?? []
-            for file in names where file.hasPrefix("appmanifest_") && file.hasSuffix(".acf") {
-                guard let state = VDF.read(steamapps.appending(path: file))?["AppState"],
-                      let appID = state["appid"]?.int, let name = state["name"]?.string,
-                      !SteamLocalFiles.isTool(appID: appID, name: name)
-                else { continue }
-                snapshot.names[appID] = name
-                let flags = state["StateFlags"]?.int ?? 0
-                if flags & Flag.appRunning != 0 { snapshot.runningAppID = snapshot.runningAppID ?? appID }
-                if let download = Self.download(appID: appID, name: name, state: state, log: log[appID]) {
-                    // A stale copy of the manifest in a second library counts once
-                    if !snapshot.downloads.contains(where: { $0.appID == appID }) { snapshot.downloads.append(download) }
-                } else if flags & Flag.fullyInstalled != 0 {
-                    snapshot.installed.insert(appID)
-                }
+        for manifest in files.manifests() {
+            let appID = manifest.appID, name = manifest.name, flags = manifest.flags
+            guard !SteamLocalFiles.isTool(appID: appID, name: name) else { continue }
+            snapshot.names[appID] = name
+            if flags & Flag.appRunning != 0 { snapshot.runningAppID = snapshot.runningAppID ?? appID }
+            if let download = Self.download(appID: appID, name: name, state: manifest.state, log: log[appID]) {
+                // A stale copy of the manifest in a second library counts once
+                if !snapshot.downloads.contains(where: { $0.appID == appID }) { snapshot.downloads.append(download) }
+            } else if flags & Flag.fullyInstalled != 0 {
+                snapshot.installed.insert(appID)
             }
         }
         snapshot.downloads.sort { $0.appID < $1.appID }
         // Steam's own process tracking first, then what registry.vdf says, then the manifest bit
-        let tracked = GameProcesses.tracked(inLog: Self.tail(of: processLog)).compactMapValues { pids -> [pid_t]? in
-            let alive = pids.filter(GameProcesses.isAlive)
-            return alive.isEmpty ? nil : alive
+        var tracked: [Int: [pid_t: Date]] = [:]
+        for (appID, pids) in GameProcesses.tracked(inLog: Self.tail(of: processLog)) {
+            let folder = files.installFolder(appID: appID).map { GameProcesses.folderPrefix($0) }
+            let trusted = pids.filter { pid, added in GameProcesses.trusted(pid, added: added, folder: folder) }
+            if !trusted.isEmpty { tracked[appID] = trusted }
         }
         if let (appID, pids) = tracked.min(by: { $0.key < $1.key }) {
             snapshot.runningAppID = appID

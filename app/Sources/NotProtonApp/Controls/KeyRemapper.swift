@@ -19,7 +19,17 @@ final class LiveKeyTap: KeyTapping {
     // Read by the tap's callback on the main run loop
     final class Shared: @unchecked Sendable {
         var table: [CGKeyCode: CGKeyCode] = [:]
+        // Each rewritten keyDown's target, so its keyUp matches even if the
+        // table was cleared after a focus change
+        var held: [CGKeyCode: CGKeyCode] = [:]
         var port: CFMachPort?
+
+        func rewrite(_ code: CGKeyCode, up: Bool) -> CGKeyCode? {
+            if up { return held.removeValue(forKey: code) }
+            guard let to = table[code] else { return nil }
+            held[code] = to
+            return to
+        }
     }
 
     private let shared = Shared()
@@ -45,7 +55,7 @@ final class LiveKeyTap: KeyTapping {
                     return Unmanaged.passUnretained(event)
                 }
                 let code = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
-                if let to = shared.table[code] {
+                if let to = shared.rewrite(code, up: type == .keyUp) {
                     event.setIntegerValueField(.keyboardEventKeycode, value: Int64(to))
                 }
                 return Unmanaged.passUnretained(event)
@@ -63,23 +73,23 @@ final class LiveKeyTap: KeyTapping {
         if let source { CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes) }
         shared.port = nil
         shared.table = [:]
+        shared.held = [:]
         source = nil
     }
 }
 
-// The table is set only while the game is in front; elsewhere every key stays itself
+// The tap runs only while the remapped game is in front; elsewhere every key
+// stays itself
 @MainActor
 final class KeyRemapper {
 
     let tap: any KeyTapping
-    let focus: any GameFocus
     private(set) var running = false
     // macOS refused the tap; tried again only after a stop
     private var refused = false
 
-    init(tap: any KeyTapping, focus: any GameFocus) {
+    init(tap: any KeyTapping) {
         self.tap = tap
-        self.focus = focus
     }
 
     // false when the tap could not start
@@ -92,7 +102,7 @@ final class KeyRemapper {
             }
             running = true
         }
-        tap.table = focus.isFrontmost(game) ? KeyRemap.table(remaps) : [:]
+        tap.table = KeyRemap.table(remaps)
         return true
     }
 

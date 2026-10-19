@@ -39,15 +39,6 @@ struct SteamToolListTests {
         #expect(CompatToolList.contents(tools) == Self.text(Self.withFEX.filter { !$0.contains("\tfex\t") }))
     }
 
-    @Test("A legacy holder takes the bare name and keeps its place first",
-          arguments: SupportedRunners.legacyHolders)
-    func legacyHolder(_ holder: String) {
-        let tools = SupportedRunners.tools(for: SupportedRunners.all, legacy: .build(holder), fexAvailable: true)
-        let held = Self.withFEX.first { $0.split(separator: "\t")[1] == holder }!
-        let renamed = Self.p + held.drop(while: { $0 != "\t" })
-        #expect(CompatToolList.contents(tools) == Self.text([renamed] + Self.withFEX.filter { $0 != held }))
-    }
-
     @Test("A runners folder holding every pinned build writes the baseline list file")
     func listFile() throws {
         let work = try scratchDirectory("toollist")

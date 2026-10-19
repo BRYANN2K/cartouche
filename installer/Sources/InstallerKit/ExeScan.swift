@@ -9,8 +9,6 @@ public enum ShellLink {
 
     public struct Info: Sendable, Equatable {
         public var target: String?
-        public var workingDirectory: String?
-        public var arguments: String?
     }
 
     public static func parse(_ data: Data) -> Info? {
@@ -43,14 +41,12 @@ public enum ShellLink {
             strings[slot] = unicode ? String(data: bytes, encoding: .utf16LittleEndian) : String(decoding: bytes, as: UTF8.self)
             at += length
         }
-        info.workingDirectory = strings[2]
-        info.arguments = strings[3]
         if info.target == nil, let relative = strings[1], let dir = strings[2] {
             if let name = relative.split(separator: "\\").last {
                 info.target = dir.hasSuffix("\\") ? dir + name : dir + "\\" + name
             }
         }
-        return info.target == nil && info.workingDirectory == nil ? nil : info
+        return info.target == nil && strings[2] == nil ? nil : info
     }
 
     private static func cstring(_ data: Data, _ offset: Int) -> String? {

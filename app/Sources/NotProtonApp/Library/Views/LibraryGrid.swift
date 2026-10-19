@@ -7,6 +7,7 @@ struct LibraryGrid: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(ControlsCenter.self) private var controls: ControlsCenter?
+    @Environment(StoreCenter.self) private var stores: StoreCenter?
     @State private var droppedCover: (game: Game, image: URL)?
 
     var body: some View {
@@ -65,7 +66,7 @@ struct LibraryGrid: View {
             onSelect: { model.select(game.id) },
             onFavorite: { model.toggleFavorite(game.id) },
             onDropCover: { droppedCover = (game, $0) },
-            menu: { GameMenu.items(for: game, in: model) },
+            menu: { GameMenu.items(for: game, in: model, stores: stores) },
             perform: { actions.perform($0, on: game) }
         )
     }

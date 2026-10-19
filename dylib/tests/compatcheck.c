@@ -981,6 +981,34 @@ static void request_cases(void) {
     check(np_compat_apply_requests_from(manager, path) == 0 && mapped_count == 0,
           "a consumed file is not applied twice");
     check(np_compat_apply_requests_from(NULL, path) == 0, "no manager, nothing applied");
+
+    // A line over the buffer is read in two pieces; neither maps anything, and the
+    // line after it still applies
+    f = fopen(path, "w");
+    if (!f) {
+        check(0, "the request fixture can be written");
+        return;
+    }
+    fprintf(f, "620\tcartouche-proton-26.3%-300s-dxmt\n", "x");
+    fputs("1245620\tcartouche-proton-26.3-dxvk\n", f);
+    fclose(f);
+    check(np_compat_apply_requests_from(manager, path) == 1 && mapped_count == 1
+          && mapped_apps[0] == 1245620,
+          "an over-long line maps nothing and does not eat the next line");
+
+    // A crash after the rename leaves the requests behind; the next pass applies them
+    mapped_count = 0;
+    f = fopen("out/compatcheck-compat-requests.applying", "w");
+    if (!f) {
+        check(0, "the request fixture can be written");
+        return;
+    }
+    fputs("413150\tcartouche-proton-26.3-dxmt\n", f);
+    fclose(f);
+    check(np_compat_apply_requests_from(manager, path) == 1 && mapped_count == 1
+          && mapped_apps[0] == 413150
+          && !exists("out/compatcheck-compat-requests.applying"),
+          "a leftover .applying file is applied, not orphaned");
     np_compat_set_mapping_fn(0);
 }
 

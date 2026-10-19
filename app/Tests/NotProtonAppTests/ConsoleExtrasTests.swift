@@ -40,11 +40,11 @@ struct ConsoleExtrasPanelTests {
             .frame(width: 360, height: 1180)
     }
 
-    private func content(_ scene: ConsoleScene, _ game: ConsoleGame) throws -> ConsolePanelContent {
+    private func content(_ scene: ConsoleScene, _ game: ConsoleGame) async throws -> ConsolePanelContent {
         let current = try #require(scene.center.game(game.id))
         let system = try #require(scene.center.console(of: current))
-        var content = ConsolePanelContent(game: current, console: system, states: scene.center.states(for: current),
-                                          bios: scene.center.bios(for: current), playing: nil)
+        var content = ConsolePanelContent(game: current, console: system, states: await scene.center.states(for: current),
+                                          bios: await scene.center.bios(for: current), playing: nil)
         content.signedIn = scene.center.extras.username != nil
         content.progress = scene.center.extras.progress(for: current)
         return content
@@ -55,13 +55,13 @@ struct ConsoleExtrasPanelTests {
         let scene = try ConsoleScene("extras-counts")
         defer { scene.remove() }
         let game = try await scene.addGame(console: "snes", name: "Cartouche Homebrew", databaseName: "Cartouche Homebrew (World)")
-        #expect(try content(scene, game).achievements == "Not signed in")
+        #expect(try await content(scene, game).achievements == "Not signed in")
         let secrets = await Self.signIn(scene)
         #expect(secrets.all == ["player42": "Q1w2E3r4T5y6U7i8"])
-        #expect(try content(scene, game).achievements == "Not known yet")
+        #expect(try await content(scene, game).achievements == "Not known yet")
         await scene.center.extras.refresh(game)
-        #expect(try content(scene, game).achievements == "12 of 64")
-        let compat = try fixtureCompat(scene.work, defaults: scene.scratch)
+        #expect(try await content(scene, game).achievements == "12 of 64")
+        let compat = try await fixtureCompat(scene.work, defaults: scene.scratch)
         for dark in [false, true] {
             let texts = try await renderedTexts(try panel(scene, game.id, compat: compat), size: CGSize(width: 360, height: 1180),
                                                 named: "p14-panel-achievements", dark: dark, settle: 0.8)
@@ -78,10 +78,10 @@ struct ConsoleExtrasPanelTests {
         let game = try await scene.addGame(console: "snes", name: "Cartouche Homebrew", databaseName: "Cartouche Homebrew (World)")
         try scene.writeState(game, slot: nil, picture: try ConsolePanelTests.screen("AUTO"), age: 60)
         try scene.writeState(game, slot: 3, picture: try ConsolePanelTests.screen("SLOT 3"), age: 600)
-        #expect(try content(scene, game).playLabel == "Resume")
+        #expect(try await content(scene, game).playLabel == "Resume")
 
         await scene.center.setSetup(game.id) { $0.hardcore = true }
-        let hardcore = try content(scene, game)
+        let hardcore = try await content(scene, game)
         #expect(!hardcore.statesAllowed)
         #expect(hardcore.playLabel == "Play")
         // Clicking Slot 3 anyway, or Play: no state is loaded
@@ -90,7 +90,7 @@ struct ConsoleExtrasPanelTests {
         #expect(request.hardcore && request.slot == nil && !request.resume)
         await scene.center.quit()
 
-        let compat = try fixtureCompat(scene.work, defaults: scene.scratch)
+        let compat = try await fixtureCompat(scene.work, defaults: scene.scratch)
         for dark in [false, true] {
             let texts = try await renderedTexts(try panel(scene, game.id, compat: compat), size: CGSize(width: 360, height: 1180),
                                                 named: "p14-panel-hardcore", dark: dark, settle: 0.8)

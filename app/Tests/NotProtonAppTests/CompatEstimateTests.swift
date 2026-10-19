@@ -20,8 +20,6 @@ struct CompatEstimateTests {
         #expect(e.settings == .high)
         #expect(e.reportCount == 13)
         #expect(e.sameChipCount == 7)
-        #expect(!e.usedFallback)
-        #expect(e.fpsRange == 40...60)
     }
 
     @Test("The panel says it in words, with the number of reports")
@@ -29,7 +27,10 @@ struct CompatEstimateTests {
         let data = try CompatFixture.data()
         let panel = CompatibilityPanel(record: data.record(appID: 1245620), mac: try CompatFixture.eldenRingMac(),
                                        method: .wine, chip: "M4", data: data, ageNotice: nil)
-        #expect(panel.estimateLines == ["Good", "About 52 fps", "High settings", "Reports used: 13, including 7 on M4"])
+        let (estimate, line) = GamePanelContent.estimate(panel.estimate, macReportsOn: panel.macReportsOn)
+        #expect(line == nil)
+        #expect(estimate == GamePanelContent.Estimate(
+            rating: "Good", fps: "52 fps", settings: "High", note: "13 reports from Macs like yours"))
     }
 
     @Test("Comparable Macs are within 1.4 times the GPU strength either way")
@@ -40,19 +41,18 @@ struct CompatEstimateTests {
             Issue.record("no estimate"); return
         }
         #expect(e.reportCount == 3)
-        #expect(!e.usedFallback)
     }
 
     @Test("With fewer than 3 comparable reports, the 5 closest are used")
     func fallbackToClosest() throws {
         guard case .estimate(let e) = try eldenRing(on: "M3 Ultra") else { Issue.record("no estimate"); return }
-        #expect(e.usedFallback)
         #expect(e.reportCount == 5)
         #expect(e.sameChipCount == 0)
         let data = try CompatFixture.data()
         let panel = CompatibilityPanel(record: data.record(appID: 1245620), mac: try CompatFixture.eldenRingMac(),
                                        method: .wine, chip: "M3 Ultra", data: data, ageNotice: nil)
-        #expect(panel.estimateLines.last == "Reports used: 5, all from other Macs")
+        let (estimate, _) = GamePanelContent.estimate(panel.estimate, macReportsOn: panel.macReportsOn)
+        #expect(estimate?.note == "5 reports from Macs like yours")
     }
 
     @Test("No reports for the play method: the panel says so and shows no number")
@@ -62,8 +62,9 @@ struct CompatEstimateTests {
         let elden = try CompatFixture.eldenRingMac()
         for (app, mac, method) in [(1245620, elden, PlayMethod.native), (1172470, MacGamingDBEntry.empty, .wine), (999_999, nil, .wine)] {
             let panel = CompatibilityPanel(record: data.record(appID: app), mac: mac, method: method, chip: "M4", data: data, ageNotice: nil)
-            #expect(panel.estimateLines == ["No reports yet for this version"])
-            #expect(panel.estimateLines.allSatisfy { $0.rangeOfCharacter(from: .decimalDigits) == nil })
+            let (estimate, line) = GamePanelContent.estimate(panel.estimate, macReportsOn: panel.macReportsOn)
+            #expect(estimate == nil)
+            #expect(line == "No reports yet for this version")
         }
     }
 

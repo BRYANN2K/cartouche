@@ -23,12 +23,12 @@ extension AgentTools {
                 ]),
                 level: .standard, approval: true, readOnly: false,
                 approvalText: { backend, args in
-                    (try? find(backend, args)).map { "install \($0.name) from Steam" }
+                    (try? findStrict(backend, args)).map { "install \($0.name) from Steam" }
                         ?? "install a game from Steam"
                 },
                 run: { backend, args in
                     _ = try args.require("store")
-                    let game = try find(backend, args)
+                    let game = try findStrict(backend, args)
                     guard let appID = game.steamAppID else {
                         throw AgentToolError("\(game.name) has no Steam app id")
                     }
@@ -96,6 +96,8 @@ extension AgentTools {
                                 "language": ["type": "string"],
                                 "name": ["type": "string"],
                                 "app_id": ["type": "integer"],
+                                "verify_first": ["type": "boolean",
+                                    "description": "verify checksums before installing"],
                             ]),
                         ]),
                     ]),
@@ -104,8 +106,12 @@ extension AgentTools {
                 level: .standard, approval: true, readOnly: false,
                 approvalText: { backend, args in
                     guard let url = try? fileArg(args, in: backend) else { return "install a game" }
-                    let size = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
-                    let whole = url.hasDirectoryPath ? FolderSize.bytes(url) : Int64(size)
+                    let whole: Int64
+                    if url.hasDirectoryPath {
+                        whole = await Task.detached { FolderSize.bytes(url) }.value
+                    } else {
+                        whole = Int64((try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
+                    }
                     let human = ByteCountFormatter.string(fromByteCount: whole, countStyle: .binary)
                     return "install \(url.lastPathComponent) (\(human))"
                 },
@@ -160,8 +166,9 @@ extension AgentTools {
                 detail: "Run a failed or stopped install again with fixes: "
                     + "verify_files, fewer_threads, single_thread (decompressors "
                     + "limited to one thread), lower_memory, short_path, "
-                    + "other_runner, copy_to_internal_disk. The new attempt "
-                    + "appears in the install log.",
+                    + "other_runner, copy_to_internal_disk, rosetta_only "
+                    + "(already the default). The new attempt appears in the "
+                    + "install log.",
                 schema: .object([
                     "type": "object",
                     "properties": .object([
@@ -176,27 +183,32 @@ extension AgentTools {
                     guard [.failed, .stopped].contains(job.phase) else {
                         throw AgentToolError("the job is \(job.phase), not failed or stopped")
                     }
+                    var fixes: [RetryFix] = []
                     var applied: [String] = []
+                    var copied = false
                     for fix in args["fixes"]?.array?.compactMap(\.string) ?? [] {
                         switch fix {
-                        case "verify_files": try backend.retryInstall(job, fix: .verifyFiles)
-                        case "fewer_threads": try backend.retryInstall(job, fix: .fewerThreads)
-                        case "lower_memory": try backend.retryInstall(job, fix: .lessMemory)
-                        case "short_path": try backend.retryInstall(job, fix: .shortPath)
-                        case "other_runner": try backend.retryInstall(job, fix: .otherRunner)
-                        case "single_thread": try backend.applyThreads(job, 1)
+                        case "verify_files": fixes.append(.verifyFiles)
+                        case "fewer_threads": fixes.append(.fewerThreads)
+                        case "lower_memory": fixes.append(.lessMemory)
+                        case "short_path": fixes.append(.shortPath)
+                        case "other_runner": fixes.append(.otherRunner)
+                        case "single_thread": job.inputs.threads = 1
                         case "copy_to_internal_disk":
-                            // The folder moves next to Cartouche's own installs,
-                            // then the job runs against the copy.
-                            _ = try backend.copyInstallerToInternal(job.request.source)
-                            try backend.retryInstall(job, fix: nil)
+                            // The folder moves next to Cartouche's own installs;
+                            // the job runs against the copy.
+                            if !copied {
+                                copied = true
+                                job.moveSource(to: try await backend.copyInstallerToInternal(job.request.source))
+                            }
                         case "rosetta_only":
                             // Installs always run under Rosetta already.
-                            try backend.retryInstall(job, fix: nil)
+                            break
                         default: throw AgentToolError("unknown fix \"\(fix)\"")
                         }
                         applied.append(fix)
                     }
+                    try backend.retryInstall(job, fixes: fixes)
                     return ["job": .string(job.id.uuidString), "applied": .array(applied.map { .string($0) }),
                             "phase": .string("\(job.phase)")]
                 }
@@ -232,16 +244,23 @@ extension AgentTools {
                     ]),
                     "required": ["exe"],
                 ]),
-                level: .standard, readOnly: false,
+                level: .standard, approval: true, readOnly: false,
+                approvalText: { backend, args in
+                    let title = (try? jobID(backend, args))?.title ?? "the game"
+                    return "pick \(args["exe"]?.string ?? "an exe") as \(title)'s program"
+                },
                 run: { backend, args in
                     let job = try jobID(backend, args)
                     let exe = try args.require("exe")
                     let candidate = job.candidates.first { $0.path == exe }
                     let url = candidate.map { URL(filePath: $0.path) } ?? URL(filePath: exe)
-                    // The exe must live inside the job's install folder.
-                    if candidate == nil, let folder = job.installFolder?.path(percentEncoded: false),
-                       !url.path(percentEncoded: false).hasPrefix(folder) {
-                        throw AgentToolError("the exe must be inside the game's install folder")
+                    // A path the candidates do not name must resolve inside
+                    // the job's install folder — symlinks and .. included.
+                    if candidate == nil {
+                        guard let folder = job.installFolder,
+                              AgentScan.contains(url, in: [folder]) else {
+                            throw AgentToolError("the exe must be inside the game's install folder")
+                        }
                     }
                     try backend.finishInstall(job, exe: url)
                     return ["game": .string(job.title), "exe": .string(url.lastPathComponent),
@@ -298,9 +317,12 @@ extension AgentTools {
                     ]),
                     "required": ["game"],
                 ]),
-                level: .standard, readOnly: false,
+                level: .standard, approval: true, readOnly: false,
+                approvalText: { backend, args in
+                    (try? findStrict(backend, args)).map { "start \($0.name)" } ?? "start a game"
+                },
                 run: { backend, args in
-                    let game = try find(backend, args)
+                    let game = try findStrict(backend, args)
                     if let changes = args["setup"] {
                         var choice = backend.setupChoice(for: game.id)
                         try applySetupChanges(&choice, changes)
@@ -320,7 +342,7 @@ extension AgentTools {
                 schema: gameArg(),
                 level: .standard, readOnly: false,
                 run: { backend, args in
-                    let game = try find(backend, args)
+                    let game = try findStrict(backend, args)
                     try await backend.quit(game, force: false)
                     return ["quit": .bool(true), "game": .string(game.name)]
                 }
@@ -333,7 +355,7 @@ extension AgentTools {
                 schema: gameArg(),
                 level: .standard, readOnly: false,
                 run: { backend, args in
-                    let game = try find(backend, args)
+                    let game = try findStrict(backend, args)
                     try await backend.quit(game, force: true)
                     return ["killed": .bool(true), "game": .string(game.name)]
                 }
@@ -373,7 +395,7 @@ extension AgentTools {
                 ]),
                 level: .standard, readOnly: false,
                 run: { backend, args in
-                    let game = try find(backend, args)
+                    let game = try findStrict(backend, args)
                     var choice = backend.setupChoice(for: game.id)
                     try applySetupChanges(&choice, args["config"] ?? .object([:]))
                     backend.setSetup(choice, for: game.id)
@@ -405,7 +427,7 @@ extension AgentTools {
                 ]),
                 level: .standard, readOnly: false,
                 run: { backend, args in
-                    let game = try find(backend, args)
+                    let game = try findStrict(backend, args)
                     let version = try args.require("version")
                     guard backend.hasMacBuild(game) else {
                         throw AgentToolError("\(game.name) has no macOS build")
@@ -425,7 +447,7 @@ extension AgentTools {
                 schema: gameArg(),
                 level: .standard, readOnly: false,
                 run: { backend, args in
-                    let game = try find(backend, args)
+                    let game = try findStrict(backend, args)
                     var choice = backend.setupChoice(for: game.id)
                     var applied: [String] = []
                     if let layer = backend.macEntry(game)?.topLayer,
@@ -454,7 +476,7 @@ extension AgentTools {
                 ]),
                 level: .standard, readOnly: false,
                 run: { backend, args in
-                    let game = try find(backend, args)
+                    let game = try findStrict(backend, args)
                     let on = args["on"]?.bool ?? true
                     backend.setFavorite(game.id, on: on)
                     return ["game": .string(game.name), "favorite": .bool(on)]
@@ -475,7 +497,7 @@ extension AgentTools {
                 ]),
                 level: .standard, readOnly: false,
                 run: { backend, args in
-                    let game = try find(backend, args)
+                    let game = try findStrict(backend, args)
                     let on = args["on"]?.bool ?? true
                     backend.hide(game.id, on: on)
                     return ["game": .string(game.name), "hidden": .bool(on)]
@@ -497,7 +519,7 @@ extension AgentTools {
                 ]),
                 level: .standard, readOnly: false,
                 run: { backend, args in
-                    let game = try find(backend, args)
+                    let game = try findStrict(backend, args)
                     try backend.reportResult(game,
                         verdict: try args.require("verdict"), note: args["note"]?.string)
                     return ["recorded": .bool(true), "game": .string(game.name)]
@@ -759,6 +781,10 @@ extension AgentTools {
                         }
                         return value
                     }
+                    if let core = args["core"]?.string,
+                       !(ConsoleCatalog.console(game.console)?.cores ?? []).contains(core) {
+                        throw AgentToolError("no core \"\(core)\" for \(game.console)")
+                    }
                     await backend.setConsoleSetup(game.id) { setup in
                         if let core = args["core"]?.string { setup.core = core }
                         if let look { setup.look = look }
@@ -790,7 +816,7 @@ extension AgentTools {
                     var skipped: [String] = []
                     for raw in args["paths"]?.array?.compactMap(\.string) ?? [] {
                         let url = URL(filePath: raw)
-                        guard AgentScan.isAllowed(url, under: backend.roots.allowed) else {
+                        guard AgentScan.contains(url, in: backend.roots.allowed) else {
                             skipped.append(raw)
                             continue
                         }
@@ -840,12 +866,17 @@ extension AgentTools {
                 ]),
                 level: .full, approval: true, readOnly: false,
                 approvalText: { backend, args in
-                    let name = (try? find(backend, args))?.name ?? "the game"
+                    let name = (try? findStrict(backend, args))?.name ?? "the game"
                     return "run Winetricks \((args["verbs"]?.array?.compactMap(\.string) ?? []).joined(separator: " ")) in \(name)'s prefix"
                 },
                 run: { backend, args in
-                    let game = try find(backend, args)
+                    let game = try findStrict(backend, args)
                     let verbs = args["verbs"]?.array?.compactMap(\.string) ?? []
+                    // Installer-game prefixes bypass PrefixTools' own filter;
+                    // the check runs here so both paths refuse the same verbs.
+                    if let refused = PrefixTools.refusedVerb(verbs) {
+                        throw AgentToolError("the verb \(refused) is refused")
+                    }
                     let log = try await backend.runWinetricks(game, verbs: verbs)
                     return ["ran": .array(verbs.map { .string($0) }),
                             "log": .string(tail(log, lines: 40, grep: nil))]
@@ -867,7 +898,7 @@ extension AgentTools {
                 ]),
                 level: .full,
                 run: { backend, args in
-                    let game = try find(backend, args)
+                    let game = try findStrict(backend, args)
                     let out = try await backend.registryGet(game,
                         key: try args.require("key"), value: try args.require("value"))
                     return ["key": .string(try args.require("key")), "value": .string(out)]
@@ -893,11 +924,15 @@ extension AgentTools {
                 ]),
                 level: .full, approval: true, readOnly: false,
                 approvalText: { backend, args in
-                    let name = (try? find(backend, args))?.name ?? "the game"
-                    return "set a registry value in \(name)'s prefix"
+                    let name = (try? findStrict(backend, args))?.name ?? "the game"
+                    let key = args["key"]?.string ?? "a key"
+                    let value = args["value"]?.string ?? "a value"
+                    let data = args["data"]?.string ?? ""
+                    let type = args["type"]?.string ?? "REG_SZ"
+                    return "set \(key)\\\(value) = \(data) (\(type)) in \(name)'s prefix"
                 },
                 run: { backend, args in
-                    let game = try find(backend, args)
+                    let game = try findStrict(backend, args)
                     try await backend.registrySet(game, key: try args.require("key"),
                         value: try args.require("value"), data: try args.require("data"),
                         type: args["type"]?.string ?? "REG_SZ")
@@ -921,11 +956,11 @@ extension AgentTools {
                 ]),
                 level: .full, approval: true, readOnly: false,
                 approvalText: { backend, args in
-                    let name = (try? find(backend, args))?.name ?? "the game"
+                    let name = (try? findStrict(backend, args))?.name ?? "the game"
                     return "run \(args["exe"]?.string ?? "a program") in \(name)'s prefix"
                 },
                 run: { backend, args in
-                    let game = try find(backend, args)
+                    let game = try findStrict(backend, args)
                     let exe = URL(filePath: try args.require("exe"))
                     try await backend.runInPrefix(game, exe: exe,
                         args: args["args"]?.array?.compactMap(\.string) ?? [])

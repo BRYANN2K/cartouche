@@ -358,8 +358,7 @@ enum OnboardingSteam {
     }
 
     @MainActor
-    static func install() async throws {
-        let status = SystemStatus()
+    static func install(through status: SystemStatus) async throws {
         await status.refresh()
         await status.installIntoSteam()
         guard let failure = status.failure else { return }

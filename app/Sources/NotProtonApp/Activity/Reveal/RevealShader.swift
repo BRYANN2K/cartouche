@@ -194,25 +194,6 @@ final class RevealRenderer: @unchecked Sendable {
         encoder.endEncoding()
     }
 
-    // The GPU time of one frame, for the performance check
-    func gpuSeconds(_ image: CGImage, width: Int, height: Int, uniforms: RevealUniforms) -> Double {
-        guard let source = texture(for: image) else { return .infinity }
-        let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: Self.pixelFormat, width: width, height: height, mipmapped: false)
-        descriptor.usage = [.renderTarget]
-        descriptor.storageMode = .private
-        guard let target = device.makeTexture(descriptor: descriptor), let buffer = queue.makeCommandBuffer() else { return .infinity }
-        let pass = MTLRenderPassDescriptor()
-        pass.colorAttachments[0].texture = target
-        pass.colorAttachments[0].loadAction = .dontCare
-        pass.colorAttachments[0].storeAction = .store
-        var u = uniforms
-        u.size = SIMD2(Float(width), Float(height))
-        encode(buffer, pass: pass, texture: source, uniforms: u)
-        buffer.commit()
-        buffer.waitUntilCompleted()
-        return buffer.gpuEndTime - buffer.gpuStartTime
-    }
-
     // One frame into an image, for tests and evidence frame captures
     func render(_ image: CGImage, width: Int, height: Int, uniforms: RevealUniforms) -> CGImage? {
         guard let source = texture(for: image) else { return nil }

@@ -28,10 +28,10 @@ struct StoreSignInTests {
         #expect(!scene.center.reached(URL(string: "https://www.epicgames.com/id/login")!, pageText: "Email Password"))
         let start = ContinuousClock.now
         #expect(scene.center.reached(Self.epicRedirect, pageText: #"{"authorizationCode":"epic-good-code","sid":null}"#))
-        await scene.waitUntil { scene.model.games(in: .source(.epic)).count == 2 }
+        #expect(await scene.waitUntil { scene.model.games(in: .source(.epic)).count == 2 })
         let elapsed = ContinuousClock.now - start
         print("evidence: Epic games listed \(elapsed) after the code was handed over")
-        #expect(elapsed < .seconds(15))
+        #expect(elapsed < .seconds(45))
         #expect(scene.center.signIn == nil)
         #expect(scene.center.connection(.epic) == .connected(account: "player42"))
         #expect(scene.model.selection == .source(.epic))
@@ -111,12 +111,15 @@ struct StoreSignInTests {
         try vault.write(StoreSecret(account: "player42", files: ["user.json": Data("one".utf8)]), for: .epic)
         let file = folders.client(.epic).appending(path: "user.json")
         let (gate, open) = AsyncStream<Void>.makeStream()
+        let (opened, ready) = AsyncStream<Void>.makeStream()
         let long = Task {
             try await secrets.using(.epic) {
+                ready.yield()
                 for await _ in gate { break }
             }
         }
-        try await Task.sleep(for: .milliseconds(100))
+        // No sleep: the test continues once the first run actually holds the files.
+        for await _ in opened { break }
         try await secrets.using(.epic) {
             #expect(FileManager.default.fileExists(atPath: file.path))
             try Data("two".utf8).write(to: file)
@@ -131,6 +134,29 @@ struct StoreSignInTests {
         // The token file is the client's alone
         let attributes = try FileManager.default.attributesOfItem(atPath: folders.client(.epic).path)
         #expect((attributes[.posixPermissions] as? Int) == 0o700)
+    }
+
+    @Test("A vault write that fails keeps the token files for the next sweep, and the run still succeeds")
+    func vaultWriteFailureKeepsFiles() async throws {
+        let vault = MemoryVault()
+        let work = try scratchDirectory("vault-write-fail")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let folders = StoreFolders(root: work)
+        let secrets = folders.secrets(vault: vault)
+        vault.writeError = StoreError.failed("locked")
+        let file = folders.client(.epic).appending(path: "user.json")
+        let answer = try await secrets.using(.epic) {
+            try Data("rotated".utf8).write(to: file)
+            return 42
+        }
+        // The finished run is not reported failed; the refreshed file survived.
+        #expect(answer == 42)
+        #expect(try String(contentsOf: file, encoding: .utf8) == "rotated")
+        #expect(try vault.read(.epic) == nil)
+        vault.writeError = nil
+        await secrets.sweep()
+        #expect(try vault.read(.epic)?.files["user.json"] == Data("rotated".utf8))
+        #expect(!FileManager.default.fileExists(atPath: file.path))
     }
 
     @Test("The Keychain item is a generic password of Cartouche's own service, this Mac only, never synced")

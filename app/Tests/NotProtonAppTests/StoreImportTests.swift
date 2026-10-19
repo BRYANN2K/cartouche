@@ -29,7 +29,7 @@ struct StoreImportTests {
             "Binaries/Game.exe": "MZ",
         ])
         scene.center.importFolder(dir, into: .epic)
-        await scene.waitForJobs()
+        #expect(await scene.waitForJobs())
         let record = try #require(scene.center.record("epic:Fennec"))
         #expect(record.imported)
         #expect(record.install.path.standardizedFileURL.path == dir.standardizedFileURL.path)
@@ -38,7 +38,8 @@ struct StoreImportTests {
         await scene.center.uninstall(try #require(scene.model.game("epic:Fennec")))
         #expect(scene.center.record("epic:Fennec") == nil)
         #expect(FileManager.default.fileExists(atPath: dir.appending(path: "Binaries/Game.exe").path))
-        #expect(!scene.calls("legendary").contains { $0.contains("uninstall") })
+        // legendary forgets the game but keeps the files: the only uninstall it hears keeps them
+        #expect(scene.calls("legendary").filter { $0.contains("uninstall") } == ["-y uninstall Fennec --keep-files --skip-uninstaller"])
     }
 
     @Test("GOG: a folder with goggame info of a game on the account imports and starts from its play task")
@@ -53,7 +54,7 @@ struct StoreImportTests {
             "Sample.exe": "MZ",
         ])
         scene.center.importFolder(dir, into: .gog)
-        await scene.waitForJobs()
+        #expect(await scene.waitForJobs())
         let record = try #require(scene.center.record("gog:1207658924"))
         #expect(record.imported && record.install.version == "42")
         let adapter = try #require(scene.center.adapter(.gog))
@@ -71,7 +72,7 @@ struct StoreImportTests {
             "fuel.json": #"{"SchemaVersion": "2", "Main": {"Command": "Game\\Sample.exe"}}"#, "Game/Sample.exe": "MZ",
         ])
         scene.center.importFolder(dir, into: .amazon)
-        await scene.waitForJobs()
+        #expect(await scene.waitForJobs())
         #expect(scene.center.record("amazon:amzn1.adg.product.SAMPLE")?.imported == true)
         #expect(scene.calls("nile").contains("import --path \(dir.clientPath) amzn1.adg.product.SAMPLE"))
     }
@@ -83,7 +84,7 @@ struct StoreImportTests {
         await scene.signIn(.epic, code: "epic-good-code")
         let empty = try folder(scene, "Some Folder", files: ["readme.txt": "hello"])
         scene.center.importFolder(empty, into: .epic)
-        await scene.waitForJobs()
+        #expect(await scene.waitForJobs())
         #expect(scene.center.problem == "Cartouche couldn’t tell which game is in “Some Folder”.")
         // A GOG game that is not on this account
         await scene.center.beginSignIn(.gog)
@@ -93,7 +94,7 @@ struct StoreImportTests {
             "goggame-999.info": #"{"gameId": "999", "rootGameId": "999", "playTasks": [{"isPrimary": true, "path": "x.exe"}]}"#,
         ])
         scene.center.importFolder(other, into: .gog)
-        await scene.waitForJobs()
+        #expect(await scene.waitForJobs())
         #expect(scene.center.problem == "Cartouche couldn’t tell which game is in “Not Mine”.")
         #expect(scene.center.record("gog:999") == nil)
     }

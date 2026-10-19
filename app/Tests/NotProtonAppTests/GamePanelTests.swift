@@ -12,7 +12,7 @@ struct GamePanelTests {
         let fixture = try SteamFixture(label)
         try fixture.writeExport()
         let scratch = ScratchDefaults()
-        let compat = try fixtureCompat(fixture.root, defaults: scratch)
+        let compat = try await fixtureCompat(fixture.root, defaults: scratch)
         await compat.openGame(appID: 1_245_620)
         let model = libraryModel(fixture, defaults: scratch)
         await model.load()
@@ -26,8 +26,9 @@ struct GamePanelTests {
     func panelOrder() async throws {
         let (content, _, _, fixture) = try await eldenRing("panel")
         defer { fixture.remove() }
-        #expect(content.titles == ["Play", "Expected on This Mac", "Anti-Cheat on Linux", "Graphics Reported on Macs", "Setup"])
-        #expect(content.subtitle(now: Date()) == "Steam. Played yesterday.")
+        #expect(content.sections == [.play, .expected, .antiCheat, .graphics, .setup])
+        #expect(content.playLabel == "Play")
+        #expect(content.subtitle(now: fixture.now) == "Steam. Played yesterday.")
 
         let (estimate, line) = GamePanelContent.estimate(content.compat.estimate, macReportsOn: true)
         #expect(line == nil)
@@ -54,7 +55,7 @@ struct GamePanelTests {
         #expect(content.compat.sourcesLine?.contains("AppleGamingWiki (CC BY-NC-SA 3.0)") == true)
         #expect(content.compat.sourcesLine?.contains("MacGamingDB") == true)
         // The panel itself names no source
-        #expect(!content.titles.contains("Sources"))
+        #expect(!content.sections.map(\.title).contains("Sources"))
         #expect((compat.data?.gpuStrength.keys.count ?? 0) > 5)
     }
 
@@ -76,7 +77,8 @@ struct GamePanelTests {
         defer { fixture.remove() }
         let game = Game.steam(999_999, name: "Unknown", installed: false)
         let content = GamePanelContent(game: game, compat: compat.panel(appID: 999_999, method: .wine), setup: GameSetupChoice())
-        #expect(content.titles == ["Install", "Expected on This Mac", "Setup"])
+        #expect(content.sections == [.play, .expected, .setup])
+        #expect(content.playLabel == "Install")
         #expect(GamePanelContent.estimate(content.compat.estimate, macReportsOn: true).1 == "No reports yet for this version")
     }
 
@@ -87,7 +89,7 @@ struct GamePanelTests {
         try fixture.writeExport()
         try fixture.addArt([1_245_620])
         let scratch = ScratchDefaults()
-        let compat = try fixtureCompat(fixture.root, defaults: scratch)
+        let compat = try await fixtureCompat(fixture.root, defaults: scratch)
         let model = libraryModel(fixture, defaults: scratch)
         await model.load()
         let game = try #require(model.game("steam:1245620"))

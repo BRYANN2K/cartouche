@@ -68,6 +68,12 @@ protocol ControllerSource: AnyObject {
     // `changed` runs on each connection, disconnection and battery change
     func start(_ changed: @escaping @MainActor () -> Void)
     func stop()
+    // The battery poll runs only while a view that shows it is on screen
+    func pollBattery(_ on: Bool)
+}
+
+extension ControllerSource {
+    func pollBattery(_ on: Bool) {}
 }
 
 @MainActor
@@ -76,6 +82,8 @@ final class GameControllerSource: ControllerSource {
     private var observers: [any NSObjectProtocol] = []
     private var poll: Task<Void, Never>?
     private var last: [ControllerInfo] = []
+    private var changed: (@MainActor () -> Void)?
+    private var wantsBattery = false
     // The framework posts no battery change, so it is read again this often
     let interval: Duration
 
@@ -89,29 +97,46 @@ final class GameControllerSource: ControllerSource {
 
     func start(_ changed: @escaping @MainActor () -> Void) {
         guard observers.isEmpty else { return }
+        self.changed = changed
         for name in [Notification.Name.GCControllerDidConnect, .GCControllerDidDisconnect] {
             observers.append(NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { _ in
                 MainActor.assumeIsolated { changed() }
             })
+        }
+        updatePoll()
+    }
+
+    func stop() {
+        observers.forEach(NotificationCenter.default.removeObserver)
+        observers = []
+        changed = nil
+        updatePoll()
+    }
+
+    func pollBattery(_ on: Bool) {
+        wantsBattery = on
+        updatePoll()
+    }
+
+    private func updatePoll() {
+        guard wantsBattery, changed != nil, poll == nil else {
+            if !wantsBattery || changed == nil { poll?.cancel(); poll = nil }
+            return
         }
         poll = Task { [weak self, interval] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: interval)
                 guard let self else { return }
                 let now = self.controllers
+                // No controller connected: nothing to read, connections and
+                // disconnections still arrive as notifications
+                guard !now.isEmpty else { self.last = []; continue }
                 if now != self.last {
                     self.last = now
-                    changed()
+                    self.changed?()
                 }
             }
         }
-    }
-
-    func stop() {
-        observers.forEach(NotificationCenter.default.removeObserver)
-        observers = []
-        poll?.cancel()
-        poll = nil
     }
 }
 
@@ -122,12 +147,12 @@ final class ControllerMonitor {
     private(set) var controllers: [ControllerInfo] = []
     @ObservationIgnored let source: any ControllerSource
     @ObservationIgnored private var started = false
+    @ObservationIgnored private var batteryViewers = 0
 
     init(source: any ControllerSource) {
         self.source = source
     }
 
-    // The one the game panel names: the first connected
     var primary: ControllerInfo? { controllers.first }
 
     func start() {
@@ -135,6 +160,14 @@ final class ControllerMonitor {
         started = true
         source.start { [weak self] in self?.refresh() }
         refresh()
+    }
+
+    // Views that show the battery call this from onAppear/onDisappear
+    func batteryShown(_ on: Bool) {
+        let was = batteryViewers > 0
+        batteryViewers = max(0, batteryViewers + (on ? 1 : -1))
+        let isOn = batteryViewers > 0
+        if isOn != was { source.pollBattery(isOn) }
     }
 
     func refresh() {

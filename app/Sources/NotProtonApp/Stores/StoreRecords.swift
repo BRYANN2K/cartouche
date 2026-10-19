@@ -18,7 +18,7 @@ struct StoreInstalledGame: Codable, Sendable, Equatable {
     // The store's markers of the last cloud save sync, per save location
     var saveStamps: [String: String] = [:]
     var installedAt: Date
-    // Installed by another launcher and imported: uninstalling leaves the files alone
+    // Installed by another launcher and imported through the client
     var imported = false
 
     var source: GameSource? { GameSource(id: store) }
@@ -35,6 +35,7 @@ struct StoreFolders: Sendable {
     var temporary: URL { root.appending(path: "tmp", directoryHint: .isDirectory) }
     var clients: URL { root.appending(path: "clients", directoryHint: .isDirectory) }
     func library(_ source: GameSource) -> URL { store(source).appending(path: "library.json") }
+    func artMisses(_ source: GameSource) -> URL { store(source).appending(path: "art-misses.json") }
     func records(_ source: GameSource) -> URL { store(source).appending(path: "games", directoryHint: .isDirectory) }
     func record(_ source: GameSource, id: String) -> URL { records(source).appending(path: "\(Self.safe(id)).json") }
     func gameFolder(_ source: GameSource, title: String, id: String) -> URL {
@@ -73,37 +74,33 @@ struct StoreFolders: Sendable {
 
     // MARK: Files
 
-    static let encoder: JSONEncoder = {
-        let e = JSONEncoder()
-        e.outputFormatting = [.prettyPrinted, .sortedKeys]
-        e.dateEncodingStrategy = .iso8601
-        return e
-    }()
-
-    static let decoder: JSONDecoder = {
-        let d = JSONDecoder()
-        d.dateDecodingStrategy = .iso8601
-        return d
-    }()
-
     func loadLibrary(_ source: GameSource) -> [StoreGame] {
-        (try? Data(contentsOf: library(source))).flatMap { try? Self.decoder.decode([StoreGame].self, from: $0) } ?? []
+        (try? Data(contentsOf: library(source))).flatMap { try? RecordCoding.decoder.decode([StoreGame].self, from: $0) } ?? []
     }
 
     func saveLibrary(_ games: [StoreGame], for source: GameSource) throws {
-        try atomicReplace(library(source), with: try Self.encoder.encode(games), step: String(localized: "Save the library"))
+        try atomicReplace(library(source), with: try RecordCoding.encoder.encode(games), step: String(localized: "Save the library"))
+    }
+
+    // Games whose art lookup found nothing, with when — retried after a month
+    func loadArtMisses(_ source: GameSource) -> [String: Date] {
+        (try? Data(contentsOf: artMisses(source))).flatMap { try? RecordCoding.decoder.decode([String: Date].self, from: $0) } ?? [:]
+    }
+
+    func saveArtMisses(_ misses: [String: Date], for source: GameSource) throws {
+        try atomicReplace(artMisses(source), with: try RecordCoding.encoder.encode(misses), step: String(localized: "Save the library"))
     }
 
     func loadRecords(_ source: GameSource) -> [StoreInstalledGame] {
         let files = (try? FileManager.default.contentsOfDirectory(at: records(source), includingPropertiesForKeys: nil)) ?? []
         return files.filter { $0.pathExtension == "json" }.sorted { $0.path < $1.path }.compactMap {
-            (try? Data(contentsOf: $0)).flatMap { try? Self.decoder.decode(StoreInstalledGame.self, from: $0) }
+            (try? Data(contentsOf: $0)).flatMap { try? RecordCoding.decoder.decode(StoreInstalledGame.self, from: $0) }
         }
     }
 
     func save(_ record: StoreInstalledGame) throws {
         guard let source = record.source else { return }
-        try atomicReplace(self.record(source, id: record.id), with: try Self.encoder.encode(record), step: String(localized: "Save the game"))
+        try atomicReplace(self.record(source, id: record.id), with: try RecordCoding.encoder.encode(record), step: String(localized: "Save the game"))
     }
 
     func remove(_ record: StoreInstalledGame) {

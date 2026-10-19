@@ -12,6 +12,8 @@ struct PortingToolkitInstall: Sendable, Equatable, Identifiable {
     let version: String
     // What the user installed: the mounted image, an app or a folder they picked
     let origin: URL
+    // The origin is a mounted image, which goes away on eject: Copy is the only safe answer
+    var mountedImage = false
 
     var id: String { PortingToolkitSource.runnerID(version: version) }
 }
@@ -40,9 +42,36 @@ enum PortingToolkitSource {
     }
 
     struct Receipt: Sendable, Equatable, Codable {
+        // Size and mtime pin a copied file without hashing it; receipts before this
+        // field carried only the hash and still verify by hashing
+        struct File: Sendable, Equatable, Codable {
+            let sha256: String
+            let size: Int64
+            let mtime: Double
+
+            init(sha256: String, size: Int64, mtime: Double) {
+                self.sha256 = sha256
+                self.size = size
+                self.mtime = mtime
+            }
+
+            init(from decoder: Decoder) throws {
+                if let single = try? decoder.singleValueContainer(),
+                   let hash = try? single.decode(String.self) {
+                    self.init(sha256: hash, size: -1, mtime: -1)
+                    return
+                }
+                let keyed = try decoder.container(keyedBy: CodingKeys.self)
+                self.init(
+                    sha256: try keyed.decode(String.self, forKey: .sha256),
+                    size: try keyed.decode(Int64.self, forKey: .size),
+                    mtime: try keyed.decode(Double.self, forKey: .mtime))
+            }
+        }
+
         let version: String
         let origin: String
-        let files: [String: String]
+        let files: [String: File]
         // Use in Place: the lib folder the runner reads instead of a copy
         var inPlace: String? = nil
     }
@@ -119,13 +148,19 @@ enum PortingToolkitSource {
         }
         candidates += search.homebrew
 
+        var volumesPath = search.volumes.resolvingSymlinksInPath().path(percentEncoded: false)
+        while volumesPath.hasSuffix("/") { volumesPath.removeLast() }
         var found: [PortingToolkitInstall] = []
         var versions: Set<String> = []
         for candidate in candidates {
             guard let lib = lib(in: candidate), let version = version(ofLib: lib) else { continue }
             // The first place a version is found is where it is copied from
             guard versions.insert(version).inserted else { continue }
-            found.append(PortingToolkitInstall(lib: lib, version: version, origin: candidate))
+            var path = candidate.resolvingSymlinksInPath().path(percentEncoded: false)
+            while path.hasSuffix("/") { path.removeLast() }
+            found.append(PortingToolkitInstall(
+                lib: lib, version: version, origin: candidate,
+                mountedImage: path.hasPrefix(volumesPath + "/")))
         }
         return found
     }
@@ -140,10 +175,10 @@ enum PortingToolkitSource {
         return entries.filter { $0.lastPathComponent.hasPrefix("gptk-") }
             .compactMap { (try? Data(contentsOf: $0.appending(path: receiptName))).flatMap { try? JSONDecoder().decode(Receipt.self, from: $0) } }
             .map(\.version)
-            .sorted()
+            .sorted { $0.localizedStandardCompare($1) == .orderedAscending }
     }
 
-    // Copies the user's lib folder, then moves it in whole, so a half copy is never used
+    // Only lib/external is read: the rest of a toolkit app is its own Wine, unused here
     @discardableResult
     static func copy(_ install: PortingToolkitInstall, runners: URL = SupportPaths.runners) throws -> Receipt {
         let fm = FileManager.default
@@ -152,18 +187,25 @@ enum PortingToolkitSource {
         try? fm.removeItem(at: staging)
         defer { try? fm.removeItem(at: staging) }
         do {
-            try fm.createDirectory(at: staging, withIntermediateDirectories: true)
-            try fm.copyItem(at: install.lib, to: staging.appending(path: "lib"))
+            try fm.createDirectory(at: staging.appending(path: "lib"), withIntermediateDirectories: true)
+            try fm.copyItem(at: install.lib.appending(path: "external"), to: staging.appending(path: "lib/external"))
         } catch {
             throw StepFailure(step: step, detail: String(localized: "\(install.origin.path(percentEncoded: false)) could not be copied. ") + error.localizedDescription)
         }
         let receipt = Receipt(
             version: install.version, origin: install.origin.path(percentEncoded: false),
-            files: hashes(in: staging))
+            files: pins(in: staging))
         try JSONEncoder().encode(receipt).write(to: staging.appending(path: receiptName))
-        try? fm.removeItem(at: target)
-        try fm.moveItem(at: staging, to: target)
+        try swapIn(staging, at: target)
         return receipt
+    }
+
+    static func remove(version: String, runners: URL = SupportPaths.runners) throws {
+        let target = folder(version: version, runners: runners)
+        guard FileManager.default.fileExists(atPath: target.path(percentEncoded: false)) else { return }
+        try WriteRefused.catching(target.path(percentEncoded: false)) {
+            try FileManager.default.removeItem(at: target)
+        }
     }
 
     // Records the install's own folder as the runner's lib; nothing is copied
@@ -181,8 +223,7 @@ enum PortingToolkitSource {
             version: install.version, origin: install.origin.path(percentEncoded: false),
             files: [:], inPlace: inPlace)
         try JSONEncoder().encode(receipt).write(to: staging.appending(path: receiptName))
-        try? fm.removeItem(at: target)
-        try fm.moveItem(at: staging, to: target)
+        try swapIn(staging, at: target)
         return receipt
     }
 
@@ -192,6 +233,16 @@ enum PortingToolkitSource {
             return URL(filePath: path, directoryHint: .isDirectory)
         }
         return folder(version: version, runners: runners).appending(path: "lib")
+    }
+
+    // The libd3dshared a ready install serves, newest version first
+    static func libd3dshared(runners: URL = SupportPaths.runners) -> URL? {
+        for version in copiedVersions(in: runners).reversed() {
+            let shared = libFolder(version: version, runners: runners)
+                .appending(path: "external/libd3dshared.dylib")
+            if FileManager.default.fileExists(atPath: shared.path(percentEncoded: false)) { return shared }
+        }
+        return nil
     }
 
     // What a Copy answer needs room for: the lib folder's size on disk
@@ -208,21 +259,31 @@ enum PortingToolkitSource {
     }
 
     // Every regular file under lib/, by path relative to the runner folder
-    static func hashes(in root: URL) -> [String: String] {
+    static func pins(in root: URL) -> [String: Receipt.File] {
         let lib = root.appending(path: "lib")
-        guard let walker = FileManager.default.enumerator(at: lib, includingPropertiesForKeys: [.isRegularFileKey, .isSymbolicLinkKey]) else { return [:] }
+        guard let walker = FileManager.default.enumerator(
+            at: lib,
+            includingPropertiesForKeys: [.isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey, .contentModificationDateKey])
+        else { return [:] }
         let base = root.standardizedFileURL.path(percentEncoded: false)
-        var files: [String: String] = [:]
+        var files: [String: Receipt.File] = [:]
         for case let url as URL in walker {
-            let values = try? url.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
-            guard values?.isRegularFile == true, values?.isSymbolicLink != true, let hash = try? Digest.sha256(of: url) else { continue }
+            let values = try? url.resourceValues(
+                forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey, .contentModificationDateKey])
+            guard values?.isRegularFile == true, values?.isSymbolicLink != true,
+                  let hash = try? Digest.sha256(of: url) else { continue }
             let path = url.standardizedFileURL.path(percentEncoded: false)
-            files[String(path.dropFirst(base.count).drop { $0 == "/" })] = hash
+            files[String(path.dropFirst(base.count).drop { $0 == "/" })] = Receipt.File(
+                sha256: hash,
+                size: Int64(values?.fileSize ?? -1),
+                mtime: values?.contentModificationDate?.timeIntervalSince1970 ?? -1)
         }
         return files
     }
 
-    static func verify(version: String, runners: URL = SupportPaths.runners) -> [String] {
+    // A copied file counts as intact while its size and stamp match the receipt; deep
+    // falls back to hashing, and old receipts without the stamps always hash
+    static func verify(version: String, runners: URL = SupportPaths.runners, deep: Bool = false) -> [String] {
         guard let receipt = receipt(version: version, runners: runners) else { return [] }
         // A folder used in place is not hashed — Apple's own updates may change it — but it must be there
         if let inPlace = receipt.inPlace {
@@ -232,8 +293,19 @@ enum PortingToolkitSource {
         }
         let root = folder(version: version, runners: runners)
         return receipt.files.keys.sorted().compactMap { path in
-            Digest.sha256IfPresent(root.appending(path: path)) == receipt.files[path]
-                ? nil : String(localized: "\(path) changed since it was installed.")
+            let pin = receipt.files[path]!
+            let file = root.appending(path: path)
+            let damaged = String(localized: "\(path) changed since it was installed.")
+            if !deep, pin.size >= 0 {
+                let values = try? file.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey, .contentModificationDateKey])
+                // setattr quantizes stamps to microseconds on some filesystems
+                let stamp = values?.contentModificationDate?.timeIntervalSince1970 ?? -1
+                let intact = values?.isRegularFile == true
+                    && Int64(values?.fileSize ?? -1) == pin.size
+                    && abs(stamp - pin.mtime) < 0.000_01
+                return intact ? nil : damaged
+            }
+            return Digest.sha256IfPresent(file) == pin.sha256 ? nil : damaged
         }
     }
 
@@ -263,31 +335,11 @@ enum PortingToolkitSource {
     }
 }
 
-// Where D3DMetal can come from on this Mac. Never from Cartouche itself.
-enum D3DMetalProvider: Sendable, Equatable {
-    case portingToolkit(version: String, framework: URL)
-    case crossOver(framework: URL)
-}
-
 extension RunnerRegistry {
 
     // CrossOver carries its own D3DMetal under lib64/apple_gptk
     static func crossOverD3DMetal(inRoot root: URL) -> URL? {
         let framework = root.appending(path: "lib64/apple_gptk/external/D3DMetal.framework")
         return FileManager.default.fileExists(atPath: framework.path(percentEncoded: false)) ? framework : nil
-    }
-
-    // The user's own toolkit first, then a CrossOver that provides it; nil means D3DMetal is not offered
-    func d3dMetal(runners folder: URL = SupportPaths.runners) -> D3DMetalProvider? {
-        if let toolkit = runners.last(where: { $0.kind == .portingToolkit && $0.state == .ready }) {
-            let lib = PortingToolkitSource.libFolder(version: toolkit.version, runners: folder)
-            return .portingToolkit(version: toolkit.version, framework: PortingToolkitSource.framework(inLib: lib))
-        }
-        let roots = installed.map { SupportPaths.clonedRoot(forBuild: $0.id, runners: folder) }
-            + installs.filter(\.isUsable).map(\.crossOverRoot)
-        for root in roots {
-            if let framework = Self.crossOverD3DMetal(inRoot: root) { return .crossOver(framework: framework) }
-        }
-        return nil
     }
 }

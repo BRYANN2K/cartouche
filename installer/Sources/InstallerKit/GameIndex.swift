@@ -93,15 +93,40 @@ public struct GOGInfo: Sendable, Equatable {
     public let name: String?
     // The primary play task, relative to the folder holding the file.
     public let primaryExe: String?
+    public let arguments: [String]
+    public let workingDir: String?
+    // A DLC's info points at the base game's id; saves use the Galaxy client id.
+    public let rootID: String?
+    public let clientID: String?
 
     public static func parse(_ data: Data) -> GOGInfo? {
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
         let id = (json["gameId"] as? String) ?? (json["gameId"] as? Int).map(String.init)
         guard let id, !id.isEmpty else { return nil }
-        let tasks = json["playTasks"] as? [[String: Any]] ?? []
+        let tasks = (json["playTasks"] as? [[String: Any]] ?? []).filter {
+            (($0["category"] as? String).map { $0 == "game" } ?? true) && $0["type"] as? String != "URLTask"
+        }
         let primary = tasks.first { ($0["isPrimary"] as? Bool) == true } ?? tasks.first
-        return GOGInfo(id: id, name: json["name"] as? String,
-                       primaryExe: (primary?["path"] as? String)?.replacingOccurrences(of: "\\", with: "/"))
+        return GOGInfo(
+            id: id, name: json["name"] as? String,
+            primaryExe: (primary?["path"] as? String)?.replacingOccurrences(of: "\\", with: "/"),
+            arguments: (primary?["arguments"] as? String)?.split(separator: " ").map(String.init) ?? [],
+            workingDir: primary?["workingDir"] as? String,
+            rootID: json["rootGameId"] as? String,
+            clientID: json["clientId"] as? String
+        )
+    }
+
+    // DLC info files sit next to the game's: the one whose gameId is the others'
+    // rootGameId is the game's.
+    public static func primary(in folder: URL) -> (url: URL, info: GOGInfo)? {
+        let files = ((try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? [])
+            .filter { isInfoName($0.lastPathComponent) }
+        let infos = files.compactMap { url in (try? Data(contentsOf: url)).flatMap { parse($0).map { (url, $0) } } }
+        if let root = infos.compactMap(\.1.rootID).first, let found = infos.first(where: { $0.1.id == root }) {
+            return found
+        }
+        return infos.first
     }
 
     // The folder itself and one level down.

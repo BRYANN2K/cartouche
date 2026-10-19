@@ -177,7 +177,7 @@ final class ConsoleScene {
     let library: LibraryModel
     let database: ContentDatabase
     let center: ConsoleCenter
-    // Settings > Library's game folders (P18), in the scene's own defaults
+    // Settings > Library's game folders, in the scene's own defaults
     let folders: GameFolders
     var work: URL { fixture.root }
 
@@ -199,7 +199,7 @@ final class ConsoleScene {
         center.folderList = folders
         // The session record lives in the scene, never the user's support folder
         center.sessions = SessionRecords(file: fixture.root.appending(path: "support/console-session.json"))
-        // Standalone emulators (P16) are looked for in the scene, never in /Applications
+        // Standalone emulators are looked for in the scene, never in /Applications
         center.emulators.detector = EmulatorDetector(folders: [applications])
         var infos: [String: Data] = [:]
         for console in ConsoleCatalog.all {

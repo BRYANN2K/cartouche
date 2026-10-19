@@ -6,9 +6,11 @@
 import CryptoKit
 import Foundation
 
-struct RunnerManifest: Sendable, Equatable, Codable {
+struct RunnerManifest: PinnedManifest {
 
+    typealias Invalid = ManifestInvalid
     static let format = 1
+    static let resource = "runners"
 
     struct Build: Sendable, Equatable, Codable, Identifiable {
         enum Origin: String, Sendable, Codable {
@@ -28,7 +30,7 @@ struct RunnerManifest: Sendable, Equatable, Codable {
         let url: URL
         let size: Int64
         let sha256: String
-        // The folder inside the archive that becomes runners/wine-<id>
+        // The folder inside the archive that becomes runners/<id>
         let root: String
         let loader: String
         let flavors: [String]
@@ -47,20 +49,8 @@ struct RunnerManifest: Sendable, Equatable, Codable {
 
     func build(id: String) -> Build? { builds.first { $0.id == id } }
 
-    struct Invalid: Error, Equatable, CustomStringConvertible {
-        let problems: [String]
-        var description: String { problems.joined(separator: "; ") }
-    }
-
     // Downloads come only from release assets on GitHub
     static let allowedHosts: Set<String> = ["github.com"]
-
-    static func read(_ data: Data) throws -> RunnerManifest {
-        let manifest = try JSONDecoder().decode(RunnerManifest.self, from: data)
-        let problems = manifest.problems()
-        guard problems.isEmpty else { throw Invalid(problems: problems) }
-        return manifest
-    }
 
     func problems() -> [String] {
         var found: [String] = []
@@ -89,25 +79,9 @@ struct RunnerManifest: Sendable, Equatable, Codable {
         }
         return found
     }
-
-    static func isSHA256(_ text: String) -> Bool {
-        text.count == 64 && text.allSatisfy { $0.isHexDigit && !$0.isUppercase }
-    }
-
-    // A relative path with no step out of its folder
-    static func isInside(_ path: String) -> Bool {
-        !path.isEmpty && !path.hasPrefix("/") && !path.split(separator: "/").contains("..")
-    }
 }
 
 extension RunnerManifest {
-
-    static func bundled() throws -> RunnerManifest {
-        guard let url = Bundle.module.url(forResource: "runners", withExtension: "json") else {
-            throw Invalid(problems: ["runners.json is not in the app"])
-        }
-        return try read(Data(contentsOf: url))
-    }
 
     static var cacheFile: URL { SupportPaths.support.appending(path: "runners.json") }
 
@@ -125,7 +99,7 @@ extension RunnerManifest {
     }
 
     // What the app installs from. Falls back to an empty list only if the app itself is broken.
-    static func current(cache: URL = cacheFile) -> RunnerManifest {
+    static func current(cache: URL = cacheFile, key: Curve25519.Signing.PublicKey? = signingKey()) -> RunnerManifest {
         let shipped: RunnerManifest
         do {
             shipped = try bundled()
@@ -133,8 +107,24 @@ extension RunnerManifest {
             AppLog.note("runners.json in the app is unreadable: \(error)")
             shipped = RunnerManifest(format: format, revision: 0, builds: [])
         }
-        let refreshed = (try? Data(contentsOf: cache)).flatMap { try? read($0) }
+        let refreshed = verified(cache: cache, key: key).flatMap { try? read($0) }
         return merged(bundled: shipped, refreshed: refreshed)
+    }
+
+    // The cached copy is trusted like the published one: without a signed .sig it
+    // could offer builds CI never pinned. A missing key means a build environment
+    // where nothing is signed, so the cache is read as is.
+    private static func verified(cache: URL, key: Curve25519.Signing.PublicKey?) -> Data? {
+        guard let data = try? Data(contentsOf: cache) else { return nil }
+        guard let key else { return data }
+        guard let signatureData = try? Data(contentsOf: signatureFile(for: cache)),
+              let signature = signature(from: signatureData),
+              key.isValidSignature(signature, for: data)
+        else {
+            AppLog.note("cached runner manifest refused: missing or wrong signature")
+            return nil
+        }
+        return data
     }
 
     // .../releases/download/compat-data/compat.json.gz -> .../compat-data/runners.json
@@ -165,7 +155,7 @@ extension RunnerManifest {
     enum RefreshOutcome: Sendable, Equatable {
         case updated(revision: Int)
         case unchanged
-        case rejected(String)
+        case rejected
         case unavailable
     }
 
@@ -173,7 +163,8 @@ extension RunnerManifest {
     // A manifest the shipped key does not sign is refused and the bundled copy stays.
     static func refresh(
         from url: URL, cache: URL = cacheFile,
-        fetch: @Sendable (URL) async throws -> (Data, Int) = CompatibilityClient.download,
+        fetch: @Sendable (URL) async throws -> (Data, Int) = HTTPFetch.download(
+            timeout: 30, resourceTimeout: 5 * 60, userAgent: "Cartouche/\(AppVersion.bundled)"),
         key: Curve25519.Signing.PublicKey? = signingKey()
     ) async -> RefreshOutcome {
         guard let (data, status) = try? await fetch(url), status == 200 else { return .unavailable }
@@ -183,23 +174,24 @@ extension RunnerManifest {
               key.isValidSignature(signature, for: data)
         else {
             AppLog.note("runner manifest at \(url.absoluteString) refused: missing or wrong signature")
-            return .rejected("missing or wrong signature")
+            return .rejected
         }
         let published: RunnerManifest
         do {
             published = try read(data)
         } catch {
             AppLog.note("runner manifest at \(url.absoluteString) refused: \(error)")
-            return .rejected(String(describing: error))
+            return .rejected
         }
-        let have = current(cache: cache)
+        let have = current(cache: cache, key: key)
         guard published.revision > have.revision else { return .unchanged }
         guard merged(bundled: have, refreshed: published) == published else {
-            return .rejected("revision \(published.revision) changes a pinned build")
+            return .rejected
         }
         do {
             try FileManager.default.createDirectory(at: cache.deletingLastPathComponent(), withIntermediateDirectories: true)
             try atomicReplace(cache, with: data, step: "runner manifest")
+            try atomicReplace(signatureFile(for: cache), with: signed.0, step: "runner manifest signature")
         } catch {
             AppLog.note("runner manifest not saved: \(error)")
             return .unavailable

@@ -19,12 +19,12 @@ struct LibraryWindowTests {
         let compat: CompatibilityModel
         let setup: SteamSetup
 
-        init(_ label: String, steam installed: Bool = true, export: Bool = true, art: Bool = true) throws {
+        init(_ label: String, steam installed: Bool = true, export: Bool = true, art: Bool = true) async throws {
             fixture = try SteamFixture(label)
             if export { try fixture.writeExport() }
             if art { try fixture.addArt(SteamFixture.apps.map(\.id)) }
             model = libraryModel(fixture, installed: installed, defaults: scratch)
-            compat = try fixtureCompat(fixture.root, defaults: scratch)
+            compat = try await fixtureCompat(fixture.root, defaults: scratch)
             var steps = SteamSetup.Steps()
             steps.brewPath = { "/opt/homebrew/bin/brew" }
             setup = SteamSetup(steps: steps, defaults: scratch.defaults)
@@ -49,7 +49,7 @@ struct LibraryWindowTests {
 
     @Test("All Games with covers, gray when not installed, the panel on Elden Ring")
     func allGames() async throws {
-        let scene = try Scene("all")
+        let scene = try await Scene("all")
         defer { scene.fixture.remove() }
         await scene.model.load()
         scene.model.toggleFavorite("steam:1245620")
@@ -61,7 +61,7 @@ struct LibraryWindowTests {
 
     @Test("The Steam source: no section header, the toolbar names the account")
     func steamSource() async throws {
-        let scene = try Scene("steam")
+        let scene = try await Scene("steam")
         defer { scene.fixture.remove() }
         await scene.model.load()
         scene.model.selection = .source(.steam)
@@ -74,7 +74,7 @@ struct LibraryWindowTests {
     // same sidebar view is also rendered on its own
     @Test("Sidebar structure renders: Library, PC and an empty Consoles section with its + button")
     func sidebarAlone() async throws {
-        let scene = try Scene("sidebar")
+        let scene = try await Scene("sidebar")
         defer { scene.fixture.remove() }
         await scene.model.load()
         scene.model.toggleFavorite("steam:1245620")
@@ -87,7 +87,7 @@ struct LibraryWindowTests {
 
     @Test("States are reachable: loading")
     func loading() async throws {
-        let scene = try Scene("loading")
+        let scene = try await Scene("loading")
         defer { scene.fixture.remove() }
         #expect(scene.model.screen == .loading)
         await scene.render("state-loading")
@@ -95,7 +95,7 @@ struct LibraryWindowTests {
 
     @Test("States are reachable: empty library")
     func empty() async throws {
-        let scene = try Scene("empty", steam: false, export: false, art: false)
+        let scene = try await Scene("empty", steam: false, export: false, art: false)
         defer { scene.fixture.remove() }
         await scene.model.load()
         #expect(scene.model.screen == .welcome)
@@ -104,7 +104,7 @@ struct LibraryWindowTests {
 
     @Test("States are reachable: offline")
     func offline() async throws {
-        let scene = try Scene("offline")
+        let scene = try await Scene("offline")
         defer { scene.fixture.remove() }
         await scene.model.load()
         scene.model.isOffline = true
@@ -117,7 +117,7 @@ struct LibraryWindowTests {
 
     @Test("States are reachable: expired session")
     func expired() async throws {
-        let scene = try Scene("expired")
+        let scene = try await Scene("expired")
         defer { scene.fixture.remove() }
         await scene.model.load()
         scene.model.stores[.epic] = .expired(account: "player42")
@@ -129,7 +129,7 @@ struct LibraryWindowTests {
 
     @Test("States are reachable: Steam not installed")
     func steamMissing() async throws {
-        let scene = try Scene("missing", steam: false, export: false, art: false)
+        let scene = try await Scene("missing", steam: false, export: false, art: false)
         defer { scene.fixture.remove() }
         await scene.model.load()
         scene.model.selection = .source(.steam)
@@ -139,7 +139,7 @@ struct LibraryWindowTests {
 
     @Test("States are reachable: no search result")
     func noResult() async throws {
-        let scene = try Scene("search")
+        let scene = try await Scene("search")
         defer { scene.fixture.remove() }
         await scene.model.load()
         scene.model.searchText = "zelda"
@@ -147,9 +147,9 @@ struct LibraryWindowTests {
         await scene.render("state-no-search-result")
     }
 
-    @Test("States are reachable: a store to sign in to, empty favorites, and a failed read")
+    @Test("States are reachable: a store to sign in to, empty favorites")
     func otherStates() async throws {
-        let scene = try Scene("others")
+        let scene = try await Scene("others")
         defer { scene.fixture.remove() }
         await scene.model.load()
         scene.model.selection = .source(.gog)
@@ -157,8 +157,6 @@ struct LibraryWindowTests {
         scene.model.selection = .favorites
         #expect(scene.model.screen == .emptyFavorites)
         await scene.render("state-empty-favorites", modes: [.liquid])
-        scene.model.fail("The export could not be read.")
-        await scene.render("state-error", modes: [.liquid])
     }
 
     @Test("Reduce Motion: no tilt, no grid spring, fades instead of springs")
@@ -216,7 +214,7 @@ struct SettingsWindowTests {
             (.library, AnyView(LibrarySettingsView(model: model))),
             (.accounts, AnyView(AccountsSettingsView(model: model))),
             (.compatibility, AnyView(CompatibilitySettingsView(model: model))),
-            (.privacy, AnyView(PrivacySettingsView(center: center))),
+            (.privacy, AnyView(PrivacySettingsView(center: center, choices: PrivacyChoices(defaults: scratch.defaults)))),
             (.consoles, AnyView(ConsolesSettingsView(model: consoles, chooseApp: { nil }))),
             (.agents, AnyView(AgentsSettingsView(model: agents))),
         ]

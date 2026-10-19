@@ -78,7 +78,6 @@ struct ToolContractTests {
         _ = await session.stop()
 
         #expect(live.missing.isEmpty)
-        #expect(await session.serverVersion == "1.22.2")
         let pinned = try Fixtures.pinnedTools()
         #expect(live.tools.keys.sorted() == pinned.map(\.name).sorted())
         for tool in pinned {

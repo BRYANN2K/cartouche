@@ -23,10 +23,16 @@ struct InstallerSetupTests {
 
     // A DXMT backend already "downloaded": receipt plus its DLL folders
     static func dxmt(in backends: URL) throws {
-        let root = BackendInstaller.folder(for: .dxmt, in: backends)
+        try backend(.dxmt, in: backends)
+        try Data("metal dll".utf8).write(to: BackendInstaller.folder(for: .dxmt, in: backends)
+            .appending(path: "x86_64-windows/winemetal.dll"))
+    }
+
+    // A backend already "downloaded": receipt plus its DLL folders
+    static func backend(_ kind: GraphicsBackend, in backends: URL) throws {
+        let root = BackendInstaller.folder(for: kind, in: backends)
         try FileManager.default.createDirectory(at: root.appending(path: "x86_64-windows"), withIntermediateDirectories: true)
-        try Data("metal dll".utf8).write(to: root.appending(path: "x86_64-windows/winemetal.dll"))
-        let receipt = BackendInstaller.Receipt(backend: .dxmt, version: "0.80",
+        let receipt = BackendInstaller.Receipt(backend: kind, version: "0.80",
                                                archiveSHA256: String(repeating: "a", count: 64), files: [:])
         try JSONEncoder().encode(receipt).write(to: root.appending(path: BackendInstaller.receiptName))
     }
@@ -67,7 +73,7 @@ struct InstallerSetupTests {
     }
 
     static func record(in folder: GameFolder) -> InstalledGame? {
-        (try? Data(contentsOf: folder.record)).flatMap { try? InstalledGames.decoder.decode(InstalledGame.self, from: $0) }
+        (try? Data(contentsOf: folder.record)).flatMap { try? RecordCoding.decoder.decode(InstalledGame.self, from: $0) }
     }
 
     // Relative path -> file contents, to prove the prefix is never copied or rebuilt
@@ -115,6 +121,49 @@ struct InstallerSetupTests {
         let plain = SetupEnvironment.make(wine: wine, prefix: prefix, backend: .wined3d, backends: backends, base: [:])
         #expect(plain["CX_GRAPHICS_BACKEND"] == "wined3d")
         #expect(plain["WINEDLLOVERRIDES"] == "winemenubuilder.exe=d")
+    }
+
+    @Test("D3DMetal on a free Wine points at the installed toolkit's libd3dshared; without one nothing is set")
+    func d3dMetalEnvironment() throws {
+        let work = try scratchDirectory("installer-d3dm")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let backends = work.appending(path: "backends")
+        let runners = work.appending(path: "runners")
+        let wine = try #require(InstallRunners.wine(for: Self.freeWine("wine-11.0", in: runners), runners: runners))
+        let prefix = work.appending(path: "pfx")
+
+        var env = SetupEnvironment.make(
+            wine: wine, prefix: prefix, backend: .d3dmetal, backends: backends, runners: runners, base: [:])
+        #expect(env["CX_GRAPHICS_BACKEND"] == "d3dmetal")
+        #expect(env["CX_APPLEGPTK_LIBD3DSHARED_PATH"] == nil)
+
+        let lib = try PortingToolkitTests.toolkit(at: work.appending(path: "redist/lib"), version: "4.0b3")
+        try PortingToolkitSource.copy(
+            PortingToolkitInstall(lib: lib, version: "4.0b3", origin: work), runners: runners)
+        env = SetupEnvironment.make(
+            wine: wine, prefix: prefix, backend: .d3dmetal, backends: backends, runners: runners, base: [:])
+        #expect(env["CX_APPLEGPTK_LIBD3DSHARED_PATH"] == runners
+            .appending(path: "gptk-4.0b3/lib/external/libd3dshared.dylib").path(percentEncoded: false))
+        #expect(env["WINEDLLOVERRIDES"] == "winemenubuilder.exe=d")
+    }
+
+    @Test("The run script overrides the same backend DLLs the app's environment does")
+    func overrideListsMatchTheScript() throws {
+        let work = try scratchDirectory("installer-overrides")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let backends = work.appending(path: "backends")
+        try Self.backend(.dxmt, in: backends)
+        try Self.backend(.dxvk, in: backends)
+        let root = URL(filePath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+        let script = try String(contentsOf: root.appending(path: "dylib/feats/compat_run.sh"), encoding: .utf8)
+        let dxmt = try #require(script.firstMatch(of: /dxmt\) np_backend_dlls="([^"]+)"/)).1
+        let other = try #require(script.firstMatch(of: /\*\) np_backend_dlls="([^"]+)"/)).1
+        for (kind, shell) in [(GraphicsBackend.dxmt, String(dxmt)), (.dxvk, String(other))] {
+            let overrides = try #require(SetupEnvironment.dlls(kind, backends: backends)?.overrides)
+            #expect(overrides == "\(shell)=b", "\(kind) DLL list")
+        }
     }
 
     @Test("DXMT copies winemetal.dll into the prefix's system32; DXVK and a missing receipt do not")
@@ -201,7 +250,7 @@ struct InstallerSetupTests {
 
         // The launcher now starts the new Wine with the DXMT environment
         let script = try String(contentsOf: folder.launcher, encoding: .utf8)
-        #expect(script.contains("wine-wine-12.0"))
+        #expect(script.contains("wine-12.0/bin/wine"))
         #expect(script.contains("CX_GRAPHICS_BACKEND"))
         #expect(script.contains("WINEDLLOVERRIDES"))
         // winemetal.dll landed in the same prefix
@@ -233,11 +282,11 @@ struct InstallerSetupTests {
         let game = try #require(model.game("installer:sample"))
 
         model.setSetup(GameSetupChoice(runnerID: "wine-10.0"), for: game.id)
-        #expect(model.setupNotice != nil)
+        #expect(model.setupNotices[game.id] != nil)
         #expect(Self.record(in: folder)?.runnerID == "wine-10.0")
         // Switching back to the newer Wine clears the note and warns no more
         model.setSetup(GameSetupChoice(runnerID: "wine-11.0"), for: game.id)
-        #expect(model.setupNotice == nil)
+        #expect(model.setupNotices[game.id] == nil)
         #expect(Self.record(in: folder)?.wineVersion == "11.0")
     }
 }

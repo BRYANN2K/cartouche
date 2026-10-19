@@ -5,8 +5,6 @@ import Foundation
 enum AgentLevel: String, Codable, Sendable, CaseIterable, Comparable {
     case readOnly, standard, full
 
-    static let key = "agents.level"
-
     var rank: Int { Self.allCases.firstIndex(of: self)! }
     static func < (a: AgentLevel, b: AgentLevel) -> Bool { a.rank < b.rank }
 

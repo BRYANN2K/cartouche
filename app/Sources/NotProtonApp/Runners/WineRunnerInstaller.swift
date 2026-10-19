@@ -1,5 +1,5 @@
 // Downloads a Wine build from the runner manifest, checks it against its pin and
-// unpacks it into runners/wine-<id>. Nothing is unpacked before the SHA-256 matches.
+// unpacks it into runners/<id>. Nothing is unpacked before the SHA-256 matches.
 
 import Foundation
 
@@ -13,6 +13,8 @@ enum WineRunnerInstaller {
         let id: String
         let archiveSHA256: String
         let files: [String: String]
+        // The manifest's loader path inside the build; nil in receipts written before it
+        var loader: String? = nil
     }
 
     static let receiptName = ".cartouche-runner.json"
@@ -24,12 +26,35 @@ enum WineRunnerInstaller {
     static let session = PinnedDownload.session(deadline: 2 * 60 * 60)
 
     static func folder(for id: String, runners: URL = SupportPaths.runners) -> URL {
-        runners.appending(path: "wine-\(id)")
+        runners.appending(path: id)
+    }
+
+    // New installs use the id as the folder name; older ones added a wine- prefix
+    private static func candidates(for id: String, runners: URL) -> [URL] {
+        [folder(for: id, runners: runners), runners.appending(path: "wine-\(id)")]
+    }
+
+    static func installedFolder(for id: String, runners: URL = SupportPaths.runners) -> URL? {
+        candidates(for: id, runners: runners).first {
+            FileManager.default.fileExists(
+                atPath: $0.appending(path: receiptName).path(percentEncoded: false))
+        }
+    }
+
+    // The build's folder on disk, whichever naming it was made with
+    static func dir(for id: String, runners: URL = SupportPaths.runners) -> URL {
+        candidates(for: id, runners: runners).first {
+            var isDir: ObjCBool = false
+            return FileManager.default.fileExists(atPath: $0.path(percentEncoded: false), isDirectory: &isDir)
+                && isDir.boolValue
+        } ?? folder(for: id, runners: runners)
     }
 
     static func receipt(for id: String, runners: URL = SupportPaths.runners) -> Receipt? {
-        let file = folder(for: id, runners: runners).appending(path: receiptName)
-        return (try? Data(contentsOf: file)).flatMap { try? JSONDecoder().decode(Receipt.self, from: $0) }
+        guard let folder = installedFolder(for: id, runners: runners) else { return nil }
+        let file = folder.appending(path: receiptName)
+        let receipt = (try? Data(contentsOf: file)).flatMap { try? JSONDecoder().decode(Receipt.self, from: $0) }
+        return receipt?.id == id ? receipt : nil
     }
 
     static func isInstalled(_ id: String, runners: URL = SupportPaths.runners) -> Bool {
@@ -43,8 +68,8 @@ enum WineRunnerInstaller {
 
     // Files that no longer match the receipt. Empty means ready.
     static func verify(_ id: String, runners: URL = SupportPaths.runners) -> [String] {
-        guard let receipt = receipt(for: id, runners: runners) else { return [] }
-        let root = folder(for: id, runners: runners)
+        guard let root = installedFolder(for: id, runners: runners),
+              let receipt = receipt(for: id, runners: runners) else { return [] }
         return receipt.files.keys.sorted().compactMap { path in
             Digest.sha256IfPresent(root.appending(path: path)) == receipt.files[path]
                 ? nil : String(localized: "\(path) changed since it was installed.")
@@ -58,45 +83,13 @@ enum WineRunnerInstaller {
         downloads: URL = WineRunnerInstaller.downloads,
         session: URLSession = WineRunnerInstaller.session
     ) async throws -> Receipt {
-        let extras = await QAEnvironment.extraHashes(session: session)
-        let archive = try await download(build, into: downloads, session: session, extraHashes: extras)
+        let archive = try await PinnedDownload.obtain(
+            build.url, sha256: build.sha256, size: build.size,
+            into: downloads, step: step, from: "GitHub", session: session)
         defer { try? FileManager.default.removeItem(at: archive) }
+        // A swapped archive is checked again before it is unpacked
+        let extras = await QAEnvironment.extraHashes(session: session)
         return try unpack(archive, build: build, runners: runners, extraHashes: extras)
-    }
-
-    // The archive, kept only if its size and SHA-256 match the manifest — or, in
-    // QA mode, a hash the mock server lists in __pins.json (QAEnvironment)
-    static func download(
-        _ build: RunnerManifest.Build, into downloads: URL, session: URLSession = WineRunnerInstaller.session,
-        extraHashes: Set<String> = []
-    ) async throws -> URL {
-        let fm = FileManager.default
-        let archive = downloads.appending(path: build.archiveName)
-        if let onDisk = Digest.sha256IfPresent(archive), onDisk == build.sha256 || extraHashes.contains(onDisk) { return archive }
-        try? fm.removeItem(at: archive)
-
-        let body: URL, response: URLResponse
-        do {
-            (body, response) = try await session.download(from: QAEnvironment.url(build.url))
-        } catch {
-            AppLog.note("\(build.id): \(build.url.absoluteString) unreachable: \(error.localizedDescription)")
-            throw StepFailure(step: step, detail: String(localized: "Cartouche could not download \(build.title). Check your internet connection and try again."))
-        }
-        defer { try? fm.removeItem(at: body) }
-        if let http = response as? HTTPURLResponse, http.statusCode != 200 {
-            AppLog.note("\(build.id): \(build.url.absoluteString) answered \(http.statusCode)")
-            throw StepFailure(step: step, detail: String(localized: "Cartouche could not download \(build.title). Check your internet connection and try again."))
-        }
-
-        let size = (try? fm.attributesOfItem(atPath: body.path(percentEncoded: false))[.size] as? Int64) ?? -1
-        let got = try Digest.sha256(of: body)
-        guard (size == build.size && got == build.sha256) || extraHashes.contains(got) else {
-            AppLog.note("\(build.id): got \(size) bytes with SHA-256 \(got), the pin is \(build.size) bytes, \(build.sha256)")
-            throw StepFailure(step: step, detail: damaged)
-        }
-        try fm.createDirectory(at: downloads, withIntermediateDirectories: true)
-        try fm.moveItem(at: body, to: archive)
-        return archive
     }
 
     // Unpacks next to the runners folder and moves the build in only when it is complete
@@ -129,19 +122,19 @@ enum WineRunnerInstaller {
         for path in watchedFiles(loader: build.loader) {
             if let hash = Digest.sha256IfPresent(root.appending(path: path)) { files[path] = hash }
         }
-        let receipt = Receipt(id: build.id, archiveSHA256: build.sha256, files: files)
+        let receipt = Receipt(id: build.id, archiveSHA256: build.sha256, files: files, loader: build.loader)
         try JSONEncoder().encode(receipt).write(to: root.appending(path: receiptName))
 
-        try? fm.removeItem(at: target)
-        try fm.moveItem(at: root, to: target)
+        try swapIn(root, at: target)
         return receipt
     }
 
     static func remove(_ id: String, runners: URL = SupportPaths.runners) throws {
-        let target = folder(for: id, runners: runners)
-        guard FileManager.default.fileExists(atPath: target.path(percentEncoded: false)) else { return }
-        try WriteRefused.catching(target.path(percentEncoded: false)) {
-            try FileManager.default.removeItem(at: target)
+        for target in candidates(for: id, runners: runners)
+        where FileManager.default.fileExists(atPath: target.path(percentEncoded: false)) {
+            try WriteRefused.catching(target.path(percentEncoded: false)) {
+                try FileManager.default.removeItem(at: target)
+            }
         }
     }
 }

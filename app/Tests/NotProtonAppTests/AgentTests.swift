@@ -75,7 +75,6 @@ final class AgentFixture: AgentBackend {
     func launch(_ game: Game) async throws { calls.append("launch:\(game.id)") }
     func launchStore(_ url: String) async throws { calls.append("store:\(url)") }
     func quit(_ game: Game, force: Bool) async throws { calls.append("quit:\(game.id)") }
-    func isRunning(_ game: Game) async -> Bool { false }
     func reportResult(_ game: Game, verdict: String, note: String?) throws {
         calls.append("report:\(verdict)")
     }
@@ -85,16 +84,30 @@ final class AgentFixture: AgentBackend {
         throw AgentToolError("fixture has no installer analysis")
     }
     func startInstall(_ request: InstallRequest, inputs: InstallInputs) -> UUID { UUID() }
-    func installJobs() -> [InstallJob] { [] }
-    func installJob(_ id: UUID) -> InstallJob? { nil }
-    func retryInstall(_ job: InstallJob, fix: RetryFix?) throws { calls.append("retry") }
-    func applyThreads(_ job: InstallJob, _ threads: Int) throws {}
+    var jobList: [InstallJob] = []
+    func installJobs() -> [InstallJob] { jobList }
+    func installJob(_ id: UUID) -> InstallJob? { jobList.first { $0.id == id } }
+    func retryInstall(_ job: InstallJob, fixes: [RetryFix]) throws {
+        job.phase = .waiting
+        calls.append("retry:\(fixes.count)")
+    }
     func stopInstall(_ job: InstallJob) throws {}
-    func finishInstall(_ job: InstallJob, exe: URL) throws {}
+    func finishInstall(_ job: InstallJob, exe: URL) throws { calls.append("finish:\(exe.lastPathComponent)") }
     func cleanupInstaller(_ request: InstallRequest) throws -> Int64 { 0 }
-    func copyInstallerToInternal(_ source: URL) throws -> URL { source }
+    func copyInstallerToInternal(_ source: URL) async throws -> URL {
+        let folder = roots.support.appending(path: "installers").appending(path: source.lastPathComponent)
+        try FileManager.default.createDirectory(at: folder.deletingLastPathComponent(),
+                                                withIntermediateDirectories: true)
+        try? FileManager.default.removeItem(at: folder)
+        try FileManager.default.copyItem(at: source, to: folder)
+        return folder
+    }
 
     // MARK: Prefix tools
+    var prefixes: [String: URL] = [:]
+    func prefixFolder(_ game: Game) -> URL? {
+        prefixes[game.id] ?? roots.installs.appending(path: "\(game.id).prefix")
+    }
     func runWinetricks(_ game: Game, verbs: [String]) async throws -> URL {
         calls.append("winetricks:\(verbs.joined(separator: ","))")
         return roots.logs.appending(path: "winetricks.log")
@@ -285,15 +298,8 @@ struct MCPHTTPTests {
     @Test("a request without the token is 401, with it reaches the handler")
     func token() async throws {
         let server = MCPHTTPServer(token: "secret-token") { _ in Data("{}".utf8) }
-        try server.start(port: 0)
+        let port = try await boundPort(server)
         defer { server.stop() }
-        var port: UInt16 = 0
-        for _ in 0..<40 where port == 0 {
-            try await Task.sleep(for: .milliseconds(50))
-            port = server.port
-        }
-        #expect(port != 0)
-
         let denied = try await post(port: port, token: "wrong", body: "{}")
         #expect(denied.contains("401"))
         let missing = try await post(port: port, token: nil, body: "{}")
@@ -303,32 +309,111 @@ struct MCPHTTPTests {
         #expect(ok.contains("{}"))
     }
 
-    private func post(port: UInt16, token: String?, body: String) async throws -> String {
+    // Sends a raw request and reads until the server closes, since a reply
+    // may span several receive callbacks.
+    private func post(raw: String, port: UInt16) async throws -> String {
         let connection = NWConnection(host: "127.0.0.1",
                                       port: NWEndpoint.Port(rawValue: port)!, using: .tcp)
-        var request = "POST /mcp HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: \(body.utf8.count)\r\n"
-        if let token { request += "Authorization: Bearer \(token)\r\n" }
-        let raw = request + "\r\n" + body
         return try await withCheckedThrowingContinuation { continuation in
+            let box = ReplyBox()
             connection.stateUpdateHandler = { state in
-                if case .ready = state {
+                switch state {
+                case .ready:
                     connection.send(content: Data(raw.utf8), completion: .contentProcessed { _ in
-                        connection.receive(minimumIncompleteLength: 1, maximumLength: 1 << 20) {
-                            data, _, _, error in
-                            if let data {
-                                continuation.resume(returning: String(decoding: data, as: UTF8.self))
-                            } else {
-                                continuation.resume(throwing: error ?? CocoaError(.coderReadCorrupt))
-                            }
-                            connection.cancel()
-                        }
+                        readAll()
                     })
+                case .failed(let error):
+                    box.finish { continuation.resume(throwing: error) }
+                default:
+                    break
                 }
-                if case .failed(let error) = state {
-                    continuation.resume(throwing: error)
+            }
+            @Sendable func readAll() {
+                connection.receive(minimumIncompleteLength: 1, maximumLength: 1 << 20) {
+                    data, _, complete, error in
+                    if let data { box.append(data) }
+                    if complete || error != nil {
+                        box.finish { continuation.resume(returning: box.text) }
+                    } else {
+                        readAll()
+                    }
                 }
             }
             connection.start(queue: .global())
+        }
+    }
+
+    private final class ReplyBox: @unchecked Sendable {
+        private let lock = NSLock()
+        private var storage = ""
+        private var done = false
+        var text: String { lock.withLock { storage } }
+        func append(_ data: Data) {
+            lock.withLock { storage += String(decoding: data, as: UTF8.self) }
+        }
+        // Only the first finish resumes the continuation: a failed state can
+        // still arrive after the reply.
+        func finish(_ body: () -> Void) {
+            guard lock.withLock({ !done && { done = true; return true }() }) else { return }
+            body()
+        }
+    }
+
+    private func post(port: UInt16, token: String?, body: String) async throws -> String {
+        var request = "POST /mcp HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: \(body.utf8.count)\r\n"
+        if let token { request += "Authorization: Bearer \(token)\r\n" }
+        return try await post(raw: request + "\r\n" + body, port: port)
+    }
+
+    @Test("malformed Content-Length is a 400, not a hang or a crash")
+    func badContentLength() async throws {
+        let server = MCPHTTPServer(token: "t") { _ in Data("{}".utf8) }
+        let port = try await boundPort(server)
+        defer { server.stop() }
+        for header in ["-5", "abc", "999999999"] {
+            let reply = try await post(raw:
+                "POST /mcp HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: \(header)\r\n\r\n",
+                port: port)
+            #expect(reply.contains("400"))
+        }
+        let chunked = try await post(raw:
+            "POST /mcp HTTP/1.1\r\nHost: 127.0.0.1\r\nTransfer-Encoding: chunked\r\n\r\n5\r\nhello\r\n0\r\n\r\n",
+            port: port)
+        #expect(chunked.contains("400"))
+    }
+
+    @Test("a non-loopback Host is refused before the token is even read")
+    func hostChecked() async throws {
+        let server = MCPHTTPServer(token: "t") { _ in Data("{}".utf8) }
+        let port = try await boundPort(server)
+        defer { server.stop() }
+        let reply = try await post(raw:
+            "POST /mcp HTTP/1.1\r\nHost: example.com\r\nContent-Length: 2\r\n\r\n{}", port: port)
+        #expect(reply.contains("403"))
+    }
+
+    // Starts the listener and waits for its "running" state — the bound port
+    // is only valid once the listener reports ready. A 10 s cap fails loudly
+    // instead of hanging the suite.
+    private func boundPort(_ server: MCPHTTPServer) async throws -> UInt16 {
+        let (stream, yield) = AsyncStream<String>.makeStream()
+        server.onState = { yield.yield($0) }
+        try server.start(port: 0)
+        return try await withThrowingTaskGroup(of: UInt16.self) { group in
+            group.addTask {
+                for await state in stream {
+                    if state == "running" { return server.port }
+                    if state != "starting" { throw AgentToolError("listener state \(state)") }
+                }
+                throw AgentToolError("listener never reported running")
+            }
+            group.addTask {
+                try await Task.sleep(for: .seconds(10))
+                throw AgentToolError("listener timed out before reporting running")
+            }
+            let port = try #require(try await group.next())
+            group.cancelAll()
+            return port
         }
     }
 }
@@ -364,23 +449,31 @@ struct AgentServiceTests {
         #expect(refused["isError"] == .bool(true))
     }
 
+    // The real signal an approval reached the user: the notify hook the model
+    // wires to the notification center. Wire it before the call starts.
+    @MainActor
+    private func approvalStream(_ service: AgentService) -> AsyncStream<AgentApproval> {
+        let (stream, yield) = AsyncStream<AgentApproval>.makeStream()
+        service.notify = { yield.yield($0) }
+        return stream
+    }
+
     @Test("a risky tool waits for the approval; allow runs it")
     @MainActor
     func approvalAllow() async throws {
         let (service, backend) = fixtureService(.full)
         backend.gameList = [steamGame()]
         service.approvalTimeout = .seconds(30)
+        let approvals = approvalStream(service)
+        var nextApproval = approvals.makeAsyncIterator()
         let task = Task {
             await service.call("run_winetricks",
                 ["game": .string("steam:1245620"), "verbs": .array([.string("vcrun2022")])],
                 client: "test")
         }
-        for _ in 0..<40 where service.pending.isEmpty {
-            try await Task.sleep(for: .milliseconds(25))
-        }
-        #expect(service.pending.count == 1)
-        #expect(service.pending.first?.tool == "run_winetricks")
-        service.answer(service.pending[0].id, allow: true)
+        let approval = try #require(await nextApproval.next())
+        #expect(approval.tool == "run_winetricks")
+        service.answer(approval.id, allow: true)
         let reply = await task.value
         #expect(reply["isError"] == .bool(false))
         #expect(backend.calls.contains("winetricks:vcrun2022"))
@@ -392,14 +485,14 @@ struct AgentServiceTests {
     func approvalDeny() async throws {
         let (service, backend) = fixtureService(.full)
         backend.gameList = [steamGame()]
+        let approvals = approvalStream(service)
+        var nextApproval = approvals.makeAsyncIterator()
         let task = Task {
             await service.call("run_winetricks",
                 ["game": .string("steam:1245620"), "verbs": .array([.string("x")])], client: "test")
         }
-        for _ in 0..<40 where service.pending.isEmpty {
-            try await Task.sleep(for: .milliseconds(25))
-        }
-        service.answer(service.pending[0].id, allow: false)
+        let approval = try #require(await nextApproval.next())
+        service.answer(approval.id, allow: false)
         let reply = await task.value
         #expect(reply["isError"] == .bool(true))
         #expect(service.actions.contains { $0.outcome == .denied })
@@ -416,6 +509,154 @@ struct AgentServiceTests {
             ["game": .string("steam:1245620"), "verbs": .array([.string("x")])], client: "test")
         #expect(reply["isError"] == .bool(true))
         #expect(service.actions.contains { $0.outcome == .denied })
+    }
+
+    @Test("a level lowered while the approval waits refuses the call")
+    @MainActor
+    func levelLoweredDuringApproval() async throws {
+        let (service, backend) = fixtureService(.full)
+        backend.gameList = [steamGame()]
+        service.approvalTimeout = .seconds(30)
+        let approvals = approvalStream(service)
+        var nextApproval = approvals.makeAsyncIterator()
+        let task = Task {
+            await service.call("run_winetricks",
+                ["game": .string("steam:1245620"), "verbs": .array([.string("x")])], client: "test")
+        }
+        let approval = try #require(await nextApproval.next())
+        service.level = .readOnly
+        service.answer(approval.id, allow: true)
+        let reply = await task.value
+        #expect(reply["isError"] == .bool(true))
+        #expect(!backend.calls.contains("winetricks:x"))
+    }
+
+    @Test("turning agents off denies every waiting approval")
+    @MainActor
+    func denyPendingOnStop() async throws {
+        let (service, backend) = fixtureService(.full)
+        backend.gameList = [steamGame()]
+        let approvals = approvalStream(service)
+        var nextApproval = approvals.makeAsyncIterator()
+        let task = Task {
+            await service.call("run_winetricks",
+                ["game": .string("steam:1245620"), "verbs": .array([.string("x")])], client: "test")
+        }
+        _ = try #require(await nextApproval.next())
+        service.enabled = false
+        service.denyPending()
+        let reply = await task.value
+        #expect(reply["isError"] == .bool(true))
+        #expect(service.pending.isEmpty)
+        #expect(!backend.calls.contains("winetricks:x"))
+    }
+
+    @Test("launching and picking an exe wait for approval")
+    @MainActor
+    func launchesAskFirst() async throws {
+        let (service, backend) = fixtureService(.full)
+        backend.gameList = [steamGame()]
+        let approvals = approvalStream(service)
+        var nextApproval = approvals.makeAsyncIterator()
+        let task = Task {
+            await service.call("launch_game", ["game": .string("steam:1245620")], client: "test")
+        }
+        let approval = try #require(await nextApproval.next())
+        #expect(approval.tool == "launch_game")
+        #expect(approval.text.contains("Elden Ring"))
+        service.answer(approval.id, allow: true)
+        _ = await task.value
+        #expect(backend.calls.contains("launch:steam:1245620"))
+    }
+
+    @Test("choose_executable asks, then refuses an exe outside the install folder")
+    @MainActor
+    func chooseExecutable() async throws {
+        let (service, backend) = fixtureService(.full)
+        let source = backend.roots.installs.appending(path: "src")
+        let folder = backend.roots.installs.appending(path: "installed")
+        try FileManager.default.createDirectory(
+            at: folder.appending(path: "game"), withIntermediateDirectories: true)
+        try "x".write(to: folder.appending(path: "game/app.exe"),
+                      atomically: true, encoding: .utf8)
+        let job = InstallJob(
+            request: InstallRequest(setup: source, source: source, name: "G", appID: nil,
+                                    gogID: nil, expectedBytes: 1, installerBytes: 1,
+                                    installerFiles: [], manifest: nil),
+            inputs: InstallInputs(runnerID: "r", gameName: "G", mode: .guided, language: nil))
+        job.phase = .choosing
+        job.installFolder = folder
+        backend.jobList = [job]
+        let approvals = approvalStream(service)
+        var nextApproval = approvals.makeAsyncIterator()
+        let task = Task {
+            await service.call("choose_executable",
+                ["job": .string(job.id.uuidString), "exe": .string("/etc/passwd")], client: "test")
+        }
+        let approval = try #require(await nextApproval.next())
+        #expect(approval.tool == "choose_executable")
+        service.answer(approval.id, allow: true)
+        let reply = await task.value
+        #expect(reply["isError"] == .bool(true))
+        #expect(!backend.calls.contains { $0.hasPrefix("finish:") })
+    }
+
+    @Test("retry_install applies every fix then requeues once against the copy")
+    @MainActor
+    func retryRepointsSource() async throws {
+        let (service, backend) = fixtureService(.standard)
+        let source = backend.roots.installs.appending(path: "pack")
+        try FileManager.default.createDirectory(at: source, withIntermediateDirectories: true)
+        try "x".write(to: source.appending(path: "setup.exe"), atomically: true, encoding: .utf8)
+        let job = InstallJob(
+            request: InstallRequest(setup: source.appending(path: "setup.exe"), source: source,
+                                    name: "G", appID: nil, gogID: nil, expectedBytes: 1,
+                                    installerBytes: 1, installerFiles: [], manifest: nil),
+            inputs: InstallInputs(runnerID: "r", gameName: "G", mode: .guided, language: nil))
+        job.phase = .failed
+        backend.jobList = [job]
+        let reply = await service.call("retry_install",
+            ["job": .string(job.id.uuidString),
+             "fixes": .array([.string("copy_to_internal_disk"), .string("single_thread")])],
+            client: "test")
+        #expect(reply["isError"] == .bool(false))
+        #expect(job.request.source.path(percentEncoded: false)
+            .hasPrefix(backend.roots.support.appending(path: "installers").path(percentEncoded: false)))
+        #expect(job.inputs.threads == 1)
+        #expect(job.phase == .waiting)
+        // One queued attempt, not one per fix.
+        #expect(backend.calls.filter { $0.hasPrefix("retry:") }.count == 1)
+    }
+
+    @Test("an ambiguous name on a write tool is refused, not guessed")
+    @MainActor
+    func ambiguousWrite() async {
+        let (service, backend) = fixtureService(.standard)
+        backend.gameList = [
+            steamGame(appID: 1, name: "Test Game"),
+            steamGame(appID: 2, name: "Test Game Two"),
+        ]
+        let reply = await service.call("hide_game", ["game": .string("test game")], client: "test")
+        #expect(reply["isError"] == .bool(true))
+        #expect(errorText(reply)?.contains("2 games") == true)
+        #expect(!backend.calls.contains { $0.hasPrefix("hide:") })
+        // The exact id still works.
+        let ok = await service.call("hide_game", ["game": .string("steam:1")], client: "test")
+        #expect(ok["isError"] == .bool(false))
+    }
+
+    @Test("a newline in the arguments cannot forge log lines")
+    @MainActor
+    func logInjection() async throws {
+        let (service, _) = fixtureService(.standard)
+        _ = await service.call("hide_game",
+            ["game": .string("x\n{\"forged\":true}")], client: "test")
+        let file = service.backend.roots.support.appending(path: "agents/actions.jsonl")
+        let lines = try String(contentsOf: file, encoding: .utf8)
+            .components(separatedBy: "\n").filter { !$0.isEmpty }
+        #expect(lines.count == 1)
+        // The newline and quotes live inside the encoded detail, not as JSON.
+        #expect(lines[0].contains("\\n"))
     }
 
     @Test("undo restores the setup the action changed")
@@ -491,6 +732,89 @@ struct AgentScanTests {
         let outside = URL(filePath: "/private/etc/secret.conf").path(percentEncoded: false)
         #expect(AgentScan.scrub(.string(outside), under: [root],
                                 home: home) == .string("…/secret.conf"))
+    }
+
+    @Test("allowed paths with spaces survive whole; outside ones still reduce")
+    func spaces() {
+        let home = URL(filePath: "/Users/alice")
+        let root = URL(filePath: "/Users/alice/Library/Application Support/Cartouche")
+        let inside = root.appending(path: "My File.log").path(percentEncoded: false)
+        #expect(AgentScan.scrub(.string(inside), under: [root], home: home)
+            == .string("~/Library/Application Support/Cartouche/My File.log"))
+        // The old pattern stopped at the space and would have leaked
+        // "/Private/x"; the whole path must reduce to its file name.
+        let outside = URL(filePath: "/Volumes/My Disk/Private/x").path(percentEncoded: false)
+        #expect(AgentScan.scrub(.string(outside), under: [root], home: home) == .string("…/x"))
+    }
+
+    @Test("Wine-style user paths lose the account name")
+    func winePaths() {
+        let text = "C:\\users\\" + NSUserName() + "\\Desktop\\secret.txt"
+        let scrubbed = AgentScan.scrub(.string(text), under: [],
+                                       home: URL(filePath: "/Users/x"))
+        guard case .string(let out) = scrubbed else {
+            Issue.record("not a string")
+            return
+        }
+        #expect(!out.contains(NSUserName()))
+    }
+
+    @Test("contains resolves symlinks and refuses .. and dosdevices hops")
+    func containment() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appending(path: "cartouche-contains-\(UUID().uuidString)")
+        let inside = root.appending(path: "inner")
+        let outside = FileManager.default.temporaryDirectory
+            .appending(path: "cartouche-outside-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: inside, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: outside, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root)
+                try? FileManager.default.removeItem(at: outside) }
+
+        #expect(AgentScan.contains(inside, in: [root]))
+        #expect(!AgentScan.contains(root.appending(path: "../outside"), in: [root]))
+        #expect(!AgentScan.contains(root.appending(path: "dosdevices/z:"), in: [root]))
+
+        let link = root.appending(path: "link")
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: outside)
+        #expect(!AgentScan.contains(link, in: [root]))
+        #expect(!AgentScan.contains(link.appending(path: "x.txt"), in: [root]))
+    }
+
+    @Test("get_prefix_files lists drive_c and refuses escapes")
+    @MainActor
+    func prefixFiles() async throws {
+        let (service, backend) = fixtureService(.readOnly)
+        let game = steamGame()
+        backend.gameList = [game]
+        let prefix = backend.roots.support.appending(path: "pfx")
+        let driveC = prefix.appending(path: "drive_c/Program Files")
+        try FileManager.default.createDirectory(at: driveC, withIntermediateDirectories: true)
+        try "x".write(to: driveC.appending(path: "game.exe"), atomically: true, encoding: .utf8)
+        backend.prefixes[game.id] = prefix
+
+        let listed = await service.call("get_prefix_files",
+            ["game": .string(game.id)], client: "test")
+        #expect(listed["isError"] == .bool(false))
+        #expect(payload(listed)?["files"]?.array?.contains {
+            $0["name"] == .string("Program Files") } == true)
+
+        for escape in ["../", "../../", "../dosdevices/z:"] {
+            let reply = await service.call("get_prefix_files",
+                ["game": .string(game.id), "path": .string(escape)], client: "test")
+            #expect(reply["isError"] == .bool(true))
+        }
+
+        // A symlink inside the prefix that points outside it is refused.
+        let elsewhere = FileManager.default.temporaryDirectory
+            .appending(path: "cartouche-elsewhere-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: elsewhere, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: elsewhere) }
+        try FileManager.default.createSymbolicLink(
+            at: driveC.appending(path: "link"), withDestinationURL: elsewhere)
+        let viaLink = await service.call("get_prefix_files",
+            ["game": .string(game.id), "path": .string("Program Files/link")], client: "test")
+        #expect(viaLink["isError"] == .bool(true))
     }
 }
 

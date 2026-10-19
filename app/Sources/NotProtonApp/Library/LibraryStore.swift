@@ -8,9 +8,9 @@ struct GameSetupChoice: Codable, Equatable, Sendable {
     var graphics: GraphicsBackend?
     var translation: Translation?
     var metalHUD: Bool?
-    // For a Steam game that also has a macOS build (P3)
+    // For a Steam game that also has a macOS build
     var version: GameVersion?
-    // Extra variables for the game, checked by GameSetupResolver (P3)
+    // Extra variables for the game, checked by GameSetupResolver
     var environment: [String: String]?
 
     enum Translation: String, Codable, Sendable, CaseIterable {
@@ -50,8 +50,8 @@ enum GraphicsBackend: String, Codable, Sendable, CaseIterable, Identifiable {
 }
 
 struct LibraryChoices: Codable, Equatable, Sendable {
-    var favorites: [String] = []
-    var hidden: [String] = []
+    var favorites: Set<String> = []
+    var hidden: Set<String> = []
     // Game ID to a file name under covers/
     var covers: [String: String] = [:]
     var setups: [String: GameSetupChoice] = [:]
@@ -89,4 +89,8 @@ struct LibraryStore: Sendable {
     }
 
     func coverURL(_ name: String) -> URL { coverFolder.appending(path: name) }
+
+    func deleteCover(_ name: String) {
+        try? FileManager.default.removeItem(at: coverURL(name))
+    }
 }

@@ -12,7 +12,7 @@ struct CatalogTests {
             #expect(console.system.contains(" - "), "\(console.id): \(console.system) is not a libretro name")
             #expect(ConsoleCatalog.coreName(console.core) == console.coreName)
             #expect(!console.extensions.isEmpty, "\(console.id) lists no file type")
-            // A console only a standalone emulator plays lists no core (P16)
+            // A console only a standalone emulator plays lists no core
             #expect(console.cores.first == console.core || (!console.hasCore && console.cores.isEmpty),
                     "\(console.id): the recommended core comes first")
         }

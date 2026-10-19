@@ -15,13 +15,13 @@ struct ActivitySnapshotTests {
         let center = ActivityCenter(installs: InstallCenter(notifier: RecordingNotifier()), control: RecordingControl(),
                                     notifier: RecordingActivityNotifier())
         center.apply(SteamActivitySnapshot(downloads: downloads))
-        center.consoleGame = playing
+        center.consoleSource = { playing }
         return center
     }
 
     @Test("The library with God of War downloading: the cover colors in from the bottom, the slot shows the ring")
     func library() async throws {
-        let scene = try LibraryWindowTests.Scene("activity-window")
+        let scene = try await LibraryWindowTests.Scene("activity-window")
         defer { scene.fixture.remove() }
         await scene.model.load()
         let activity = center(downloads: [godOfWar])
@@ -66,7 +66,7 @@ struct ActivitySnapshotTests {
         let stuck = InstallActivity(title: "Disco Elysium", fraction: 0.42, stuck: true, waiting: 0)
         let cards: [(String, AnyView)] = [
             ("slot-playing", AnyView(PlayingCard(game: eldenRing) {})),
-            ("slot-playing-retroarch", AnyView(PlayingCard(game: RunningGame(id: "console:1", name: "Super Metroid", target: .console, fps: 60)) {})),
+            ("slot-playing-retroarch", AnyView(PlayingCard(game: RunningGame(id: "console:1", name: "Super Metroid", target: .console)) {})),
             ("slot-installing", AnyView(InstallingCard(install: install) {})),
             ("slot-installing-stuck", AnyView(InstallingCard(install: stuck) {})),
             ("slot-store", AnyView(StoreInstallCard(activity: epicDownload, stop: {}, show: {}))),
@@ -74,7 +74,6 @@ struct ActivitySnapshotTests {
             ("slot-downloading-two", AnyView(DownloadsCard(summary: DownloadSummary(downloads: [godOfWar, apex]), toggle: {}, show: {}))),
             ("slot-paused", AnyView(DownloadsCard(summary: DownloadSummary(downloads: [paused]), toggle: {}, show: {}))),
             ("slot-failed", AnyView(DownloadsCard(summary: DownloadSummary(downloads: [failed]), toggle: {}, show: {}))),
-            ("slot-update", AnyView(UpdateCard(update: UpdateActivity(id: "dxmt", title: "DXMT 0.80", kind: "Graphics")))),
             ("panel-download-block", AnyView(DownloadBlock(download: godOfWar, center: center(downloads: [godOfWar])))),
             ("panel-download-block-paused", AnyView(DownloadBlock(download: paused, center: center(downloads: [paused])))),
             ("panel-download-block-failed", AnyView(DownloadBlock(download: failed, center: center(downloads: [failed])))),
@@ -87,7 +86,7 @@ struct ActivitySnapshotTests {
         }
 
         // The sidebar with the slot at the bottom, and without anything going on
-        let scene = try LibraryWindowTests.Scene("activity-sidebar")
+        let scene = try await LibraryWindowTests.Scene("activity-sidebar")
         defer { scene.fixture.remove() }
         await scene.model.load()
         for (name, activity) in [("sidebar-activity-playing", center(downloads: [godOfWar], playing: eldenRing)),
@@ -101,7 +100,7 @@ struct ActivitySnapshotTests {
 
     @Test("Showing a download from the slot selects the game and opens its panel")
     func showFromSlot() async throws {
-        let scene = try LibraryWindowTests.Scene("activity-show")
+        let scene = try await LibraryWindowTests.Scene("activity-show")
         defer { scene.fixture.remove() }
         await scene.model.load()
         scene.model.selection = .favorites

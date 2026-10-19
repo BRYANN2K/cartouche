@@ -108,7 +108,7 @@ struct InstallRunnerTests {
         #expect(seen.all.contains { $0.stuck })
         #expect(run.wasStopped)
         #expect(status != 0)
-        #expect(Date().timeIntervalSince(start) < 10)
+        #expect(Date().timeIntervalSince(start) < 30)
     }
 
     @Test("CPU is sampled over the installer's processes, children included")

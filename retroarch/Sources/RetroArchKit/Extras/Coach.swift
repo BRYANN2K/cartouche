@@ -290,7 +290,10 @@ public actor CoachRelay {
             guard bytes.count == term.size.bytes else { throw RetroArchSessionError.unexpectedReply("\(bytes.count) bytes") }
             total += Double(term.value(bytes)) * term.multiplier
         }
-        let value = Int(total.rounded(.down))
+        // A malformed multiplier could make total NaN or past Int's range
+        let value = total.isFinite
+            ? Int(min(max(total.rounded(.down), Double(Int.min)), Double(Int.max)))
+            : 0
         return (value, named.text(value))
     }
 

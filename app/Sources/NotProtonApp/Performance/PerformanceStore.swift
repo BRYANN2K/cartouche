@@ -1,4 +1,4 @@
-// The local store of play sessions (P8): the run script leaves one folder per launch in
+// The local store of play sessions: the run script leaves one folder per launch in
 // performance/incoming, the frame counter writes its samples there, and this reads each
 // finished folder into an SQLite file beside it, then deletes the folder.
 
@@ -174,12 +174,26 @@ struct PerformanceStore: Sendable {
             case .invalid:
                 try? files.removeItem(at: folder)
             case .ready(let read):
-                if let session = try insert(read, name: folder.lastPathComponent, into: db) { added.append(session) }
-                // Read once: the row exists now, even when this folder was read before a crash
-                try? files.removeItem(at: folder)
+                do {
+                    if let session = try insert(read, name: folder.lastPathComponent, into: db) { added.append(session) }
+                    // Read once: the row exists now, even when this folder was read before a crash
+                    try? files.removeItem(at: folder)
+                } catch {
+                    // One bad folder cannot stop the rest; it is kept in incoming/failed
+                    AppLog.note("session folder \(folder.lastPathComponent) not ingested: \(error.localizedDescription)")
+                    let failed = incoming.appending(path: "failed")
+                    try? files.createDirectory(at: failed, withIntermediateDirectories: true)
+                    try? files.moveItem(at: folder, to: failed.appending(path: folder.lastPathComponent))
+                }
             }
         }
         return added
+    }
+
+    // Anything waiting in incoming/, cheap enough to ask on every panel open
+    var hasIncomingSessions: Bool {
+        ((try? FileManager.default.contentsOfDirectory(atPath: incoming.path(percentEncoded: false))) ?? [])
+            .contains { !$0.hasPrefix(".") && $0 != "failed" }
     }
 
     private func insert(_ read: PerformanceIncoming.Folder, name: String, into db: Database) throws -> StoredSession? {

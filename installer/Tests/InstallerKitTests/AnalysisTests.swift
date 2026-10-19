@@ -84,7 +84,7 @@ struct AnalysisTests {
     func checksumProgress() async throws {
         let dir = try tempFolder(["data-01.bin": "a", "data-02.bin": "b", "sums.md5": "\(sumA) *data-01.bin\n\(sumB) *data-02.bin\n"])
         let total = Counter()
-        _ = await Checksums.verify(try Checksums.parse(dir.appending(path: "sums.md5"))) { total.add($0) }
+        _ = try await Checksums.verify(try Checksums.parse(dir.appending(path: "sums.md5"))) { total.add($0) }
         #expect(total.value == 2)
     }
 }

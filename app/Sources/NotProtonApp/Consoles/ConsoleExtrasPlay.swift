@@ -1,7 +1,3 @@
-// P14's extras while a console game runs: Play Together, what RetroArch
-// says of hardcore and of the game RetroAchievements recognized, Translate
-// Now, and the relay Coach mode reads through.
-
 import Foundation
 import RetroArchKit
 
@@ -60,9 +56,10 @@ extension ConsoleCenter {
         for room in found {
             var match: NetplayRooms.Entry?
             for game in games where game.exists {
-                guard let console = console(of: game), let core = room.core(for: console),
-                      room.matches(game, console: console) || crcMatch(room, game, console, &checksums)
-                else { continue }
+                guard let console = console(of: game), let core = room.core(for: console) else { continue }
+                var matches = room.matches(game, console: console)
+                if !matches { matches = await crcMatch(room, game, console, &checksums) }
+                guard matches else { continue }
                 match = NetplayRooms.Entry(room: room, gameID: game.id, gameName: game.name, core: core)
                 break
             }
@@ -72,9 +69,14 @@ extension ConsoleCenter {
         return result
     }
 
-    private func crcMatch(_ room: NetplayRoom, _ game: ConsoleGame, _ console: Console, _ cache: inout [String: UInt32]) -> Bool {
+    private func crcMatch(_ room: NetplayRoom, _ game: ConsoleGame, _ console: Console, _ cache: inout [String: UInt32]) async -> Bool {
         guard let crc = room.gameCRC, crc != 0, !console.isDisc else { return false }
-        if cache[game.id] == nil { cache[game.id] = (try? CRC32.checksum(of: game.fileURL)) ?? 0 }
+        if let crc = game.crc { cache[game.id] = crc }
+        if cache[game.id] == nil {
+            let file = game.fileURL
+            // A full file read: off the main thread, once per game
+            cache[game.id] = await Task.detached { (try? CRC32.checksum(of: file)) ?? 0 }.value
+        }
         return room.matches(game, console: console, crc: cache[game.id])
     }
 

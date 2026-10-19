@@ -1,6 +1,6 @@
 import SwiftUI
 
-// Settings > Consoles, the part P14 adds: the RetroAchievements account,
+// Settings > Consoles: the RetroAchievements account,
 // saves in iCloud Drive, the translation service and the netplay name
 struct ConsoleExtrasSections: View {
 
@@ -41,7 +41,8 @@ struct ConsoleExtrasSections: View {
         }
 
         Section {
-            Toggle(isOn: Binding(get: { extras.cloudSaves }, set: { extras.setCloudSaves($0) })) {
+            Toggle(isOn: Binding(get: { extras.cloudSaves },
+                                 set: { on in Task { await extras.setCloudSaves(on) } })) {
                 Text("Save states to iCloud Drive", bundle: .module)
                 Text("Saves and states follow you to your other Macs, in iCloud Drive's Cartouche folder.", bundle: .module)
             }

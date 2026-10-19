@@ -14,8 +14,6 @@ final class RunnersViewUITests {
     let runners: URL
     let defaultsName: String
     let defaults: UserDefaults
-    // Fixture suites delete their folders when released
-    var kept: [AnyObject] = []
 
     init() throws {
         work = try scratchDirectory("runners-view")
@@ -41,19 +39,20 @@ final class RunnersViewUITests {
     }
 
     func fixture() throws -> RunnerManifest.Build {
-        let installTests = try WineRunnerInstallerTests()
-        kept.append(installTests)
-        return try installTests.build(for: installTests.archive())
+        let archive = try WineRunnerInstallerTests.archive(id: "wine-crossover-26.3.0-1", in: work)
+        return try WineRunnerInstallerTests.build(id: "wine-crossover-26.3.0-1", for: archive)
     }
 
     // A scratch app folder holding a fixture toolkit of the given version
-    func toolkitApp(_ version: String = "3.0") throws -> (PortingToolkitTests, URL) {
-        let fixtures = try PortingToolkitTests()
-        kept.append(fixtures)
-        let apps = fixtures.work.appending(path: "Applications")
-        try fixtures.toolkit(
+    func toolkitApp(_ version: String = "3.0") throws -> URL {
+        let apps = work.appending(path: "Applications-\(UUID().uuidString)")
+        try PortingToolkitTests.toolkit(
             at: apps.appending(path: "Game Porting Toolkit.app/Contents/Resources/wine/lib"), version: version)
-        return (fixtures, apps)
+        return apps
+    }
+
+    func search(applications apps: URL) -> PortingToolkitSource.Search {
+        PortingToolkitSource.Search(volumes: work.appending(path: "Volumes"), applications: [apps])
     }
 
     func host(_ model: RunnersModel) -> UIHost {
@@ -64,8 +63,8 @@ final class RunnersViewUITests {
     @Test("Each row shows the title, detail, status and action the model computes")
     func rows() async throws {
         let build = try fixture()
-        let (fixtures, apps) = try toolkitApp()
-        let search = fixtures.search(applications: [apps])
+        let apps = try toolkitApp()
+        let search = self.search(applications: apps)
         let model = model(builds: [build], toolkits: { PortingToolkitSource.discover(search) })
         PortingToolkitSource.markAsked(version: "3.0", defaults)
         await model.refresh()
@@ -82,8 +81,8 @@ final class RunnersViewUITests {
 
     @Test("The question sheet names the toolkit and the size a copy needs")
     func questionSheet() async throws {
-        let (fixtures, apps) = try toolkitApp()
-        let search = fixtures.search(applications: [apps])
+        let apps = try toolkitApp()
+        let search = self.search(applications: apps)
         let model = model(builds: [], toolkits: { PortingToolkitSource.discover(search) })
         await model.refresh()
         let question = try #require(model.toolkitQuestion)
@@ -101,8 +100,8 @@ final class RunnersViewUITests {
 
     @Test("Copy answers the sheet and the row turns Ready")
     func questionCopy() async throws {
-        let (fixtures, apps) = try toolkitApp()
-        let search = fixtures.search(applications: [apps])
+        let apps = try toolkitApp()
+        let search = self.search(applications: apps)
         let model = model(builds: [], toolkits: { PortingToolkitSource.discover(search) })
         await model.refresh()
         // The section's .sheet(item:) presents the question the model asked
@@ -120,8 +119,8 @@ final class RunnersViewUITests {
 
     @Test("Use in Place answers the sheet and the row turns Ready")
     func questionInPlace() async throws {
-        let (fixtures, apps) = try toolkitApp()
-        let search = fixtures.search(applications: [apps])
+        let apps = try toolkitApp()
+        let search = self.search(applications: apps)
         let model = model(builds: [], toolkits: { PortingToolkitSource.discover(search) })
         await model.refresh()
         #expect(model.toolkitQuestion != nil)
@@ -139,8 +138,8 @@ final class RunnersViewUITests {
 
     @Test("A gone in-place folder shows Damaged with Choose… and Repair")
     func missingFolder() async throws {
-        let (fixtures, apps) = try toolkitApp()
-        let search = fixtures.search(applications: [apps])
+        let apps = try toolkitApp()
+        let search = self.search(applications: apps)
         let model = model(builds: [], toolkits: { PortingToolkitSource.discover(search) })
         await model.refresh()
         await model.answerToolkit(.inPlace)
@@ -162,8 +161,8 @@ final class RunnersViewUITests {
 
     @Test("Choose… copies a picked folder and the damaged row turns Ready")
     func missingFolderRepair() async throws {
-        let (fixtures, apps) = try toolkitApp()
-        let search = fixtures.search(applications: [apps])
+        let apps = try toolkitApp()
+        let search = self.search(applications: apps)
         let model = model(builds: [], toolkits: { PortingToolkitSource.discover(search) })
         await model.refresh()
         await model.answerToolkit(.inPlace)
@@ -171,7 +170,7 @@ final class RunnersViewUITests {
         await model.refresh()
         #expect(model.rows.first { $0.kind == .portingToolkit }?.status == "Damaged")
 
-        let (_, otherApps) = try toolkitApp()
+        let otherApps = try toolkitApp()
         model.chooseToolkitFolder = { otherApps.appending(path: "Game Porting Toolkit.app") }
         await model.copyPickedToolkit()
         #expect(model.rows.first { $0.kind == .portingToolkit }?.status == "Ready")

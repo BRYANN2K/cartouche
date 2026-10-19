@@ -43,12 +43,17 @@ enum WineRunnerSource {
         return listed
     }
 
+    // Receipts name the build; the folder may be the id or the older wine-<id> shape
     static func installedIDs(in runners: URL) -> [String] {
         let entries = (try? FileManager.default.contentsOfDirectory(at: runners, includingPropertiesForKeys: nil)) ?? []
-        return entries.map(\.lastPathComponent)
-            .filter { $0.hasPrefix("wine-") }
-            .map { String($0.dropFirst("wine-".count)) }
-            .filter { WineRunnerInstaller.isInstalled($0, runners: runners) }
-            .sorted()
+        var ids: Set<String> = []
+        for folder in entries {
+            let file = folder.appending(path: WineRunnerInstaller.receiptName)
+            guard let receipt = (try? Data(contentsOf: file))
+                .flatMap({ try? JSONDecoder().decode(WineRunnerInstaller.Receipt.self, from: $0) })
+            else { continue }
+            ids.insert(receipt.id)
+        }
+        return ids.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
     }
 }

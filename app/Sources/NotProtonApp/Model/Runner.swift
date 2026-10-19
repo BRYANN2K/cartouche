@@ -20,7 +20,6 @@ struct Runner: Sendable, Equatable, Identifiable {
     }
 
     enum State: Sendable, Equatable {
-        // Found, not set up yet.
         case available
         // Being copied or patched. Keeps the state to fall back to if that fails.
         indirect case installing(from: State)

@@ -80,6 +80,8 @@ struct KeyboardPlayTests {
 
         // The user switches to another app and keeps playing with the controller
         focus.front = "com.apple.Safari"
+        bridge.tick(Self.game)
+        #expect(poster.posted.last == .key(13, down: false), "the held key goes up on the way out")
         let before = poster.posted.count
         for step in 0..<30 {
             pad.state = PadState(pressed: step % 2 == 0 ? [.south, .rightTrigger] : [.east],
@@ -93,6 +95,42 @@ struct KeyboardPlayTests {
         pad.state = PadState(pressed: [.south], leftStick: CGPoint(x: 0, y: 1))
         bridge.tick(Self.game)
         #expect(Array(poster.posted.dropFirst(before)) == [.key(13, down: true), .key(49, down: true)])
+    }
+
+    @Test("Losing focus releases the held keys and mouse buttons; so does reset")
+    func releasesHeldInput() {
+        let pad = FakePad(), poster = RecordingInputPoster(), focus = FakeFocus()
+        let bridge = KeyboardPlayBridge(reader: pad, poster: poster, focus: focus)
+        focus.front = Self.game.id
+        pad.state = PadState(pressed: [.south, .rightTrigger], leftStick: CGPoint(x: 0, y: 1))
+        bridge.tick(Self.game)
+        #expect(poster.posted.contains(.key(13, down: true)))
+
+        focus.front = nil
+        bridge.tick(Self.game)
+        #expect(poster.posted.contains(.key(13, down: false)))
+        #expect(poster.posted.contains(.key(49, down: false)))
+        #expect(poster.posted.contains(.mouseButton(.left, down: false)))
+
+        focus.front = Self.game.id
+        bridge.tick(Self.game)
+        let before = poster.posted.count
+        bridge.reset()
+        let released = poster.posted.dropFirst(before)
+        #expect(released.contains(.key(13, down: false)))
+        #expect(released.contains(.key(49, down: false)))
+        #expect(released.contains(.mouseButton(.left, down: false)))
+    }
+
+    @Test("A keyDown rewritten before a focus change still rewrites its keyUp")
+    func rewrittenKeyUpFollows() {
+        let shared = LiveKeyTap.Shared()
+        shared.table = [49: 14]
+        #expect(shared.rewrite(49, up: false) == 14)
+        shared.table = [:]
+        #expect(shared.rewrite(49, up: true) == 14)
+        #expect(shared.rewrite(49, up: true) == nil)
+        #expect(shared.rewrite(36, up: true) == nil)
     }
 
     @Test("Another game in front counts as away")
@@ -123,6 +161,8 @@ struct KeyboardPlayTests {
         try #require(cc.terminationStatus == 0)
         let sleeper = Process()
         sleeper.executableURL = binary
+        // An empty argument still counts in argv; it must not shift the environment
+        sleeper.arguments = ["", "quiet"]
         sleeper.environment = ["WINEPREFIX": prefix, "SteamAppId": "1145360", "OTHER": "a=b"]
         try sleeper.run()
         defer { sleeper.terminate() }
@@ -140,24 +180,20 @@ struct KeyboardPlayTests {
     @Test("Remapped keys change only while the game is in front; modifiers are never remapped")
     func keyRemap() {
         let tap = FakeTap(), focus = FakeFocus()
-        let remapper = KeyRemapper(tap: tap, focus: focus)
+        let remapper = KeyRemapper(tap: tap)
         let remaps = [KeyRemap(from: .space, to: .e), KeyRemap(from: .q, to: .q), KeyRemap(from: .command, to: .control)]
         focus.front = Self.game.id
         #expect(remapper.tick(Self.game, remaps: remaps))
         #expect(tap.table == [49: 14])
-        focus.front = nil
-        remapper.tick(Self.game, remaps: remaps)
-        #expect(tap.table.isEmpty)
-        #expect(tap.starts == 1)
         remapper.stop()
         #expect(tap.stops == 1)
     }
 
     @Test("A tap macOS refuses is reported once and not retried at every poll")
     func refusedTap() {
-        let tap = FakeTap(), focus = FakeFocus()
+        let tap = FakeTap()
         tap.refuses = true
-        let remapper = KeyRemapper(tap: tap, focus: focus)
+        let remapper = KeyRemapper(tap: tap)
         #expect(!remapper.tick(Self.game, remaps: [KeyRemap(from: .a, to: .b)]))
         #expect(!remapper.tick(Self.game, remaps: [KeyRemap(from: .a, to: .b)]))
         #expect(tap.starts == 1)

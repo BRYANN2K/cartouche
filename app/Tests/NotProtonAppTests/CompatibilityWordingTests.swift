@@ -92,13 +92,4 @@ struct CompatibilityWordingTests {
         #expect(panel.sourcesLine
             == "Sources: MacGamingDB, AppleGamingWiki (CC BY-NC-SA 3.0), ProtonDB (ODbL), and AreWeAntiCheatYet (MIT)")
     }
-
-    @Test("The licenses are listed with their attribution")
-    func licenses() throws {
-        let licenses = CompatibilityCredits.licenses(try CompatFixture.data())
-        #expect(licenses.map(\.source) == ["MacGamingDB", "AppleGamingWiki", "ProtonDB", "AreWeAntiCheatYet"])
-        #expect(licenses.map(\.license) == ["No data license published", "CC BY-NC-SA 3.0", "ODbL", "MIT"])
-        #expect(licenses.allSatisfy { $0.url.hasPrefix("https://") && !$0.attribution.isEmpty })
-        #expect(licenses[3].attribution.contains("Copyright (c) 2021 Starz0r, Curve"))
-    }
 }

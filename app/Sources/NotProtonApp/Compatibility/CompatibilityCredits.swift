@@ -29,10 +29,4 @@ enum CompatibilityCredits {
     static func sourcesLine(_ data: CompatData?) -> String {
         String(localized: "Sources: \(ListFormatter.localizedString(byJoining: credits(data)))")
     }
-
-    static func licenses(_ data: CompatData?) -> [License] {
-        [macGamingDB] + (data?.sources.all.map {
-            License(source: $0.name, license: $0.license, url: $0.licenseURL, attribution: $0.attribution)
-        } ?? [])
-    }
 }

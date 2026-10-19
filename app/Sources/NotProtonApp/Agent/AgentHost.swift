@@ -4,9 +4,9 @@ import Foundation
 import RetroArchKit
 import UserNotifications
 
-// The thing Settings > Agents binds to later: is the agent server on, which
-// level is chosen, which approvals are waiting, and the action log. Nothing
-// here draws UI; views read these fields and call answer/undo.
+// The thing Settings > Agents binds to: is the agent server on, which level
+// is chosen, which approvals are waiting, and the action log. Nothing here
+// draws UI; views read these fields and call answer/undo.
 @MainActor
 @Observable
 final class AgentControlModel {
@@ -43,10 +43,9 @@ final class AgentControlModel {
     // Settings > Agents so the user can paste it into their client.
     let token: String
 
-    // Transport health for the future UI: "running", "off", or an error.
+    // Transport health for the footer: "running", "off", or an error.
     private(set) var socketState = "off"
     private(set) var httpState = "off"
-    var serverRunning: Bool { socketState == "running" || httpState == "running" }
 
     // Passthroughs so a view binds to one object.
     var level: AgentLevel {
@@ -78,8 +77,9 @@ final class AgentControlModel {
         self.defaults = defaults
         socketURL = socket
         server = MCPServer(handler: AgentHandling(service: service))
-        let port = UInt16(defaults.integer(forKey: Self.portKey))
-        httpPort = port == 0 ? 3398 : port
+        // A stored value outside UInt16 (corrupt or edited defaults) falls
+        // back to the default port instead of trapping.
+        httpPort = UInt16(exactly: defaults.integer(forKey: Self.portKey)) ?? 3398
         if let saved = defaults.string(forKey: Self.tokenKey), saved.count >= 16 {
             token = saved
         } else {
@@ -102,18 +102,15 @@ final class AgentControlModel {
         }
     }
 
-    // Every transport ends at the same pipe: JSON-RPC bytes in, reply bytes
-    // out; notifications answer empty.
+    // Every transport ends at the same entry point: JSON-RPC bytes in, reply
+    // bytes out; notifications answer empty.
     private func pipe() -> @Sendable (Data) async -> Data {
         let server = server
-        return { data in
-            guard let message = try? JSONDecoder().decode(JSONValue.self, from: data),
-                  let reply = await server.handle(message) else { return Data() }
-            return (try? JSONEncoder().encode(reply)) ?? Data()
-        }
+        return { data in await server.handle(data: data) }
     }
 
     func start() {
+        service.enabled = true
         if socket == nil {
             // Only the bundled helper may connect: same user, and its
             // executable is this bundle's Contents/Helpers/cartouche-mcp.
@@ -131,10 +128,13 @@ final class AgentControlModel {
         }
         if httpEnabled, http == nil {
             let server = MCPHTTPServer(token: token, handler: pipe())
+            // Ready and failure arrive asynchronously on the listener queue.
+            server.onState = { [weak self] state in
+                Task { @MainActor in self?.httpState = state }
+            }
             do {
                 try server.start(port: httpPort)
                 http = server
-                httpState = "running"
             } catch {
                 httpState = error.localizedDescription
             }
@@ -142,6 +142,8 @@ final class AgentControlModel {
     }
 
     func stop() {
+        service.enabled = false
+        service.denyPending()
         socket?.stop(); socket = nil
         http?.stop(); http = nil
         socketState = "off"
@@ -187,12 +189,6 @@ final class AgentControlModel {
     func undo(_ action: AgentAction) async {
         try? await service.undo(action.id)
     }
-
-    // The named extension point for P15 controller tools: that phase registers
-    // its AgentTools through here; nothing else about the service changes.
-    func register(provider: AgentToolProvider) {
-        service.register(provider.tools())
-    }
 }
 
 // What CartoucheMCP's MCPServer needs: tool metadata, dispatch, resources.
@@ -237,7 +233,18 @@ struct AgentHandling: @unchecked Sendable, MCPHandling {
 }
 
 // One name both initialize() and clientName can see without the main actor.
-final class ClientBox: @unchecked Sendable { var name = "agent" }
+// The lock makes the off-actor read safe; with more than one client the name
+// is still only "the last one that said hello" — levels and approvals are the
+// real boundary, not the socket's peer check (any same-user process could
+// just run the bundled helper).
+final class ClientBox: @unchecked Sendable {
+    private var storage = "agent"
+    private let lock = NSLock()
+    var name: String {
+        get { lock.withLock { storage } }
+        set { lock.withLock { storage = newValue } }
+    }
+}
 
 // The read-only views an MCP client can subscribe to beyond tools: server
 // status, the pending approvals, and the action log.

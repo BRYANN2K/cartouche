@@ -1,6 +1,5 @@
-// Where each onboarding choice lives afterwards, in the Settings window:
-// the whole setup again (General), game folders (Library), the free runner
-// (Compatibility). Consoles and privacy have their own panes already.
+// Where onboarding choices live afterwards, in the Settings window: the whole
+// setup again (General), game folders (Library).
 
 import SwiftUI
 
@@ -27,38 +26,5 @@ struct LibraryFoldersSection: View {
 
     var body: some View {
         if let folders { GameFoldersSection(folders: folders) }
-    }
-}
-
-struct FreeRunnerSection: View {
-    @Environment(OnboardingModel.self) private var onboarding: OnboardingModel?
-
-    var body: some View {
-        if let onboarding {
-            Section {
-                if let build = onboarding.runner {
-                    LabeledContent {
-                        switch onboarding.runnerPhase {
-                        case .installed: Text("Installed").foregroundStyle(.secondary)
-                        case .downloading: ProgressView().controlSize(.small)
-                        case .failed, .notInstalled, .none:
-                            Button("Download") { Task { await onboarding.downloadRunner() } }
-                        }
-                    } label: {
-                        Text(verbatim: build.title)
-                        if case .failed(let message) = onboarding.runnerPhase {
-                            Text(message).foregroundStyle(.red)
-                        } else {
-                            Text("Free runner for Windows games").foregroundStyle(.secondary)
-                        }
-                    }
-                } else {
-                    Text("No free runner is offered for this version of Cartouche.").foregroundStyle(.secondary)
-                }
-            } header: {
-                Text("Free Runner")
-            }
-            .onAppear { onboarding.prepareRunner() }
-        }
     }
 }

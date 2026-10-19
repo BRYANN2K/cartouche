@@ -1,7 +1,3 @@
-// Console games in the library: the consoles the user added, their games, and
-// what the sidebar, the sheets and the panel ask about them. RetroArchKit does
-// the work; this model keeps what the window shows.
-
 import Foundation
 import Observation
 import RetroArchKit
@@ -12,12 +8,10 @@ final class ConsoleCenter {
 
     let paths: RetroArchPaths
     let settings: ConsolesSettingsModel
-    // The standalone emulators found and the one each console plays in (P16)
     let emulators: EmulatorShelf
 
     private(set) var added: [Console] = []
     private(set) var games: [ConsoleGame] = []
-    // Consoles whose core is being downloaded
     private(set) var downloading: Set<String> = []
     // Game files in the watched folders for consoles not added yet, by console
     var found: [String: Int] = [:]
@@ -25,15 +19,12 @@ final class ConsoleCenter {
     // Whether games found in the folders join on their own, and how many each folder holds
     var folderChoices = WatchedFolders()
     var folderCounts: [String: Int] = [:]
-    // The game folders of Settings > Library and onboarding (P18)
     var folderList: GameFolders?
-    // The game RetroArch is playing, for the panel and the activity slot
     var playing: Playing?
     // The picture shown for the CRT power-on while a game starts
     var powerOn: PowerOn?
     // Bumped when RetroArch may have written states, so Continue From reads them again
     var statesChanged = 0
-    // Achievements, translation, iCloud Drive, the coach and netplay names (P14)
     var extras: ConsoleExtras
     // What RetroArch said of the session: hardcore on, the netplay seat
     var session = ExtrasSession()
@@ -50,6 +41,9 @@ final class ConsoleCenter {
     @ObservationIgnored var scanAgain = false
     // What each file in the folders turned out to be, by path, size and date
     @ObservationIgnored var seen: [String: (stamp: String, found: Identification)] = [:]
+    // Panel facts computed off the main thread, kept per game and stamped
+    @ObservationIgnored var statesCache: [String: (stamp: Int, states: [SaveState])] = [:]
+    @ObservationIgnored var biosCache: [String: (stamp: String, status: BIOSStatus)] = [:]
     // Plays the games; the RetroArch Settings > Consoles chose, or a stand-in in tests
     @ObservationIgnored var makeRunner: @MainActor (ConsolesSettingsModel) -> (any ConsoleRunning)? = { settings in
         settings.launcher.map { ConsolePlayer(launcher: $0) }
@@ -69,7 +63,7 @@ final class ConsoleCenter {
     @ObservationIgnored var heartbeatEvery: Duration = .seconds(60)
     @ObservationIgnored var heartbeat: Task<Void, Never>?
 
-    // Asks for Local Network before netplay on the local network (P17's flow)
+    // Asks for Local Network before netplay on the local network
     @ObservationIgnored var netplayFlow: PermissionFlow?
     @ObservationIgnored var watchExtras: Task<Void, Never>?
     // Cartouche's relay for Coach mode, while a coached game runs
@@ -88,6 +82,7 @@ final class ConsoleCenter {
         self.database = database
         importFlow = ConsoleImport(identifier: Identifier(database: database))
         self.library = library
+        self.extras.isPlaying = { [weak self] in MainActor.assumeIsolated { self?.playing != nil } }
     }
 
     var identifier: Identifier { Identifier(database: database) }
@@ -121,12 +116,19 @@ final class ConsoleCenter {
         }
         await settings.refresh()
         // Games the folders already hold for these consoles come in now
-        if !new.isEmpty, !folderPaths.isEmpty { await scanFolders() }
+        if !new.isEmpty, !folderPaths.isEmpty {
+            folderChanged()
+            await scan?.value
+        }
     }
 
     // Deletes the core no other added console uses. Game files are never touched.
     func remove(_ id: String) async {
         problem = nil
+        if let playing, game(playing.gameID)?.console == id {
+            problem = String(localized: "\(ConsoleCatalog.console(id)?.name ?? id) is playing. Quit the game first.")
+            return
+        }
         do {
             try await shelf.remove(id)
         } catch {
@@ -160,7 +162,6 @@ final class ConsoleCenter {
 
     // MARK: Library
 
-    // The library window's view of the console games
     private func publish() {
         guard let library else { return }
         library.consoles = added.map(\.id)
@@ -177,7 +178,6 @@ final class ConsoleCenter {
 
     // MARK: Menus
 
-    // What right-clicking a console in the sidebar offers
     func menu(for id: String) -> [ConsoleMenuItem] {
         guard let console = ConsoleCatalog.console(id) else { return [] }
         let count = games(of: id).count

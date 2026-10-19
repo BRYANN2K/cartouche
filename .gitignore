@@ -23,3 +23,4 @@ DerivedData/
 
 app/Sources/NotProtonApp/Resources/payload/
 __pycache__/
+.deps/

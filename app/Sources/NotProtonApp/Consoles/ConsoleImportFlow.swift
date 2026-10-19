@@ -1,7 +1,3 @@
-// The Console Games side of the + sheet: drop files or a folder, see each one
-// identified against the libretro database, pick a console for the ones it does
-// not know, add them.
-
 import AppKit
 import Observation
 import RetroArchKit
@@ -35,20 +31,22 @@ final class ConsoleImport {
     // Lists the files at once, then names them one by one
     func start(_ urls: [URL]) {
         work?.cancel()
-        let files = Identifier.files(in: urls)
-        rows = files.map { Row(file: $0) }
-        chosen = [:]
+        rows = []
         step = .identify
         checking = true
         let identifier = identifier
         work = Task { [weak self] in
+            let files = await Task.detached { Identifier.files(in: urls) }.value
+            guard let self, !Task.isCancelled else { return }
+            self.rows = files.map { Row(file: $0) }
+            self.chosen = [:]
             for file in files {
                 if Task.isCancelled { return }
                 let found = await identifier.identify(file)
-                guard let self, !Task.isCancelled else { return }
-                if let i = self.rows.firstIndex(where: { $0.file == file }) { self.rows[i].found = found }
+                guard !Task.isCancelled else { return }
+                if let i = rows.firstIndex(where: { $0.file == file }) { rows[i].found = found }
             }
-            self?.checking = false
+            checking = false
         }
     }
 
@@ -135,7 +133,7 @@ struct ConsoleImportFlow: View {
         .onDisappear { flow.reset() }
     }
 
-    // Windows Game is the install sheet (P6): this sheet closes and that one opens
+    // Windows Game is the install sheet: this sheet closes and that one opens
     private var kindPicker: some View {
         Picker("Kind", selection: Binding(get: { kind }, set: { new in
             guard new == .windows, let library = center.library else {

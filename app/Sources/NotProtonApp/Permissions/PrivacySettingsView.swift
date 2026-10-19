@@ -1,5 +1,4 @@
 // Settings > Privacy: every permission, its state, and the way to change it.
-// The Settings window that hosts it comes with P5.
 
 import SwiftUI
 
@@ -30,7 +29,7 @@ struct PrivacyRow: Equatable, Identifiable {
 struct PrivacySettingsView: View {
 
     let center: PermissionCenter
-    @Bindable var choices: PrivacyChoices = PrivacyChoices()
+    @Bindable var choices: PrivacyChoices
 
     var body: some View {
         ScrollView {
@@ -39,7 +38,6 @@ struct PrivacySettingsView: View {
                 Text("When you open a game, Cartouche asks MacGamingDB for its Mac reports. MacGamingDB sees which game, but no account or Mac identifier.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                // Frame rates stay on this Mac in v0.1.0: sharing (P8 payload) has no UI until v0.1.1
                 Divider()
                 Text("Cartouche asks for a permission the first time you use the feature that needs it.")
                     .foregroundStyle(.secondary)

@@ -13,13 +13,14 @@ struct ConsolePanel: View {
 
     @State private var showingMore = false
     @State private var showingJoin = false
+    @State private var details: (id: String, states: [SaveState], bios: BIOSStatus?)?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(ControlsCenter.self) private var controls: ControlsCenter?
 
     private var content: ConsolePanelContent? {
-        guard let system = center.console(of: console) else { return nil }
-        var content = ConsolePanelContent(game: console, console: system, states: center.states(for: console),
-                                          bios: center.bios(for: console),
+        guard let system = center.console(of: console), let details, details.id == console.id else { return nil }
+        var content = ConsolePanelContent(game: console, console: system, states: details.states,
+                                          bios: details.bios,
                                           playing: center.isPlaying(console.id) ? center.playing : nil,
                                           route: center.route(for: system))
         content.signedIn = center.extras.username != nil
@@ -28,7 +29,9 @@ struct ConsolePanel: View {
     }
 
     var body: some View {
-        if let content {
+        // A ZStack, not a Group: the loading task below must run while there is no content yet
+        ZStack {
+            if let content {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     CoverView(game: game, kind: .hero)
@@ -60,6 +63,13 @@ struct ConsolePanel: View {
             }
             .netplayExplanations(center.netplayFlow)
             .task(id: console.id) { await center.extras.refresh(console) }
+            }
+        }
+        // States and BIOS are read off the main thread, once per change
+        .task(id: "\(console.id)#\(center.statesChanged)") {
+            async let states = center.states(for: console)
+            async let bios = center.bios(for: console)
+            details = await (console.id, states, bios)
         }
     }
 

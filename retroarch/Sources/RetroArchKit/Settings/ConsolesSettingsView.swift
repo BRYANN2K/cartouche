@@ -10,9 +10,9 @@ public enum RetroArchSource {
 public struct ConsolesSettingsView: View {
 
     @Bindable var model: ConsolesSettingsModel
-    // Achievements, iCloud Drive, translation and netplay name (P14)
+    // Achievements, iCloud Drive, translation and netplay name
     var extras: ConsoleExtras?
-    // The standalone emulators found and each console's choice (P16)
+    // The standalone emulators found and each console's choice
     var emulators: EmulatorShelf?
     // Picks a RetroArch.app; the app may hand in its own panel
     var chooseApp: @MainActor () -> URL?

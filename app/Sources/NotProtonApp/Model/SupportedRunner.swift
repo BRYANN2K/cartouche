@@ -111,35 +111,20 @@ enum SupportedRunners {
 
     // First entry is what windows-only games get when Steam has no mapping.
     static let toolPreference = [
-        legacyToolName, "cartouche-proton-fex", "cartouche-proton-fex-rosetta", "cartouche-proton-preview",
+        "cartouche-proton-fex", "cartouche-proton-fex-rosetta", "cartouche-proton-preview",
         "cartouche-proton-fex-41069", "cartouche-proton-fex-rosetta-41069", "cartouche-proton-preview-41069",
         "cartouche-proton-fex-41073", "cartouche-proton-fex-rosetta-41073", "cartouche-proton-preview-41073", "cartouche-proton-26.3",
     ]
 
-    static let legacyToolName = SupportPaths.toolPrefix
-
-    // The only builds that can own the bare 'cartouche-proton' tool name.
-    static let legacyHolders = ["27.0.0.40921-fex", "27.0.0.40921", "27.0.0.41069-fex", "27.0.0.41069"]
-
-    enum LegacyHolder: Equatable, Sendable {
-        case build(String)
-        case nobody
-    }
-
     static func tools(
-        for builds: [RunnerBuild], legacy: LegacyHolder = .nobody,
+        for builds: [RunnerBuild],
         fexAvailable: Bool = CompatTool.Flavor.fexAvailable, keeping kept: Set<String> = []
     ) -> [InstalledTool] {
         let installed = Set(builds.map(\.id))
-        let holder: String? = switch legacy {
-        case .build(let id): id
-        case .nobody: nil
-        }
         let served = all.filter { installed.contains($0.id) }.flatMap { build in
-            build.tools.enumerated().map { index, tool in
-                let name = build.id == holder && index == 0 ? legacyToolName : tool.name
-                return InstalledTool(
-                    tool: CompatTool(name: name, flavor: tool.flavor, display: tool.display), build: build.id
+            build.tools.map { tool in
+                InstalledTool(
+                    tool: CompatTool(name: tool.name, flavor: tool.flavor, display: tool.display), build: build.id
                 )
             }
         }.filter { $0.tool.flavor != .fex || fexAvailable || kept.contains($0.name) }

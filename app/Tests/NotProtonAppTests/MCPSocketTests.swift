@@ -74,11 +74,7 @@ private func scratchSocket() throws -> URL {
 }
 
 private func pipe(_ server: MCPServer) -> @Sendable (Data) async -> Data {
-    { data in
-        guard let message = try? JSONDecoder().decode(JSONValue.self, from: data),
-              let reply = await server.handle(message) else { return Data() }
-        return (try? JSONEncoder().encode(reply)) ?? Data()
-    }
+    { data in await server.handle(data: data) }
 }
 
 private struct PingHandler: MCPHandling {
@@ -181,6 +177,95 @@ struct MCPSocketTests {
         await #expect(throws: MCPChannelError.self) {
             try await client.send(Data(#"{"jsonrpc":"2.0","id":1,"method":"ping"}"#.utf8))
         }
+        do {
+            _ = try await client.send(Data(#"{"jsonrpc":"2.0","id":1,"method":"ping"}"#.utf8))
+            Issue.record("a missing socket must throw")
+        } catch let error as MCPChannelError {
+            guard case .unreachable = error else {
+                Issue.record("connect() failure must be .unreachable, got \(error)")
+                return
+            }
+        }
+    }
+
+    @Test("a notification earns no reply and the next connection still works")
+    func notificationThenTools() async throws {
+        let first = try socketPair()
+        defer { close(first.client) }
+        let second = try socketPair()
+        defer { close(second.client) }
+        let server = MCPSocketServer(
+            socket: URL(filePath: "/tmp/unused-s"), handler: pipe(MCPServer(handler: PingHandler()))
+        ) { $0 == ownExecutable() }
+        server.adopt(first.server)
+        server.adopt(second.server)
+        defer { server.stop() }
+
+        // The notification gets no reply: the server drops the connection and
+        // the client sees EOF instead of hanging on a reply that never comes.
+        try posixWrite(Data(#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#.utf8 + [0x0A]),
+                       to: first.client)
+        let empty = try await Task.detached { try posixReadLine(first.client) }.value
+        #expect(empty.isEmpty)
+
+        try posixWrite(Data(#"{"jsonrpc":"2.0","id":2,"method":"tools/list"}"#.utf8 + [0x0A]),
+                       to: second.client)
+        let reply = try await Task.detached { try posixReadLine(second.client) }.value
+        let parsed = try JSONDecoder().decode(JSONValue.self, from: reply)
+        #expect(parsed["id"] == .number(2))
+        #expect(parsed["result"]?["tools"] != nil)
+    }
+
+    @Test("the notification predicate separates requests from replies-free lines")
+    func notificationPredicate() {
+        #expect(MCPUnreachable.isNotification(
+            Data(#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#.utf8)))
+        #expect(!MCPUnreachable.isNotification(
+            Data(#"{"jsonrpc":"2.0","id":1,"method":"ping"}"#.utf8)))
+    }
+
+    @Test("dropping a connection whose write source is suspended does not trap")
+    func largeReply() async throws {
+        let pair = try socketPair()
+        let server = MCPSocketServer(
+            socket: URL(filePath: "/tmp/unused-s"),
+            handler: { _ in Data(repeating: 0x61, count: 1 << 20) + Data([0x0A]) }
+        ) { $0 == ownExecutable() }
+        server.adopt(pair.server)
+        defer { close(pair.client) }
+
+        try posixWrite(Data(#"{"jsonrpc":"2.0","id":1,"method":"ping"}"#.utf8 + [0x0A]),
+                       to: pair.client)
+        // Read the whole 1 MB reply. Once it all arrived the server's pump
+        // ran to the end and suspended the write source; the drop in stop()
+        // must resume it before cancel — a suspended source traps on release.
+        let reply = try await Task.detached { try posixReadLine(pair.client) }.value
+        #expect(reply.count == 1 << 20)
+        server.stop()
+    }
+
+    @Test("once bytes are sent a dropped connection is .broken, not .unreachable",
+          .enabled(if: socketsPermitted, "this sandbox denies Unix-socket binds"))
+    func brokenAfterWrite() async throws {
+        let socket = try scratchSocket()
+        // The server drops after an empty reply, so the client's write went
+        // out and only then the connection died — the error callers may retry
+        // is .unreachable only.
+        let server = MCPSocketServer(socket: socket, handler: { _ in Data() }) {
+            $0 == ownExecutable()
+        }
+        try server.start()
+        defer { server.stop() }
+        let client = MCPSocketClient(socket: socket)
+        do {
+            _ = try await client.send(Data(#"{"jsonrpc":"2.0","id":1,"method":"ping"}"#.utf8))
+            Issue.record("a dead connection must throw")
+        } catch let error as MCPChannelError {
+            guard case .broken = error else {
+                Issue.record("post-write failure must be .broken, got \(error)")
+                return
+            }
+        }
     }
 
     @Test("a request over a real socket gets the server's reply",
@@ -201,6 +286,11 @@ struct MCPSocketTests {
         let parsed = try JSONDecoder().decode(JSONValue.self, from: ping)
         #expect(parsed["id"] == .number(1))
         #expect(parsed["result"] != nil)
+
+        // A notification does not wait for a reply: send returns at once.
+        let notification = try await client.send(
+            Data(#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#.utf8))
+        #expect(notification.isEmpty)
 
         let tools = try await client.send(
             Data(#"{"jsonrpc":"2.0","id":2,"method":"tools/list"}"#.utf8))

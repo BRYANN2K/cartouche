@@ -47,7 +47,7 @@ struct LibrarySidebar: View {
     private func row(_ item: SidebarItem, symbol: String) -> some View {
         Label(LibraryModel.title(item), systemImage: symbol)
             .badge(model.badge(item).map { Text(verbatim: $0) })
-            // An expired store session is a red badge (P10)
+            // An expired store session is a red badge
             .badgeProminence(model.isExpired(item) ? .increased : .standard)
             .tag(item)
     }
@@ -106,7 +106,7 @@ struct LibraryWindow: View {
             }
         }
         .sheet(item: $model.addGames.withoutWindows) { kind in
-            AddGamesSheet(kind: kind)
+            AddGamesSheet(kind: kind, library: model)
         }
         .sheet(isPresented: $model.showAddConsoles) {
             if let consoles { AddConsolesSheet(center: consoles) }
@@ -137,7 +137,7 @@ struct LibraryWindow: View {
             LibraryGrid(model: model, sections: sections, actions: actions)
         case .noResults(let query):
             NoResultsView(query: query) { model.searchText = "" }
-        case .emptyFavorites, .emptySource, .failed:
+        case .emptyFavorites, .emptySource:
             EmptyLibraryView(screen: model.screen, addGames: {
                 if case .source(let source) = model.selection, source.isConsole { model.addGames = .consoles } else { model.addGames = .windows }
             }, retry: { Task { await model.load() } })
@@ -145,58 +145,29 @@ struct LibraryWindow: View {
     }
 }
 
-// Both kinds of games come through one sheet; P6 and P13 fill in each flow
+// The Windows kind opens the install sheet instead, through InstallSheetHost.
 struct AddGamesSheet: View {
     @State var kind: AddGamesKind
-    @Environment(\.dismiss) private var dismiss
+    let library: LibraryModel
     @Environment(ConsoleCenter.self) private var consoles: ConsoleCenter?
 
     var body: some View {
-        if kind == .consoles, let consoles {
-            ConsoleImportFlow(center: consoles, kind: $kind)
-        } else {
-            windowsBody
-        }
-    }
-
-    private var windowsBody: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Add Games").font(.title2.weight(.bold))
-            Picker("Kind", selection: $kind) {
-                ForEach(AddGamesKind.allCases) { Text($0.title).tag($0) }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            VStack(spacing: 8) {
-                Image(systemName: kind == .windows ? "shippingbox" : "opticaldisc")
-                    .font(.system(size: 30, weight: .light))
-                    .foregroundStyle(Color.accentColor)
-                    .accessibilityHidden(true)
-                Text(kind == .windows ? "Drop a setup.exe with its .bin files, or a game folder"
-                                      : "Drop your own game dumps, or a folder of them")
-                    .font(.headline)
-                    .multilineTextAlignment(.center)
-                Text(kind == .windows ? "Cartouche checks the files first and runs nothing until you choose Install."
-                                      : "Cartouche identifies each file by its checksum and downloads only the cores it needs.")
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            .padding(28)
-            .frame(maxWidth: .infinity)
-            .overlay {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
-                    .foregroundStyle(.tertiary)
-            }
-            Text("Adding games this way comes in a later version of Cartouche.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-            HStack {
-                Spacer()
-                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
+        Group {
+            if let consoles {
+                ConsoleImportFlow(center: consoles, kind: $kind)
+            } else {
+                ContentUnavailableView {
+                    Label { Text("Add Games") } icon: { Image(systemName: "shippingbox") }
+                } description: {
+                    Text("Consoles are not set up on this Mac.")
+                }
             }
         }
-        .padding(22)
+        .onChange(of: kind, initial: true) { _, kind in
+            // Windows installers go through the install sheet, which the host
+            // opens and dismisses this one for
+            if kind == .windows { library.addGames = .windows }
+        }
         .frame(width: 520)
     }
 }

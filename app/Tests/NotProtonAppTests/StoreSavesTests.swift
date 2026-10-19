@@ -20,14 +20,14 @@ struct StoreSavesTests {
         await center.finishSignIn(.gog, code: "gog-good-code")
         let game = try #require(model.game("gog:1207658924"))
         center.install(game)
-        await scene.waitUntil { center.record(game.id) != nil }
+        #expect(await scene.waitUntil { center.record(game.id) != nil })
         return (center, model)
     }
 
     private func play(_ center: StoreCenter, _ model: LibraryModel, _ scene: StoreScene) async throws {
         let game = try #require(model.game("gog:1207658924"))
         center.play(game)
-        await scene.waitUntil { !center.playing.contains(game.id) }
+        #expect(await scene.waitUntil { !center.playing.contains(game.id) })
         #expect(center.problem == nil)
     }
 

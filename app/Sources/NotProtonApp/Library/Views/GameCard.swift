@@ -81,7 +81,7 @@ struct GameCard: View {
         let motion = Motion(reduceMotion: reduceMotion)
         return CoverView(game: game, override: override, gray: !inColor)
             .overlay {
-                // A download brings the color back from the bottom up (P7)
+                // A download brings the color back from the bottom up
                 if !isSelected, let reveal = activity.reveal(for: game) {
                     RevealCover(game: game, override: override, progress: reveal)
                 }

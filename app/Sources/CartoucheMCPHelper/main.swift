@@ -42,13 +42,26 @@ struct LaunchingChannel: MCPRequestChannel {
         do {
             return try await client.send(request)
         } catch {
-            try launchApp()
-            for _ in 0..<40 {
-                try? await Task.sleep(for: .milliseconds(250))
-                if let reply = try? await client.send(request) { return reply }
-            }
-            throw HelperError.appNotAnswering
+            guard Self.unreachable(error) else { throw error }
         }
+        try launchApp()
+        for _ in 0..<40 {
+            try? await Task.sleep(for: .milliseconds(250))
+            do {
+                return try await client.send(request)
+            } catch {
+                guard Self.unreachable(error) else { throw error }
+            }
+        }
+        throw HelperError.appNotAnswering
+    }
+
+    // Only "the app is not there" may re-send: once connect() succeeded the
+    // request went out and replaying it could run the tool twice.
+    private static func unreachable(_ error: Error) -> Bool {
+        guard let error = error as? MCPChannelError else { return false }
+        if case .unreachable = error { return true }
+        return false
     }
 
     private func launchApp() throws {

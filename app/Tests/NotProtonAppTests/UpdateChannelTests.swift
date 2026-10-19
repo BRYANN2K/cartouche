@@ -21,16 +21,17 @@ struct UpdateChannelTests {
 
     @Test("The app's updater reads the setting at each check")
     func delegateReadsTheSetting() {
+        let suite = "beta-channel-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
         let key = UpdateChannel.betaDefaultsKey
-        defer { UserDefaults.standard.removeObject(forKey: key) }
-        let delegate = UpdateChannelDelegate()
+        let delegate = UpdateChannelDelegate(betaOptIn: { defaults.bool(forKey: key) })
         let updater = SPUUpdater(hostBundle: .main, applicationBundle: .main,
                                  userDriver: SPUStandardUserDriver(hostBundle: .main, delegate: nil), delegate: nil)
-        UserDefaults.standard.removeObject(forKey: key)
         #expect(delegate.allowedChannels(for: updater).isEmpty)
-        UserDefaults.standard.set(true, forKey: key)
+        defaults.set(true, forKey: key)
         #expect(delegate.allowedChannels(for: updater) == ["beta"])
-        UserDefaults.standard.set(false, forKey: key)
+        defaults.set(false, forKey: key)
         #expect(delegate.allowedChannels(for: updater).isEmpty)
     }
 
@@ -44,7 +45,9 @@ struct UpdateChannelTests {
         #expect(!DailyChecks.enabled(defaults))
 
         var on = true
-        let updater = AppUpdater(dailyChecks: { on })
+        // The observer listens to this suite only, and the controller starts lazily
+        let updater = AppUpdater(defaults: defaults, dailyChecks: { on })
+        updater.start()
         // Sparkle stores the switch on the host's defaults; leave nothing behind
         defer { UserDefaults.standard.removeObject(forKey: "SUEnableAutomaticChecks") }
         #expect(updater.automaticallyChecks)
@@ -53,6 +56,21 @@ struct UpdateChannelTests {
         #expect(!updater.automaticallyChecks)
         on = true
         updater.applyDailyChecks()
+        #expect(updater.automaticallyChecks)
+    }
+
+    @Test("Nothing runs before start(), and start() is idempotent")
+    func lazyStart() {
+        let suite = "lazy-updater-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let updater = AppUpdater(defaults: defaults, dailyChecks: { true })
+        #expect(!updater.automaticallyChecks, "a controller ran before start()")
+        updater.applyDailyChecks()
+        #expect(!updater.automaticallyChecks)
+        updater.start()
+        updater.start()
+        defer { UserDefaults.standard.removeObject(forKey: "SUEnableAutomaticChecks") }
         #expect(updater.automaticallyChecks)
     }
 
@@ -77,6 +95,7 @@ struct UpdateChannelTests {
 private final class FeedProbe: NSObject, SPUUpdaterDelegate {
 
     private let channels: UpdateChannelDelegate
+    private var found: String?
     private var continuation: CheckedContinuation<String?, Never>?
 
     private init(betaOptIn: Bool) {
@@ -88,19 +107,25 @@ private final class FeedProbe: NSObject, SPUUpdaterDelegate {
     }
 
     func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
-        finish(item.versionString)
+        found = item.versionString
     }
 
     func updaterDidNotFindUpdate(_ updater: SPUUpdater, error: any Error) {
-        finish(nil)
+        found = nil
     }
 
     func updater(_ updater: SPUUpdater, didAbortWithError error: any Error) {
         finish("aborted: \(error as NSError)")
     }
 
+    // The continuation resumes only when the cycle ends, so Sparkle's own
+    // defaults writes are done before the test cleans the suite up
     func updater(_ updater: SPUUpdater, didFinishUpdateCycleFor updateCheck: SPUUpdateCheck, error: (any Error)?) {
-        finish("finished without a result: \(error?.localizedDescription ?? "no error")")
+        if let error, found == nil {
+            finish("finished without a result: \(error.localizedDescription)")
+        } else {
+            finish(found)
+        }
     }
 
     private func finish(_ version: String?) {
@@ -151,8 +176,6 @@ private final class FeedProbe: NSObject, SPUUpdaterDelegate {
         }
         timeout.cancel()
 
-        // Sparkle records the check in the fake app's defaults once the cycle ends
-        try? await Task.sleep(for: .milliseconds(500))
         UserDefaults.standard.removePersistentDomain(forName: bundleID)
         return found
     }

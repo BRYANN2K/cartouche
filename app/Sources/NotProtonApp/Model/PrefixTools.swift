@@ -292,9 +292,7 @@ enum PrefixTools {
         guard !verbs.isEmpty else {
             throw StepFailure(step: step, detail: String(localized: "Enter at least one verb, like vcrun2022."))
         }
-        // Under -q annihilate wipes the prefix and its saves without asking, prefix= switches to
-        // another prefix, and options like --self-update change winetricks itself.
-        if let refused = verbs.first(where: { $0 == "annihilate" || $0.hasPrefix("prefix=") || $0.hasPrefix("-") }) {
+        if let refused = refusedVerb(verbs) {
             throw StepFailure(step: step, detail: String(localized: "Cartouche does not run \(refused) with Winetricks."))
         }
         guard let claim = PrefixStore.claim(prefix) else {
@@ -331,6 +329,13 @@ enum PrefixTools {
             )
         }
         return log
+    }
+
+    // Under -q annihilate wipes the prefix and its saves without asking,
+    // prefix= switches to another prefix, and options like --self-update
+    // change winetricks itself. Agents and the prefix sheet share this filter.
+    static func refusedVerb(_ verbs: [String]) -> String? {
+        verbs.first { $0 == "annihilate" || $0.hasPrefix("prefix=") || $0.hasPrefix("-") }
     }
 
     static func arguments(for executable: URL) -> [String]? {

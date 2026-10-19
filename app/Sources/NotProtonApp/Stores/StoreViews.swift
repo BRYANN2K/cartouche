@@ -38,7 +38,7 @@ struct StorePage: View {
                 if let capabilities {
                     Text("What works").font(.headline).padding(.top, 10)
                     VStack(spacing: 0) {
-                        capability(Text("Download, update and verify games"), works: capabilities.downloads, value: nil)
+                        capability(Text("Download, update and verify games"), works: true, value: nil)
                         Divider().padding(.horizontal, 12)
                         capability(Text("Cloud saves"), works: capabilities.cloudSaves, value: capabilities.cloudSavesLabel)
                         Divider().padding(.horizontal, 12)
@@ -47,16 +47,13 @@ struct StorePage: View {
                     .groupBackground()
                 }
                 Text("Already have games installed?").font(.headline).padding(.top, 10)
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Import games from another launcher or folder")
-                        Text("Sign in first: Cartouche checks the game is on your account.")
-                            .font(.callout).foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    Button("Choose Folder…") {}.disabled(true)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Import games from another launcher or folder")
+                    Text("Once signed in, from Settings > Accounts: Cartouche checks the game is on your account.")
+                        .font(.callout).foregroundStyle(.secondary)
                 }
                 .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .groupBackground()
             }
             .frame(maxWidth: 520, alignment: .leading)

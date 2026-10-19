@@ -71,7 +71,6 @@ public final class MCPSocketServer: @unchecked Sendable {
     private var listenSource: DispatchSourceRead?
     private var connections: [UUID: Connection] = [:]
 
-    // A single line or a pending reply may not grow past this.
     private static let byteLimit = 1 << 22
 
     public init(socket: URL = MCPSocketPath.file,
@@ -82,9 +81,6 @@ public final class MCPSocketServer: @unchecked Sendable {
         self.admitsExecutable = admitsExecutable
     }
 
-    public var isRunning: Bool { queue.sync { listenSource != nil } }
-
-    // A stale socket file from a crashed run is unlinked before binding.
     public func start() throws {
         try queue.sync {
             guard listenSource == nil else { return }
@@ -207,7 +203,7 @@ public final class MCPSocketServer: @unchecked Sendable {
         }
     }
 
-    // One admitted fd becomes a tracked connection. Runs on the queue.
+    // Runs on the queue.
     private func register(_ fd: Int32) {
         guard admit(fd) else { close(fd); return }
         var one: Int32 = 1
@@ -228,13 +224,19 @@ public final class MCPSocketServer: @unchecked Sendable {
 
     private func drop(_ connection: Connection) {
         guard connections.removeValue(forKey: connection.id) != nil else { return }
+        // The fd closes in a cancel handler so no queued event can meet a
+        // reused fd number. A suspended source traps on cancel — and on
+        // release — so a drained writer is resumed first.
+        if let writer = connection.writeSource {
+            if !connection.writeArmed { writer.resume() }
+            writer.setCancelHandler { close(connection.fd) }
+            writer.cancel()
+        } else {
+            connection.readSource?.setCancelHandler { close(connection.fd) }
+        }
         connection.readSource?.cancel()
-        connection.writeSource?.cancel()
-        close(connection.fd)
     }
 
-    // Reads until the peer has nothing more to send, then serves each complete
-    // line to the handler; its reply goes back as one line.
     private func drain(_ connection: Connection) {
         var chunk = [UInt8](repeating: 0, count: 1 << 16)
         while true {
@@ -257,8 +259,7 @@ public final class MCPSocketServer: @unchecked Sendable {
             connection.inbound.removeSubrange(...newline)
             guard !request.isEmpty else { continue }
             Task { [handler, weak self, weak connection] in
-                let reply = await handler(request)
-                if !reply.isEmpty { self?.enqueue(reply, to: connection) }
+                self?.enqueue(await handler(request), to: connection)
             }
         }
     }
@@ -267,6 +268,9 @@ public final class MCPSocketServer: @unchecked Sendable {
         queue.async { [weak self] in
             guard let self, let connection,
                   self.connections[connection.id] === connection else { return }
+            // An empty reply is a notification: its work is done. Dropping the
+            // connection gives a client still reading an EOF, not a hang.
+            if reply.isEmpty { self.drop(connection); return }
             var line = reply
             if line.last != 0x0A { line.append(0x0A) }
             connection.outbox.append(line)
@@ -320,8 +324,10 @@ public final class MCPSocketServer: @unchecked Sendable {
 }
 
 // The helper's half: connects to the socket, sends one line, reads the one
-// reply line back. Each send opens a fresh connection — a dead app fails fast
-// and send retries once before LaunchingChannel starts it and waits.
+// reply line back. Each send opens a fresh connection and a dead app fails
+// fast on connect(). Once bytes went out the error is thrown, never retried:
+// a replay could run a non-idempotent tool twice — retries only happen in
+// LaunchingChannel and only when connect() failed.
 public final class MCPSocketClient: MCPRequestChannel, @unchecked Sendable {
 
     private let socketURL: URL
@@ -331,11 +337,7 @@ public final class MCPSocketClient: MCPRequestChannel, @unchecked Sendable {
     }
 
     public func send(_ request: Data) async throws -> Data {
-        do {
-            return try await Task.detached { try self.call(request) }.value
-        } catch {
-            return try await Task.detached { try self.call(request) }.value
-        }
+        try await Task.detached { try self.call(request) }.value
     }
 
     private func call(_ request: Data) throws -> Data {
@@ -344,6 +346,8 @@ public final class MCPSocketClient: MCPRequestChannel, @unchecked Sendable {
         var line = request
         if line.last != 0x0A { line.append(0x0A) }
         try Self.writeAll(line, to: fd)
+        // A notification has no id and earns no reply; reading would hang.
+        guard !MCPUnreachable.isNotification(request) else { return Data() }
         return try Self.readReply(from: fd)
     }
 
@@ -377,21 +381,20 @@ public final class MCPSocketClient: MCPRequestChannel, @unchecked Sendable {
             while offset < bytes.count {
                 let sent = write(fd, base + offset, bytes.count - offset)
                 guard sent > 0 else {
-                    throw MCPChannelError.unreachable("Cartouche did not answer")
+                    throw MCPChannelError.broken("Cartouche did not answer")
                 }
                 offset += sent
             }
         }
     }
 
-    // One reply ends at a newline or at the server closing the connection.
     private static func readReply(from fd: Int32) throws -> Data {
         var reply = Data()
         var chunk = [UInt8](repeating: 0, count: 1 << 16)
         while true {
             let got = read(fd, &chunk, chunk.count)
             guard got >= 0 else {
-                throw MCPChannelError.unreachable(String(cString: strerror(errno)))
+                throw MCPChannelError.broken(String(cString: strerror(errno)))
             }
             if got == 0 { break }
             if let newline = chunk[0..<got].firstIndex(of: 0x0A) {
@@ -400,11 +403,11 @@ public final class MCPSocketClient: MCPRequestChannel, @unchecked Sendable {
             }
             reply.append(contentsOf: chunk[0..<got])
             guard reply.count < 1 << 22 else {
-                throw MCPChannelError.unreachable("Cartouche's reply is too large")
+                throw MCPChannelError.broken("Cartouche's reply is too large")
             }
         }
         guard !reply.isEmpty else {
-            throw MCPChannelError.unreachable("Cartouche did not answer")
+            throw MCPChannelError.broken("Cartouche did not answer")
         }
         return reply
     }

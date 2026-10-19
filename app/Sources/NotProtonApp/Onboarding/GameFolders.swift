@@ -1,5 +1,5 @@
 // The folders the user keeps console games in, chosen during onboarding or in
-// Settings > Library. Watching them for new games comes with the console library.
+// Settings > Library
 
 import AppKit
 import Observation
@@ -60,7 +60,7 @@ extension URL {
 // Settings > Library
 struct GameFoldersSection: View {
     @Bindable var folders: GameFolders
-    // What the console library found in each folder (P13)
+    // What the console library found in each folder
     @Environment(ConsoleCenter.self) private var consoles: ConsoleCenter?
 
     var body: some View {

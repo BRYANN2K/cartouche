@@ -124,6 +124,10 @@ struct RunnerManifestTests {
         let updated = await RunnerManifest.refresh(from: url, cache: cache, fetch: feed, key: key)
         #expect(updated == .updated(revision: shipped.revision + 1))
         #expect(RunnerManifest.current(cache: cache).build(id: "wine-crossover-26.3.0-1") != nil)
+        #expect(
+            FileManager.default.fileExists(
+                atPath: RunnerManifest.signatureFile(for: cache).path(percentEncoded: false)),
+            "the signature the refresh fetched is kept beside the cache")
 
         let broken = try Self.manifest([Self.entry(sha256: "nope")], revision: shipped.revision + 5)
         let brokenFeed = try Self.feed(manifest: broken, key: signing)
@@ -168,6 +172,30 @@ struct RunnerManifestTests {
 
         // The bundled manifest is what the app installs from
         #expect(RunnerManifest.current(cache: cache) == shipped)
+    }
+
+    @Test("A signed cache is read; an unsigned or forged one is ignored")
+    func cachedSignature() async throws {
+        let work = try scratchDirectory("manifest-cache")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let cache = work.appending(path: "runners.json")
+        let shipped = try RunnerManifest.bundled()
+        let newer = try Self.manifest([Self.entry()], revision: shipped.revision + 1)
+
+        // A cache written before signatures were kept is not trusted
+        try newer.write(to: cache)
+        let key = Curve25519.Signing.PrivateKey().publicKey
+        #expect(RunnerManifest.current(cache: cache, key: key) == shipped)
+
+        // Signed by a different key than the one asked
+        let signing = Curve25519.Signing.PrivateKey()
+        let signature = try signing.signature(for: newer)
+        try Data(signature.base64EncodedString().utf8)
+            .write(to: RunnerManifest.signatureFile(for: cache))
+        #expect(RunnerManifest.current(cache: cache, key: key) == shipped)
+        #expect(
+            RunnerManifest.current(cache: cache, key: signing.publicKey)
+                .build(id: "wine-crossover-26.3.0-1") != nil)
     }
 
     @Test("The signature file sits beside the manifest and parses base64 or sign_update output")

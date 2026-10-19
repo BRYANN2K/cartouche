@@ -10,14 +10,6 @@ Cartouche started as a fork of [NotProton](https://github.com/NotProtonNot/NotPr
 
 Cartouche needs a Mac with Apple silicon and macOS 15 or later.
 
-### Recommended: the install script
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/BRYANN2K/cartouche/main/install.sh | sh
-```
-
-The script downloads the latest release and checks it against the SHA-256 published with the release. It checks that the app is signed with Cartouche's own certificate. Then it installs Cartouche in /Applications and opens it. A file downloaded with curl carries no quarantine mark, so macOS opens Cartouche without the "Not Opened" warning and without Open Anyway. [install.sh](install.sh) is short: read it before you run it.
-
 ### Disk image
 
 Download `Cartouche-<version>.dmg` from the [latest release](https://github.com/BRYANN2K/cartouche/releases/latest) and drag Cartouche to Applications. The first time you open it, macOS 15 and 26 block it once:

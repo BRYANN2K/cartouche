@@ -8,16 +8,16 @@ import Observation
 
 // What the review step hands to the install.
 struct InstallRequest: Sendable {
-    let setup: URL
-    let source: URL
+    var setup: URL
+    var source: URL
     let name: String
     let appID: Int?
     let gogID: String?
     let expectedBytes: Int64
     // setup.exe and its parts, for the cleanup line.
     let installerBytes: Int64
-    let installerFiles: [URL]
-    let manifest: ChecksumManifest?
+    var installerFiles: [URL]
+    var manifest: ChecksumManifest?
 }
 
 enum GameInstallPhase: Sendable, Equatable {
@@ -38,7 +38,7 @@ enum GameInstallPhase: Sendable, Equatable {
 final class InstallJob: Identifiable {
 
     let id = UUID()
-    let request: InstallRequest
+    var request: InstallRequest
     var inputs: InstallInputs
     var phase: GameInstallPhase = .waiting
     var progress = InstallProgress()
@@ -75,6 +75,25 @@ final class InstallJob: Identifiable {
     func fail(_ message: String) {
         problem = message
         phase = .failed
+    }
+
+    // Point the whole request at a copy of the installer folder
+    // (copy_to_internal_disk): setup, parts and manifest move together.
+    func moveSource(to folder: URL) {
+        let old = request.source.standardizedFileURL.path(percentEncoded: false)
+        func rebased(_ url: URL) -> URL {
+            let path = url.standardizedFileURL.path(percentEncoded: false)
+            return path.hasPrefix(old + "/") ? folder.appending(path: String(path.dropFirst(old.count + 1))) : url
+        }
+        request.source = folder
+        request.setup = rebased(request.setup)
+        request.installerFiles = request.installerFiles.map(rebased)
+        if let manifest = request.manifest {
+            request.manifest = ChecksumManifest(
+                source: rebased(manifest.source),
+                entries: manifest.entries.map { ChecksumEntry(md5: $0.md5, file: rebased($0.file)) },
+                mentionsOptionalParts: manifest.mentionsOptionalParts)
+        }
     }
 
     // The retries the diagnosis offers that still change something.

@@ -78,7 +78,8 @@ struct MacGamingDBTests {
         #expect(server.asked.map(\.absoluteString) == ["https://macgamingdb.app/api/rest/games/1245620"])
         #expect(FileManager.default.fileExists(atPath: work.appending(path: "macgamingdb/1245620.json").path))
         let panel = model.panel(appID: 1245620, method: .wine)
-        #expect(panel.macLines == ["Very Good", "Most reported layer: D3DMetal"])
+        #expect(panel.mac?.rating?.label == "Very Good")
+        #expect(panel.mac?.topLayer == .d3dmetal)
 
         model.now = { Self.day.addingTimeInterval(20 * 3600) }
         await model.openGame(appID: 1245620)
@@ -158,12 +159,12 @@ struct MacGamingDBTests {
         #expect(PrivacyChoices(defaults: scratch.defaults).fetchMacReports == false, "the choice is kept")
 
         let model = CompatibilityModel(client: CompatibilityClient(directory: work), macGamingDB: client(work, server), choices: choices)
-        model.load()
+        await model.load()
         await model.openGame(appID: 1245620)
         #expect(server.asked.isEmpty)
         let panel = model.panel(appID: 1245620, method: .wine)
-        #expect(panel.estimateLines == ["Mac reports are turned off in Settings > Privacy"])
-        #expect(panel.macLines.isEmpty)
+        let (_, line) = GamePanelContent.estimate(panel.estimate, macReportsOn: panel.macReportsOn)
+        #expect(line == "Mac reports are turned off in Settings > Privacy")
         #expect(panel.mac == nil)
     }
 
@@ -200,8 +201,8 @@ struct MacGamingDBTests {
 
     @Test("The requests name Cartouche and its site")
     func userAgent() {
-        let agent = MacGamingDBClient.session.configuration.httpAdditionalHeaders?["User-Agent"] as? String
-        #expect(agent?.hasPrefix("Cartouche/") == true)
-        #expect(agent?.hasSuffix("(+https://cartouche.bryann2k.dev)") == true)
+        let agent = MacGamingDBClient.userAgent
+        #expect(agent.hasPrefix("Cartouche/"))
+        #expect(agent.hasSuffix("(+https://cartouche.bryann2k.dev)"))
     }
 }

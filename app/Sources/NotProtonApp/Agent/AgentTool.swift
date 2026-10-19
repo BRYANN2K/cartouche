@@ -41,7 +41,6 @@ protocol AgentBackend {
     func launch(_ game: Game) async throws
     func launchStore(_ url: String) async throws
     func quit(_ game: Game, force: Bool) async throws
-    func isRunning(_ game: Game) async -> Bool
     func reportResult(_ game: Game, verdict: String, note: String?) throws
 
     // MARK: Installs
@@ -49,15 +48,15 @@ protocol AgentBackend {
     func startInstall(_ request: InstallRequest, inputs: InstallInputs) -> UUID
     func installJobs() -> [InstallJob]
     func installJob(_ id: UUID) -> InstallJob?
-    func retryInstall(_ job: InstallJob, fix: RetryFix?) throws
-    // A fix outside RetryFix's own vocabulary: the mockup's single_thread.
-    func applyThreads(_ job: InstallJob, _ threads: Int) throws
+    // All requested fixes applied at once, then the job queues once.
+    func retryInstall(_ job: InstallJob, fixes: [RetryFix]) throws
     func stopInstall(_ job: InstallJob) throws
     func finishInstall(_ job: InstallJob, exe: URL) throws
     func cleanupInstaller(_ request: InstallRequest) throws -> Int64
-    func copyInstallerToInternal(_ source: URL) throws -> URL
+    func copyInstallerToInternal(_ source: URL) async throws -> URL
 
     // MARK: Prefix tools (Full level)
+    func prefixFolder(_ game: Game) -> URL?
     func runWinetricks(_ game: Game, verbs: [String]) async throws -> URL
     func registryGet(_ game: Game, key: String, value: String) async throws -> String
     func registrySet(_ game: Game, key: String, value: String, data: String, type: String) async throws
@@ -70,8 +69,8 @@ protocol AgentBackend {
     func consoleGame(_ id: String) -> ConsoleGame?
     func addConsole(_ id: String) async throws
     func removeConsole(_ id: String) async throws
-    func biosStatus(_ consoleID: String) -> BIOSStatus?
-    func states(_ game: ConsoleGame) -> [SaveState]
+    func biosStatus(_ consoleID: String) async -> BIOSStatus?
+    func states(_ game: ConsoleGame) async -> [SaveState]
     func launchConsole(_ game: ConsoleGame, slot: Int?, resume: Bool) async throws
     func consolePlaying() -> Playing?
     func setConsoleSetup(_ id: String, _ change: @escaping @Sendable (inout ConsoleGameSetup) -> Void) async
@@ -84,7 +83,7 @@ protocol AgentBackend {
     func addConsoleGames(_ games: [ConsoleGame]) async throws
     func rescanFolders() async
 
-    // MARK: Controls — through the same ControlsCenter the sheet uses (P15)
+    // MARK: Controls — through the same ControlsCenter the sheet uses
     func controllers() -> [ControllerInfo]
     func gameControls(_ id: String) -> GameControls
     func setGameControls(_ controls: GameControls, for id: String) async throws
@@ -111,8 +110,8 @@ struct AgentToolError: LocalizedError {
 }
 
 // One MCP tool: its wire shape and which checks stand between a call and the
-// app's own functions. The registry lives in AgentTools.swift; P15 will add
-// controller tools by appending to AgentToolProvider lists.
+// app's own functions. The registry lives in AgentTools.swift; providers add
+// tools through AgentToolProvider.
 struct AgentTool {
     var name: String
     var detail: String
@@ -125,15 +124,12 @@ struct AgentTool {
     var readOnly = true
     var destructive = false
     // The "<Game> (<size>)" the approval line shows for this call
-    var approvalText: (@MainActor (AgentBackend, JSONValue) -> String)?
+    var approvalText: (@MainActor (AgentBackend, JSONValue) async -> String)?
     var run: @MainActor (AgentBackend, JSONValue) async throws -> JSONValue
-
-    // P15 extension point: controller tools register through
-    // AgentToolProvider below; AgentService asks every provider for its list.
 }
 
-// A bag of tools a later phase adds without touching AgentService: P15's
-// controller tools become an AgentControls provider next to this registry.
+// A bag of tools a provider adds without touching AgentService; the app's
+// AgentControls provider ships the controller tools.
 protocol AgentToolProvider {
     func tools() -> [AgentTool]
 }
@@ -141,8 +137,6 @@ protocol AgentToolProvider {
 // MARK: - Argument helpers
 
 extension JSONValue {
-    var requiredGame: String? { self["game"]?.string }
-
     func require(_ key: String) throws -> String {
         guard let value = self[key]?.string, !value.isEmpty else {
             throw MCPError.invalidParams("missing \"\(key)\"")

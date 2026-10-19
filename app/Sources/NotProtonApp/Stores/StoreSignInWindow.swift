@@ -81,22 +81,6 @@ private struct StoreSignInOpener: ViewModifier {
     }
 }
 
-// Store titles to the compatibility data's Steam App IDs, built once per data file
-@MainActor
-final class TitleIndex {
-    private var index: GameIndex?
-    private var built: Int?
-
-    func appID(_ title: String, data: CompatData?) -> Int? {
-        guard let data else { return nil }
-        if index == nil || built != data.records.count {
-            index = GameIndex(compat: data)
-            built = data.records.count
-        }
-        return index?.match(title)?.appID
-    }
-}
-
 // A web view with no stored data, reporting each address it reaches. Epic shows
 // the code as the text of its last page, so that page's text is read too.
 struct StoreWebView: NSViewRepresentable {

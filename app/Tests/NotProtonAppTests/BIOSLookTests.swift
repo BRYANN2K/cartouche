@@ -24,9 +24,9 @@ struct BIOSLookTests {
         defer { scene.remove() }
         let runner = scene.useFakeRunner(picture: try ConsolePanelTests.screen("PS"))
         let game = try await scene.addGame(console: "ps1", name: "Test Disc", ext: "cue")
-        let compat = try fixtureCompat(scene.work, defaults: scene.scratch)
+        let compat = try await fixtureCompat(scene.work, defaults: scene.scratch)
         let system = try #require(scene.center.console(of: game))
-        let content = ConsolePanelContent(game: game, console: system, states: [], bios: scene.center.bios(for: game), playing: nil)
+        let content = ConsolePanelContent(game: game, console: system, states: [], bios: await scene.center.bios(for: game), playing: nil)
         #expect(content.biosWarning?.title == "scph5501.bin is missing")
         #expect(content.biosWarning?.detail == "Dump it from your own console, then put it in the BIOS folder.")
         #expect(!content.canPlay)
@@ -52,7 +52,7 @@ struct BIOSLookTests {
         let md5 = Insecure.MD5.hash(data: dump).map { String(format: "%02x", $0) }.joined()
         try ConsoleFixtures.info("swanstation", firmware: [("scph5501.bin", md5)])
             .write(to: scene.paths.coreInfo.appending(path: "swanstation_libretro.info"))
-        let ready = ConsolePanelContent(game: game, console: system, states: [], bios: scene.center.bios(for: game), playing: nil)
+        let ready = ConsolePanelContent(game: game, console: system, states: [], bios: await scene.center.bios(for: game), playing: nil)
         #expect(ready.biosWarning == nil && ready.canPlay)
         await scene.center.play(game.id, reduceMotion: true)
         #expect(await runner.requests.count == 1)
@@ -69,7 +69,7 @@ struct BIOSLookTests {
                                                          name: "Cartouche Homebrew (World)")
         try FileManager.default.createDirectory(at: snap.deletingLastPathComponent(), withIntermediateDirectories: true)
         try ConsoleCoverTests.png(width: 256, height: 224, colour: NSColor(red: 0.2, green: 0.4, blue: 0.9, alpha: 1)).write(to: snap)
-        let compat = try fixtureCompat(scene.work, defaults: scene.scratch)
+        let compat = try await fixtureCompat(scene.work, defaults: scene.scratch)
 
         func heroRows() async throws -> [CGFloat] {
             let host = UIHost(try panel(scene, game.id, compat: compat).ignoresSafeArea(), size: CGSize(width: 360, height: 760))

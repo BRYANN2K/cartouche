@@ -54,7 +54,7 @@ struct MacFindings: Equatable, Sendable {
 }
 
 struct MacScan: Sendable {
-    var steam: @Sendable () -> FoundSteam?
+    var steam: @Sendable () async -> FoundSteam?
     var crossOver: @Sendable () -> [FoundRunner]
     var portingToolkit: @Sendable () -> [FoundRunner]
     var controllers: @Sendable () async -> [FoundController]
@@ -64,15 +64,21 @@ struct MacScan: Sendable {
     static let deadline: Duration = .seconds(3)
 
     func run(deadline: Duration = Self.deadline) async -> MacFindings {
-        await withCheckedContinuation { continuation in
+        let running = Mutex<[Task<Void, Never>]>([])
+        return await withCheckedContinuation { continuation in
             let gather = Gather(parts: 5, continuation: continuation)
-            Task.detached { let v = steam(); gather.add { $0.steam = v } }
-            Task.detached { let v = crossOver(); gather.add { $0.crossOver = v } }
-            Task.detached { let v = portingToolkit(); gather.add { $0.portingToolkit = v } }
-            Task.detached { let v = await controllers(); gather.add { $0.controllers = v } }
-            Task.detached { let v = folders(); gather.add { $0.folders = v } }
+            running.withLock { tasks in
+                tasks = [
+                    Task.detached { let v = await steam(); gather.add { $0.steam = v } },
+                    Task.detached { let v = crossOver(); gather.add { $0.crossOver = v } },
+                    Task.detached { let v = portingToolkit(); gather.add { $0.portingToolkit = v } },
+                    Task.detached { let v = await controllers(); gather.add { $0.controllers = v } },
+                    Task.detached { let v = folders(); gather.add { $0.folders = v } },
+                ]
+            }
             Task.detached {
                 try? await Task.sleep(for: deadline)
+                running.withLock { $0.forEach { $0.cancel() } }
                 gather.timeUp()
             }
         }
@@ -231,12 +237,15 @@ struct GameFolderScan: Sendable {
         var seen = 0
         for case let url as URL in walker {
             seen += 1
-            if seen > maxEntries { break }
+            if seen > maxEntries || Task.isCancelled { break }
             if walker.level > maxDepth { walker.skipDescendants() }
-            let path = Self.resolved(url)
-            if skipping.contains(where: { path == $0 || path.hasPrefix($0 + "/") }) {
-                walker.skipDescendants()
-                continue
+            // Resolving a path costs a stat; only a directory can skip a subtree
+            if (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true {
+                let path = Self.resolved(url)
+                if skipping.contains(where: { path == $0 || path.hasPrefix($0 + "/") }) {
+                    walker.skipDescendants()
+                    continue
+                }
             }
             if let console = Self.extensions[url.pathExtension.lowercased()] {
                 counts[console, default: 0] += 1

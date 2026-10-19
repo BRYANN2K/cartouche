@@ -93,6 +93,34 @@ after_bad=$(env -i PATH="$PATH" LANG=en_US.UTF-8 DXVK_HUD=1 sh -c '
   f=$1; set --; eval "$f"; printf "%s " "$@"' sh "$forward")
 is "settings after a non-UTF-8 value are forwarded" "--env DXVK_HUD=1 " "$after_bad"
 
+echo "== D3DMetal comes from the user's installed toolkit =="
+d3d_case=$(sed -n '/^      d3dmetal)$/,/^        ;;$/p' "$SRC" | sed '1d;$d')
+[ -n "$d3d_case" ] || { echo "FAIL: the d3dmetal case was not found"; exit 1; }
+mkdir -p "$np_support/runners/gptk-8.8/lib/external"
+: > "$np_support/runners/gptk-8.8/lib/external/libd3dshared.dylib"
+inplace="$work/in-place-lib"
+mkdir -p "$inplace/external" "$np_support/runners/gptk-9.9"
+: > "$inplace/external/libd3dshared.dylib"
+printf '{"version":"9.9","origin":"x","files":{},"inPlace":"%s"}\n' "$inplace" \
+  > "$np_support/runners/gptk-9.9/.cartouche-runner.json"
+np_gptk=""; np_backend_from=""; np_backend_missing=""
+unset CX_APPLEGPTK_LIBD3DSHARED_PATH
+eval "$d3d_case"
+is "the in-place toolkit supplies D3DMetal" "$inplace/external" "$np_gptk"
+is "its shared library is exported" \
+  "$inplace/external/libd3dshared.dylib" "${CX_APPLEGPTK_LIBD3DSHARED_PATH:-}"
+is "the backend is found" "" "$np_backend_missing"
+mv "$np_support/runners/gptk-9.9" "$work/gptk-9.9"
+np_gptk=""; np_backend_missing=""
+eval "$d3d_case"
+is "a copied toolkit supplies it too" \
+  "$np_support/runners/gptk-8.8/lib/external" "$np_gptk"
+rm -rf "$np_support/runners/gptk-8.8"
+np_gptk=""; np_backend_missing=""
+eval "$d3d_case"
+is "no toolkit is reported missing" "1" "$np_backend_missing"
+mv "$work/gptk-9.9" "$np_support/runners/gptk-9.9"
+
 echo "== Rosetta-only settings on arm64 Wine =="
 drop=$(sed -n '/^np_dropped=""$/,/^fi$/p' "$SRC")
 [ -n "$drop" ] || { echo "FAIL: the arm64 settings block was not found"; exit 1; }

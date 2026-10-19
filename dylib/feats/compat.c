@@ -824,7 +824,9 @@ int np_compat_apply_requests_from(void *compat_mgr, const char *path) {
     if (!compat_mgr || !path || !g_set_mapping) return 0;
     char taken[600];
     snprintf(taken, sizeof(taken), "%s.applying", path);
-    if (rename(path, taken) != 0) return 0;
+    // A crash between rename and unlink leaves a taken file holding requests that
+    // were never applied; it is picked up here on the next pass
+    if (rename(path, taken) != 0 && access(taken, F_OK) != 0) return 0;
 
     FILE *f = fopen(taken, "r");
     if (!f) {

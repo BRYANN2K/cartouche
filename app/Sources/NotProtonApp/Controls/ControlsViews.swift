@@ -1,6 +1,3 @@
-// Controls in the game panel, the Controls sheet, and Settings > Controllers,
-// as launcher.html's openControls and SETTINGS.Controllers.
-
 import SwiftUI
 
 // The game panel's Controls group: the controller, who handles the layout, Customize…
@@ -35,6 +32,8 @@ struct ControlsRow: View {
                 Button("Customize…") { center.present(game) }.controlSize(.small)
             }
         }
+        .onAppear { center.monitor.batteryShown(true) }
+        .onDisappear { center.monitor.batteryShown(false) }
     }
 }
 
@@ -299,5 +298,7 @@ struct ControllersSettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .onAppear { center.monitor.batteryShown(true) }
+        .onDisappear { center.monitor.batteryShown(false) }
     }
 }

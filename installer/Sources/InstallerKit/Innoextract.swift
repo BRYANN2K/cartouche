@@ -17,7 +17,10 @@ public enum Innoextract {
     ) -> String? {
         let fm = FileManager.default
         var candidates: [String] = []
+        #if DEBUG
+        // Debug/test override only: a release build must not run an arbitrary binary from env.
         if let forced = environment["CARTOUCHE_INNOEXTRACT"], !forced.isEmpty { candidates.append(forced) }
+        #endif
         candidates += bundled.map { $0.path(percentEncoded: false) }
         candidates += fallbacks
         return candidates.first { fm.isExecutableFile(atPath: $0) }
@@ -39,8 +42,15 @@ public protocol ToolRunning: Sendable {
     func run(_ tool: String, _ arguments: [String]) throws -> String
 }
 
+public struct ToolTimedOut: Error, Sendable {
+    public let tool: String
+}
+
 public struct ProcessToolRunner: ToolRunning {
-    public init() {}
+    public init(timeout: TimeInterval = 120) { self.timeout = timeout }
+
+    // innoextract --list on a damaged archive can run forever; bound it.
+    public let timeout: TimeInterval
 
     public func run(_ tool: String, _ arguments: [String]) throws -> String {
         let p = Process()
@@ -51,7 +61,18 @@ public struct ProcessToolRunner: ToolRunning {
         p.standardError = out
         p.standardInput = FileHandle.nullDevice
         try p.run()
-        let data = out.fileHandleForReading.readDataToEndOfFile()
+        nonisolated(unsafe) var data = Data()
+        let done = DispatchGroup()
+        done.enter()
+        DispatchQueue.global().async {
+            data = out.fileHandleForReading.readDataToEndOfFile()
+            done.leave()
+        }
+        if done.wait(timeout: .now() + timeout) == .timedOut {
+            p.terminate()
+            _ = done.wait(timeout: .now() + 5)
+            throw ToolTimedOut(tool: tool)
+        }
         p.waitUntilExit()
         return String(decoding: data, as: UTF8.self)
     }

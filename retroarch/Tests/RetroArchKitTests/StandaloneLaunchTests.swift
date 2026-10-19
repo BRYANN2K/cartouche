@@ -159,4 +159,21 @@ struct StandaloneLaunchTests {
         }
         #expect(await !player.isPlaying)
     }
+
+    // Exit 0 in the startup window means a single-instance emulator handed the
+    // game to a copy already open: the session is over before it started
+    @Test func anEmulatorThatHandsOffIsNotPlaying() async throws {
+        let work = try scratchFolder("handoff")
+        defer { try? FileManager.default.removeItem(at: work) }
+        try FakeEmulators.app("PCSX2", in: work, bundleID: "net.pcsx2.pcsx2", version: "2.6.3")
+        let installed = try #require(EmulatorDetector(folders: [work]).installed().first)
+        var environment = ProcessInfo.processInfo.environment
+        environment[FakeEmulators.exitKey] = "0"
+        let player = StandalonePlayer(emulator: installed, environment: environment)
+        await #expect(throws: StandaloneError.handedOff(emulator: "PCSX2")) {
+            try await player.play(PlayRequest(core: installed.executable, content: work.appending(path: "game.iso")))
+        }
+        #expect(await !player.isPlaying)
+        #expect(await player.ended() == nil)
+    }
 }

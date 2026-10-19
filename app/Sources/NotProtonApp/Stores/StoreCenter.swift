@@ -89,12 +89,17 @@ final class StoreCenter {
     @ObservationIgnored var showSignIn: @MainActor () -> Void = {}
     // What Cartouche does once a game starts, from Settings > General
     @ObservationIgnored var afterLaunch: @MainActor () -> Void = {}
+    // The connections before a sign-in put them on .waiting, restored on cancel
+    // or failure so a cancelled sign-in is not a sign-out.
+    @ObservationIgnored private var priorConnections: [GameSource: StoreConnection] = [:]
+    // The running game and its companion processes, for Stop
+    @ObservationIgnored private var processes: [String: [StoreProcess]] = [:]
+    // Games whose art lookup found nothing, persisted per store
+    @ObservationIgnored private var noArt: [GameSource: [String: Date]] = [:]
     @ObservationIgnored var runners: URL = SupportPaths.runners
     @ObservationIgnored var backends: URL = BackendInstaller.folder
     // The variables a game gets besides Wine's own, never the app's environment
-    @ObservationIgnored var gameEnvironment: [String: String] = [
-        "HOME": SupportPaths.home.path(percentEncoded: false), "PATH": "/usr/bin:/bin:/usr/sbin:/sbin", "LANG": "en_US.UTF-8",
-    ]
+    @ObservationIgnored var gameEnvironment: [String: String] = SetupEnvironment.base
     @ObservationIgnored var now: () -> Date = { Date() }
     // The compatibility data's Steam App ID for a title, for the estimate; set by the app
     @ObservationIgnored var matchAppID: @MainActor (String) -> Int? = { _ in nil }
@@ -133,12 +138,12 @@ final class StoreCenter {
 
     // MARK: Start
 
-    // Accounts from the vault, games from the last listing, then a fresh listing
     func start(refresh: Bool = true) async {
         await secrets.sweep()
         for store in Self.stores {
             games[store] = folders.loadLibrary(store)
             for record in folders.loadRecords(store) { installed[record.gameID] = record }
+            noArt[store] = folders.loadArtMisses(store)
             let secret = try? await secrets.secret(store)
             if let secret, let adapter = adapters[store] {
                 connections[store] = adapter.isExpired(secret, now: now()) ? .expired(account: secret.account) : .connected(account: secret.account)
@@ -156,12 +161,15 @@ final class StoreCenter {
     func beginSignIn(_ store: GameSource) async {
         guard let adapter = adapters[store] else { return }
         signIn = SignInSession(store: store, state: .preparing)
+        if !connections.keys.contains(store) || connections[store] != .waiting {
+            priorConnections[store] = connections[store] ?? .notConnected
+        }
         connections[store] = .waiting
         publish()
         showSignIn()
         do {
-            // A new sign-in starts from no tokens: nile refuses to register over a saved one
-            try await secrets.forget(store)
+            // The sign-in runs the client with an empty folder (fresh:); the
+            // saved tokens stay in the vault until the new session lands.
             let page = try await adapter.signInPage()
             if signIn?.store == store { signIn?.state = .waiting(page) }
         } catch {
@@ -186,6 +194,7 @@ final class StoreCenter {
             let account = try await adapter.finishSignIn(code: code)
             try await secrets.remember(account: account, for: store)
             lastSignIn = (now(), nil)
+            priorConnections[store] = nil
             connections[store] = .connected(account: account)
             signIn = nil
             library?.selection = .source(store)
@@ -200,13 +209,13 @@ final class StoreCenter {
     func cancelSignIn() {
         guard let session = signIn else { return }
         signIn = nil
-        if connections[session.store] == .waiting { connections[session.store] = .notConnected }
+        if connections[session.store] == .waiting { connections[session.store] = priorConnections[session.store] ?? .notConnected }
         publish()
     }
 
     private func fail(_ store: GameSource, _ error: Error) {
         if signIn?.store == store { signIn?.state = .failed(error.localizedDescription) }
-        if connections[store] == .waiting { connections[store] = .notConnected }
+        if connections[store] == .waiting { connections[store] = priorConnections[store] ?? .notConnected }
         publish()
     }
 
@@ -241,17 +250,39 @@ final class StoreCenter {
 
     private func findArt(_ store: GameSource) async {
         guard let adapter = adapters[store] else { return }
-        let missing = (games[store] ?? []).filter { $0.art == nil }
+        // A remembered miss is skipped for a month, then tried again.
+        let stale = now().addingTimeInterval(-30 * 24 * 3600)
+        var misses = noArt[store] ?? [:]
+        let missing = (games[store] ?? []).filter { $0.art == nil && (misses[$0.id] ?? .distantPast) <= stale }
         guard !missing.isEmpty else { return }
-        var found: [String: URL] = [:]
-        for game in missing.prefix(200) {
-            if let url = await adapter.artURL(game) { found[game.id] = url }
-        }
+        // The lookups can hit the network and take seconds; off the main actor.
+        let found = await Self.findArt(for: Array(missing.prefix(200)), adapter: adapter)
+        for game in missing where found[game.id] == nil { misses[game.id] = now() }
+        for id in found.keys { misses[id] = nil }
+        noArt[store] = misses
+        try? folders.saveArtMisses(misses, for: store)
         guard !found.isEmpty, var list = games[store] else { return }
         for i in list.indices { if let url = found[list[i].id] { list[i].art = url } }
         games[store] = list
         try? folders.saveLibrary(list, for: store)
         publish()
+    }
+
+    // Six requests at a time: enough for a library page, gentle on GOG's API.
+    private nonisolated static func findArt(for missing: [StoreGame], adapter: any StoreAdapter) async -> [String: URL] {
+        await withTaskGroup(of: (String, URL?).self) { group in
+            var found: [String: URL] = [:]
+            var iterator = missing.makeIterator()
+            for _ in 0..<6 {
+                guard let game = iterator.next() else { break }
+                group.addTask { (game.id, await adapter.artURL(game)) }
+            }
+            while let (id, url) = await group.next() {
+                if let url { found[id] = url }
+                if let game = iterator.next() { group.addTask { (game.id, await adapter.artURL(game)) } }
+            }
+            return found
+        }
     }
 
     func handle(_ error: Error, store: GameSource) {
@@ -355,9 +386,14 @@ final class StoreCenter {
     }
 
     func uninstall(_ game: Game) async {
-        guard let adapter = adapters[game.source], let record = installed[game.id], !playing.contains(game.id) else { return }
+        guard let adapter = adapters[game.source], let record = installed[game.id],
+              !playing.contains(game.id), job(for: game.id) == nil else { return }
         do {
-            if !record.imported { try await adapter.uninstall(record.id, install: record.install) }
+            if record.imported {
+                try await adapter.forget(record.id)
+            } else {
+                try await adapter.uninstall(record.id, install: record.install)
+            }
             try? FileManager.default.removeItem(at: record.folder)
             folders.remove(record)
             installed[game.id] = nil
@@ -367,7 +403,6 @@ final class StoreCenter {
         }
     }
 
-    // Stops the running job the activity slot's card shows (P7's slot, P10)
     func stop(_ activity: StoreActivity) {
         guard let job = jobs.first(where: { $0.gameID == activity.gameID && $0.phase == .running }) else { return }
         stop(job)
@@ -376,6 +411,7 @@ final class StoreCenter {
     func stop(_ job: StoreJob) {
         job.task?.cancel()
         if job.phase == .waiting {
+            bodies[job.id] = nil
             jobs.removeAll { $0 === job }
             pump()
         }
@@ -442,7 +478,8 @@ final class StoreCenter {
     }
 
     func play(_ game: Game) {
-        guard let adapter = adapters[game.source], let record = installed[game.id], !playing.contains(game.id) else { return }
+        guard let adapter = adapters[game.source], let record = installed[game.id],
+              !playing.contains(game.id), job(for: game.id) == nil else { return }
         guard let setup = setup(for: game), let runner = setup.runner else {
             problem = String(localized: "Set up a runner in Settings > Compatibility to play \(game.name).")
             return
@@ -466,8 +503,12 @@ final class StoreCenter {
     private func run(_ game: Game, record: StoreInstalledGame, adapter: any StoreAdapter, setup: GameSetup, wine: WineRunner,
                      offline: Bool) async throws {
         var record = record
-        try await makePrefix(record.prefix, wine: wine)
-        StoreGameEnvironment.prepare(setup.backend, prefix: record.prefix, backends: backends)
+        if let create = try WineBootstrap.createRun(wine: wine, prefix: record.prefix, base: gameEnvironment) {
+            guard (try? create.start()) != nil, await create.exitStatus() == 0 else {
+                throw StoreError.failed(String(localized: "The prefix could not be created."))
+            }
+        }
+        SetupEnvironment.prepare(setup.backend, prefix: record.prefix, backends: backends)
 
         let saves = adapter.capabilities.cloudSaves && !offline
         var locations: [SaveLocation] = []
@@ -489,9 +530,16 @@ final class StoreCenter {
             expire(game.source)
             launch = try await adapter.launch(record.id, install: record.install, prefix: record.prefix, offline: true)
         }
-        let env = StoreGameEnvironment.make(wine: wine, prefix: record.prefix, setup: setup, launch: launch,
-                                            backends: backends, base: gameEnvironment)
-        let command = StoreGameEnvironment.command(wine: wine, launch: launch, environment: env)
+        var env = SetupEnvironment.make(wine: wine, prefix: record.prefix, backend: setup.backend,
+                                        environment: setup.environment, backends: backends, base: gameEnvironment)
+        // The store's own variables last; only the names the resolver forwards —
+        // legendary's JSON must not set DYLD_* or HOME on the native loader.
+        env.merge(launch.environment.filter { GameSetupResolver.isAllowed(name: $0.key, value: $0.value) }) { $1 }
+        // arch -x86_64 <wine> <exe> <arguments>, as Windows installs run under Rosetta
+        let command = ClientCommand(executable: URL(filePath: WineInstall.rosetta[0]),
+                                    arguments: Array(WineInstall.rosetta.dropFirst()) + [wine.loader.path(percentEncoded: false),
+                                                                                        launch.executable.path(percentEncoded: false)] + launch.arguments,
+                                    environment: env, currentDirectory: launch.workingDirectory)
         let companion = offline ? nil : try? await adapter.companion(record.id)
         let log = record.folder.appending(path: "game.log")
         let companionLog = record.folder.appending(path: "companion.log")
@@ -499,11 +547,15 @@ final class StoreCenter {
         let body: @Sendable () async throws -> Void = { [wine, env] in
             let helper = try companion.map { try StoreProcess($0, output: companionLog) }
             let process = try StoreProcess(command, output: log)
-            await MainActor.run { self.afterLaunch() }
+            await MainActor.run {
+                self.processes[game.id] = [process] + (helper.map { [$0] } ?? [])
+                self.afterLaunch()
+            }
             _ = await process.wait()
             // The game may have left its launcher behind and kept running in the prefix
             await StoreCenter.waitForWine(wine, environment: env)
             helper?.stop()
+            await MainActor.run { self.processes[game.id] = nil }
         }
         if companion != nil {
             try await secrets.using(game.source, body)
@@ -519,26 +571,29 @@ final class StoreCenter {
                 AppLog.note("store: saves of \(record.gameID) not uploaded: \(error.localizedDescription)")
             }
         }
-        if installed[record.gameID] != nil { keep(record) }
-    }
-
-    // A fresh prefix the first time the game starts, made by the runner of its setup
-    private func makePrefix(_ prefix: URL, wine: WineRunner) async throws {
-        guard !FileManager.default.fileExists(atPath: prefix.appending(path: "system.reg").path(percentEncoded: false)) else { return }
-        try FileManager.default.createDirectory(at: prefix, withIntermediateDirectories: true)
-        let launch = WineInstall.createPrefix(runner: wine, prefix: prefix, base: gameEnvironment)
-        let output = try await ClientProcess.run(ClientCommand(executable: URL(filePath: launch.executable), arguments: launch.arguments,
-                                                               environment: launch.environment))
-        guard output.succeeded else {
-            throw StoreError.failed(String(localized: "The prefix could not be created (status \(output.status))."))
+        // Only the save stamps the session produced change; an update meanwhile
+        // keeps its own record (install.path, version).
+        if var live = installed[record.gameID] {
+            live.saveStamps = record.saveStamps
+            keep(live)
         }
-        let env = WineInstall.environment(runner: wine, prefix: prefix, inputs: nil, base: gameEnvironment)
-        await Self.waitForWine(wine, environment: env)
     }
 
-    // wineserver -w returns once every process of the prefix has exited
+    // wineserver -w returns once every process of the prefix has exited; a stuck
+    // launcher or crash handler gets five minutes, then wineserver -k ends it.
     nonisolated static func waitForWine(_ wine: WineRunner, environment: [String: String]) async {
-        _ = try? await ClientProcess.run(ClientCommand(executable: wine.server, arguments: ["-w"], environment: environment))
+        await WineServer.wait(server: wine.server, env: environment, timeout: 300)
+    }
+
+    // Stop game: ends the game process, then wineserver -k whatever stayed in the
+    // prefix, so the session and its token files close.
+    func stopPlaying(_ game: Game) {
+        guard playing.contains(game.id) else { return }
+        for process in processes[game.id] ?? [] { process.stop() }
+        guard let record = installed[game.id], let setup = setup(for: game), let runner = setup.runner,
+              let wine = InstallRunners.wine(for: runner, runners: runners) else { return }
+        let env = WineInstall.environment(runner: wine, prefix: record.prefix, inputs: nil, base: gameEnvironment)
+        Task { await WineServer.kill(server: wine.server, env: env) }
     }
 }
 
@@ -554,23 +609,5 @@ extension StoreConnection {
     var isExpired: Bool {
         if case .expired = self { return true }
         return false
-    }
-}
-
-extension StoreSecrets {
-    // Drops a store's tokens from the vault and from disk
-    func forget(_ store: GameSource) throws {
-        if let folder = folders[store] {
-            for (_, url) in Self.files(in: folder, matching: patterns[store] ?? []) { try? FileManager.default.removeItem(at: url) }
-        }
-        try vault.delete(store)
-    }
-
-    // Names the account of the tokens a sign-in just saved
-    func remember(account: String, for store: GameSource) throws {
-        setAccount(account, for: store)
-        guard var secret = try vault.read(store) else { throw StoreError.failed(String(localized: "The sign-in left no login token.")) }
-        secret.account = account
-        try vault.write(secret, for: store)
     }
 }

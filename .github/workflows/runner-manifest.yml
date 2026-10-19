@@ -13,19 +13,21 @@ on:
 permissions:
   contents: read
 
+# Same group as compat-data's publish job: both --clobber the compat-data release
 concurrency:
-  group: compat-data-release
+  group: compat-data
   cancel-in-progress: false
 
 jobs:
   publish:
     # macOS because the signer is Sparkle's sign_update, the same tool that signs
-    # the appcast; the key never lands in the repository
+    # the appcast. The release environment gates access to SPARKLE_PRIVATE_KEY.
+    environment: release
     runs-on: macos-latest
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Check it against the published copy
         env:

@@ -95,7 +95,8 @@ struct ConsolesSettingsTests {
         let core = stage.work.appending(path: "snes9x_libretro.dylib")
         let rom = stage.work.appending(path: "Test Cart.sfc")
         let launcher = try #require(model.launcher)
-        let session = try await launcher.play(core: core, content: rom)
+        let session = RetroArchSession(launch: launcher.launch())
+        try await session.start(core: core, content: rom)
         var logged = ""
         for _ in 0..<100 {
             logged = (try? String(contentsOf: stage.argsLog, encoding: .utf8)) ?? ""

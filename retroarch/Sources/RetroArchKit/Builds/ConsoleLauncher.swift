@@ -34,20 +34,4 @@ public struct ConsoleLauncher: Sendable {
         environment["CFFIXED_USER_HOME"] = home.path(percentEncoded: false)
         return environment
     }
-
-    public func play(core: URL, content: URL) async throws -> RetroArchSession {
-        let session = RetroArchSession(launch: launch())
-        if capabilities.mcp {
-            try await session.start()
-            do {
-                try await session.load(core: core, content: content)
-            } catch {
-                _ = await session.stop()
-                throw error
-            }
-        } else {
-            try await session.start(core: core, content: content)
-        }
-        return session
-    }
 }

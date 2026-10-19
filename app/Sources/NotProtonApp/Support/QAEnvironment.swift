@@ -19,15 +19,11 @@ enum QAEnvironment {
 
     #if DEBUG
     static let isSupported = true
-    #else
-    static let isSupported = false
-    #endif
 
     // The QA server address, or nil in a normal run. Only http(s) with a host
     // counts; anything else in the variable is ignored.
     static var base: URL? {
-        guard isSupported else { return nil }
-        return base(from: env(envKey))
+        base(from: env(envKey))
     }
 
     static var isActive: Bool { base != nil }
@@ -122,6 +118,20 @@ enum QAEnvironment {
     private static func env(_ key: String) -> String? {
         getenv(key).map { String(cString: $0) }
     }
+
+    #else
+    static let isSupported = false
+
+    // A release build reads nothing and re-points nothing
+    static var base: URL? { nil }
+    static var isActive: Bool { false }
+    static func base(from raw: String?, supported: Bool = isSupported) -> URL? { nil }
+    static func url(_ url: URL) -> URL { url }
+    static func url(_ url: URL, base: URL?) -> URL { url }
+    static func url(_ raw: String) -> URL? { URL(string: raw) }
+    static func extraHashes(session: URLSession) async -> Set<String> { [] }
+    static func hashes(in data: Data) -> Set<String> { [] }
+    #endif
 }
 
 // RetroArchKit is a separate package and cannot see QAEnvironment, so the app

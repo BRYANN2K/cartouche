@@ -59,6 +59,8 @@
 	<string>NSApplication</string>
 	<key>NSRemovableVolumesUsageDescription</key>
 	<string>Cartouche runs games from folders on external disks.</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
 	<key>SUFeedURL</key>
 	<string>https://github.com/BRYANN2K/cartouche/releases/latest/download/appcast.xml</string>
 	<key>SURequireSignedFeed</key>

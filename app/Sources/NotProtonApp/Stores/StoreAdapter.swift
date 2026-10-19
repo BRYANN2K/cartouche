@@ -16,7 +16,6 @@ struct StoreCapabilities: Equatable, Sendable {
 
     // "legendary", "gogdl and comet", "nile"
     let client: String
-    let downloads: Bool
     let cloudSaves: Bool
     let online: Online
 
@@ -110,6 +109,8 @@ protocol StoreAdapter: Sendable {
     func update(_ id: String, install: StoreInstall, progress: @escaping @Sendable (Double) -> Void) async throws -> StoreInstall
     func verify(_ id: String, install: StoreInstall, progress: @escaping @Sendable (Double) -> Void) async throws
     func uninstall(_ id: String, install: StoreInstall) async throws
+    // Drops an imported game from the client's list; its files are the user's and stay
+    func forget(_ id: String) async throws
     // A folder another launcher installed: the game it holds, registered with the client
     func importGame(at folder: URL, library: [StoreGame]) async throws -> (StoreGame, StoreInstall)
 
@@ -129,6 +130,7 @@ protocol StoreAdapter: Sendable {
 extension StoreAdapter {
     func artURL(_ game: StoreGame) async -> URL? { game.art }
     func companion(_ id: String) async throws -> ClientCommand? { nil }
+    func forget(_ id: String) async throws {}
 }
 
 enum SaveDirection: Sendable { case download, upload }
@@ -145,20 +147,23 @@ struct ClientContext: Sendable {
     var extra: [String: String] = [:]
 
     var environment: [String: String] {
-        var env = ["HOME": home.path(percentEncoded: false), "TMPDIR": temporary.path(percentEncoded: false),
-                   "PATH": "/usr/bin:/bin:/usr/sbin:/sbin", "LANG": "en_US.UTF-8", "LC_ALL": "en_US.UTF-8"]
+        var env = SetupEnvironment.base
+        env["HOME"] = home.path(percentEncoded: false)
+        env["TMPDIR"] = temporary.path(percentEncoded: false)
+        env["LC_ALL"] = "en_US.UTF-8"
         env.merge(extra) { $1 }
         return env
     }
 
+    // `fresh` gives the client an empty folder: a sign-in starts with no tokens.
     func run(_ client: StoreClient, store: GameSource, _ arguments: [String], account: String? = nil,
-             onLine: @escaping @Sendable (String) -> Void = { _ in }) async throws -> ClientOutput {
+             fresh: Bool = false, onLine: @escaping @Sendable (String) -> Void = { _ in }) async throws -> ClientOutput {
         let executable = try await files.ensure(client)
         for dir in [folder, home, temporary] {
             try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
         }
         let command = ClientCommand(executable: executable, arguments: arguments, environment: environment)
-        return try await secrets.using(store, account: account) {
+        return try await secrets.using(store, account: account, fresh: fresh) {
             try await ClientProcess.run(command, onLine: onLine)
         }
     }

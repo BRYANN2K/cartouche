@@ -71,7 +71,7 @@ struct LibraryModelTests {
         #expect(model.screen == .noResults("zelda"))
         #expect(model.title == "Search")
         #expect(model.subtitle == "0 results")
-        #expect(model.toolbarText == "Search, 0 results")
+        #expect("\(model.title), \(model.subtitle)" == "Search, 0 results")
         #expect(!model.screen.showsPanel)
 
         model.searchText = "RING"
@@ -203,8 +203,8 @@ struct LibraryModelTests {
         let model = libraryModel(fixture, defaults: ScratchDefaults())
         #expect(model.screen == .loading)
         #expect(model.subtitle == "Syncing Steam library…")
-        model.fail("The export could not be read.")
-        #expect(model.screen == .failed("The export could not be read."))
+        model.loading = false
+        #expect(model.screen != .loading)
     }
 
     @Test("Recently played, for the status item, newest first")

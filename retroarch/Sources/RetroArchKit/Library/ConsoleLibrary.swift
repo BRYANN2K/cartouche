@@ -58,6 +58,8 @@ public struct ConsoleGame: Codable, Sendable, Equatable, Identifiable {
     public var added: Date
     public var lastPlayed: Date?
     public var playSeconds: Double = 0
+    // The file's CRC32 as identification read it; netplay room matching reuses it
+    public var crc: UInt32?
     public var setup = ConsoleGameSetup()
 
     public init(

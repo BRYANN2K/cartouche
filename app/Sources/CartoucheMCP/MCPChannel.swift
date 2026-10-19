@@ -2,11 +2,15 @@ import Foundation
 import RetroArchKit
 
 public enum MCPChannelError: LocalizedError {
+    // connect() failed: nothing was sent, so a retry launches the app.
     case unreachable(String)
+    // The request went out, then the connection died: replaying it could run
+    // the tool twice, so callers must not retry this one.
+    case broken(String)
 
     public var errorDescription: String? {
         switch self {
-        case .unreachable(let detail): detail
+        case .unreachable(let detail), .broken(let detail): detail
         }
     }
 }
@@ -23,12 +27,8 @@ public protocol MCPRequestChannel: Sendable {
 public enum MCPUnreachable {
 
     public static func reply(to request: Data, reason: String) -> Data {
-        let id = (try? JSONDecoder().decode(JSONValue.self, from: request))?["id"] ?? .null
-        let reply: JSONValue = [
-            "jsonrpc": "2.0",
-            "id": id,
-            "error": ["code": .number(-32000), "message": .string(reason)],
-        ]
+        let message = (try? JSONDecoder().decode(JSONValue.self, from: request)) ?? .object([:])
+        let reply = MCPServer.reply(to: message, error: (-32000, reason))
         return (try? JSONEncoder().encode(reply)) ?? Data()
     }
 

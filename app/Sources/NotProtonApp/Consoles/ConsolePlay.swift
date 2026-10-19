@@ -1,7 +1,3 @@
-// Playing a console game: Play, Resume or a Continue From slot starts it in
-// RetroArch with the panel's setup; Quit ends it with an auto state and adds
-// the session to the game's play time.
-
 import Foundation
 import RetroArchKit
 
@@ -15,20 +11,34 @@ protocol ConsoleRunning: Sendable {
     func quit() async -> PlayReport
     // RetroArch quit by itself: what was played
     func ended() async -> PlayReport?
+    // Resolves once the game's process ends
+    func waitForExit() async
     // Cartouche is quitting
     func leaveForTermination() async -> PlayReport
-    // The process the game runs in, for the session record; nil when untold
     var processIdentifier: Int32? { get async }
 }
 
 extension ConsoleRunning {
     func leaveForTermination() async -> PlayReport { await quit() }
+    func waitForExit() async { try? await Task.sleep(for: .seconds(1)) }
     var processIdentifier: Int32? { nil }
 }
 
-extension ConsolePlayer: ConsoleRunning {}
+extension ConsolePlayer: ConsoleRunning {
+    var processIdentifier: Int32? {
+        get async { await session?.processIdentifier }
+    }
 
-// What P14's extras ask of the running game. A stand-in that has none of
+    func waitForExit() async {
+        if let session {
+            await session.waitUntilExit()
+        } else {
+            try? await Task.sleep(for: .milliseconds(100))
+        }
+    }
+}
+
+// What the extras ask of the running game. A stand-in that has none of
 // them answers as a build without the MCP server would.
 protocol ConsoleExtrasRunning {
     func log(since: Int) async throws -> (lines: [String], next: Int)
@@ -83,13 +93,35 @@ extension ConsoleCenter {
 
     func console(of game: ConsoleGame) -> Console? { ConsoleCatalog.console(game.console) }
 
-    func states(for game: ConsoleGame) -> [SaveState] {
-        _ = statesChanged
-        return SaveStates.list(for: game, in: paths)
+    // Answered once per statesChanged bump; a miss is read off the main thread
+    func states(for game: ConsoleGame) async -> [SaveState] {
+        if let cached = statesCache[game.id], cached.stamp == statesChanged { return cached.states }
+        let stamp = statesChanged
+        let paths = paths
+        let states = await Task.detached { SaveStates.list(for: game, in: paths) }.value
+        statesCache[game.id] = (stamp, states)
+        return states
     }
 
-    func bios(for game: ConsoleGame) -> BIOSStatus? {
-        console(of: game).map { BIOSChecker(paths: paths).status(for: $0) }
+    // Same for the BIOS: the folder's size and mtime stamp invalidates, and
+    // the MD5s run off the main thread
+    func bios(for game: ConsoleGame) async -> BIOSStatus? {
+        guard let console = console(of: game) else { return nil }
+        let paths = paths
+        let stamp = await Task.detached { Self.biosStamp(in: paths.bios) }.value
+        if let cached = biosCache[game.id], cached.stamp == stamp { return cached.status }
+        let status = await Task.detached { BIOSChecker(paths: paths).status(for: console) }.value
+        biosCache[game.id] = (stamp, status)
+        return status
+    }
+
+    nonisolated static func biosStamp(in folder: URL) -> String {
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: folder.path(percentEncoded: false))) ?? []
+        return names.sorted().map { name -> String in
+            let values = try? folder.appending(path: name)
+                .resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey])
+            return "\(name)=\(values?.fileSize ?? -1)@\(values?.contentModificationDate?.timeIntervalSince1970 ?? 0)"
+        }.joined(separator: ",")
     }
 
     func isPlaying(_ id: String) -> Bool { playing?.gameID == id }
@@ -135,7 +167,7 @@ extension ConsoleCenter {
             await playStandalone(game, in: installed, reduceMotion: reduceMotion)
             return
         }
-        if let bios = bios(for: game), !bios.isReady {
+        if let bios = await bios(for: game), !bios.isReady {
             playing = nil
             problem = bios.message
             return
@@ -154,12 +186,10 @@ extension ConsoleCenter {
                 try await cores.install(core)
                 coreURL = try await cores.ready(core)
             }
-            // After a standalone emulator, RetroArch's player is made again
-            if runner == nil {
-                if settings.capabilities == nil { await settings.refresh() }
-                runner = makeRunner(settings)
-                if !playerExtra.isEmpty, let player = runner as? ConsolePlayer { await player.setExtra(playerExtra) }
-            }
+            // A fresh player each play: the Settings > Consoles build applies at once
+            if settings.capabilities == nil { await settings.refresh() }
+            runner = makeRunner(settings)
+            if !playerExtra.isEmpty, let player = runner as? ConsolePlayer { await player.setExtra(playerExtra) }
             guard let runner else { throw RetroArchSessionError.notRunning }
             var request = PlayRequest(core: coreURL, content: game.fileURL)
             // Hardcore forbids states: the game starts from the beginning
@@ -171,7 +201,10 @@ extension ConsoleCenter {
             request.disc = game.isMultiDisc ? min(game.setup.disc, game.discs.count - 1) : 0
             request.netplay = netplay
             extras.apply(to: &request, game: game)
-            if extras.cloudSaves { try extras.cloud.ensure() }
+            if extras.cloudSaves {
+                let cloud = extras.cloud
+                try await Task.detached { try cloud.ensure() }.value
+            }
             try await runner.play(request)
             playing = Playing(gameID: id, phase: .playing)
             await beginRecord(gameID: id, emulator: nil)
@@ -205,22 +238,28 @@ extension ConsoleCenter {
         let finished = DispatchSemaphore(value: 0)
         Task.detached {
             let report = await runner.leaveForTermination()
-            let seconds = Double(report.played.components.seconds) + Double(report.played.components.attoseconds) / 1e18
             try? await store.update(id) { game in
-                game.playSeconds += seconds
+                game.playSeconds += report.played.seconds
                 game.lastPlayed = date
             }
             finished.signal()
         }
-        _ = finished.wait(timeout: .now() + limit)
-        endRecord()
+        if finished.wait(timeout: .now() + limit) == .success {
+            endRecord()
+        } else {
+            // RetroArch outlasted the wait: keep the record so the next launch
+            // counts this session, its heartbeat stamped for now
+            heartbeat?.cancel()
+            heartbeat = nil
+            sessions.heartbeat()
+        }
         playing = nil
         powerOn = nil
     }
 
     func finish(_ report: PlayReport) async {
         guard let id = playing?.gameID else { return }
-        let seconds = Double(report.played.components.seconds) + Double(report.played.components.attoseconds) / 1e18
+        let seconds = report.played.seconds
         let date = now()
         try? await store.update(id) { game in
             game.playSeconds += seconds
@@ -275,6 +314,8 @@ extension ConsoleCenter {
     // the last heartbeat. Whoever holds the pid now is never signaled.
     func reattachOrphaned() async {
         guard playing == nil else { return }
+        // A killed Cartouche may have left the RetroAchievements token on disk
+        ConsolePlayer.scrubSecrets(in: paths)
         sessions.clearUnreadable()
         guard let record = sessions.read() else { return }
         if sessions.isSameProcess(record) {
@@ -301,12 +342,15 @@ extension ConsoleCenter {
         watchPlay?.cancel()
         watchPlay = Task { [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(1))
                 guard let self, let runner = self.runner, self.playing != nil else { return }
+                await runner.waitForExit()
+                guard !Task.isCancelled, self.playing != nil else { return }
                 if let report = await runner.ended() {
                     await self.finish(report)
                     return
                 }
+                // A quit already under way: its finish() clears `playing`
+                try? await Task.sleep(for: .seconds(1))
             }
         }
     }
@@ -316,4 +360,8 @@ extension ConsoleCenter {
         guard case .image(let url) = covers.local(for: libraryGame(game), kind: .hero, override: nil) else { return nil }
         return url
     }
+}
+
+private extension Duration {
+    var seconds: TimeInterval { Double(components.seconds) + Double(components.attoseconds) / 1e18 }
 }

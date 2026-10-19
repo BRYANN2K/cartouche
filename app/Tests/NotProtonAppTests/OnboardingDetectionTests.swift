@@ -57,7 +57,8 @@ struct OnboardingDetectionTests {
     @Test("A source still reading at the deadline does not hold the list back")
     func deadline() async {
         let scan = MacScan(
-            steam: { Thread.sleep(forTimeInterval: 5); return FoundSteam(account: "late", games: 1) },
+            // Never answers — the scan's deadline is what brings the list back
+            steam: { await withCheckedContinuation { (_: CheckedContinuation<FoundSteam?, Never>) in } },
             crossOver: { [FoundRunner(name: "CrossOver 26.3")] },
             portingToolkit: { [] },
             controllers: { [] },

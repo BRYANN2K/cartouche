@@ -18,7 +18,8 @@ struct FakeInstall {
     let runner: Runner
 
     // behavior: "ok" writes a game and a clean log, "unarc" writes the decompression error, "hang" sleeps.
-    init(_ label: String, behavior: String = "ok") throws {
+    // withManifest adds a sparse 400 MB part and a real checksums.md5 for it.
+    init(_ label: String, behavior: String = "ok", withManifest: Bool = false) throws {
         work = try scratchDirectory(label)
         runners = work.appending(path: "runners")
         installs = work.appending(path: "installs")
@@ -30,11 +31,27 @@ struct FakeInstall {
         let fm = FileManager.default
         try fm.createDirectory(at: source.appending(path: "MD5"), withIntermediateDirectories: true)
         let trapScript = "#!/bin/sh\ntouch '\(trap.path)'\n"
-        for name in ["setup.exe", "data-01.bin", "data-02.bin"] {
-            try Data(trapScript.utf8).write(to: source.appending(path: name))
+        var names = ["setup.exe", "data-01.bin", "data-02.bin"]
+        if withManifest {
+            // Sparse: verifying 400 MB gives a window long enough to stop in.
+            let big = source.appending(path: "data-03.bin")
+            fm.createFile(atPath: big.path, contents: nil)
+            try FileHandle(forWritingTo: big).truncateFile(atOffset: 400 << 20)
+            names.append("data-03.bin")
+        }
+        for name in names {
+            if !(withManifest && name == "data-03.bin") {
+                try Data(trapScript.utf8).write(to: source.appending(path: name))
+            }
             try fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: source.appending(path: name).path)
         }
-        try Data("; checksums\n".utf8).write(to: source.appending(path: "MD5/checksums.md5"))
+        var sums = "; checksums\n"
+        if withManifest {
+            for name in names {
+                sums += "\(try Checksums.md5(of: source.appending(path: name))) *..\\\(name)\n"
+            }
+        }
+        try Data(sums.utf8).write(to: source.appending(path: "MD5/checksums.md5"))
 
         let root = SupportPaths.clonedRoot(forBuild: runner.id, runners: runners)
         let server = root.appending(path: "bin/wineserver")
@@ -74,14 +91,20 @@ struct FakeInstall {
         engine.environment = ["PATH": "/usr/bin:/bin"]
         engine.policy = InstallRun.Policy(interval: 0.2, stuckAfter: stuckAfter)
         engine.keepAwake = false
-        engine.winetricks = { verbs, _, _, _ in winetricks.add(verbs) }
+        engine.winetricks = { verbs, _, _, _ in
+            winetricks.add(verbs)
+            return InstallRun(InstallLaunch(executable: "/bin/sh", arguments: ["-c", "exit 0"], environment: [:]))
+        }
         return engine
     }
 
-    func request() -> InstallRequest {
-        let files = ["setup.exe", "data-01.bin", "data-02.bin", "MD5/checksums.md5"].map { source.appending(path: $0) }
+    func request(manifest: Bool = false) -> InstallRequest {
+        var files = ["setup.exe", "data-01.bin", "data-02.bin", "MD5/checksums.md5"]
+        if manifest { files.append("data-03.bin") }
+        let urls = files.map { source.appending(path: $0) }
+        let parsed = manifest ? try? Checksums.parse(source.appending(path: "MD5/checksums.md5")) : nil
         return InstallRequest(setup: source.appending(path: "setup.exe"), source: source, name: "Sample Game", appID: 632_470,
-                              gogID: nil, expectedBytes: 1_200_000, installerBytes: 10_000, installerFiles: files, manifest: nil)
+                              gogID: nil, expectedBytes: 1_200_000, installerBytes: 10_000, installerFiles: urls, manifest: parsed ?? nil)
     }
 
     func calledWith() -> [String] {
@@ -100,6 +123,7 @@ final class VerbLog: @unchecked Sendable {
 final class RecordingNotifier: InstallNotifying {
     var posted: [String] = []
     func installed(name: String, job: UUID) { posted.append(String(localized: "\(name) is installed")) }
+    func failed(name: String, job: UUID) { posted.append("failed \(name)") }
 }
 
 @MainActor
@@ -247,6 +271,43 @@ struct InstallFlowTests {
         center.sheet.retry(.lessMemory)
         #expect(job.inputs.memoryPercent == 50)
         #expect(await waitFor { job.phase == .failed && fake.calledWith().count == 4 })
+    }
+
+    @Test("Stop while the checksums verify: the job ends stopped before Wine ever runs")
+    func stopDuringVerify() async throws {
+        let fake = try FakeInstall("flow-verify-stop", withManifest: true)
+        let center = InstallCenter(engine: fake.engine(winetricks: VerbLog()), notifier: RecordingNotifier())
+        var inputs = InstallInputs(runnerID: fake.runner.id, gameName: "Sample Game")
+        inputs.verifyFirst = true
+        let job = InstallJob(request: fake.request(manifest: true), inputs: inputs)
+        center.sheet.show(job)
+        center.enqueue(job)
+        #expect(await waitFor { job.phase == .verifying })
+        center.stop(job)
+        #expect(await waitFor { job.phase == .stopped })
+        #expect(!FileManager.default.fileExists(atPath: fake.calls.path))
+    }
+
+    @Test("Retry and requeue on a running job do nothing, so no second run starts")
+    func retryWhileRunning() async throws {
+        let fake = try FakeInstall("flow-retry-run", behavior: "hang")
+        let center = InstallCenter(engine: fake.engine(winetricks: VerbLog()), notifier: RecordingNotifier())
+        let job = InstallJob(request: fake.request(), inputs: InstallInputs(runnerID: fake.runner.id, gameName: "Sample Game"))
+        center.sheet.show(job)
+        center.enqueue(job)
+        // wineboot, then the installer itself
+        #expect(await waitFor { job.phase == .installing && fake.calledWith().count == 2 })
+        let before = fake.calledWith().count
+        center.retry(job, with: .lessMemory)
+        center.retry(job, fixes: [.lessMemory, .fewerThreads])
+        center.requeue(job)
+        // Asserting nothing happened needs a beat; the hang gives 30 s of slack.
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(job.phase == .installing)
+        #expect(job.tried.isEmpty)
+        #expect(fake.calledWith().count == before)
+        center.stop(job)
+        #expect(await waitFor { job.phase == .stopped })
     }
 }
 

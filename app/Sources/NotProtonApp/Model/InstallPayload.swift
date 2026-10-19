@@ -12,7 +12,7 @@ enum InstallPayload {
         let appinfo: URL
         let run: URL
         let builtAt: Int64
-        // Optional: a payload staged before P8 has no frame counter, and games then run unmeasured
+        // Optional: a payload staged before the frame counter existed has none, and games then run unmeasured
         let fpsCounter: URL?
 
         let signatures: [URL]

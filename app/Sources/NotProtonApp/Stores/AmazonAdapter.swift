@@ -14,13 +14,9 @@ struct AmazonAdapter: StoreAdapter {
 
     static let tokenFiles = ["nile/current_user.json", "nile/*.enc"]
 
-    // nile 1.2.0's commands, from nile/arguments.py. Cloud saves would need one.
-    static let commands: Set<String> = ["auth", "register", "library", "install", "update", "verify", "list-updates",
-                                        "launch", "uninstall", "import"]
-
     var capabilities: StoreCapabilities {
-        StoreCapabilities(client: "nile", downloads: true, cloudSaves: Self.commands.contains("sync-saves"),
-                          online: .notSupported)
+        // nile 1.2.0 has no cloud save command (nile/arguments.py)
+        StoreCapabilities(client: "nile", cloudSaves: false, online: .notSupported)
     }
 
     // The sign-in nile prepared, kept in memory until Amazon hands over the code
@@ -34,7 +30,8 @@ struct AmazonAdapter: StoreAdapter {
     }
 
     func signInPage() async throws -> SignInPage {
-        let output = try await nile(["auth", "--login", "--non-interactive"])
+        // fresh: nile refuses to register a device over saved tokens
+        let output = try await nile(["auth", "--login", "--non-interactive"], fresh: true)
         guard let json = StoreJSON.object(output.stdout),
               let page = (json["url"] as? String).flatMap(URL.init(string:)),
               let client = json["client_id"] as? String, let verifier = json["code_verifier"] as? String,
@@ -59,7 +56,7 @@ struct AmazonAdapter: StoreAdapter {
             throw StoreError.failed(String(localized: "The Amazon sign-in took too long. Try again."))
         }
         pending.set(nil)
-        _ = try await nile(["register", "--code", code, "--client-id", client, "--code-verifier", verifier, "--serial", serial])
+        _ = try await nile(["register", "--code", code, "--client-id", client, "--code-verifier", verifier, "--serial", serial], fresh: true)
         guard let user = try await context.secrets.secret(.amazon)?.files["nile/current_user.json"],
               let json = try? JSONSerialization.jsonObject(with: user) as? [String: Any] else {
             throw StoreError.failed(String(localized: "Amazon did not accept the sign-in. Try again."))
@@ -157,8 +154,9 @@ struct AmazonAdapter: StoreAdapter {
 
     // MARK: Running nile
 
-    private func nile(_ arguments: [String], progress: (@Sendable (Double) -> Void)? = nil) async throws -> ClientOutput {
-        try await context.run(.nile, store: .amazon, arguments) { line in
+    private func nile(_ arguments: [String], fresh: Bool = false,
+                      progress: (@Sendable (Double) -> Void)? = nil) async throws -> ClientOutput {
+        try await context.run(.nile, store: .amazon, arguments, fresh: fresh) { line in
             if let fraction = ClientProgress.fraction(line) { progress?(fraction) }
         }
     }

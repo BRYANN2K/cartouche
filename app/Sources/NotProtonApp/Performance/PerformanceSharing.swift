@@ -1,4 +1,4 @@
-// Opt-in sharing of a session's frame rate (P8). Off by default in Settings > Privacy.
+// Opt-in sharing of a session's frame rate. Off by default in Settings > Privacy.
 // A report carries the Mac (chip, memory, macOS version), the setup, the game's
 // settings and the FPS, and nothing else: no account, no path, no Steam ID.
 
@@ -79,7 +79,10 @@ struct PerformanceSharing: Sendable {
     // The address for one game's reports; the game is in the address, not the body
     var endpoint: (@Sendable (Int) -> URL)? = PerformanceSharing.macGamingDB
     var send: @Sendable (URLRequest) async throws -> Void = { request in
-        _ = try await URLSession.shared.data(for: request)
+        let (_, response) = try await URLSession.shared.data(for: request)
+        guard let status = (response as? HTTPURLResponse)?.statusCode, (200...299).contains(status) else {
+            throw URLError(.badServerResponse)
+        }
     }
     var mac: @Sendable () -> PerformanceReport.Mac = { PerformanceReport.Mac.current() }
 

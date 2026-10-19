@@ -2,10 +2,10 @@ import Foundation
 import RetroArchKit
 import UserNotifications
 
-// The P15 controls tools (mockup/MCP.md, "Contrôles"): the agent reads and
-// writes the same GameControls the Controls sheet does, so an SDL mapping, a
-// RetroArch remap or the Mac driver keys land exactly where a user's choice
-// would. Steam games stay refused — Steam Input owns their layout.
+// The controls tools: the agent reads and writes the same GameControls the
+// Controls sheet does, so an SDL mapping, a RetroArch remap or the Mac
+// driver keys land exactly where a user's choice would. Steam games stay
+// refused — Steam Input owns their layout.
 struct AgentControls: AgentToolProvider {
 
     func tools() -> [AgentTool] {
@@ -33,9 +33,9 @@ struct AgentControls: AgentToolProvider {
                 detail: "Who handles the game's layout (steam_input, cartouche "
                     + "or retroarch) and the current choices: button mapping, "
                     + "keyboard options, key remaps and Play with a controller.",
-                schema: gameArg(),
+                schema: AgentTools.gameArg(),
                 run: { backend, args in
-                    let game = try find(backend, args)
+                    let game = try AgentTools.find(backend, args)
                     let controls = backend.gameControls(game.id)
                     var out: [String: JSONValue] = [
                         "game": .string(game.name),
@@ -79,7 +79,7 @@ struct AgentControls: AgentToolProvider {
                 ]),
                 level: .standard, readOnly: false,
                 run: { backend, args in
-                    let game = try find(backend, args)
+                    let game = try AgentTools.findStrict(backend, args)
                     guard ControlsHandler(game) != .steamInput else {
                         throw AgentToolError("Steam Input handles \(game.name)'s layout; "
                             + "change it in Steam, on the game's page")
@@ -123,7 +123,7 @@ struct AgentControls: AgentToolProvider {
                 ]),
                 level: .standard, readOnly: false,
                 run: { backend, args in
-                    let game = try find(backend, args)
+                    let game = try AgentTools.findStrict(backend, args)
                     guard ControlsHandler(game) != .retroArch else {
                         throw AgentToolError("\(game.name) is a console game; "
                             + "it has no Windows keyboard options")
@@ -156,7 +156,7 @@ struct AgentControls: AgentToolProvider {
                 ]),
                 level: .standard, readOnly: false,
                 run: { backend, args in
-                    let game = try find(backend, args)
+                    let game = try AgentTools.findStrict(backend, args)
                     let on = args["on"]?.bool ?? true
                     guard ControlsHandler(game) != .retroArch else {
                         throw AgentToolError("\(game.name) is a console game; "
@@ -215,59 +215,49 @@ struct AgentControls: AgentToolProvider {
         ])
     }
 
-    // The provider's tools see AgentTools' own helpers.
-    @MainActor private func find(_ backend: AgentBackend, _ args: JSONValue) throws -> Game {
-        try AgentTools.find(backend, args)
-    }
-
-    private func gameArg() -> JSONValue {
-        .object([
-            "type": "object",
-            "properties": .object(["game": ["type": "string"]]),
-            "required": ["game"],
-        ])
-    }
 }
 
 // Approval alerts outside the app window: "Claude wants to…" with Allow/Deny.
 // The answer itself always goes through AgentService.answer — a notification
-// tap just brings the app forward; the buttons answer directly.
-final class AgentNotifier: NSObject, UNUserNotificationCenterDelegate, @unchecked Sendable {
+// tap just brings the app forward; the buttons answer directly. Everything goes
+// through NotificationRouter, the app's one notification delegate.
+enum AgentNotifier {
 
     static let category = "CARTOUCHE_AGENT_APPROVAL"
-    static let shared = AgentNotifier()
-    // The live answer hop; tests swap it. Only touched on the main actor.
+    static let allowAction = "allow"
+    static let denyAction = "deny"
+
+    // Answered in the app or timed out: the alert goes away. The center only exists in an .app bundle.
+    static func dismiss(_ id: UUID) {
+        guard Bundle.main.bundleURL.pathExtension == "app" else { return }
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: [id.uuidString])
+    }
+    // The live answer hop; tests swap it.
     @MainActor static var onAnswer: @MainActor (UUID, Bool) -> Void = { _, _ in }
 
-    static func post(_ approval: AgentApproval) {
-        let center = UNUserNotificationCenter.current()
-        center.delegate = shared
-        let allow = UNNotificationAction(
-            identifier: "allow", title: String(localized: "Allow"), options: [])
-        let deny = UNNotificationAction(
-            identifier: "deny", title: String(localized: "Deny"), options: [])
-        center.setNotificationCategories([
-            UNNotificationCategory(identifier: category, actions: [allow, deny],
-                                   intentIdentifiers: [])])
-        let content = UNMutableNotificationContent()
-        content.categoryIdentifier = category
-        content.title = String(localized: "Cartouche agent request")
-        content.body = approval.text
-        content.userInfo = ["approval": approval.id.uuidString]
-        center.add(UNNotificationRequest(
-            identifier: approval.id.uuidString, content: content, trigger: nil))
+    // Called once at launch so a tap on a notification from a previous run still answers
+    @MainActor
+    static func register(in router: NotificationRouter = .shared) {
+        router.handle(category: category) { action, info in
+            guard let id = info["approval"].flatMap(UUID.init(uuidString:)) else { return }
+            switch action {
+            case allowAction: Self.onAnswer(id, true)
+            case denyAction: Self.onAnswer(id, false)
+            default: break
+            }
+        }
     }
 
-    func userNotificationCenter(_ center: UNUserNotificationCenter,
-                                didReceive response: UNNotificationResponse) async {
-        guard response.notification.request.content.categoryIdentifier == Self.category,
-              let raw = response.notification.request.content.userInfo["approval"] as? String,
-              let id = UUID(uuidString: raw) else { return }
-        let allow = response.actionIdentifier == "allow"
-        guard response.actionIdentifier != UNNotificationDefaultActionIdentifier else {
-            // A plain tap opens the app; the approval stays pending for the UI.
-            return
-        }
-        await MainActor.run { Self.onAnswer(id, allow) }
+    @MainActor
+    static func post(_ approval: AgentApproval, router: NotificationRouter = .shared) {
+        register(in: router)
+        router.post(NotificationSpec(
+            identifier: approval.id.uuidString,
+            title: String(localized: "Cartouche agent request"),
+            body: approval.text,
+            category: category,
+            actions: [NotificationButton(id: allowAction, title: String(localized: "Allow"), requiresUnlock: true),
+                      NotificationButton(id: denyAction, title: String(localized: "Deny"))],
+            userInfo: ["approval": approval.id.uuidString]))
     }
 }

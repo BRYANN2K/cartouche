@@ -50,4 +50,13 @@ struct PermissionLedger: @unchecked Sendable {
     func setTarget(_ url: URL?, for permission: Permission) {
         defaults.set(url?.path(percentEncoded: false), forKey: key(permission, "target"))
     }
+
+    // Whether Cartouche already offered the permission once; the offer never repeats
+    func offered(_ permission: Permission) -> Bool {
+        defaults.bool(forKey: key(permission, "offered"))
+    }
+
+    func noteOffered(_ permission: Permission) {
+        defaults.set(true, forKey: key(permission, "offered"))
+    }
 }

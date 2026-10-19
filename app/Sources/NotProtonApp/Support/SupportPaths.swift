@@ -1,6 +1,7 @@
 // Path construction for the Cartouche support directory and Steam
 
 import CartoucheIdentity
+import CartoucheMCP
 import Foundation
 
 enum SupportPaths {
@@ -43,7 +44,7 @@ enum SupportPaths {
     static var overlayShim: URL { support.appending(path: "overlay-shim.dylib") }
     static var iconmaker: URL { support.appending(path: "iconmaker") }
     static var appinfo: URL { support.appending(path: "appinfo") }
-    // The frame counter the run script injects, and the sessions it records (P8)
+    // The frame counter the run script injects, and the sessions it records
     static var fpsCounter: URL { support.appending(path: fpsCounterName) }
     static var performance: URL { support.appending(path: CARTOUCHE_PERFORMANCE_DIR) }
 
@@ -61,13 +62,13 @@ enum SupportPaths {
     // reads it at the next launch to pick the session back up or count it
     static var consoleSession: URL { support.appending(path: "console-session.json") }
 
-    // The socket the bundled cartouche-mcp helper connects to (P11); the agent
+    // The socket the bundled cartouche-mcp helper connects to; the agent
     // server binds it while Settings > Agents is on.
-    static var agentSocket: URL { support.appending(path: CARTOUCHE_AGENT_SOCKET) }
+    static var agentSocket: URL { MCPSocketPath.file }
 
     // Read by the dylib at Steam launch, in np_compat_load_tool_list.
     static var toolList: URL { support.appending(path: "tools") }
-    // Read with it, one tool per runner and graphics backend pair (P3)
+    // Read with it, one tool per runner and graphics backend pair
     static var backendToolList: URL { support.appending(path: CARTOUCHE_BACKEND_TOOL_LIST) }
     static var compatRequests: URL { support.appending(path: CARTOUCHE_COMPAT_REQUESTS) }
     static var backends: URL { support.appending(path: CARTOUCHE_BACKENDS_DIR) }
@@ -97,7 +98,12 @@ enum SupportPaths {
     static let bridgeCacheFolder = "bridge"
 
     enum Steam {
-        static let defaultApp = URL(filePath: "/Applications/Steam.app")
+        // In QA mode the fallback lives under the scratch home, never the real /Applications
+        static var defaultApp: URL {
+            QAEnvironment.isActive
+                ? home.appending(path: "Applications/Steam.app")
+                : URL(filePath: "/Applications/Steam.app")
+        }
         static let appPathKey = "steamAppPath"
 
         static var app: URL {

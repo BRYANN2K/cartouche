@@ -43,10 +43,31 @@ func tempFolder(_ files: [String: String]) throws -> URL {
 @Test func verifiesChecksums() async throws {
     // md5("hello") = 5d41402abc4b2a76b9719d911017c592
     let dir = try tempFolder(["a.bin": "hello", "b.bin": "nope", "sums.md5": "5d41402abc4b2a76b9719d911017c592 *a.bin\n5d41402abc4b2a76b9719d911017c592 *b.bin\n5d41402abc4b2a76b9719d911017c592 *c.bin\n"])
-    let results = await Checksums.verify(try Checksums.parse(dir.appending(path: "sums.md5")))
+    let results = try await Checksums.verify(try Checksums.parse(dir.appending(path: "sums.md5")))
     #expect(results[dir.appending(path: "a.bin").standardizedFileURL] == .ok)
     #expect(results[dir.appending(path: "c.bin").standardizedFileURL] == .absent)
     if case .mismatch = results[dir.appending(path: "b.bin").standardizedFileURL] {} else { Issue.record("b.bin should mismatch") }
+}
+
+@Test func manifestEntriesOutsideTheInstallerFolderAreNotHashed() async throws {
+    // A manifest in MD5/ refers to the installer root as "..\"; anything further out is skipped.
+    let dir = try tempFolder([
+        "MD5/checksums.md5": "d8396f99cb7a7f3fbd9369b0720823f8 *..\\data-01.bin\n5d41402abc4b2a76b9719d911017c592 *..\\..\\escaped.bin\n",
+        "data-01.bin": "x",
+    ])
+    let manifest = try Checksums.parse(dir.appending(path: "MD5/checksums.md5"))
+    let results = try await Checksums.verify(manifest, root: dir)
+    #expect(results.count == 1)
+    let actual = try Checksums.md5(of: dir.appending(path: "data-01.bin"))
+    #expect(results[dir.appending(path: "data-01.bin").standardizedFileURL] == .mismatch(expected: "d8396f99cb7a7f3fbd9369b0720823f8", actual: actual))
+}
+
+@Test func verifyThrowsOnCancellationInsteadOfReportingEverythingAbsent() async throws {
+    let dir = try tempFolder(["a.bin": "hello", "sums.md5": "5d41402abc4b2a76b9719d911017c592 *a.bin\n"])
+    let manifest = try Checksums.parse(dir.appending(path: "sums.md5"))
+    let task = Task { try await Checksums.verify(manifest) }
+    task.cancel()
+    await #expect(throws: CancellationError.self) { _ = try await task.value }
 }
 
 @Test func readsInnoextractOutput() {

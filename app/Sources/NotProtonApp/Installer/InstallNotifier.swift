@@ -11,10 +11,6 @@ protocol InstallNotifying: AnyObject {
     func failed(name: String, job: UUID)
 }
 
-extension InstallNotifying {
-    func failed(name: String, job: UUID) {}
-}
-
 @MainActor
 final class UserInstallNotifier: InstallNotifying {
 

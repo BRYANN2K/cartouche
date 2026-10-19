@@ -17,7 +17,7 @@ struct StoreGameTests {
         let before = scene.text("wine.calls").components(separatedBy: "args:").count
         GameActionRunner(model: scene.model, stores: scene.center).perform(.play, on: game)
         #expect(scene.center.playing.contains(id))
-        await scene.waitUntil { !scene.center.playing.contains(id) && scene.text("wine.calls").components(separatedBy: "args:").count > before }
+        #expect(await scene.waitUntil { !scene.center.playing.contains(id) && scene.text("wine.calls").components(separatedBy: "args:").count > before })
         #expect(scene.center.problem == nil, "\(scene.center.problem ?? "")")
     }
 
@@ -32,10 +32,12 @@ struct StoreGameTests {
         let actions = GameActionRunner(model: scene.model, stores: scene.center)
         actions.perform(.install, on: game)
         var seen: [Double] = []
-        await scene.waitUntil {
-            if let activity = scene.center.activity { seen.append(activity.fraction); #expect(activity.title == "Sample Free Game") }
+        var titles = Set<String>()
+        #expect(await scene.waitUntil {
+            if let activity = scene.center.activity { seen.append(activity.fraction); titles.insert(activity.title) }
             return scene.center.activity == nil && scene.center.record(game.id) != nil
-        }
+        })
+        #expect(titles == ["Sample Free Game"])
         #expect(seen.contains { $0 > 0 && $0 < 1 }, "\(seen)")
         print("evidence: activity slot fractions while Sample Free Game downloaded: \(Array(Set(seen)).sorted())")
         let installed = try #require(scene.model.game("epic:Fennec"))
@@ -54,7 +56,9 @@ struct StoreGameTests {
         #expect(wine.split(separator: "\n").contains { $0.hasPrefix("pwd: ") && $0.hasSuffix("/Fennec/Binaries") })
         #expect(wine.contains("CX_GRAPHICS_BACKEND=\(backend.rawValue)"))
         #expect(wine.contains("WINEPREFIX=\(record.prefix.path(percentEncoded: false))"))
-        #expect(wine.contains("EOS_TEST=1"))
+        // The store's own variables pass the same filter as the setup's: DXVK_ does, HOME does not
+        #expect(wine.contains("DXVK_LOG_LEVEL=none"))
+        #expect(!wine.contains("HOME=/tmp/legendary-home"))
         print("evidence: Epic game started with runner \(scene.runner.displayVersion) and \(backend.label): \(wine.split(separator: "\n").first { $0.hasPrefix("args:") } ?? "")")
         // Cloud saves before and after
         let saves = scene.text("legendary.saves")
@@ -81,7 +85,7 @@ struct StoreGameTests {
         await scene.center.finishSignIn(.gog, code: "gog-good-code")
         let game = try #require(scene.model.game("gog:1207658924"))
         scene.center.install(game)
-        await scene.waitForJobs()
+        #expect(await scene.waitForJobs())
         let record = try #require(scene.center.record(game.id))
         #expect(record.install.version == "5310700")
         try await playAndWait(scene, game.id)
@@ -89,7 +93,7 @@ struct StoreGameTests {
         #expect(wine.contains("args: \(record.install.path.appending(path: "bin/game.exe").path(percentEncoded: false)) -skipintro"))
         #expect(scene.calls("comet") == ["--from-heroic --username galaxy_player --quit"])
         #expect(FileManager.default.fileExists(atPath: scene.state.appending(path: "comet.saw-token").path))
-        await scene.waitUntil { FileManager.default.fileExists(atPath: scene.state.appending(path: "comet.stopped").path) }
+        #expect(await scene.waitUntil { FileManager.default.fileExists(atPath: scene.state.appending(path: "comet.stopped").path) })
         #expect(FileManager.default.fileExists(atPath: scene.state.appending(path: "comet.stopped").path))
         #expect(scene.filesHolding(["gog-access", "gog-refresh"]).isEmpty)
         // gogdl's last sync time is kept for the next start
@@ -104,7 +108,7 @@ struct StoreGameTests {
         await scene.center.finishSignIn(.amazon, code: "amazon-good-code")
         let game = try #require(scene.model.game("amazon:amzn1.adg.product.SAMPLE"))
         scene.center.install(game)
-        await scene.waitForJobs()
+        #expect(await scene.waitForJobs())
         let record = try #require(scene.center.record(game.id))
         let before = scene.calls("nile").count
         try await playAndWait(scene, game.id)
@@ -120,20 +124,20 @@ struct StoreGameTests {
         await scene.center.finishSignIn(.amazon, code: "amazon-good-code")
         var game = try #require(scene.model.game("amazon:amzn1.adg.product.SAMPLE"))
         let menu = GameMenu.items(for: game, in: scene.model)
-        #expect(menu.first?.action == .install && GameMenu.actions(menu).contains(.uninstall))
+        #expect(menu.first?.action == .install && menu.flatMap(\.flatActions).contains(.uninstall))
         var actions = GameActionRunner(model: scene.model, stores: scene.center)
         actions.confirmUninstall = { _ in true }
         actions.perform(.install, on: game)
-        await scene.waitForJobs()
+        #expect(await scene.waitForJobs())
         game = try #require(scene.model.game(game.id))
-        #expect(GameMenu.actions(GameMenu.items(for: game, in: scene.model)).contains(.update))
+        #expect(GameMenu.items(for: game, in: scene.model).flatMap(\.flatActions).contains(.update))
         actions.perform(.update, on: game)
-        await scene.waitForJobs()
+        #expect(await scene.waitForJobs())
         actions.perform(.verifyFiles, on: game)
-        await scene.waitForJobs()
+        #expect(await scene.waitForJobs())
         let record = try #require(scene.center.record(game.id))
         actions.perform(.uninstall, on: game)
-        await scene.waitUntil { scene.center.record(game.id) == nil }
+        #expect(await scene.waitUntil { scene.center.record(game.id) == nil })
         let calls = scene.calls("nile")
         #expect(calls.contains("update amzn1.adg.product.SAMPLE --path \(record.install.path.clientPath)"))
         #expect(calls.contains("verify amzn1.adg.product.SAMPLE --path \(record.install.path.clientPath)"))
@@ -181,7 +185,7 @@ struct StoreGameTests {
         await scene.signIn(.epic, code: "epic-good-code")
         let game = try #require(scene.model.game("epic:Fennec"))
         scene.center.install(game)
-        await scene.waitForJobs()
+        #expect(await scene.waitForJobs())
         scene.model.runners = []
         GameActionRunner(model: scene.model, stores: scene.center).perform(.play, on: try #require(scene.model.game(game.id)))
         #expect(scene.center.problem == "Set up a runner in Settings > Compatibility to play Sample Free Game.")
@@ -200,7 +204,7 @@ struct StoreGameTests {
         activity.storeSource = { [scene] in scene.center.activity }
         activity.stopStore = { [scene] in scene.center.stop($0) }
         scene.center.install(try #require(scene.model.game("epic:Fennec")))
-        await scene.waitUntil { (scene.center.activity?.fraction ?? 0) > 0 }
+        #expect(await scene.waitUntil { (scene.center.activity?.fraction ?? 0) > 0 })
         let shown = try #require(scene.center.activity)
         #expect(activity.slot == .store(shown))
         #expect(activity.menuSections.map(\.kind) == [.store])
@@ -210,7 +214,7 @@ struct StoreGameTests {
         }
         // Stop on the card cancels the running job, and the game is left uninstalled
         activity.stopStore(shown)
-        await scene.waitForJobs()
+        #expect(await scene.waitForJobs())
         #expect(scene.center.activity == nil)
         #expect(scene.center.record("epic:Fennec") == nil)
     }

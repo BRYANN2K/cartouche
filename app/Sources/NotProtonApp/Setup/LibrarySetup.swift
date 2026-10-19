@@ -18,7 +18,7 @@ extension LibraryModel {
     }
 
     // Runners a Windows installer game may use: the install runners, which allow
-    // ready free Wine builds that are not offered to Steam (P6)
+    // ready free Wine builds that are not offered to Steam
     var installRunners: [Runner] { InstallRunners.choices(RunnerRegistry(runners: runners)) }
 
     func resolution(for game: Game) -> GameSetupResolver.Resolution {
@@ -31,7 +31,7 @@ extension LibraryModel {
             return GameSetupResolver.resolve(choice, defaults: setupDefaults, runners: runners,
                                              availability: backendAvailability, offered: installRunners)
         }
-        // Store games run under Rosetta, as Windows installs do (P10)
+        // Store games run under Rosetta, as Windows installs do
         if game.source.isStore { choice.translation = .rosetta }
         return GameSetupResolver.resolve(choice, defaults: setupDefaults, runners: runners,
                                          availability: backendAvailability, hasMacBuild: hasMacBuild(game))
@@ -101,12 +101,10 @@ extension LibraryModel {
     // DXMT's winemetal.dll is refreshed, and the record keeps the runner that
     // now runs the prefix. The game and its prefix are never copied.
     func applyInstallerSetup(_ setup: GameSetupChoice, for game: Game) {
-        setupNotice = nil
+        setupNotices[game.id] = nil
         guard game.id.hasPrefix("installer:") else { return }
         let folder = GameFolder(root: installsFolder.appending(path: String(game.id.dropFirst("installer:".count))))
-        guard let data = try? Data(contentsOf: folder.record),
-              var record = try? InstalledGames.decoder.decode(InstalledGame.self, from: data)
-        else { return }
+        guard var record = InstalledGames.record(in: folder) else { return }
         var choice = setup
         choice.translation = .rosetta
         if choice.runnerID == nil { choice.runnerID = game.installRunnerID }
@@ -124,7 +122,7 @@ extension LibraryModel {
         // An older Wine than the one that last ran the prefix: warned, still allowed
         if let last = record.wineVersion, record.wineRunnerKind == runner.kind.rawValue,
            last.compare(runner.version, options: .numeric) == .orderedDescending {
-            setupNotice = String(localized: "This prefix was updated by a newer Wine (\(last)). \(runner.displayVersion) is older and the game may not start.")
+            setupNotices[game.id] = String(localized: "This prefix was updated by a newer Wine (\(last)). \(runner.displayVersion) is older and the game may not start.")
         }
         SetupEnvironment.prepare(resolved.backend, prefix: folder.prefix, backends: backendsFolder)
         do {

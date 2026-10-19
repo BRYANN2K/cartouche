@@ -1,7 +1,3 @@
-// Game folders: watched with FSEvents, scanned when they change. Games of added
-// consoles that the database knows join the library on their own; games of the
-// other consoles are counted, for the Add Consoles sheet.
-
 import Foundation
 import RetroArchKit
 
@@ -14,7 +10,8 @@ extension ConsoleCenter {
         folderChoices = WatchedFolders.load(paths)
         watch()
         followList()
-        await scanFolders()
+        folderChanged()
+        await scan?.value
     }
 
     func stopWatching() {
@@ -25,14 +22,16 @@ extension ConsoleCenter {
     func addFolder(_ url: URL) async {
         folderList?.add(url)
         watch()
-        await scanFolders()
+        folderChanged()
+        await scan?.value
     }
 
     func removeFolder(_ path: String) async {
         folderList?.remove(URL(filePath: path, directoryHint: .isDirectory))
         folderCounts[path] = nil
         watch()
-        await scanFolders()
+        folderChanged()
+        await scan?.value
     }
 
     func setAddAutomatically(_ on: Bool) async {
@@ -42,7 +41,10 @@ extension ConsoleCenter {
         } catch {
             problem = error.localizedDescription
         }
-        if on { await scanFolders() }
+        if on {
+            folderChanged()
+            await scan?.value
+        }
     }
 
     // Onboarding and Settings > Library change the list; the watch follows
@@ -55,7 +57,7 @@ extension ConsoleCenter {
                 guard let self else { return }
                 self.watch()
                 self.followList()
-                await self.scanFolders()
+                self.folderChanged()
             }
         }
     }
@@ -69,22 +71,59 @@ extension ConsoleCenter {
         watcher?.watch(folderPaths.map { URL(filePath: $0, directoryHint: .isDirectory) })
     }
 
-    private func folderChanged() {
+    // The agent's rescan: the same single-scanner path, awaited to the end
+    func rescanFolders() async {
+        folderChanged()
+        await scan?.value
+    }
+
+    // Every trigger funnels here so only one scan runs at a time
+    func folderChanged() {
         if scan != nil {
             scanAgain = true
             return
         }
         scan = Task { [weak self] in
-            await self?.scanFolders()
+            await self?.scanLoop()
             self?.scan = nil
         }
     }
 
+    // The walk and the file stamps, off the main thread
+    private struct FoundFile: Sendable {
+        var url: URL
+        var stamp: String
+        var busy: Bool
+    }
+
+    private nonisolated static func listFiles(in roots: [URL]) -> [FoundFile] {
+        Identifier.files(in: roots).map { file in
+            let values = try? file.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey])
+            let modified = values?.contentModificationDate ?? .distantPast
+            // A date in the future is not a file still being written
+            let busy = abs(Date().timeIntervalSince(modified)) < 1
+            return FoundFile(url: file, stamp: "\(values?.fileSize ?? 0)|\(modified.timeIntervalSince1970)", busy: busy)
+        }
+    }
+
+    private func scanLoop() async {
+        var attempts = 0
+        while !Task.isCancelled {
+            let busy = await scanPass()
+            attempts = busy ? attempts + 1 : 0
+            let again = scanAgain
+            scanAgain = false
+            guard again || (busy && attempts < 60) else { return }
+            try? await Task.sleep(for: .seconds(1))
+        }
+    }
+
     // One pass over every folder. A file still being copied is left for the
-    // next pass, a second later.
-    func scanFolders() async {
+    // next pass, a second later — 60 passes at most, the events keep coming.
+    @discardableResult
+    private func scanPass() async -> Bool {
         let roots = folderPaths.map { URL(filePath: $0, directoryHint: .isDirectory) }
-        let files = Identifier.files(in: roots)
+        let files = await Task.detached { Self.listFiles(in: roots) }.value
         let known = await store.knownFiles()
         let identifier = identifier
         var counts: [String: Int] = [:]
@@ -92,20 +131,14 @@ extension ConsoleCenter {
         var new: [ConsoleGame] = []
         var busy = false
         for file in files {
-            let path = file.path(percentEncoded: false)
-            let values = try? file.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey])
-            let modified = values?.contentModificationDate ?? .distantPast
-            if Date().timeIntervalSince(modified) < 1 {
-                busy = true
-                continue
-            }
-            let stamp = "\(values?.fileSize ?? 0)|\(modified.timeIntervalSince1970)"
+            if file.busy { busy = true; continue }
+            let path = file.url.path(percentEncoded: false)
             let found: Identification
-            if let cached = seen[path], cached.stamp == stamp {
+            if let cached = seen[path], cached.stamp == file.stamp {
                 found = cached.found
             } else {
-                found = await identifier.identify(file)
-                seen[path] = (stamp, found)
+                found = await identifier.identify(file.url)
+                seen[path] = (file.stamp, found)
             }
             // Recognized, or a file type only one console plays
             guard let console = found.isRecognized ? found.console
@@ -129,11 +162,7 @@ extension ConsoleCenter {
             }
             await reload()
         }
-        if busy || scanAgain {
-            scanAgain = false
-            try? await Task.sleep(for: .seconds(1))
-            await scanFolders()
-        }
+        return busy
     }
 }
 

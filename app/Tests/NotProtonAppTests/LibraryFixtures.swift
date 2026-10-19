@@ -34,6 +34,9 @@ struct SteamFixture {
     static let account = "player42"
 
     let root: URL
+    // One fixed instant anchors every LastPlayed the fixture writes, so a test
+    // asserting "yesterday" cannot cross midnight between write and read
+    let now = Date()
     var steam: URL { root.appending(path: "Steam") }
     var support: URL { root.appending(path: "Cartouche") }
     var caches: URL { root.appending(path: "Caches/covers") }
@@ -81,7 +84,7 @@ struct SteamFixture {
         \t}
         }
         """)
-        let now = Int(Date().timeIntervalSince1970)
+        let now = Int(self.now.timeIntervalSince1970)
         for (i, app) in Self.apps.enumerated() where app.installed {
             // Half the games sit on the second disk
             let library = i % 2 == 0 ? steam : external
@@ -142,7 +145,7 @@ struct SteamFixture {
 
     // What the running Steam client exports: every owned game, installed or not
     func writeExport(steamID: String = Self.steamID, apps: [App] = Self.apps, installed: Set<Int>? = nil) throws {
-        let now = Int(Date().timeIntervalSince1970)
+        let now = Int(self.now.timeIntervalSince1970)
         let doc = SteamExport(
             version: 1, generated: now, steamid: steamID,
             apps: apps.map { app in
@@ -203,6 +206,11 @@ struct SteamFixture {
 
 private func require<T>(_ value: T?) throws -> T { try SteamFixture.require(value) }
 
+// Every action a menu item list can run, children included
+extension GameMenuItem {
+    var flatActions: [GameAction] { (action.map { [$0] } ?? []) + children.flatMap(\.flatActions) }
+}
+
 @MainActor
 func libraryModel(_ fixture: SteamFixture, running: Bool = true, installed: Bool = true, defaults: ScratchDefaults) -> LibraryModel {
     LibraryModel(store: LibraryStore(folder: fixture.support), importer: fixture.importer(installed: installed, running: running),
@@ -211,7 +219,7 @@ func libraryModel(_ fixture: SteamFixture, running: Bool = true, installed: Bool
 
 // The 2026-10-19 compatibility fixture and MacGamingDB's recorded Elden Ring answer, on an M4
 @MainActor
-func fixtureCompat(_ work: URL, defaults: ScratchDefaults, macReports: Bool = true) throws -> CompatibilityModel {
+func fixtureCompat(_ work: URL, defaults: ScratchDefaults, macReports: Bool = true) async throws -> CompatibilityModel {
     let directory = work.appending(path: "compatibility")
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     try FileManager.default.copyItem(at: CompatFixture.gzip, to: directory.appending(path: "compat.json.gz"))
@@ -226,7 +234,7 @@ func fixtureCompat(_ work: URL, defaults: ScratchDefaults, macReports: Bool = tr
         choices: choices)
     model.now = { CompatFixture.generated }
     model.chip = "M4"
-    model.load()
+    await model.load()
     return model
 }
 

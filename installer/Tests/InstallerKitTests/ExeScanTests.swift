@@ -120,7 +120,6 @@ struct ExeScanTests {
     func links() {
         #expect(ShellLink.parse(shellLink(target: #"C:\Games\X\x.exe"#))?.target == #"C:\Games\X\x.exe"#)
         #expect(ShellLink.parse(shellLink(target: #"C:\Jeux\Été\jeu.exe"#, unicodeInfo: true))?.target == #"C:\Jeux\Été\jeu.exe"#)
-        #expect(ShellLink.parse(shellLink(target: #"C:\Games\X\x.exe"#))?.workingDirectory == #"C:\Games\X"#)
         #expect(ShellLink.parse(Data("not a link".utf8)) == nil)
     }
 

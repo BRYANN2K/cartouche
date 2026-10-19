@@ -3,6 +3,7 @@
 
 import Compression
 import Foundation
+import zlib
 
 enum Gzip {
 
@@ -53,11 +54,9 @@ enum Gzip {
         return output
     }
 
-    private static let table: [UInt32] = (0..<256).map { n in
-        (0..<8).reduce(UInt32(n)) { c, _ in c & 1 != 0 ? 0xEDB8_8320 ^ (c >> 1) : c >> 1 }
-    }
-
     static func crc32(_ data: Data) -> UInt32 {
-        ~data.reduce(~UInt32(0)) { c, byte in table[Int((c ^ UInt32(byte)) & 0xff)] ^ (c >> 8) }
+        data.withUnsafeBytes { buffer in
+            UInt32(zlib.crc32(0, buffer.baseAddress?.assumingMemoryBound(to: Bytef.self), uInt(buffer.count)))
+        }
     }
 }

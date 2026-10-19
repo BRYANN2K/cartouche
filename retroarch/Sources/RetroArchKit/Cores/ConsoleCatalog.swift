@@ -56,7 +56,7 @@ public struct Console: Sendable, Identifiable, Equatable, Hashable {
 
     public var coreFile: String { "\(core)_libretro.dylib" }
 
-    // False for a console only a standalone emulator plays (P16)
+    // False for a console only a standalone emulator plays
     public var hasCore: Bool { !core.isEmpty }
 
     public var isDisc: Bool { glyph == .disc }
@@ -117,7 +117,7 @@ public enum ConsoleCatalog {
         Console(id: "atari2600", name: "Atari 2600", core: "stella",
                 system: "Atari - 2600", coreName: "Stella",
                 maker: .others, extensions: ["a26", "bin"], cores: ["stella"]),
-        // Consoles a standalone emulator plays best (P16, EmulatorCatalog). The
+        // Consoles a standalone emulator plays best (EmulatorCatalog). The
         // core is the buildbot's for Apple silicon, where there is one.
         Console(id: "gamecube", name: "GameCube", core: "dolphin",
                 system: "Nintendo - GameCube", coreName: "Dolphin", glyph: .disc, maker: .nintendo,

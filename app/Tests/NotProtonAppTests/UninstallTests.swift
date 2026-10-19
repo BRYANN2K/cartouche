@@ -218,7 +218,7 @@ struct UninstallTests {
             updateBlocks: [layout.updateBlock],
             legacyCompat: layout.legacyCompat,
             compatTools: layout.compatTools,
-            directories: [layout.support, layout.caches],
+            support: layout.support, directories: [layout.caches],
             libraries: [],
             modifications: layout.modifications, lockFolder: layout.root,
             repair: { _, _ in throw Offline() },
@@ -253,7 +253,7 @@ struct UninstallTests {
             updateBlocks: [layout.updateBlock],
             legacyCompat: layout.legacyCompat,
             compatTools: layout.compatTools,
-            directories: [layout.support, layout.caches],
+            support: layout.support, directories: [layout.caches],
             libraries: [],
             modifications: layout.modifications, lockFolder: layout.root,
             repair: { _, _ in repaired.set() },
@@ -266,6 +266,46 @@ struct UninstallTests {
         #expect(outcome.partialRemoval == nil)
         #expect(!FileManager.default.fileExists(atPath: layout.app.path(percentEncoded: false)))
         #expect(!FileManager.default.fileExists(atPath: layout.support.path(percentEncoded: false)))
+    }
+
+    @Test("Games, prefixes, console saves and BIOS files survive the removal")
+    func keepsInstalledGames() async throws {
+        let layout = try layout()
+        defer { try? FileManager.default.removeItem(at: layout.root) }
+        let game = layout.support.appending(path: "installs/demo/pfx/drive_c/game.exe")
+        let storeGame = layout.support.appending(path: "stores/gog/witcher-1207658924/pfx/drive_c/game.exe")
+        let save = layout.support.appending(path: "retroarch/saves/Zelda.srm")
+        let bios = layout.support.appending(path: "retroarch/bios/scph5501.bin")
+        let core = layout.support.appending(path: "retroarch/cores/snes9x_libretro.dylib")
+        for file in [game, storeGame, save, bios, core] {
+            try FileManager.default.createDirectory(
+                at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try Data("data\n".utf8).write(to: file)
+        }
+
+        _ = try await Uninstall.run(
+            app: layout.app,
+            innerPlist: layout.innerPlist,
+            updateBlocks: [layout.updateBlock],
+            legacyCompat: layout.legacyCompat,
+            compatTools: layout.compatTools,
+            support: layout.support, directories: [layout.caches],
+            libraries: [],
+            modifications: layout.modifications, lockFolder: layout.root,
+            repair: { _, _ in },
+            stop: { _, _ in false }
+        )
+
+        let files = FileManager.default
+        for kept in [game, storeGame, save, bios] {
+            #expect(files.fileExists(atPath: kept.path(percentEncoded: false)), "\(kept.lastPathComponent) is kept")
+        }
+        #expect(!files.fileExists(atPath: core.path(percentEncoded: false)), "downloadable cores are removed")
+        #expect(files.fileExists(atPath: layout.support.appending(path: "installs").path(percentEncoded: false)))
+        #expect(
+            !files.fileExists(atPath: layout.support.appending(path: "dylib.version").path(percentEncoded: false)),
+            "the rest of the support folder is removed"
+        )
     }
 
     @Test("A removal with Steam's drive unplugged removes the rest and says Steam was left alone")
@@ -281,7 +321,7 @@ struct UninstallTests {
             updateBlocks: [layout.updateBlock],
             legacyCompat: layout.legacyCompat,
             compatTools: layout.compatTools,
-            directories: [layout.support, layout.caches],
+            support: layout.support, directories: [layout.caches],
             libraries: [],
             modifications: layout.modifications, lockFolder: layout.root,
             repair: { _, _ in },
@@ -304,7 +344,7 @@ struct UninstallTests {
             updateBlocks: [layout.updateBlock],
             legacyCompat: layout.legacyCompat,
             compatTools: layout.compatTools,
-            directories: [layout.support, layout.caches],
+            support: layout.support, directories: [layout.caches],
             libraries: [],
             modifications: layout.modifications, lockFolder: layout.root,
             repair: { _, _ in },
@@ -344,7 +384,7 @@ struct UninstallTests {
             updateBlocks: [layout.updateBlock],
             legacyCompat: layout.legacyCompat,
             compatTools: layout.compatTools,
-            directories: [layout.support, layout.caches],
+            support: layout.support, directories: [layout.caches],
             libraries: [],
             modifications: layout.modifications, lockFolder: layout.root,
             repair: { _, _ in throw Offline() },
@@ -376,7 +416,7 @@ struct UninstallTests {
             updateBlocks: [layout.updateBlock],
             legacyCompat: layout.legacyCompat,
             compatTools: layout.compatTools,
-            directories: [layout.support, caches],
+            support: layout.support, directories: [caches],
             libraries: [],
             modifications: layout.modifications, lockFolder: layout.root,
             repair: { _, _ in
@@ -405,7 +445,7 @@ struct UninstallTests {
             updateBlocks: [layout.updateBlock],
             legacyCompat: layout.legacyCompat,
             compatTools: layout.compatTools,
-            directories: [layout.support, layout.caches],
+            support: layout.support, directories: [layout.caches],
             libraries: [],
             modifications: layout.modifications, lockFolder: layout.root,
             report: { log.add($0) },
@@ -449,7 +489,7 @@ struct UninstallTests {
         _ = try await Uninstall.run(
             app: layout.app, innerPlist: layout.innerPlist, updateBlocks: [layout.updateBlock],
             legacyCompat: layout.legacyCompat, compatTools: layout.compatTools,
-            directories: [layout.support, layout.caches], libraries: [library],
+            support: layout.support, directories: [layout.caches], libraries: [library],
             modifications: layout.modifications, lockFolder: layout.root,
             repair: { _, _ in }, stop: { _, _ in false })
 
@@ -485,7 +525,7 @@ struct UninstallTests {
         let outcome = try await Uninstall.run(
             app: layout.app, innerPlist: layout.innerPlist, updateBlocks: [layout.updateBlock],
             legacyCompat: layout.legacyCompat, compatTools: layout.compatTools,
-            directories: [layout.support, layout.caches], libraries: [ours, foreign, real, empty],
+            support: layout.support, directories: [layout.caches], libraries: [ours, foreign, real, empty],
             modifications: layout.modifications, lockFolder: layout.root,
             repair: { _, _ in }, stop: { _, _ in false })
 
@@ -504,7 +544,7 @@ struct UninstallTests {
         try await Uninstall.run(
             app: app ?? layout.app, innerPlist: layout.innerPlist, updateBlocks: [layout.updateBlock],
             legacyCompat: layout.legacyCompat, compatTools: layout.compatTools,
-            directories: [layout.support, layout.caches], libraries: [],
+            support: layout.support, directories: [layout.caches], libraries: [],
             modifications: layout.modifications, lockFolder: layout.root,
             repair: repair, stop: stop)
     }
@@ -701,7 +741,7 @@ struct UninstallTests {
             _ = try await Uninstall.run(
                 app: layout.app, innerPlist: layout.innerPlist, updateBlocks: [layout.updateBlock],
                 legacyCompat: layout.legacyCompat, compatTools: layout.compatTools,
-                directories: [layout.support, layout.caches], libraries: [library],
+                support: layout.support, directories: [layout.caches], libraries: [library],
                 modifications: layout.modifications, lockFolder: layout.root,
                 repair: { _, _ in }, stop: { _, _ in false })
         }

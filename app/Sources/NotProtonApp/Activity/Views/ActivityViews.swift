@@ -45,7 +45,6 @@ struct ActivitySlotView: View {
         case .installing: 1
         case .store: 2
         case .downloads: 3
-        case .update: 4
         }
     }
 
@@ -60,9 +59,8 @@ struct ActivitySlotView: View {
                                  show: { library.reveal(gameID: activity.gameID) })
             case .downloads(let downloads):
                 DownloadsCard(summary: DownloadSummary(downloads: downloads),
-                              toggle: { downloads.first.map { center.togglePause($0.appID) } },
+                              toggle: { center.toggleAll(downloads) },
                               show: { downloads.first.map { library.reveal(gameID: $0.gameID) } })
-            case .update(let update): UpdateCard(update: update)
             }
         }
         .padding(.horizontal, 12)
@@ -96,9 +94,6 @@ struct PlayingCard: View {
                        title: game.name)
             HStack(spacing: 6) {
                 Circle().fill(.green).frame(width: 6, height: 6).accessibilityHidden(true)
-                if let fps = game.fps {
-                    Text(verbatim: "\(fps) fps").font(.caption).monospacedDigit().foregroundStyle(.secondary)
-                }
                 Spacer(minLength: 4)
                 Button("Quit", action: quit)
                     .controlSize(.small)
@@ -146,7 +141,7 @@ struct StoreInstallCard: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            StoreRing(fraction: activity.fraction)
+            DownloadRing(fraction: activity.fraction)
             Button(action: show) {
                 VStack(alignment: .leading, spacing: 2) {
                     SlotHeader(label: activity.label, title: activity.title)
@@ -165,32 +160,6 @@ struct StoreInstallCard: View {
                 .controlSize(.small)
         }
         .accessibilityElement(children: .contain)
-    }
-}
-
-// The store job's ring: the track and the progress arc, the percent inside.
-// Drawn like DownloadRing but not a button: store clients have no Pause.
-struct StoreRing: View {
-    let fraction: Double
-    var size: CGFloat = 32
-
-    var body: some View {
-        ZStack {
-            Circle().stroke(Color.primary.opacity(0.12), lineWidth: 2.6)
-            Circle()
-                .trim(from: 0, to: max(0.001, min(1, fraction)))
-                .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 2.6, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-                .animation(.linear(duration: 0.5), value: fraction)
-            Text(verbatim: "\(Int((fraction * 100).rounded(.down)))")
-                .font(.system(size: size * 0.28, weight: .semibold).monospacedDigit())
-                .foregroundStyle(.secondary)
-        }
-        .padding(1.3)
-        .frame(width: size, height: size)
-        .accessibilityElement()
-        .accessibilityLabel(Text("Download progress"))
-        .accessibilityValue(Text("\(Int((fraction * 100).rounded(.down)))%"))
     }
 }
 
@@ -216,17 +185,6 @@ struct DownloadsCard: View {
     }
 }
 
-struct UpdateCard: View {
-    let update: UpdateActivity
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            SlotHeader(label: String(localized: "Update available"), title: update.title)
-            Text(update.kind).font(.caption).foregroundStyle(.secondary)
-        }
-    }
-}
-
 // A thin progress bar, as the mockup draws it. NSProgressIndicator animates every
 // change on a thread of its own, which the slot's once-a-second updates do not need.
 struct ActivityBar: View {
@@ -243,46 +201,65 @@ struct ActivityBar: View {
         }
         .frame(height: height)
         .accessibilityElement()
-        .accessibilityValue(Text("\(Int((fraction * 100).rounded(.down)))%"))
+        .accessibilityValue(Text("\(DownloadSummary.percent(of: fraction))%"))
     }
 }
 
 // The App Store's download ring: the track, the progress arc, and a mark in the
 // middle for the state. Clicking pauses a download, or resumes a paused one.
+// With no mark it only reads, like a store job's ring.
 struct DownloadRing: View {
     let fraction: Double
-    let mark: DownloadSummary.Mark
+    var mark: DownloadSummary.Mark? = nil
     var size: CGFloat = 32
-    let action: () -> Void
+    var action: (() -> Void)? = nil
 
     @State private var hovering = false
 
     var body: some View {
-        Button(action: action) {
-            ZStack {
-                Circle().stroke(Color.primary.opacity(0.12), lineWidth: 2.6)
-                Circle()
-                    .trim(from: 0, to: max(0.001, min(1, fraction)))
-                    .stroke(barColor, style: StrokeStyle(lineWidth: 2.6, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                    .animation(.linear(duration: 0.5), value: fraction)
-                markView
+        Group {
+            if let action {
+                Button(action: action) { ring }
+                    .buttonStyle(.plain)
+                    .onHover { hovering = $0 }
+                    .disabled(mark == .failed)
+                    .help(Text(helpText))
+                    .accessibilityLabel(Text(helpText))
+            } else {
+                ring
+                    .accessibilityElement()
+                    .accessibilityLabel(Text("Download progress"))
             }
-            .padding(1.3)
-            .frame(width: size, height: size)
-            .contentShape(Circle())
         }
-        .buttonStyle(.plain)
-        .onHover { hovering = $0 }
-        .disabled(mark == .failed)
-        .help(Text(helpText))
-        .accessibilityLabel(Text(helpText))
-        .accessibilityValue(Text("\(Int((fraction * 100).rounded(.down)))%"))
+        .accessibilityValue(Text("\(percent)%"))
+    }
+
+    private var percent: Int { DownloadSummary.percent(of: fraction) }
+
+    private var ring: some View {
+        ZStack {
+            Circle().stroke(Color.primary.opacity(0.12), lineWidth: 2.6)
+            Circle()
+                .trim(from: 0, to: max(0.001, min(1, fraction)))
+                .stroke(barColor, style: StrokeStyle(lineWidth: 2.6, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .animation(.linear(duration: 0.5), value: fraction)
+            if let mark {
+                markView(mark)
+            } else {
+                Text(verbatim: "\(percent)")
+                    .font(.system(size: size * 0.28, weight: .semibold).monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(1.3)
+        .frame(width: size, height: size)
+        .contentShape(Circle())
     }
 
     private var helpText: String {
         switch mark {
-        case .downloading: String(localized: "Pause Download")
+        case .downloading, .none: String(localized: "Pause Download")
         case .paused: String(localized: "Resume Download")
         case .failed: String(localized: "Download failed")
         }
@@ -290,14 +267,14 @@ struct DownloadRing: View {
 
     private var barColor: Color {
         switch mark {
-        case .downloading: .accentColor
         case .paused: Color.secondary.opacity(0.6)
         case .failed: .red
+        case .downloading, .none: .accentColor
         }
     }
 
     @ViewBuilder
-    private var markView: some View {
+    private func markView(_ mark: DownloadSummary.Mark) -> some View {
         switch mark {
         case .downloading:
             RoundedRectangle(cornerRadius: 1.5 * size / 32)
@@ -325,9 +302,9 @@ struct DownloadBlock: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(Self.title(download)).font(.headline)
+                Text(download.title).font(.headline)
                 Spacer()
-                Text(verbatim: "\(Int((download.fraction * 100).rounded(.down)))%").monospacedDigit().foregroundStyle(.secondary)
+                Text(verbatim: "\(download.percent)%").monospacedDigit().foregroundStyle(.secondary)
             }
             ActivityBar(fraction: download.fraction,
                         color: download.isFailed ? .red : download.isPaused ? .secondary : .accentColor)
@@ -361,28 +338,6 @@ struct DownloadBlock: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .groupBackground()
     }
-
-    static func title(_ download: DownloadActivity) -> String {
-        switch download.state {
-        case .failed: String(localized: "Download failed")
-        case .paused: String(localized: "Paused")
-        case .queued: String(localized: "Waiting to download")
-        case .downloading: String(localized: "Downloading")
-        }
-    }
-}
-
-extension DownloadActivity {
-    // Under the cover: "Downloading, 34%", "Paused, 34%", "Download failed"
-    var cardStatus: String {
-        let percent = Int((fraction * 100).rounded(.down))
-        switch state {
-        case .failed: return String(localized: "Download failed")
-        case .paused: return String(localized: "Paused, \(percent)%")
-        case .queued: return String(localized: "Waiting to download")
-        case .downloading: return String(localized: "Downloading, \(percent)%")
-        }
-    }
 }
 
 extension LibraryModel {
@@ -395,7 +350,7 @@ extension LibraryModel {
     }
 }
 
-// The status item's activity sections: playing, installing, every download, updates
+// The status item's activity sections: playing, installing, every download
 struct ActivityMenuContent: View {
     let center: ActivityCenter
 
@@ -408,6 +363,7 @@ struct ActivityMenuContent: View {
                 }
                 if section.kind == .playing {
                     Button("Quit Game") { Task { await center.quitGame() } }
+                        .disabled(center.playing?.starting == true)
                 }
             }
         }

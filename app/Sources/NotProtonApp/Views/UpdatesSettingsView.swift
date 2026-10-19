@@ -20,14 +20,4 @@ struct UpdatesSection: View {
     }
 }
 
-struct UpdatesSettingsView: View {
 
-    var body: some View {
-        Form {
-            UpdatesSection()
-        }
-        .formStyle(.grouped)
-        .frame(width: 460)
-        .fixedSize(horizontal: false, vertical: true)
-    }
-}

@@ -1,13 +1,13 @@
-// What is going on right now: a running game, an install, a store client's job,
-// Steam downloads and updates. The sidebar shows the most important one; the
-// status menu lists them all.
+// What is going on right now: a running game, an install, a store client's job
+// and Steam downloads. The sidebar shows the most important one; the status
+// menu lists them all.
 
 import Foundation
 
 struct RunningGame: Equatable, Sendable {
     enum Target: Equatable, Sendable {
         case steam(appID: Int)
-        // A console session from RetroArch (P13), which quits through its own session
+        // A console session from RetroArch, which quits through its own session
         case console
     }
 
@@ -15,11 +15,9 @@ struct RunningGame: Equatable, Sendable {
     let id: String
     let name: String
     let target: Target
-    // From the frame counter (P8); nil while nothing measures it
-    var fps: Int?
     // RetroArch is still starting the game; Quit waits
     var starting = false
-    // The standalone emulator a console game plays in (P16); nil for RetroArch
+    // The standalone emulator a console game plays in; nil for RetroArch
     var emulator: String?
 
     var onRetroArch: Bool { target == .console && emulator == nil }
@@ -46,38 +44,50 @@ struct DownloadActivity: Identifiable, Equatable, Sendable {
         bytesTotal > 0 ? min(1, max(0, Double(bytesDone) / Double(bytesTotal))) : 0
     }
 
+    var percent: Int { Int((fraction * 100).rounded(.down)) }
+
     var isFailed: Bool {
         if case .failed = state { return true }
         return false
     }
 
     var isPaused: Bool { state == .paused }
-}
 
-struct UpdateActivity: Identifiable, Equatable, Sendable {
-    let id: String
-    // "DXMT 0.80"
-    let title: String
-    // "Graphics", "Runner"
-    let kind: String
+    // The word for the state: "Downloading", "Paused", "Waiting to download", "Download failed"
+    var title: String {
+        switch state {
+        case .failed: String(localized: "Download failed")
+        case .paused: String(localized: "Paused")
+        case .queued: String(localized: "Waiting to download")
+        case .downloading: String(localized: "Downloading")
+        }
+    }
+
+    // Under the cover: "Downloading, 34%", "Paused, 34%", "Download failed"
+    var cardStatus: String {
+        switch state {
+        case .failed: return title
+        case .paused: return String(localized: "Paused, \(percent)%")
+        case .queued: return title
+        case .downloading: return String(localized: "Downloading, \(percent)%")
+        }
+    }
 }
 
 enum ActivitySlot: Equatable, Sendable {
     case playing(RunningGame)
     case installing(InstallActivity)
-    // A download, update, verify or import from a store client (P10)
+    // A download, update, verify or import from a store client
     case store(StoreActivity)
     case downloads([DownloadActivity])
-    case update(UpdateActivity)
 
-    // Playing beats installing beats a store job beats downloads beats updates; nil hides the slot
+    // Playing beats installing beats a store job beats downloads; nil hides the slot
     static func pick(playing: RunningGame?, install: InstallActivity?, store: StoreActivity?,
-                     downloads: [DownloadActivity], updates: [UpdateActivity]) -> ActivitySlot? {
+                     downloads: [DownloadActivity]) -> ActivitySlot? {
         if let playing { return .playing(playing) }
         if let install { return .installing(install) }
         if let store { return .store(store) }
         if !downloads.isEmpty { return .downloads(downloads) }
-        if let update = updates.first { return .update(update) }
         return nil
     }
 }
@@ -105,7 +115,9 @@ struct DownloadSummary: Equatable, Sendable {
         return .downloading
     }
 
-    var percent: Int { Int((fraction * 100).rounded(.down)) }
+    var percent: Int { Self.percent(of: fraction) }
+
+    static func percent(of fraction: Double) -> Int { Int((fraction * 100).rounded(.down)) }
 
     var label: String {
         switch mark {
@@ -135,7 +147,7 @@ struct DownloadSummary: Equatable, Sendable {
 
 // Every ongoing activity, for the status item's menu
 struct ActivityMenuSection: Equatable, Sendable {
-    enum Kind: Equatable, Sendable { case playing, installing, store, downloads, updates }
+    enum Kind: Equatable, Sendable { case playing, installing, store, downloads }
 
     struct Line: Equatable, Sendable {
         let title: String
@@ -152,15 +164,14 @@ struct ActivityMenuSection: Equatable, Sendable {
         case .installing: String(localized: "Installing")
         case .store: String(localized: "Store")
         case .downloads: String(localized: "Downloads")
-        case .updates: String(localized: "Updates")
         }
     }
 
     static func all(playing: RunningGame?, install: InstallActivity?, store: StoreActivity?,
-                    downloads: [DownloadActivity], updates: [UpdateActivity]) -> [ActivityMenuSection] {
+                    downloads: [DownloadActivity]) -> [ActivityMenuSection] {
         var sections: [ActivityMenuSection] = []
         if let playing {
-            sections.append(ActivityMenuSection(kind: .playing, lines: [Line(title: playing.name, detail: playing.fps.map { "\($0) fps" })]))
+            sections.append(ActivityMenuSection(kind: .playing, lines: [Line(title: playing.name)]))
         }
         if let install {
             sections.append(ActivityMenuSection(kind: .installing, lines: [Line(title: install.title, detail: "\(Int(install.fraction * 100))%")]))
@@ -173,23 +184,19 @@ struct ActivityMenuSection: Equatable, Sendable {
                 Line(title: $0.name, detail: Self.detail($0))
             }))
         }
-        if !updates.isEmpty {
-            sections.append(ActivityMenuSection(kind: .updates, lines: updates.map { Line(title: $0.title, detail: $0.kind) }))
-        }
         return sections
     }
 
     static func detail(_ activity: StoreActivity) -> String {
-        String(localized: "\(activity.label), \(Int((activity.fraction * 100).rounded(.down)))%")
+        String(localized: "\(activity.label), \(DownloadSummary.percent(of: activity.fraction))%")
     }
 
     static func detail(_ download: DownloadActivity) -> String {
-        let percent = Int((download.fraction * 100).rounded(.down))
         switch download.state {
         case .failed: return String(localized: "Failed")
-        case .paused: return String(localized: "Paused, \(percent)%")
+        case .paused: return String(localized: "Paused, \(download.percent)%")
         case .queued: return String(localized: "Waiting")
-        case .downloading: return "\(percent)%"
+        case .downloading: return "\(download.percent)%"
         }
     }
 }

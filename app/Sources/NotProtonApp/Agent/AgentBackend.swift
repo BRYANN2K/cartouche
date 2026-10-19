@@ -15,37 +15,38 @@ final class AgentLiveBackend: AgentBackend {
     let installs: InstallCenter
     let compat: CompatibilityModel
     let controlsCenter: ControlsCenter
+    let stores: StoreCenter
     let performance: PerformanceStore
     let cleaner = InstallerCleanup()
 
-    var roots: AgentRoots
+    // The folders an agent may read beyond Cartouche's own: watched game
+    // folders, every installed game's folder, Steam prefix roots. Computed
+    // per call so a game or folder added after launch is granted at once.
+    var roots: AgentRoots {
+        var roots = AgentRoots(
+            support: SupportPaths.support, logs: SupportPaths.logs,
+            installs: GameFolder.installs, retroarch: consoleCenter.paths.root,
+            caches: SupportPaths.winetricksDownloads.deletingLastPathComponent())
+        roots.granted = (consoleCenter.folderList?.folders ?? [])
+            + library.allGames.compactMap { library.installFolder(of: $0) }
+            + PrefixStore.libraries().map(\.compatdata)
+        return roots
+    }
 
     // Indirection for tests: opening URLs, runner installs, folder copy.
     var open: @MainActor (URL) -> Void = { NSWorkspace.shared.open($0) }
     var installRunnerBody: (@MainActor (String) async throws -> Void)?
 
     init(library: LibraryModel, consoles: ConsoleCenter, installs: InstallCenter,
-         compat: CompatibilityModel, controls: ControlsCenter,
+         compat: CompatibilityModel, controls: ControlsCenter, stores: StoreCenter,
          performance: PerformanceStore = PerformanceStore()) {
         self.library = library
         self.consoleCenter = consoles
         self.installs = installs
         self.compat = compat
         self.controlsCenter = controls
+        self.stores = stores
         self.performance = performance
-        roots = AgentRoots(
-            support: SupportPaths.support, logs: SupportPaths.logs,
-            installs: GameFolder.installs, retroarch: consoleCenter.paths.root,
-            caches: SupportPaths.winetricksDownloads.deletingLastPathComponent())
-    }
-
-    // The folders an agent may read beyond Cartouche's own: watched game
-    // folders, every installed game's folder, Steam prefix roots.
-    func refreshRoots() {
-        var granted = consoleCenter.folderList?.folders ?? []
-        granted += library.allGames.compactMap { library.installFolder(of: $0) }
-        granted += PrefixStore.libraries().map(\.compatdata)
-        roots.granted = granted
     }
 
     // MARK: Library
@@ -112,20 +113,24 @@ final class AgentLiveBackend: AgentBackend {
     // MARK: Launch and quit
 
     func launch(_ game: Game) async throws {
-        if game.console != nil {
-            try await launchConsole(game.console!, slot: nil, resume: false)
+        if let console = game.console {
+            try await launchConsole(console, slot: nil, resume: false)
             return
         }
         if let appID = game.steamAppID, game.source == .steam {
             open(URL(string: "steam://rungameid/\(appID)")!)
             return
         }
-        if let installed = installedGame(for: game) {
-            let launcher = installed.launcher
-            guard FileManager.default.fileExists(atPath: launcher.path(percentEncoded: false)) else {
-                throw AgentToolError("\(game.name) has no launcher; reinstall it")
+        if game.source.isStore {
+            guard stores.record(game.id) != nil else {
+                throw AgentToolError("\(game.name) is not installed")
             }
-            try Shell.detach(launcher.path(percentEncoded: false), [], environment: [:])
+            stores.play(game)
+            if let problem = stores.problem { throw AgentToolError(problem) }
+            return
+        }
+        if installedGame(for: game) != nil {
+            GameActionRunner.launchInstaller(game)
             return
         }
         throw AgentToolError("\(game.name) is not installed")
@@ -152,27 +157,25 @@ final class AgentLiveBackend: AgentBackend {
             throw AgentToolError("\(game.name) is not running under Cartouche")
         }
         let server = wine.server.path(percentEncoded: false)
-        _ = try Shell.run(server, ["-k"], environment: [
-            "WINEPREFIX": URL(filePath: installed.prefix).path(percentEncoded: false)])
+        let prefix = installed.prefix
+        _ = try await Task.detached {
+            try Shell.run(server, ["-k"], environment: [
+                "WINEPREFIX": URL(filePath: prefix).path(percentEncoded: false)])
+        }.value
     }
 
-    func isRunning(_ game: Game) async -> Bool {
-        if game.console != nil { return consoleCenter.playing?.gameID == game.console?.id }
-        return false
+    private struct ReportLine: Encodable {
+        var game: String
+        var verdict: String
+        var note: String
+        var time: String
     }
 
     func reportResult(_ game: Game, verdict: String, note: String?) throws {
-        let folder = roots.support.appending(path: "agents")
-        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let line = "{\"game\":\(AgentService.quote(game.id)),\"verdict\":\(AgentService.quote(verdict)),"
-            + "\"note\":\(AgentService.quote(note ?? "")),\"time\":\""
-            + AgentTools.stamp.string(from: Date()) + "\"}\n"
-        let file = folder.appending(path: "reports.jsonl")
-        if let handle = try? FileHandle(forWritingTo: file) {
-            handle.seekToEndOfFile(); handle.write(Data(line.utf8)); try? handle.close()
-        } else {
-            try Data(line.utf8).write(to: file)
-        }
+        try JSONLines.append(
+            ReportLine(game: game.id, verdict: verdict, note: note ?? "",
+                       time: AgentTools.stamp.string(from: Date())),
+            to: roots.support.appending(path: "agents/reports.jsonl"))
     }
 
     // MARK: Installs
@@ -190,17 +193,8 @@ final class AgentLiveBackend: AgentBackend {
     func installJobs() -> [InstallJob] { installs.jobs }
     func installJob(_ id: UUID) -> InstallJob? { installs.jobs.first { $0.id == id } }
 
-    func retryInstall(_ job: InstallJob, fix: RetryFix?) throws {
-        if let fix {
-            installs.retry(job, with: fix)
-        } else {
-            installs.requeue(job)
-        }
-    }
-
-    func applyThreads(_ job: InstallJob, _ threads: Int) throws {
-        job.inputs.threads = threads
-        installs.requeue(job)
+    func retryInstall(_ job: InstallJob, fixes: [RetryFix]) throws {
+        installs.retry(job, fixes: fixes)
     }
 
     func stopInstall(_ job: InstallJob) throws { installs.stop(job) }
@@ -214,12 +208,15 @@ final class AgentLiveBackend: AgentBackend {
         return request.installerBytes
     }
 
-    func copyInstallerToInternal(_ source: URL) throws -> URL {
+    func copyInstallerToInternal(_ source: URL) async throws -> URL {
         let folder = roots.support.appending(path: "installers").appending(path: source.lastPathComponent)
         try FileManager.default.createDirectory(at: folder.deletingLastPathComponent(),
                                                 withIntermediateDirectories: true)
         try? FileManager.default.removeItem(at: folder)
-        try FileManager.default.copyItem(at: source, to: folder)
+        // The copy of a multi-GB installer does not belong on the main actor.
+        try await Task.detached {
+            try FileManager.default.copyItem(at: source, to: folder)
+        }.value
         return folder
     }
 
@@ -266,24 +263,33 @@ final class AgentLiveBackend: AgentBackend {
         return try await PrefixTools.winetricks(verbs, in: prefix)
     }
 
+    // The prefix a tool may look at — drive_c and all. nil when the game has
+    // no usable prefix yet.
+    func prefixFolder(_ game: Game) -> URL? {
+        try? winePrefix(for: game).prefix
+    }
+
+    // wine reg takes seconds on a cold prefix; it cannot block the main actor.
     func registryGet(_ game: Game, key: String, value: String) async throws -> String {
         let (_, env, _) = try winePrefix(for: game)
         guard let loader = env["WINELOADER"] else { throw AgentToolError("no Wine loader") }
-        let out = try Shell.run(loader, ["reg", "query", key, "/v", value], environment: env)
-        return out.stdout
+        return try await Task.detached {
+            try Shell.check(loader, ["reg", "query", key, "/v", value], environment: env)
+        }.value
     }
 
     func registrySet(_ game: Game, key: String, value: String, data: String, type: String) async throws {
         let (_, env, _) = try winePrefix(for: game)
         guard let loader = env["WINELOADER"] else { throw AgentToolError("no Wine loader") }
-        _ = try Shell.run(loader, ["reg", "add", key, "/v", value, "/t", type, "/d", data, "/f"],
-                          environment: env)
+        _ = try await Task.detached {
+            try Shell.check(loader, ["reg", "add", key, "/v", value, "/t", type, "/d", data, "/f"],
+                            environment: env)
+        }.value
     }
 
     func runInPrefix(_ game: Game, exe: URL, args: [String]) async throws {
-        // The exe must be inside the game's own prefix or an allowed folder.
         let (prefix, env, _) = try winePrefix(for: game)
-        guard AgentScan.isAllowed(exe, under: roots.allowed + [prefix]) else {
+        guard AgentScan.contains(exe, in: roots.allowed + [prefix]) else {
             throw AgentToolError("the program must be inside the game's prefix or Cartouche's folders")
         }
         guard let loader = env["WINELOADER"] else { throw AgentToolError("no Wine loader") }
@@ -307,11 +313,13 @@ final class AgentLiveBackend: AgentBackend {
         if let problem = consoleCenter.problem { throw AgentToolError(problem) }
     }
 
-    func biosStatus(_ consoleID: String) -> BIOSStatus? {
-        ConsoleCatalog.console(consoleID).map { BIOSChecker(paths: consoleCenter.paths).status(for: $0) }
+    func biosStatus(_ consoleID: String) async -> BIOSStatus? {
+        guard let console = ConsoleCatalog.console(consoleID) else { return nil }
+        let paths = consoleCenter.paths
+        return await Task.detached { BIOSChecker(paths: paths).status(for: console) }.value
     }
 
-    func states(_ game: ConsoleGame) -> [SaveState] { consoleCenter.states(for: game) }
+    func states(_ game: ConsoleGame) async -> [SaveState] { await consoleCenter.states(for: game) }
 
     func launchConsole(_ game: ConsoleGame, slot: Int?, resume: Bool) async throws {
         await consoleCenter.play(game.id, slot: slot, resume: resume)
@@ -361,7 +369,7 @@ final class AgentLiveBackend: AgentBackend {
         _ = await consoleCenter.addGames(games)
     }
 
-    func rescanFolders() async { await consoleCenter.scanFolders() }
+    func rescanFolders() async { await consoleCenter.rescanFolders() }
 
     // MARK: Controls
 
@@ -403,14 +411,25 @@ final class AgentLiveBackend: AgentBackend {
         case "app": return AppLog.file
         case "console": return consoleCenter.paths.logs.appending(path: "retroarch.log")
         case "installer":
-            if let job = installs.jobs.first(where: { $0.title == game?.name }) { return installLogFile(job) }
+            guard let game else { return nil }
+            // A finished job links back to the installed game; a running one
+            // is matched by title.
+            let slug = String(game.id.dropFirst("installer:".count))
+            if let job = installs.jobs.last(where: { $0.game?.id == slug || $0.title == game.name }) {
+                return installLogFile(job)
+            }
+            if let installed = installedGame(for: game) {
+                let file = URL(filePath: installed.prefix)
+                    .deletingLastPathComponent().appending(path: "install.log")
+                return FileManager.default.fileExists(atPath: file.path(percentEncoded: false))
+                    ? file : nil
+            }
             return nil
         default:
             guard let game else { return nil }
             if let installed = installedGame(for: game) {
-                let folder = URL(filePath: installed.prefix).deletingLastPathComponent()
-                if source == "installer" { return folder.appending(path: "install.log") }
-                return folder.appending(path: "wine-output.log")
+                return URL(filePath: installed.prefix).deletingLastPathComponent()
+                    .appending(path: "wine-output.log")
             }
             guard let appID = game.steamAppID else { return nil }
             let launchers = SupportPaths.launchers.appending(path: String(appID))

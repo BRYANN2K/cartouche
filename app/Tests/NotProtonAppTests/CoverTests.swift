@@ -68,7 +68,8 @@ struct CoverTests {
         }
         let installer = Game(id: "installer:x", source: .installer, name: "Some Game", installed: true)
         #expect(await fixture.covers().art(for: installer, kind: .cover, override: nil) == .drawn)
-        #expect(!FileManager.default.fileExists(atPath: fixture.caches.appending(path: "1245620").path))
+        // No image is kept (a .missing marker beside it only remembers the 404)
+        #expect(!FileManager.default.fileExists(atPath: fixture.caches.appending(path: "1245620/library_600x900.jpg").path))
     }
 
     @Test("User override: a dropped image wins from then on, and survives a library refresh")

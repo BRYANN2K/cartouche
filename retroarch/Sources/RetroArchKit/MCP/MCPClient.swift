@@ -62,7 +62,7 @@ public actor MCPClient {
 
     private let send: @Sendable (Data) throws -> Void
     private var nextID = 1
-    private var pending: [Int: CheckedContinuation<JSONValue, Error>] = [:]
+    private var pending: [Int: (continuation: CheckedContinuation<JSONValue, Error>, timeout: Task<Void, Never>)] = [:]
     private var isClosed = false
     private var logLines: [String] = []
 
@@ -107,17 +107,20 @@ public actor MCPClient {
             "jsonrpc": "2.0", "id": .number(Double(id)), "method": .string(method), "params": params,
         ])
         return try await withCheckedThrowingContinuation { continuation in
-            pending[id] = continuation
+            // The timer is cancelled when the reply arrives, so a busy session
+            // does not keep a sleeping task per request
+            let timer = Task { [weak self] in
+                try? await Task.sleep(for: timeout)
+                await self?.expire(id, method: method)
+            }
+            pending[id] = (continuation, timer)
             do {
                 try send(line)
             } catch {
                 pending[id] = nil
+                timer.cancel()
                 continuation.resume(throwing: error)
                 return
-            }
-            Task { [weak self] in
-                try? await Task.sleep(for: timeout)
-                await self?.expire(id, method: method)
             }
         }
     }
@@ -139,7 +142,9 @@ public actor MCPClient {
             }
             return
         }
-        guard let continuation = pending.removeValue(forKey: id) else { return }
+        guard let entry = pending.removeValue(forKey: id) else { return }
+        entry.timeout.cancel()
+        let continuation = entry.continuation
         if let error = message["error"] {
             continuation.resume(throwing: MCPClientError.rpc(
                 code: error["code"]?.int ?? 0, message: error["message"]?.string ?? ""))
@@ -153,11 +158,14 @@ public actor MCPClient {
         isClosed = true
         let waiting = pending
         pending = [:]
-        for continuation in waiting.values { continuation.resume(throwing: MCPClientError.closed) }
+        for entry in waiting.values {
+            entry.timeout.cancel()
+            entry.continuation.resume(throwing: MCPClientError.closed)
+        }
     }
 
     private func expire(_ id: Int, method: String) {
-        pending.removeValue(forKey: id)?.resume(throwing: MCPClientError.timedOut(method))
+        pending.removeValue(forKey: id)?.continuation.resume(throwing: MCPClientError.timedOut(method))
     }
 
     static func encode(_ message: JSONValue) throws -> Data {

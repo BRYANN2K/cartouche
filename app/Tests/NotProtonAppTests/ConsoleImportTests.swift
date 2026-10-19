@@ -21,7 +21,7 @@ struct ConsoleImportTests {
     }
 
     private func sheet(_ scene: ConsoleScene, _ kind: AddGamesKind = .consoles) -> some View {
-        AddGamesSheet(kind: kind).environment(scene.center)
+        AddGamesSheet(kind: kind, library: scene.library).environment(scene.center)
     }
 
     @Test("Known cartridge: named from the database, its console and \"checksum match\" within 2 seconds")
@@ -145,7 +145,7 @@ struct ConsoleImportTests {
         #expect(flow.step == .drop && flow.rows.isEmpty && !flow.checking)
 
         // Windows Game, with the sheet's own segmented control: this sheet closes,
-        // the Windows install sheet (P6) opens on its first step
+        // the Windows install sheet opens on its first step
         flow.start(files)
         #expect(await host.select(segment: "Windows Game"))
         #expect(!flow.checking && flow.rows.isEmpty)

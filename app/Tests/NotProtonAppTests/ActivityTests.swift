@@ -76,52 +76,49 @@ final class RecordingControl: SteamDownloadControlling {
 
 let godOfWar = DownloadActivity(appID: 1_593_500, name: "God of War", state: .downloading,
                                 bytesDone: 16_082_000_000, bytesTotal: 47_300_000_000)
-let eldenRing = RunningGame(id: "steam:1245620", name: "Elden Ring", target: .steam(appID: 1_245_620), fps: 58)
+let eldenRing = RunningGame(id: "steam:1245620", name: "Elden Ring", target: .steam(appID: 1_245_620))
 let epicDownload = StoreActivity(gameID: "epic:Fennec", title: "Sample Free Game",
                                 label: StoreJob.Kind.install.label, fraction: 0.34, waiting: 0)
 
 @Suite("Activity slot")
 struct ActivitySlotTests {
 
-    // Every combination of the five kinds: the first present one in the order wins
-    @Test("Playing beats installing beats a store job beats downloads beats updates, for all 32 combinations")
+    // Every combination of the four kinds: the first present one in the order wins
+    @Test("Playing beats installing beats a store job beats downloads, for all 16 combinations")
     func priority() {
         let install = InstallActivity(title: "Sample Game", fraction: 0.4, stuck: false, waiting: 0)
-        let update = UpdateActivity(id: "dxmt", title: "DXMT 0.80", kind: "Graphics")
-        for mask in 0..<32 {
+        for mask in 0..<16 {
             let playing = mask & 1 != 0 ? eldenRing : nil
             let installing = mask & 2 != 0 ? install : nil
             let store = mask & 4 != 0 ? epicDownload : nil
             let downloads = mask & 8 != 0 ? [godOfWar] : []
-            let updates = mask & 16 != 0 ? [update] : []
             let slot = ActivitySlot.pick(playing: playing, install: installing, store: store,
-                                         downloads: downloads, updates: updates)
+                                         downloads: downloads)
             let expected: ActivitySlot? =
                 if let playing { .playing(playing) }
                 else if let installing { .installing(installing) }
                 else if let store { .store(store) }
                 else if !downloads.isEmpty { .downloads(downloads) }
-                else if let first = updates.first { .update(first) }
                 else { nil }
             #expect(slot == expected, "mask \(mask)")
             // The status menu lists every kind present, whatever the slot shows
             let kinds = ActivityMenuSection.all(playing: playing, install: installing, store: store,
-                                                downloads: downloads, updates: updates).map(\.kind)
+                                                downloads: downloads).map(\.kind)
             #expect(kinds.count == mask.nonzeroBitCount, "mask \(mask)")
         }
     }
 
     @Test("A store job names the game and the job's own label and percent in the status menu")
     func storeLine() {
-        let menu = ActivityMenuSection.all(playing: nil, install: nil, store: epicDownload, downloads: [], updates: [])
+        let menu = ActivityMenuSection.all(playing: nil, install: nil, store: epicDownload, downloads: [])
         #expect(menu == [ActivityMenuSection(kind: .store, lines: [.init(title: "Sample Free Game", detail: "Downloading, 34%")])])
         #expect(menu.first?.header == "Store")
     }
 
     @Test("Nothing going on hides the slot")
     func nothing() {
-        #expect(ActivitySlot.pick(playing: nil, install: nil, store: nil, downloads: [], updates: []) == nil)
-        #expect(ActivityMenuSection.all(playing: nil, install: nil, store: nil, downloads: [], updates: []).isEmpty)
+        #expect(ActivitySlot.pick(playing: nil, install: nil, store: nil, downloads: []) == nil)
+        #expect(ActivityMenuSection.all(playing: nil, install: nil, store: nil, downloads: []).isEmpty)
     }
 
     @Test("The ring: average progress, paused only when all are, failed wins")
@@ -161,7 +158,7 @@ struct ActivityCenterTests {
         return center
     }
 
-    @Test("Priority: a running game shows with its FPS and Quit, and the download stays in the status menu")
+    @Test("Priority: a running game shows with its name and Quit, and the download stays in the status menu")
     func playingWhileDownloading() async throws {
         let fixture = try DownloadFixture("priority")
         defer { fixture.remove() }
@@ -169,16 +166,14 @@ struct ActivityCenterTests {
         try fixture.manifest(1_593_500, "God of War", flags: 1026, done: 16_082_000_000, total: 47_300_000_000)
         try fixture.registry(running: 1_245_620)
         let center = center(fixture)
-        center.fps = { _ in 58 }
         await center.refresh()
 
         guard case .playing(let game) = center.slot else { Issue.record("slot is \(String(describing: center.slot))"); return }
         #expect(game.name == "Elden Ring")
-        #expect(game.fps == 58)
         #expect(center.downloads.map(\.name) == ["God of War"])
         let menu = center.menuSections
         #expect(menu.map(\.kind) == [.playing, .downloads])
-        #expect(menu[0].lines == [ActivityMenuSection.Line(title: "Elden Ring", detail: "58 fps")])
+        #expect(menu[0].lines == [ActivityMenuSection.Line(title: "Elden Ring")])
         #expect(menu[1].lines == [ActivityMenuSection.Line(title: "God of War", detail: "34%")])
     }
 
@@ -221,8 +216,9 @@ struct ActivityCenterTests {
         defer { fixture.remove() }
         let center = center(fixture)
         var quit = 0
-        center.quitConsole = { quit += 1 }
-        center.consoleGame = RunningGame(id: "console:snes:1", name: "Super Metroid", target: .console)
+        var console: RunningGame? = RunningGame(id: "console:snes:1", name: "Super Metroid", target: .console)
+        center.consoleSource = { console }
+        center.quitConsole = { quit += 1; console = nil }
         guard case .playing(let game) = center.slot else { Issue.record("no playing slot"); return }
         #expect(game.onRetroArch)
         await center.quitGame()
@@ -481,39 +477,45 @@ struct GameProcessTests {
     func quit() async throws {
         let work = try scratchDirectory("processes")
         defer { try? FileManager.default.removeItem(at: work) }
-        let folder = work.appending(path: "steamapps/common/Sample Game")
+        let folder = work.appending(path: "steamapps/common/SampleGame")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let script = folder.appending(path: "game.sh")
         try Data("#!/bin/sh\n/bin/sleep 30\n".utf8).write(to: script)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: script.path(percentEncoded: false))
         // A launcher Steam tracks, with a child of its own, like compat_run.sh and Wine
-        let launcher = try Self.spawn("/bin/sh", ["-c", "/bin/sleep 30 & wait"])
+        let launcher = try Self.spawn("/bin/sh", ["-c", "\(script.path(percentEncoded: false)) & wait"])
         let fromFolder = try Self.spawn("/bin/sh", [script.path(percentEncoded: false)])
         let other = try Self.spawn("/bin/sleep", ["30"])
         defer { [launcher, fromFolder, other].forEach { if $0.isRunning { $0.terminate() } } }
         try await Task.sleep(for: .milliseconds(300))
 
+        // A stamp older than the spawns so trusted(_:added:) accepts the live ones;
+        // `other` is a stale entry left in the log, pointing at an unrelated process
+        let stamp = GameProcesses.logDate.string(from: Date(timeIntervalSinceNow: -60))
         let log = """
-        [2026-10-19 21:00:00] AppID 4242424 adding PID \(launcher.processIdentifier) as a tracked process "compat_run.sh"
-        [2026-10-19 21:00:00] AppID 4242424 adding PID 99999 as a tracked process "old"
-        [2026-10-19 21:00:01] AppID 4242424 no longer tracking PID 99999, exit code 0
+        [\(stamp)] AppID 4242424 adding PID \(launcher.processIdentifier) as a tracked process "compat_run.sh"
+        [\(stamp)] AppID 4242424 adding PID \(other.processIdentifier) as a tracked process "old"
+        [\(stamp)] AppID 4242424 adding PID 99999 as a tracked process "gone"
         """
         let tracked = GameProcesses.tracked(inLog: log)
-        #expect(tracked == [4_242_424: [launcher.processIdentifier]])
+        #expect(Set((tracked[4_242_424] ?? [:]).keys) == [launcher.processIdentifier, other.processIdentifier, 99999])
 
         let processes = GameProcesses(grace: .seconds(2))
-        let pids = processes.pids(appID: 4_242_424, tracked: tracked[4_242_424] ?? [], installFolder: folder)
+        let pids = processes.pids(appID: 4_242_424, tracked: tracked[4_242_424] ?? [:], installFolder: folder)
         #expect(pids.contains(launcher.processIdentifier))
         #expect(pids.contains(fromFolder.processIdentifier))
-        #expect(pids.count >= 4, "the sleep children are found through their parents")
+        #expect(pids.count >= 5, "the script and sleep children are found through their parents")
+        // The stale entry and the dead PID are not the game: no path ties them to the folder
         #expect(!pids.contains(other.processIdentifier))
+        #expect(!pids.contains(99999))
         #expect(!pids.contains(getpid()))
 
-        #expect(processes.quit(appID: 4_242_424, tracked: tracked[4_242_424] ?? [], installFolder: folder) == pids.count)
+        #expect(processes.quit(appID: 4_242_424, tracked: tracked[4_242_424] ?? [:], installFolder: folder) == pids.count)
         launcher.waitUntilExit()
         fromFolder.waitUntilExit()
         #expect(launcher.terminationReason == .uncaughtSignal)
         #expect(other.isRunning)
-        #expect(processes.pids(appID: 4_242_424, tracked: [], installFolder: folder).isEmpty)
+        #expect(processes.pids(appID: 4_242_424, tracked: [:], installFolder: folder).isEmpty)
     }
 
     @Test("A game Steam tracks is the running game, while one of its processes lives")
@@ -521,12 +523,19 @@ struct GameProcessTests {
         let fixture = try DownloadFixture("running")
         defer { fixture.remove() }
         try fixture.manifest(1_245_620, "Elden Ring", flags: 4)
-        let game = try Self.spawn("/bin/sleep", ["30"])
+        // The tracked process runs from the game's folder, as the real game would
+        let dir = fixture.steam.appending(path: "steamapps/common/Elden Ring")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let script = dir.appending(path: "run.sh")
+        try Data("#!/bin/sh\n/bin/sleep 30\n".utf8).write(to: script)
+        let game = try Self.spawn("/bin/sh", [script.path(percentEncoded: false)])
         defer { if game.isRunning { game.terminate() } }
-        try "[2026-10-19 21:00:00] AppID 1245620 adding PID \(game.processIdentifier) as a tracked process \"eldenring.exe\"\n"
+        let stamp = GameProcesses.logDate.string(from: Date(timeIntervalSinceNow: -60))
+        try "[\(stamp)] AppID 1245620 adding PID \(game.processIdentifier) as a tracked process \"eldenring.exe\"\n"
             .write(to: fixture.steam.appending(path: "logs/gameprocess_log.txt"), atomically: true, encoding: .utf8)
         #expect(fixture.reader.read().runningAppID == 1_245_620)
-        #expect(fixture.reader.read().trackedPIDs == [game.processIdentifier])
+        let pids = fixture.reader.read().trackedPIDs
+        #expect(pids.count == 1 && pids[game.processIdentifier] != nil)
         game.terminate()
         game.waitUntilExit()
         #expect(fixture.reader.read().runningAppID == nil)

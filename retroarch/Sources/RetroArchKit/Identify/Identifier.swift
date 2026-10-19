@@ -14,6 +14,9 @@ public struct Identification: Sendable, Identifiable, Equatable {
     public var identifiedBy: IdentifiedBy?
     // Consoles whose files have this extension, offered first in the picker
     public var candidates: [String] = []
+    // The whole file's CRC32, when identification already read it; netplay
+    // room matching reuses it instead of reading the file again
+    public var crc: UInt32?
 
     public var id: String { file.path(percentEncoded: false) }
 
@@ -22,8 +25,10 @@ public struct Identification: Sendable, Identifiable, Equatable {
     // The library entry, with the console the database gave or the user chose
     public func game(console chosen: String? = nil) -> ConsoleGame? {
         guard let console = isRecognized ? console : chosen else { return nil }
-        return ConsoleGame(console: console, name: name, databaseName: isRecognized ? databaseName : nil,
-                           file: file, discs: discs, identifiedBy: isRecognized ? identifiedBy ?? .chosen : .chosen)
+        var game = ConsoleGame(console: console, name: name, databaseName: isRecognized ? databaseName : nil,
+                               file: file, discs: discs, identifiedBy: isRecognized ? identifiedBy ?? .chosen : .chosen)
+        game.crc = crc
+        return game
     }
 }
 
@@ -120,15 +125,23 @@ public struct Identifier: Sendable {
         }
         for console in candidates {
             for crc in sums {
-                if let entry = await database.match(crc: crc, in: console) { return found(file, entry, console, by: .checksum) }
+                if let entry = await database.match(crc: crc, in: console) {
+                    var result = found(file, entry, console, by: .checksum)
+                    result.crc = sums.first
+                    return result
+                }
             }
         }
         for console in candidates {
             if let entry = await database.match(name: GameTitle.fromFile(file), in: console) {
-                return found(file, entry, console, by: .fileName)
+                var result = found(file, entry, console, by: .fileName)
+                result.crc = sums.first
+                return result
             }
         }
-        return unknown(file, ext: ext)
+        var result = unknown(file, ext: ext)
+        result.crc = sums.first
+        return result
     }
 
     // The member of a zip that is a game; its CRC is in the zip's own directory
@@ -137,10 +150,15 @@ public struct Identifier: Sendable {
         else { return unknown(file, ext: "zip") }
         let ext = (member.name as NSString).pathExtension.lowercased()
         for console in offered(ext) {
-            if let entry = await database.match(crc: member.crc, in: console) { return found(file, entry, console, by: .checksum) }
+            if let entry = await database.match(crc: member.crc, in: console) {
+                var result = found(file, entry, console, by: .checksum)
+                result.crc = member.crc
+                return result
+            }
         }
         var result = unknown(file, ext: ext)
         result.candidates = offered(ext).map(\.id)
+        result.crc = member.crc
         return result
     }
 

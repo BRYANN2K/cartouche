@@ -21,22 +21,44 @@ struct RunnerGameActivity: GameActivity {
     }
 }
 
+// Several sources of "a game is running", any one of them holds the relaunch
+struct CompositeGameActivity: GameActivity {
+    let activities: [any GameActivity]
+
+    init(_ activities: [any GameActivity]) { self.activities = activities }
+
+    func isGameRunning() async -> Bool {
+        for activity in activities where await activity.isGameRunning() { return true }
+        return false
+    }
+}
+
+// A console game RetroArch or a standalone emulator is playing
+@MainActor
+struct ConsoleGameActivity: GameActivity {
+    let center: ConsoleCenter
+    func isGameRunning() async -> Bool { center.playing != nil }
+}
+
 @MainActor
 protocol Relauncher {
-    func relaunch()
+    // False when the helper could not start and nothing was asked to quit
+    func relaunch() -> Bool
 }
 
 struct LiveRelauncher: Relauncher {
     var bundle: URL = Bundle.main.bundleURL
 
-    func relaunch() {
+    func relaunch() -> Bool {
         let pid = ProcessInfo.processInfo.processIdentifier
         do {
             _ = try Self.reopen(after: pid, run: ["/usr/bin/open", "-n", bundle.path(percentEncoded: false)])
             AppLog.note("relaunching \(bundle.path(percentEncoded: false))")
             NSApp.terminate(nil)
+            return true
         } catch {
             AppLog.note("relaunch failed: \(error.localizedDescription)")
+            return false
         }
     }
 
@@ -87,6 +109,8 @@ final class RelaunchService {
     @ObservationIgnored let games: any GameActivity
     @ObservationIgnored let relauncher: any Relauncher
     @ObservationIgnored let pollInterval: Duration
+    // Longer than the helper's 30 s window: a cancelled quit is noticed this way
+    @ObservationIgnored let giveUpAfter: Duration
     @ObservationIgnored var now: () -> Date = Date.init
     @ObservationIgnored private var cancelled = false
 
@@ -100,13 +124,15 @@ final class RelaunchService {
         center: PermissionCenter? = nil,
         games: any GameActivity = RunnerGameActivity(),
         relauncher: any Relauncher = LiveRelauncher(),
-        pollInterval: Duration = .seconds(2)
+        pollInterval: Duration = .seconds(2),
+        giveUpAfter: Duration = .seconds(31)
     ) {
         self.defaults = defaults
         self.center = center
         self.games = games
         self.relauncher = relauncher
         self.pollInterval = pollInterval
+        self.giveUpAfter = giveUpAfter
     }
 
     func save(_ route: ScreenRoute) {
@@ -177,7 +203,19 @@ final class RelaunchService {
             }
         }
         phase = .relaunching
-        relauncher.relaunch()
+        guard relauncher.relaunch() else {
+            phase = .idle
+            _ = restore()
+            return
+        }
+        // A quit the user cancels leaves the phase stuck; past the helper's window, reset
+        let giveUp = giveUpAfter
+        Task {
+            try? await Task.sleep(for: giveUp)
+            guard phase == .relaunching else { return }
+            phase = .idle
+            _ = restore()
+        }
     }
 
     func cancel() {

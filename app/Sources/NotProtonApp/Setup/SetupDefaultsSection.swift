@@ -48,7 +48,8 @@ struct SetupDefaultsSection: View {
 
 // DXMT and DXVK for Wine builds; CrossOver brings its own copies
 struct BackendDownloadsSection: View {
-    let manifest = BackendManifest.current()
+    static let manifest = BackendManifest.current()
+    let manifest = Self.manifest
     var folder: URL = BackendInstaller.folder
     var model: LibraryModel?
     @State private var installed: [GraphicsBackend: BackendInstaller.Receipt] = [:]

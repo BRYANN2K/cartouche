@@ -82,8 +82,6 @@ struct OnboardingFlowTests {
             snapshot(general.frame(width: 560), named: "settings-general-setup", dark: dark)
             let library = Form { LibraryFoldersSection() }.formStyle(.grouped).environment(scene.folders)
             snapshot(library.frame(width: 560), named: "settings-library-folders", dark: dark)
-            let runner = Form { FreeRunnerSection() }.formStyle(.grouped).environment(model)
-            snapshot(runner.frame(width: 560), named: "settings-compatibility-runner", dark: dark)
         }
     }
 

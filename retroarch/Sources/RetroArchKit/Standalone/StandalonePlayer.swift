@@ -3,11 +3,16 @@ import Foundation
 
 public enum StandaloneError: Error, Equatable, LocalizedError {
     case exitedEarly(emulator: String, status: Int32)
+    // A single-instance app hands a second launch to the one already open and
+    // exits 0: the game runs, but the session Cartouche started is over
+    case handedOff(emulator: String)
 
     public var errorDescription: String? {
         switch self {
         case .exitedEarly(let emulator, let status):
             String(localized: "\(emulator) quit at once (exit code \(status)).", bundle: .module)
+        case .handedOff(let emulator):
+            String(localized: "\(emulator) is already running. Quit the open \(emulator) first.", bundle: .module)
         }
     }
 }
@@ -52,12 +57,21 @@ public actor StandalonePlayer {
         let child = try ChildProcess(
             executable: emulator.executable, arguments: emulator.emulator.arguments(for: request.content),
             environment: environment, stderr: log, pipes: false, onLine: { _ in })
-        if await child.waitForExit(within: startCheck), let status = child.exitStatus, status != 0 {
-            throw StandaloneError.exitedEarly(emulator: emulator.emulator.name, status: status)
+        // Any exit inside startCheck means it did not start — or handed off
+        // to an already open copy, where the session would end at once
+        if await child.waitForExit(within: startCheck), let status = child.exitStatus {
+            throw status == 0
+                ? StandaloneError.handedOff(emulator: emulator.emulator.name)
+                : StandaloneError.exitedEarly(emulator: emulator.emulator.name, status: status)
         }
         self.child = child
         started = .now
         Self.bringForward(child.identifier)
+    }
+
+    // Resolves once the emulator's process ends
+    public func waitUntilExit() async {
+        if let child { _ = await child.exited() }
     }
 
     // Quits as the emulator's own Quit does, so it can save; then SIGTERM,

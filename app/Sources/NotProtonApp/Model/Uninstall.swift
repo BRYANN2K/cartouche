@@ -44,10 +44,10 @@ enum Uninstall {
     static func confirmation(modifications: SteamModifications = .shared) -> String {
         let missing = ((try? modifications.paths()) ?? []).filter { SupportPaths.Steam.isUnreachable($0) }
         guard !missing.isEmpty else {
-            return String(localized: "Steam is restored to its unmodified state and Cartouche is removed, including the compatibility tool that lives inside the Steam folder. Windows games and Steam Play prefixes are not removed.")
+            return String(localized: "Steam is restored to its unmodified state and Cartouche is removed, including the compatibility tool that lives inside the Steam folder. Your games, prefixes, console saves and BIOS files are not removed.")
         }
         return missing.map {
-            String(localized: "Steam at \($0.path(percentEncoded: false)) isn't connected, so Cartouche can't be removed from it. All other Cartouche data is removed, except for Windows Games and prefixes.")
+            String(localized: "Steam at \($0.path(percentEncoded: false)) isn't connected, so Cartouche can't be removed from it. All other Cartouche data is removed, except for your games, prefixes, console saves and BIOS files.")
         }.joined(separator: "\n\n")
     }
 
@@ -61,8 +61,8 @@ enum Uninstall {
         updateBlocks: [URL] = UpdateBlock.paths,
         legacyCompat: URL = SupportPaths.Steam.legacyCompat,
         compatTools: [URL] = SupportPaths.Steam.cartoucheTools(),
+        support: URL = SupportPaths.support,
         directories: [URL] = [
-            SupportPaths.support,
             SupportPaths.logs,
             SupportPaths.packageDownloads.deletingLastPathComponent(),
         ],
@@ -155,8 +155,12 @@ enum Uninstall {
         if !shared { _ = try UpdateBlock.remove(from: updateBlocks) }
         report(.removing)
         var removed = try remove(
-            legacyCompat: shared ? nil : legacyCompat, compatTools: compatTools, directories: directories
+            legacyCompat: shared ? nil : legacyCompat, compatTools: compatTools,
+            directories: directories + contents(of: support)
         )
+        // rmdir only takes an empty folder, never what it still holds
+        rmdir(support.appending(path: "retroarch").path(percentEncoded: false))
+        rmdir(support.path(percentEncoded: false))
         if !shared { removed += try removeSteamDLLLinks(to: legacyCompat, in: libraries) }
         let templateFailures = RunnerInstaller.removePrefixTemplates(
             keeping: [], libraries: libraries, removingFolder: true)
@@ -223,6 +227,22 @@ enum Uninstall {
         try SteamInstaller.adHocSign(app.appending(path: "Contents/MacOS/steam_osx"), step: step)
         try SteamInstaller.adHocSign(app, step: step)
         return (stopped, true)
+    }
+
+    // What the user owns stays: installed and store games with their prefixes,
+    // and the console saves, states, BIOS dumps and screenshots
+    static let keptFolders: Set<String> = ["installs", "stores"]
+    static let keptConsoleFolders: Set<String> = ["saves", "states", "bios", "screenshots"]
+
+    static func contents(of support: URL, fm: FileManager = .default) -> [URL] {
+        let entries = (try? fm.contentsOfDirectory(at: support, includingPropertiesForKeys: nil)) ?? []
+        return entries.flatMap { entry -> [URL] in
+            let name = entry.lastPathComponent
+            if keptFolders.contains(name) { return [] }
+            guard name == "retroarch" else { return [entry] }
+            let inner = (try? fm.contentsOfDirectory(at: entry, includingPropertiesForKeys: nil)) ?? []
+            return inner.filter { !keptConsoleFolders.contains($0.lastPathComponent) }
+        }
     }
 
     static func remove(legacyCompat: URL?, compatTools: [URL], directories: [URL]) throws -> [String] {

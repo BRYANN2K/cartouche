@@ -75,13 +75,13 @@ extension AgentTools {
                         ]
                     }
                     if let console = game.console {
-                        out["bios"] = backend.biosStatus(console.console).map { status in
+                        out["bios"] = await backend.biosStatus(console.console).map { status in
                             .object(["status": .string("\(status.summary)"),
                                      "files": .array(status.files.map {
                                          .object(["name": .string($0.name), "state": .string("\($0.state)")])
                                      })])
                         } ?? .null
-                        out["states"] = .array(backend.states(console).map {
+                        out["states"] = .array(await backend.states(console).map {
                             .object(["slot": $0.slot.map { .number(Double($0)) } ?? .null,
                                      "written": stamp($0.date)])
                         })
@@ -92,9 +92,9 @@ extension AgentTools {
 
             AgentTool(
                 name: "search_store",
-                detail: "Search a store's catalog: \"steam\" searches the store "
-                    + "API, \"installer\" lists installer folders, a console id "
-                    + "searches the game database for that system.",
+                detail: "Search a store's catalog: \"installer\" lists "
+                    + "installer folders; a store id (steam, epic, gog, "
+                    + "amazon) matches games already in the library.",
                 schema: .object([
                     "type": "object",
                     "properties": .object([
@@ -115,8 +115,6 @@ extension AgentTools {
                         let hits = names.filter { query.isEmpty || $0.range(of: query, options: .caseInsensitive) != nil }
                         return ["results": .array(hits.map { .object(["name": .string($0)]) })]
                     default:
-                        // PC stores list through library catalogues the app
-                        // already holds; console stores need P10.
                         let hits = backend.games().filter {
                             $0.source.id == store &&
                             (query.isEmpty || $0.name.range(of: query, options: .caseInsensitive) != nil)
@@ -355,14 +353,17 @@ extension AgentTools {
                     + "support files, installers, runners, RetroArch.",
                 schema: .object(["type": "object"]),
                 run: { backend, _ in
-                    let size: (URL) -> Double = { url in
-                        Double(FolderSize.bytes(url))
-                    }
+                    let folders = [backend.roots.installs, backend.roots.support,
+                                   backend.roots.retroarch]
+                    // Folder scans can take seconds; keep them off the main actor.
+                    let sizes = await Task.detached {
+                        folders.map { Double(FolderSize.bytes($0)) }
+                    }.value
                     return [
                         "free_bytes": .number(Double(backend.diskFree(at: backend.roots.support) ?? 0)),
-                        "installs_bytes": .number(size(backend.roots.installs)),
-                        "support_bytes": .number(size(backend.roots.support)),
-                        "retroarch_bytes": .number(size(backend.roots.retroarch)),
+                        "installs_bytes": .number(sizes[0]),
+                        "support_bytes": .number(sizes[1]),
+                        "retroarch_bytes": .number(sizes[2]),
                     ]
                 }
             ),
@@ -376,10 +377,7 @@ extension AgentTools {
                     var out: [String: JSONValue] = [
                         "installs": .array(backend.installJobs().filter {
                             $0.phase != .ready && $0.phase != .failed && $0.phase != .stopped
-                        }.map { job in
-                            .object(["id": .string(job.id.uuidString), "title": .string(job.title),
-                                     "phase": .string("\(job.phase)"), "fraction": .number(job.progress.fraction)])
-                        }),
+                        }.map(job)),
                     ]
                     if let playing = backend.consolePlaying() {
                         out["playing"] = .object(["game": .string(playing.gameID),
@@ -425,7 +423,7 @@ extension AgentTools {
             AgentTool(
                 name: "get_prefix_files",
                 detail: "List files inside the game's Wine prefix under a "
-                    + "relative path (default: drive_c). Full level reads more.",
+                    + "relative path (default: drive_c).",
                 schema: .object([
                     "type": "object",
                     "properties": .object([
@@ -436,15 +434,12 @@ extension AgentTools {
                 ]),
                 run: { backend, args in
                     let game = try find(backend, args)
-                    guard let folder = backend.installFolder(of: game) else {
-                        throw AgentToolError("\(game.name) is not installed")
+                    guard let prefix = backend.prefixFolder(game) else {
+                        throw AgentToolError("\(game.name) has no prefix; launch it once first")
                     }
-                    let root = folder.appending(path: "drive_c")
-                    let base = args["path"]?.string.map { root.appending(path: $0) } ?? root
-                    // The scan's allowed rule applies to the answer; the path
-                    // itself must stay inside the prefix.
-                    guard base.path(percentEncoded: false)
-                        .hasPrefix(folder.path(percentEncoded: false)) else {
+                    let root = prefix.appending(path: "drive_c")
+                    guard let base = args["path"]?.string.map({ root.appending(path: $0) }) ?? .some(root),
+                          AgentScan.contains(base, in: [root]) else {
                         throw AgentToolError("the path must stay inside the game's prefix")
                     }
                     let items = (try? FileManager.default.contentsOfDirectory(
@@ -467,18 +462,20 @@ extension AgentTools {
                 schema: .object(["type": "object"]),
                 run: { backend, _ in
                     let added = backend.addedConsoles().map(\.id)
-                    return ["consoles": .array(backend.consoles().map { console in
-                        .object([
+                    var consoles: [JSONValue] = []
+                    for console in backend.consoles() {
+                        consoles.append(.object([
                             "id": .string(console.id),
                             "name": .string(console.name),
                             "core": .string(console.core),
                             "added": .bool(added.contains(console.id)),
                             "games": .number(Double(backend.consoleGames().filter {
                                 $0.console == console.id }.count)),
-                            "bios": backend.biosStatus(console.id).map {
+                            "bios": await backend.biosStatus(console.id).map {
                                 .string("\($0.summary)") } ?? .null,
-                        ])
-                    })]
+                        ]))
+                    }
+                    return ["consoles": .array(consoles)]
                 }
             ),
 
@@ -492,10 +489,11 @@ extension AgentTools {
                     "properties": .object(["system": ["type": "string"]]),
                 ]),
                 run: { backend, args in
-                    let statuses = backend.consoles().compactMap { console -> JSONValue? in
-                        guard let status = backend.biosStatus(console.id) else { return nil }
-                        if let system = args["system"]?.string, console.id != system { return nil }
-                        return .object([
+                    var statuses: [JSONValue] = []
+                    for console in backend.consoles() {
+                        if let system = args["system"]?.string, console.id != system { continue }
+                        guard let status = await backend.biosStatus(console.id) else { continue }
+                        statuses.append(.object([
                             "system": .string(console.id),
                             "status": .string("\(status.summary)"),
                             "files": .array(status.files.map { file in
@@ -506,7 +504,7 @@ extension AgentTools {
                                     "state": .string("\(file.state)"),
                                 ])
                             }),
-                        ])
+                        ]))
                     }
                     guard !statuses.isEmpty else { throw AgentToolError("no such added console") }
                     return ["systems": .array(statuses)]
@@ -520,7 +518,7 @@ extension AgentTools {
                 schema: gameArg(),
                 run: { backend, args in
                     let game = try requireConsole(backend, args)
-                    return ["states": .array(backend.states(game).map {
+                    return ["states": .array(await backend.states(game).map {
                         .object([
                             "slot": $0.slot.map { .number(Double($0)) } ?? .null,
                             "auto": .bool($0.isAuto),
@@ -557,7 +555,7 @@ extension AgentTools {
         ]
     }
 
-    static func gameArg() -> JSONValue {
+    nonisolated static func gameArg() -> JSONValue {
         .object([
             "type": "object",
             "properties": .object(["game": ["type": "string",
@@ -575,7 +573,7 @@ extension AgentTools {
                                              isDirectory: &isDirectory) else {
             throw AgentToolError("no such file: \(raw)")
         }
-        guard AgentScan.isAllowed(url, under: backend.roots.allowed) else {
+        guard AgentScan.contains(url, in: backend.roots.allowed) else {
             throw AgentToolError("Cartouche may not read outside its own folders and the ones you granted")
         }
         return url

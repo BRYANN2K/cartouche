@@ -51,9 +51,32 @@ class MakeWorldTests(unittest.TestCase):
     def test_empty(self):
         home, made = self.build("empty")
         self.assertEqual(made["profile"], "empty")
-        # Only the manifest: nothing the app scans exists.
-        rest = [p for p in home.rglob("*") if p.name != "cartouche-world.json"]
+        # Only the manifest and the preferences pinning steamAppPath inside
+        # the scratch home — nothing the app scans exists.
+        rest = [p for p in home.rglob("*")
+                if p.name not in ("cartouche-world.json", f"{make_world.BUNDLE_ID}.plist",
+                                  "Library", "Preferences")]
         self.assertEqual(rest, [])
+
+    def test_every_profile_pins_steam_path_inside_the_home(self):
+        # Without the pin the app falls back to a default; in QA that default is
+        # under the scratch home, but the pin keeps it there even if QA mode is
+        # off — the real /Applications/Steam.app is never the answer.
+        for profile in make_world.PROFILES:
+            with self.subTest(profile=profile):
+                home, _ = self.build(profile)
+                prefs = plistlib.loads(
+                    (home / "Library" / "Preferences"
+                     / f"{make_world.BUNDLE_ID}.plist").read_bytes())
+                pinned = Path(prefs["steamAppPath"])
+                self.assertEqual(pinned, home / "Applications" / "Steam.app")
+                if profile in ("empty", "beginner"):
+                    # No Steam.app fixture exists: the pin points at a missing
+                    # path, so nothing ever lands in the real Steam.
+                    self.assertFalse(pinned.exists())
+                    self.assertFalse((home / "Applications").exists())
+                else:
+                    self.assertTrue((pinned / "Contents/Info.plist").is_file())
 
     def test_beginner_has_nothing_to_find(self):
         home, _ = self.build("beginner")

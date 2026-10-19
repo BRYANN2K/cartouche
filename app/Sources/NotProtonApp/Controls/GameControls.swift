@@ -1,6 +1,3 @@
-// What the user chose in a game's Controls, kept in controls.json in Cartouche's
-// folder, and the files each kind of game reads it from at launch.
-
 import Foundation
 import RetroArchKit
 

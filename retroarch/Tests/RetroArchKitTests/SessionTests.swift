@@ -115,6 +115,37 @@ struct SessionTests {
         #expect(setup.gone(pid))
     }
 
+    // A write to a dead RetroArch fails with an error; a SIGPIPE would end
+    // the whole test runner, so a passing test is the regression covered
+    @Test func writingToAGoneRetroArchFails() async throws {
+        let setup = try Setup()
+        let session = RetroArchSession(launch: setup.launch())
+        try await session.start()
+        let pid = try #require(await session.processIdentifier)
+        kill(pid, SIGKILL)
+        for _ in 0..<50 where !setup.gone(pid) { try await Task.sleep(for: .milliseconds(20)) }
+        #expect(setup.gone(pid))
+        await #expect(throws: (any Error).self) { try await session.status() }
+        _ = await session.stop()
+    }
+
+    // A failed load still wrote the token into cartouche.cfg first; play
+    // scrubbing it afterwards is what keeps it off disk
+    @Test func aFailedLoadScrubsTheToken() async throws {
+        let setup = try Setup()
+        var launcher = ConsoleLauncher(paths: setup.paths, app: Fixtures.fakeRetroArch,
+                                       capabilities: RetroArchCapabilities(mcp: true, version: nil))
+        launcher.environment = ["FAKE_RA_TOOLS": Fixtures.pinnedToolsList.path]
+        let player = ConsolePlayer(launcher: launcher)
+        var request = PlayRequest(core: setup.work.appending(path: "snes9x_libretro.dylib"),
+                                  content: setup.work.appending(path: "missing.sfc"))
+        request.achievements = AchievementsLogin(username: "tester", token: "SECRET-TOKEN")
+        await #expect(throws: (any Error).self) { try await player.play(request) }
+        let written = try String(contentsOf: setup.paths.appendConfig, encoding: .utf8)
+        #expect(!written.contains("SECRET-TOKEN"))
+        #expect(await !player.isPlaying)
+    }
+
     @Test func aBuildThatExitsAtOnceIsReported() async throws {
         let setup = try Setup()
         let session = RetroArchSession(launch: setup.launch(["FAKE_RA_EXIT": "3"]))

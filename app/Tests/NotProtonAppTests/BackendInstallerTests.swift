@@ -97,7 +97,9 @@ final class BackendInstallerTests {
         let folder = BackendInstaller.folder(for: .dxmt, in: backends)
         #expect(try String(contentsOf: folder.appending(path: "x86_64-unix/winemetal.so"), encoding: .utf8) == "winemetal unix")
         #expect(BackendInstaller.installed(in: backends).map(\.backend) == [.dxmt])
-        #expect(BackendInstaller.verify(.dxmt, in: backends).isEmpty)
+        #expect(receipt.files.allSatisfy { path, hash in
+            Digest.sha256IfPresent(folder.appending(path: path)) == hash
+        })
         // The archive is not kept, and nothing half done is left beside the backend
         #expect(try FileManager.default.contentsOfDirectory(atPath: downloads.path(percentEncoded: false)).isEmpty)
         #expect(try FileManager.default.contentsOfDirectory(atPath: backends.path(percentEncoded: false)) == ["dxmt"])
@@ -124,7 +126,7 @@ final class BackendInstallerTests {
             try await BackendInstaller.install(served, backends: backends, downloads: downloads)
             Issue.record("a tampered DXMT was installed")
         } catch let failure as StepFailure {
-            #expect(failure.detail == WineRunnerInstaller.damaged)
+            #expect(failure.detail == "Something is wrong with the downloaded files. Please check for a Cartouche update.")
         }
         let fm = FileManager.default
         #expect(((try? fm.contentsOfDirectory(atPath: downloads.path(percentEncoded: false))) ?? []).isEmpty)
@@ -151,15 +153,31 @@ final class BackendInstallerTests {
         #expect(((try? FileManager.default.contentsOfDirectory(atPath: backends.path(percentEncoded: false))) ?? []).isEmpty)
     }
 
-    @Test("A changed byte in an installed backend is named, and installing again repairs it")
+    @Test("Installing again over a changed file puts the receipt's file back")
     func damage() async throws {
         let pin = try pin(.dxmt, for: archive("dxmt-v0.80-builtin.tar.gz", top: "dxmt-v0.80", files: Self.dxmtFiles))
+        let receipt = try await BackendInstaller.install(pin, backends: backends, downloads: downloads)
+        let dxgi = BackendInstaller.folder(for: .dxmt, in: backends).appending(path: "x86_64-windows/dxgi.dll")
+        try Data("MZ changed".utf8).write(to: dxgi)
+        #expect(Digest.sha256IfPresent(dxgi) != receipt.files["x86_64-windows/dxgi.dll"])
         try await BackendInstaller.install(pin, backends: backends, downloads: downloads)
-        try Data("MZ changed".utf8).write(to: BackendInstaller.folder(for: .dxmt, in: backends).appending(path: "x86_64-windows/dxgi.dll"))
-        #expect(BackendInstaller.verify(.dxmt, in: backends) == ["x86_64-windows/dxgi.dll changed since it was installed."])
+        #expect(Digest.sha256IfPresent(dxgi) == receipt.files["x86_64-windows/dxgi.dll"])
+    }
+
+    @Test("An install that cannot write its folder leaves the old one working")
+    func keepsOldInstall() async throws {
+        let pin = try pin(.dxmt, for: archive("dxmt-v0.80-builtin.tar.gz", top: "dxmt-v0.80", files: Self.dxmtFiles))
         try await BackendInstaller.install(pin, backends: backends, downloads: downloads)
-        #expect(BackendInstaller.verify(.dxmt, in: backends).isEmpty)
-        try BackendInstaller.remove(.dxmt, in: backends)
-        #expect(BackendInstaller.installed(in: backends).isEmpty)
+        let dxgi = BackendInstaller.folder(for: .dxmt, in: backends).appending(path: "x86_64-windows/dxgi.dll")
+        let before = try Digest.sha256(of: dxgi)
+
+        let restore = { try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: self.backends.path(percentEncoded: false)) }
+        try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: backends.path(percentEncoded: false))
+        defer { restore() }
+        await #expect(throws: (any Error).self) {
+            try await BackendInstaller.install(pin, backends: self.backends, downloads: self.downloads)
+        }
+        restore()
+        #expect(try Digest.sha256(of: dxgi) == before, "the previous install is untouched")
     }
 }

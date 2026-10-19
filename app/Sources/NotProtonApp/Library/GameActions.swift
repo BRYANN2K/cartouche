@@ -6,6 +6,7 @@ import Foundation
 
 enum GameAction: Hashable, Sendable {
     case play
+    case stopGame
     case install
     case toggleFavorite
     case getInfo
@@ -14,7 +15,7 @@ enum GameAction: Hashable, Sendable {
     case showInFinder
     case showInSteam
     case verifyFiles
-    // A store game's update, through its store's client (P10)
+    // A store game's update, through its store's client
     case update
     case changeCover
     case resetCover
@@ -30,7 +31,7 @@ struct Shortcut: Equatable, Sendable {
     var label: String { (command ? "⌘" : "") + (key == "\r" ? "↩" : key.uppercased()) }
 }
 
-struct GameMenuItem: Identifiable, Equatable {
+struct GameMenuItem: Equatable {
     let title: String
     var action: GameAction?
     var shortcut: Shortcut?
@@ -40,8 +41,6 @@ struct GameMenuItem: Identifiable, Equatable {
     var children: [GameMenuItem] = []
     // A separator when both title and action are empty
     var isDivider: Bool { title.isEmpty && action == nil && children.isEmpty }
-
-    var id: String { title.isEmpty ? UUID().uuidString : title + (action.map { "\($0)" } ?? "") }
 
     static let divider = GameMenuItem(title: "")
 }
@@ -53,28 +52,37 @@ enum GameMenu {
     static let favorite = Shortcut(key: "d", command: true)
     static let getInfo = Shortcut(key: "i", command: true)
 
-    static func items(for game: Game, in model: LibraryModel) -> [GameMenuItem] {
+    static func items(for game: Game, in model: LibraryModel, stores: StoreCenter? = nil) -> [GameMenuItem] {
         let setup = model.setup(for: game.id)
         // Only a real Steam game gets steam:// links; an installer game keeps its own launcher
         let steam = game.steamAppID != nil && game.source == .steam
-        // A store game downloads through its store, which needs the session (P10)
+        // A store game downloads through its store, which needs the session
         let store = game.source.isStore
         let expired = model.isExpired(.source(game.source))
+        // A running download or play session on this game locks its actions
+        let busy = store && stores?.job(for: game.id) != nil
+        let playing = store && (stores?.playing.contains(game.id) ?? false)
         var items: [GameMenuItem] = [
             game.installed
-                ? GameMenuItem(title: String(localized: "Play"), action: .play, shortcut: play)
+                ? GameMenuItem(title: String(localized: "Play"), action: .play, shortcut: play, disabled: busy || playing)
                 : GameMenuItem(title: String(localized: "Install"), action: .install, disabled: model.isOffline || expired),
             .divider,
+        ]
+        if playing {
+            items.append(GameMenuItem(title: String(localized: "Stop Game"), action: .stopGame))
+            items.append(.divider)
+        }
+        items.append(contentsOf: [
             GameMenuItem(title: model.isFavorite(game.id) ? String(localized: "Remove from Favorites")
                                                            : String(localized: "Add to Favorites"),
                          action: .toggleFavorite, shortcut: favorite),
             GameMenuItem(title: String(localized: "Get Info"), action: .getInfo, shortcut: getInfo),
             .divider,
-        ]
+        ])
         if !game.source.isConsole {
             // Installer games pick from the install runners: ready free Wine builds included
             let runners = game.source == .installer ? model.installRunners : model.runners.filter(\.isOffered)
-            // Only the pairs this Mac can run; nothing to pick for the Mac version (P3)
+            // Only the pairs this Mac can run; nothing to pick for the Mac version
             let resolved = model.resolution(for: game).setup
             let windows = resolved.version == .windows
             items.append(GameMenuItem(
@@ -100,7 +108,7 @@ enum GameMenu {
             items.append(GameMenuItem(title: String(localized: "Verify Files"), action: .verifyFiles, disabled: !game.installed))
         }
         if store && game.installed {
-            let online = !model.isOffline && !expired
+            let online = !model.isOffline && !expired && !busy
             items.append(GameMenuItem(title: String(localized: "Check for Update"), action: .update, disabled: !online))
             items.append(GameMenuItem(title: String(localized: "Verify Files"), action: .verifyFiles, disabled: !online))
         }
@@ -114,14 +122,9 @@ enum GameMenu {
             : GameMenuItem(title: String(localized: "Hide Game"), action: .hide))
         if steam || store {
             items.append(GameMenuItem(title: String(localized: "Uninstall…"), action: .uninstall,
-                                      disabled: !game.installed, destructive: true))
+                                      disabled: !game.installed || busy || playing, destructive: true))
         }
         return items
-    }
-
-    // Every action an item list can run, children included
-    static func actions(_ items: [GameMenuItem]) -> [GameAction] {
-        items.flatMap { ($0.action.map { [$0] } ?? []) + actions($0.children) }
     }
 }
 
@@ -141,9 +144,13 @@ struct GameActionRunner {
     // Console games start in RetroArch, through the console center
     var playConsole: @MainActor (Game) -> Void = { _ in }
     // A game installed from a Windows installer runs its launch script; the
-    // setup's DXMT winemetal.dll is refreshed first, as store games do
-    var playInstaller: @MainActor (Game) -> Void = GameActionRunner.launchInstaller
-    // Epic, GOG and Amazon games go through their store's client (P10)
+    // setup's DXMT winemetal.dll is refreshed first, as store games do. The
+    // text a failed launch should show as the library's problem, nil on success
+    var playInstaller: @MainActor (Game) -> String? = { game in
+        if case .failure(let error) = GameActionRunner.launchInstaller(game) { return error.errorDescription }
+        return nil
+    }
+    // Epic, GOG and Amazon games go through their store's client
     var stores: StoreCenter?
     var confirmUninstall: @MainActor (Game) -> Bool = GameActionRunner.confirmUninstall
 
@@ -162,9 +169,12 @@ struct GameActionRunner {
         switch action {
         case .play:
             if game.source == .installer {
-                // Its own launcher script, kept in step with the game's setup (P6)
-                playInstaller(game)
-                afterLaunch()
+                // Its own launcher script, kept in step with the game's setup
+                if let failure = playInstaller(game) {
+                    model.problem = failure
+                } else {
+                    afterLaunch()
+                }
             } else if let id = game.steamAppID {
                 open(URL(string: "steam://rungameid/\(id)")!)
                 afterLaunch()
@@ -206,7 +216,7 @@ struct GameActionRunner {
             model.unhide(game.id)
         case .uninstall:
             if let id = game.steamAppID { open(URL(string: "steam://uninstall/\(id)")!) }
-        case .update:
+        case .update, .stopGame:
             break
         }
     }
@@ -215,6 +225,7 @@ struct GameActionRunner {
     private func performStore(_ action: GameAction, on game: Game, _ stores: StoreCenter) -> Bool {
         switch action {
         case .play: stores.play(game)
+        case .stopGame: stores.stopPlaying(game)
         case .install: stores.install(game)
         case .update: stores.update(game)
         case .verifyFiles: stores.verify(game)
@@ -236,16 +247,38 @@ struct GameActionRunner {
 
     // Detaches the install folder's launch script; the agent's launch endpoint
     // and InstallAllTests run the same file. DXMT's winemetal.dll is refreshed
-    // for the record's backend, as store games do at launch.
-    @MainActor static func launchInstaller(_ game: Game) {
-        guard game.id.hasPrefix("installer:") else { return }
-        let folder = GameFolder(root: GameFolder.installs
-            .appending(path: String(game.id.dropFirst("installer:".count))))
-        guard let data = try? Data(contentsOf: folder.record),
-              let record = try? InstalledGames.decoder.decode(InstalledGame.self, from: data),
-              FileManager.default.fileExists(atPath: record.launcher.path(percentEncoded: false))
-        else { return }
+    // for the record's backend, as store games do at launch. The failure text
+    // comes back for the caller to show; a missing record or silent kill no
+    // longer looks like a launch.
+    @discardableResult
+    @MainActor static func launchInstaller(_ game: Game, installs: URL = GameFolder.installs) -> Result<Void, LaunchFailed> {
+        guard game.id.hasPrefix("installer:") else { return .success(()) }
+        let folder = GameFolder(root: installs.appending(path: String(game.id.dropFirst("installer:".count))))
+        guard let record = InstalledGames.record(in: folder) else {
+            return .failure(LaunchFailed(String(localized: "Cartouche couldn’t read this install’s record.")))
+        }
+        guard FileManager.default.fileExists(atPath: record.launcher.path(percentEncoded: false)) else {
+            return .failure(LaunchFailed(String(localized: "Cartouche couldn’t find \(game.name)’s launcher.")))
+        }
         SetupEnvironment.prepare(record.backend, prefix: folder.prefix, backends: BackendInstaller.folder)
-        try? Shell.detach(record.launcher.path(percentEncoded: false), [], environment: [:])
+        do {
+            // The launcher is a shell script; HOME/USER/TMPDIR/PATH let it and
+            // the shell's own expansions work when detached from the app
+            try Shell.detach("/bin/sh", [record.launcher.path(percentEncoded: false)], environment: [
+                "HOME": NSHomeDirectory(),
+                "USER": NSUserName(),
+                "TMPDIR": NSTemporaryDirectory(),
+                "LANG": ProcessInfo.processInfo.environment["LANG"] ?? "en_US.UTF-8",
+                "PATH": "/usr/bin:/bin",
+            ])
+            return .success(())
+        } catch {
+            return .failure(LaunchFailed(String(localized: "Cartouche couldn’t start \(game.name): \(error.localizedDescription)")))
+        }
     }
+}
+
+struct LaunchFailed: LocalizedError {
+    let errorDescription: String?
+    init(_ message: String) { errorDescription = message }
 }

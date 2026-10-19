@@ -35,32 +35,21 @@ struct InstalledGame: Codable, Sendable, Equatable, Identifiable {
 
 enum InstalledGames {
 
-    // Every finished install, for the library (P5) to list.
+    // Every finished install, for the library to list.
     static func all(in installs: URL = GameFolder.installs) -> [InstalledGame] {
         let folders = (try? FileManager.default.contentsOfDirectory(at: installs, includingPropertiesForKeys: nil)) ?? []
-        return folders.compactMap { folder in
-            (try? Data(contentsOf: GameFolder(root: folder).record)).flatMap { try? decoder.decode(InstalledGame.self, from: $0) }
-        }
-        .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        return folders.compactMap { record(in: GameFolder(root: $0)) }
+            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }
+
+    static func record(in folder: GameFolder) -> InstalledGame? {
+        (try? Data(contentsOf: folder.record)).flatMap { try? RecordCoding.decoder.decode(InstalledGame.self, from: $0) }
     }
 
     static func save(_ game: InstalledGame, in folder: GameFolder) throws {
-        try atomicReplace(folder.record, with: try encoder.encode(game), step: String(localized: "Save the game"))
+        try atomicReplace(folder.record, with: try RecordCoding.encoder.encode(game), step: String(localized: "Save the game"))
         try? FileManager.default.removeItem(at: folder.attempt)
     }
-
-    static let encoder: JSONEncoder = {
-        let e = JSONEncoder()
-        e.outputFormatting = [.prettyPrinted, .sortedKeys]
-        e.dateEncodingStrategy = .iso8601
-        return e
-    }()
-
-    static let decoder: JSONDecoder = {
-        let d = JSONDecoder()
-        d.dateDecodingStrategy = .iso8601
-        return d
-    }()
 }
 
 enum GameLauncher {

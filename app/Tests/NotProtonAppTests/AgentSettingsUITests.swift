@@ -89,20 +89,21 @@ struct AgentSettingsUITests {
         let action = try #require(model.actions.last { $0.canUndo })
         await model.undo(action)
         #expect(backend.favorites.isEmpty)
-        #expect(model.actions.last { $0.outcome == .undone } != nil)
+        #expect(model.actions.last { $0.undone } != nil)
         _ = try host.texts(named: "agents-settings-undo")
     }
 
     @Test("A pending approval shows in the pane with its text and answers there")
     func pendingRow() async throws {
         let (model, service, _, _) = try agentScene()
+        let (stream, yield) = AsyncStream<AgentApproval>.makeStream()
+        service.notify = { yield.yield($0) }
+        var nextApproval = stream.makeAsyncIterator()
         let asked = Task {
             await service.ask(client: "claude", tool: "install_from_installer",
                               text: "install Hades (4.2 GB)")
         }
-        for _ in 0..<40 where service.pending.isEmpty {
-            try await Task.sleep(for: .milliseconds(25))
-        }
+        _ = await nextApproval.next()
         let host = UIHost(AgentsSettingsView(model: model), size: CGSize(width: 640, height: 560))
         defer { host.close() }
         #expect(try await host.wait(for: "Waiting for You"))
@@ -123,15 +124,15 @@ struct AgentApprovalUITests {
     func deny() async throws {
         let (model, service, backend, _) = try agentScene(.full)
         backend.gameList = [installerGame()]
+        let (stream, yield) = AsyncStream<AgentApproval>.makeStream()
+        service.notify = { yield.yield($0) }
+        var nextApproval = stream.makeAsyncIterator()
         let call = Task {
             await service.call("run_winetricks",
                 ["game": .string("installer:hades"), "verbs": .array([.string("vcrun2022")])],
                 client: "claude")
         }
-        for _ in 0..<40 where service.pending.isEmpty {
-            try await Task.sleep(for: .milliseconds(25))
-        }
-        let approval = try #require(service.pending.first)
+        let approval = try #require(await nextApproval.next())
         let host = UIHost(AgentApprovalSheet(approval: approval, model: model),
                           size: CGSize(width: 380, height: 200))
         defer { host.close() }
@@ -153,15 +154,15 @@ struct AgentApprovalUITests {
     func allow() async throws {
         let (model, service, backend, _) = try agentScene(.full)
         backend.gameList = [installerGame()]
+        let (stream, yield) = AsyncStream<AgentApproval>.makeStream()
+        service.notify = { yield.yield($0) }
+        var nextApproval = stream.makeAsyncIterator()
         let call = Task {
             await service.call("run_winetricks",
                 ["game": .string("installer:hades"), "verbs": .array([.string("vcrun2022")])],
                 client: "claude")
         }
-        for _ in 0..<40 where service.pending.isEmpty {
-            try await Task.sleep(for: .milliseconds(25))
-        }
-        let approval = try #require(service.pending.first)
+        let approval = try #require(await nextApproval.next())
         model.answer(approval, allow: true)
         let reply = await call.value
         #expect(reply["isError"] == .bool(false))

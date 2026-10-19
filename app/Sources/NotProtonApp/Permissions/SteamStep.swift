@@ -45,9 +45,7 @@ final class SteamStep {
         switch phase {
         case .idle, .working: String(localized: "Cartouche adds its tools to the Steam app")
         case .blocked(let remedy):
-            remedy == .appManagement
-                ? String(localized: "macOS blocked the change. Allow Cartouche in App Management, then try again.")
-                : remedy.advice
+            remedy == .appManagement ? Permission.appManagement.deniedMessage : remedy.advice
         case .notApplied:
             String(localized: "macOS still blocks the change. If you allowed Cartouche in App Management, relaunch Cartouche to finish.")
         case .failed(let message): message

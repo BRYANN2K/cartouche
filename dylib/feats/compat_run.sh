@@ -56,7 +56,7 @@ resolve_icon() {
     find "$absent" -mtime +14 -delete 2>/dev/null || true
     find "$failed" -mmin +60 -delete 2>/dev/null || true
     if [ ! -s "$ico" ] && [ ! -f "$absent" ] && [ ! -f "$failed" ]; then
-      icon_base="${CARTOUCHE_QA_BASE_URL:-https://shared.fastly.steamstatic.com}"
+      icon_base="https://shared.fastly.steamstatic.com"
       url="${icon_base%/}/community_assets/images/apps/$app_id/$meta_clienticon.ico"
       code=$(curl -fsL --connect-timeout 5 --max-time 20 -w '%{http_code}' -o "$ico.new" "$url" 2>>"$log")
       magic=$(od -An -tx1 -N4 "$ico.new" 2>/dev/null | tr -d ' \n')
@@ -207,7 +207,21 @@ if [ -n "$np_backend" ]; then
         fi
         ;;
       # Only CrossOver or the user's Game Porting Toolkit carry D3DMetal
-      d3dmetal) np_backend_missing=1 ;;
+      d3dmetal)
+        np_gptk=""
+        for dir in "$np_support"/runners/gptk-*; do
+          if [ -f "$dir/lib/external/libd3dshared.dylib" ]; then np_gptk="$dir/lib/external"; fi
+          np_lib=$(sed -n 's/.*"inPlace"[[:space:]]*:[[:space:]]*"\(.*\)".*/\1/p' "$dir/.cartouche-runner.json" 2>/dev/null) || np_lib=""
+          if [ -n "$np_lib" ] && [ -f "$np_lib/external/libd3dshared.dylib" ]; then np_gptk="$np_lib/external"; fi
+        done
+        if [ -n "$np_gptk" ]; then
+          # The same variable a CrossOver clone reads for its own copy
+          export CX_APPLEGPTK_LIBD3DSHARED_PATH="$np_gptk/libd3dshared.dylib"
+          np_backend_from="$np_gptk"
+        else
+          np_backend_missing=1
+        fi
+        ;;
       wined3d) np_backend_from="Wine's own" ;;
     esac
     case "$np_backend" in
@@ -1672,7 +1686,7 @@ terminate() {
 }
 trap terminate TERM INT HUP
 
-# Frame counter (P8): a folder per launch holds the setup and the counter's samples,
+# Frame counter: a folder per launch holds the setup and the counter's samples,
 # which the app reads after the game ends. dyld kills a process whose inserted library
 # fails to load, so each runner's loader is tried first; one that refuses it starts
 # the game without it.

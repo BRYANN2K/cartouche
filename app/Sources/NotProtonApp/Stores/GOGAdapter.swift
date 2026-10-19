@@ -6,6 +6,7 @@
 // (gogdl/args.py) and comet 0.3.2 (src/main.rs).
 
 import Foundation
+import InstallerKit
 
 struct GOGAdapter: StoreAdapter {
 
@@ -14,7 +15,8 @@ struct GOGAdapter: StoreAdapter {
     var embed = URL(string: "https://embed.gog.com")!
     var remoteConfig = URL(string: "https://remote-config.gog.com")!
     var gamesDB = URL(string: "https://gamesdb.gog.com")!
-    var session: URLSession = .shared
+    // A token request must not carry another app's cookies
+    var session: URLSession = URLSession(configuration: .ephemeral)
 
     var store: GameSource { .gog }
 
@@ -26,7 +28,7 @@ struct GOGAdapter: StoreAdapter {
     static let clientID = "46899977096215655"
 
     var capabilities: StoreCapabilities {
-        StoreCapabilities(client: "gogdl and comet", downloads: true, cloudSaves: true, online: .throughComet)
+        StoreCapabilities(client: "gogdl and comet", cloudSaves: true, online: .throughComet)
     }
 
     private var auth: String { context.home.appending(path: Self.authFile).path(percentEncoded: false) }
@@ -49,7 +51,7 @@ struct GOGAdapter: StoreAdapter {
     }
 
     func finishSignIn(code: String) async throws -> String {
-        let output = try await gogdl(["auth", "--code", code])
+        let output = try await gogdl(["auth", "--code", code], fresh: true)
         guard output.succeeded, let json = StoreJSON.object(output.stdout), json["access_token"] is String else {
             throw StoreError.failed(String(localized: "GOG did not accept the sign-in. Try again."))
         }
@@ -67,7 +69,9 @@ struct GOGAdapter: StoreAdapter {
     func credentials() async throws -> [String: Any] {
         let output = try await gogdl(["auth"])
         guard let json = StoreJSON.object(output.stdout), json["access_token"] is String else {
-            throw StoreError.sessionExpired
+            // A clean "no token" is an expired session; a crashed gogdl is not
+            throw output.succeeded ? StoreError.sessionExpired
+                : StoreError.failed(ClientLog.lastError(output.stderr) ?? String(localized: "gogdl stopped with status \(output.status)."))
         }
         return json
     }
@@ -83,7 +87,7 @@ struct GOGAdapter: StoreAdapter {
             pages = json["totalPages"] as? Int ?? 1
             games += (json["products"] as? [[String: Any]] ?? []).compactMap(Self.game)
             page += 1
-        } while page <= pages
+        } while page <= pages && page <= 100
         return games
     }
 
@@ -114,14 +118,16 @@ struct GOGAdapter: StoreAdapter {
         return StoreInstall(path: folder, version: Self.build(of: game.id, in: folder))
     }
 
+    // For update and repair, gogdl's --path is the game folder itself; only
+    // download appends the game folder under it (gogdl/args.py).
     func update(_ id: String, install: StoreInstall, progress: @escaping @Sendable (Double) -> Void) async throws -> StoreInstall {
-        _ = try await checked(["update", id, "--platform", "windows", "--path", install.path.deletingLastPathComponent().clientPath,
+        _ = try await checked(["update", id, "--platform", "windows", "--path", install.path.clientPath,
                                "--skip-dlcs"], progress: progress)
         return StoreInstall(path: install.path, version: Self.build(of: id, in: install.path))
     }
 
     func verify(_ id: String, install: StoreInstall, progress: @escaping @Sendable (Double) -> Void) async throws {
-        _ = try await checked(["repair", id, "--platform", "windows", "--path", install.path.deletingLastPathComponent().clientPath,
+        _ = try await checked(["repair", id, "--platform", "windows", "--path", install.path.clientPath,
                                "--skip-dlcs"], progress: progress)
     }
 
@@ -131,7 +137,8 @@ struct GOGAdapter: StoreAdapter {
     }
 
     func importGame(at folder: URL, library: [StoreGame]) async throws -> (StoreGame, StoreInstall) {
-        guard let info = Self.info(in: folder), let game = library.first(where: { $0.id == info.rootID }) else {
+        // DLC info files sit next to the game's: primary() picks the root's.
+        guard let found = GOGInfo.primary(in: folder), let game = library.first(where: { $0.id == found.info.id }) else {
             throw StoreError.unknownGame(folder.lastPathComponent)
         }
         return (game, StoreInstall(path: folder, version: Self.build(of: game.id, in: folder)))
@@ -139,40 +146,8 @@ struct GOGAdapter: StoreAdapter {
 
     // MARK: Game files
 
-    struct Info: Equatable {
-        let rootID: String
-        let clientID: String?
-        let path: String
-        let arguments: [String]
-        let workingDirectory: String?
-    }
-
-    // goggame-<id>.info: the primary play task, as GOG Galaxy starts it
-    static func info(in folder: URL, id: String? = nil) -> Info? {
-        let names = ((try? FileManager.default.contentsOfDirectory(atPath: folder.path(percentEncoded: false))) ?? [])
-            .filter { $0.hasPrefix("goggame-") && $0.hasSuffix(".info") }.sorted()
-        var infos: [[String: Any]] = []
-        for name in names {
-            guard let data = try? Data(contentsOf: folder.appending(path: name)),
-                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { continue }
-            infos.append(json)
-        }
-        let string = { (json: [String: Any], key: String) in (json[key] as? String) ?? (json[key] as? Int).map(String.init) }
-        let root = id ?? infos.compactMap { string($0, "rootGameId") }.first
-        guard let root, let json = infos.first(where: { string($0, "gameId") == root }) else { return nil }
-        let tasks = json["playTasks"] as? [[String: Any]] ?? []
-        let games = tasks.filter { ($0["category"] as? String ?? "game") == "game" && $0["type"] as? String != "URLTask" }
-        guard let task = games.first(where: { $0["isPrimary"] as? Bool == true }) ?? games.first,
-              let path = task["path"] as? String else { return nil }
-        let arguments: [String]
-        switch task["arguments"] {
-        case let list as [String]: arguments = list
-        case let text as String: arguments = text.split(separator: " ").map(String.init)
-        default: arguments = []
-        }
-        return Info(rootID: root, clientID: json["clientId"] as? String, path: path, arguments: arguments,
-                    workingDirectory: task["workingDir"] as? String)
-    }
+    // goggame-<id>.info, as GOG Galaxy reads it (InstallerKit's GOGInfo).
+    static func info(in folder: URL) -> GOGInfo? { GOGInfo.primary(in: folder)?.info }
 
     static func folder(of id: String, in base: URL) -> URL? {
         let entries = ((try? FileManager.default.contentsOfDirectory(at: base, includingPropertiesForKeys: nil)) ?? [])
@@ -188,11 +163,11 @@ struct GOGAdapter: StoreAdapter {
     }
 
     func launch(_ id: String, install: StoreInstall, prefix: URL, offline: Bool) async throws -> StoreLaunch {
-        guard let info = Self.info(in: install.path, id: id) else {
+        guard let info = Self.info(in: install.path), let path = info.primaryExe else {
             throw StoreError.failed(String(localized: "The game’s goggame-\(id).info file is missing. Verify its files."))
         }
-        return StoreLaunch(executable: PrefixPaths.join(install.path, info.path), arguments: info.arguments,
-                           workingDirectory: PrefixPaths.join(install.path, info.workingDirectory ?? (info.path as NSString).deletingLastPathComponent))
+        return StoreLaunch(executable: PrefixPaths.join(install.path, path), arguments: info.arguments,
+                           workingDirectory: PrefixPaths.join(install.path, info.workingDir ?? (path as NSString).deletingLastPathComponent))
     }
 
     // comet answers the game's GOG Galaxy calls with the account's tokens, read
@@ -207,7 +182,7 @@ struct GOGAdapter: StoreAdapter {
     // MARK: Cloud saves
 
     func saveLocations(_ id: String, install: StoreInstall, prefix: URL) async throws -> [SaveLocation] {
-        guard let info = Self.info(in: install.path, id: id), let client = info.clientID else { return [] }
+        guard let client = Self.info(in: install.path)?.clientID else { return [] }
         var url = URLComponents(url: remoteConfig.appending(path: "components/galaxy_client/clients/\(client)"), resolvingAgainstBaseURL: false)!
         url.queryItems = [URLQueryItem(name: "component_version", value: "2.0.45")]
         let json = try await get(url.url!, token: nil)
@@ -256,8 +231,9 @@ struct GOGAdapter: StoreAdapter {
 
     // MARK: Running gogdl and GOG's APIs
 
-    private func gogdl(_ arguments: [String], progress: (@Sendable (Double) -> Void)? = nil) async throws -> ClientOutput {
-        try await context.run(.gogdl, store: .gog, ["--auth-config-path", auth] + arguments) { line in
+    private func gogdl(_ arguments: [String], fresh: Bool = false,
+                       progress: (@Sendable (Double) -> Void)? = nil) async throws -> ClientOutput {
+        try await context.run(.gogdl, store: .gog, ["--auth-config-path", auth] + arguments, fresh: fresh) { line in
             if let fraction = ClientProgress.fraction(line) { progress?(fraction) }
         }
     }

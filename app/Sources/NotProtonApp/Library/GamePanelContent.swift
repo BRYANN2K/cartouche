@@ -23,7 +23,8 @@ enum GraphicsReports {
         let order: [TranslationLayer] = [.d3dmetal, .dxmt, .dxvk]
         return groups.map { LayerReport(layer: $0.key, count: $0.value.count,
                                         average: Double($0.value.reduce(0, +)) / Double($0.value.count)) }
-            .sorted { ($0.count, -order.firstIndex(of: $0.layer)!) > ($1.count, -order.firstIndex(of: $1.layer)!) }
+            .sorted { ($0.count, -(order.firstIndex(of: $0.layer) ?? order.count))
+                    > ($1.count, -(order.firstIndex(of: $1.layer) ?? order.count)) }
     }
 
     // Best average among layers with at least 5 reports, else the most reported
@@ -72,7 +73,7 @@ struct GamePanelContent {
     let layers: [LayerReport]
     let bestLayer: TranslationLayer?
     let setup: GameSetupChoice
-    // The user's own sessions, measured by the frame counter (P8)
+    // The user's own sessions, measured by the frame counter
     let play: GamePlay?
 
     init(game: Game, compat: CompatibilityPanel, setup: GameSetupChoice, play: GamePlay? = nil) {
@@ -96,8 +97,6 @@ struct GamePanelContent {
         out.append(.setup)
         return out
     }
-
-    var titles: [String] { sections.map { $0 == .play ? playLabel : $0.title } }
 
     var detailsSections: [DetailsSection] {
         var out: [DetailsSection] = [.expected, .macPicker]

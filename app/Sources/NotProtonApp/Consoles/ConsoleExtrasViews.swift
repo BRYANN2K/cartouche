@@ -1,6 +1,3 @@
-// The console panel's Play Together row, its Join sheet, and the options of
-// More…: Translate the screen and Coach mode, as launcher.html shows them.
-
 import RetroArchKit
 import SwiftUI
 

@@ -44,10 +44,12 @@ public enum WinePath {
     }
 
     // C:\Games\X → <prefix>/drive_c/Games/X. Only drive C, which is inside the prefix.
+    // .lnk and registry paths are installer data: "." and ".." are dropped so the
+    // result can never leave drive_c.
     public static func unix(_ windows: String, prefix: URL) -> URL? {
         let path = windows.replacingOccurrences(of: "\\", with: "/")
         guard path.count >= 2, path.lowercased().hasPrefix("c:") else { return nil }
-        let rest = path.dropFirst(2).split(separator: "/").map(String.init)
+        let rest = path.dropFirst(2).split(separator: "/").map(String.init).filter { $0 != "." && $0 != ".." }
         return rest.reduce(prefix.appending(path: "drive_c")) { $0.appending(path: $1) }
     }
 
@@ -86,7 +88,6 @@ public struct WineRunner: Sendable, Equatable {
 
 public enum WineInstall {
 
-    // The drive letter the short source path uses.
     public static let sourceDrive = "s:"
 
     // Rosetta always: the decompressors are x86 programs and run most reliably translated.
