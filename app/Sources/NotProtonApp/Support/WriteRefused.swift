@@ -43,12 +43,9 @@ enum Remedy: Hashable {
 
     static let settingsButton = String(localized: "Open System Settings")
 
-    private static let appManagementPane =
-        "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_AppBundles"
-
     var settingsPane: URL? {
         switch self {
-        case .appManagement: URL(string: Self.appManagementPane)
+        case .appManagement: SettingsLink.urls(for: .appManagement).first
         case .otherAccount, .ownership: nil
         }
     }

@@ -25,29 +25,28 @@ struct StatusSnapshot: Sendable {
     var orphanedRunners: [String] = []
     var damagedRunners: [String] = []
     var installContent: DeploymentContent.Status = .unchecked
+    var runners: [Runner] = []
 
     static func capture(bundledVersion: String) -> StatusSnapshot {
-        let installs = CrossOverSource.discover()
+        let registry = RunnerRegistry.refresh()
         var licenses: [String: CrossOverLicense.Status] = [:]
-        for install in installs where install.isUsable {
+        for install in registry.installs where install.isUsable {
             licenses[install.id] = CrossOverLicense.check(crossOverRoot: install.crossOverRoot)
         }
-
-        let runner = RunnerStore.state()
-        let installed = RunnerStore.installedBuilds()
 
         return StatusSnapshot(
             steam: SteamBundle.deployment(bundledVersion: bundledVersion),
             steamRunning: SteamBundle.isRunning,
             updateBlocked: UpdateBlock.isPresent(),
-            crossOver: installs,
+            crossOver: registry.installs,
             crossOverLicense: licenses,
-            runner: runner,
-            payload: PayloadInspector.inspect(builds: installed),
-            installedRunners: installed,
-            orphanedRunners: RunnerStore.orphanedClones(),
-            damagedRunners: RunnerStore.damagedClones(),
-            installContent: DeploymentContent.current(version: bundledVersion)
+            runner: registry.state,
+            payload: PayloadInspector.inspect(builds: registry.installed),
+            installedRunners: registry.installed,
+            orphanedRunners: registry.orphaned,
+            damagedRunners: registry.damaged,
+            installContent: DeploymentContent.current(version: bundledVersion),
+            runners: registry.runners
         )
     }
 }
@@ -247,7 +246,7 @@ final class SystemStatus {
             let changed = try await Task.detached(priority: .userInitiated) {
                 try RunnerInstaller.removeClone(forBuild: build)
             }.value
-            let removed = String(localized: "Removed build \(SupportedRunners.displayVersion(forID: build)).")
+            let removed = String(localized: "Removed build \(RunnerRegistry.displayVersion(forID: build)).")
             return changed && SteamBundle.isRunning ? "\(removed) \(Self.toolsRestartHint)" : removed
         }
     }
@@ -267,19 +266,19 @@ final class SystemStatus {
         clearFailure()
         outcome = nil
 
-        guard CrossOverSource.looksLikeCrossOver(picked) else {
+        guard RunnerRegistry.looksLikeCrossOver(picked) else {
             setFailure(String(localized: "\(picked.lastPathComponent) is not a valid copy of CrossOver."))
             AppLog.note("crossOver choice refused: \(picked.path(percentEncoded: false))")
             return
         }
 
         await refresh()
-        if let row = CrossOverRow.listing(CrossOverSource.inspect(bundle: picked), in: crossOverRows) {
+        if let row = CrossOverRow.listing(RunnerRegistry.inspect(bundle: picked), in: crossOverRows) {
             AppLog.note("crossOver already listed: \(picked.path(percentEncoded: false))")
             highlight(row)
             return
         }
-        CrossOverSource.addManualBundle(picked)
+        RunnerRegistry.addManualBundle(picked)
         AppLog.note("crossOver added: \(picked.path(percentEncoded: false))")
         await refresh()
     }
@@ -366,7 +365,7 @@ final class SystemStatus {
         guard isIdle else { return }
         clearFailure()
         outcome = nil
-        CrossOverSource.removeManualBundle(install.bundle)
+        RunnerRegistry.removeManualBundle(install.bundle)
         AppLog.note("crossOver removed from list: \(install.id)")
         await refresh()
     }
@@ -415,6 +414,11 @@ final class SystemStatus {
         }
 
         await perform(from: RunnerSetup.Phase.cloning.label) { progress in
+            // The refresh after the run reads the outcome back from disk.
+            if case .supported(let build) = install.support,
+               let index = snapshot?.runners.firstIndex(where: { $0.id == build.id }) {
+                snapshot?.runners[index].apply(.install)
+            }
             let lock = try DeploymentContent.acquireInstallationLock()
             defer { lock.release() }
             try await requireInstallableContent()
@@ -447,7 +451,7 @@ final class SystemStatus {
     private func requireInstallableContent() async throws {
         try await requireUnblockedContent()
         let running = await Task.detached(priority: .utility) {
-            RunnerStore.clonedBuilds().contains {
+            RunnerRegistry.clonedBuilds().contains {
                 RunnerInstaller.isRunning(from: SupportPaths.runnerRoot(forBuild: $0))
             }
         }.value
@@ -480,7 +484,7 @@ final class SystemStatus {
             if result.stoppedClient { parts.append(Self.restartHint) }
             let install = usableCrossOver
             let state = await Task.detached(priority: .userInitiated) {
-                (runner: RunnerStore.state(),
+                (runner: RunnerRegistry.state(),
                  payload: PayloadInspector.inspect(),
                  license: install.map { CrossOverLicense.check(crossOverRoot: $0.crossOverRoot) })
             }.value
@@ -615,8 +619,8 @@ final class SystemStatus {
                 return total + PrefixStore.directoryBytes(
                     folder.appending(path: SupportPaths.bridgeCacheFolder), metric: .allocated)
             }
-            for build in RunnerStore.clonedBuilds(in: runners) {
-                sizes[build] = known[build] ?? RunnerStore.cloneSize(forBuild: build, runners: runners)
+            for build in RunnerRegistry.clonedBuilds(in: runners) {
+                sizes[build] = known[build] ?? RunnerRegistry.cloneSize(forBuild: build, runners: runners)
                 templates[build] = libraries.reduce(into: [:]) { totals, library in
                     let folder = library.compatdata.appending(path: SupportPaths.prefixTemplateFolder)
                     var info = stat()

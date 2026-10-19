@@ -34,10 +34,16 @@
 	<string>public.app-category.utilities</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>15.0</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>Cartouche suggests Windows installers you download.</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Cartouche finds other players on your network for netplay and LAN games.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSRemovableVolumesUsageDescription</key>
+	<string>Cartouche runs games from folders on external disks.</string>
 	<key>SUFeedURL</key>
 	<string>https://github.com/BRYANN2K/NotProton/releases/latest/download/appcast.xml</string>
 	<key>SUPublicEDKey</key>

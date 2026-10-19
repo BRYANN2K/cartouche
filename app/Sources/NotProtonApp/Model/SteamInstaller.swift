@@ -104,7 +104,7 @@ enum SteamInstaller {
         let previousBuild = try DeploymentContent.readBuild(at: record)
         let support = deployedVersion.deletingLastPathComponent()
         let runners = support.appending(path: "runners")
-        let tools = CompatToolList.installed(runners: runners, file: support.appending(path: "tools"))
+        let tools = RunnerRegistry.tools(runners: runners, file: support.appending(path: "tools"))
         let files = DeploymentContent.files(
             payload: payload, bridgePayload: bridgeLocated, app: app, bridge: bridge,
             signatures: signatures, fonts: fonts, overlayShim: overlayShim, iconmaker: iconmaker, appinfo: appinfo,
@@ -115,12 +115,12 @@ enum SteamInstaller {
             throw StepFailure(step: step, detail: String(localized: "A newer Cartouche build is installed. Use that build to update or repair the installed files."))
         }
         func refuseRunningRunners() throws {
-            for id in RunnerStore.clonedBuilds(in: runners) where runnerIsRunning(SupportPaths.runnerRoot(forBuild: id, runners: runners)) {
+            for id in RunnerRegistry.clonedBuilds(in: runners) where runnerIsRunning(SupportPaths.runnerRoot(forBuild: id, runners: runners)) {
                 throw StepFailure(step: step, detail: String(localized: "A game or Wine tool is running on build \(id). Quit it before updating Cartouche."))
             }
         }
         try refuseRunningRunners()
-        let builds = RunnerStore.installedBuilds(in: runners)
+        let builds = RunnerRegistry.installedBuilds(in: runners)
         for build in builds {
             try verifyRunner(build, SupportPaths.clonedRoot(forBuild: build.id, runners: runners))
         }

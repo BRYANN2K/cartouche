@@ -20,23 +20,39 @@ enum RunnerStore {
 
     static func state(
         runners: URL = SupportPaths.runners,
+        pins: [RunnerBuild] = SupportedRunners.all,
         verify: @Sendable (RunnerBuild, URL) -> [String] = {
             RunnerPatcher.verify(build: $0, root: $1)
         }
     ) -> RunnerState {
-        let installed = installedBuilds(in: runners)
+        let installed = installedBuilds(in: runners, pins: pins)
+        return state(of: installed, problems: problems(of: installed, runners: runners, verify: verify))
+    }
+
+    // What verify finds wrong in each clone, keyed by build id. Clones with nothing wrong are left out.
+    static func problems(
+        of builds: [RunnerBuild], runners: URL, verify: (RunnerBuild, URL) -> [String]
+    ) -> [String: [String]] {
+        var problems: [String: [String]] = [:]
+        for build in builds {
+            let found = verify(build, SupportPaths.clonedRoot(forBuild: build.id, runners: runners))
+            if !found.isEmpty { problems[build.id] = found }
+        }
+        return problems
+    }
+
+    static func state(of installed: [RunnerBuild], problems: [String: [String]]) -> RunnerState {
         guard !installed.isEmpty else { return .none }
 
         var unpatched: [String] = []
-        var problems: [String] = []
+        var lines: [String] = []
         for build in installed {
-            let found = verify(build, SupportPaths.clonedRoot(forBuild: build.id, runners: runners))
-            guard !found.isEmpty else { continue }
+            guard let found = problems[build.id] else { continue }
             unpatched.append(build.id)
-            problems += found.map { "\(build.id): \($0)" }
+            lines += found.map { "\(build.id): \($0)" }
         }
         if unpatched.isEmpty { return .ready(builds: installed.map(\.id)) }
-        return .unpatched(builds: unpatched, problems: problems)
+        return .unpatched(builds: unpatched, problems: lines)
     }
 
     static func clonedBuilds(in runners: URL = SupportPaths.runners) -> [String] {
@@ -49,13 +65,17 @@ enum RunnerStore {
             .sorted()
     }
 
-    static func orphanedClones(in runners: URL = SupportPaths.runners) -> [String] {
-        clonedBuilds(in: runners).filter { SupportedRunners.build(id: $0) == nil }
+    static func orphanedClones(
+        in runners: URL = SupportPaths.runners, pins: [RunnerBuild] = SupportedRunners.all
+    ) -> [String] {
+        clonedBuilds(in: runners).filter { SupportedRunners.build(id: $0, in: pins) == nil }
     }
 
-    static func damagedClones(in runners: URL = SupportPaths.runners) -> [String] {
+    static func damagedClones(
+        in runners: URL = SupportPaths.runners, pins: [RunnerBuild] = SupportedRunners.all
+    ) -> [String] {
         clonedBuilds(in: runners).filter {
-            SupportedRunners.build(id: $0) != nil
+            SupportedRunners.build(id: $0, in: pins) != nil
                 && !RunnerInstaller.hasClone(forBuild: $0, runners: runners)
         }
     }
@@ -79,14 +99,16 @@ enum RunnerStore {
         return total
     }
 
-    static func installedBuilds(in runners: URL = SupportPaths.runners) -> [RunnerBuild] {
+    static func installedBuilds(
+        in runners: URL = SupportPaths.runners, pins: [RunnerBuild] = SupportedRunners.all
+    ) -> [RunnerBuild] {
         clonedBuilds(in: runners)
-            .compactMap { build(cloned: $0, runners: runners) }
+            .compactMap { build(cloned: $0, runners: runners, pins: pins) }
             .filter { RunnerInstaller.hasClone(forBuild: $0.id, runners: runners) }
     }
 
-    private static func build(cloned id: String, runners: URL) -> RunnerBuild? {
-        guard let build = SupportedRunners.build(id: id) else { return nil }
+    private static func build(cloned id: String, runners: URL, pins: [RunnerBuild]) -> RunnerBuild? {
+        guard let build = SupportedRunners.build(id: id, in: pins) else { return nil }
         guard !build.rebuilds.isEmpty else { return build }
         let root = SupportPaths.clonedRoot(forBuild: id, runners: runners)
         let loader = Clean.copy(of: CrossOverSource.unixLoader(inRoot: root))

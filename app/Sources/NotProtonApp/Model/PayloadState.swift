@@ -43,7 +43,7 @@ struct PayloadState: Sendable {
 enum PayloadInspector {
 
     static func inspect(
-        bridge: URL = SupportPaths.bridge, builds: [RunnerBuild] = RunnerStore.installedBuilds()
+        bridge: URL = SupportPaths.bridge, builds: [RunnerBuild] = RunnerRegistry.installedBuilds()
     ) -> PayloadState {
         let fm = FileManager.default
 

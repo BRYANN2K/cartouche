@@ -60,9 +60,9 @@ enum CrossOverSource {
         setManualBundles(manualBundles(defaults).filter { !same($0, bundle) }, defaults)
     }
 
-    static func isSearched(_ bundle: URL) -> Bool {
+    static func isSearched(_ bundle: URL, roots: [URL] = searchRoots) -> Bool {
         let parent = bundle.standardizedFileURL.deletingLastPathComponent()
-        return searchRoots.contains { same($0, parent) }
+        return roots.contains { same($0, parent) }
     }
 
     static func same(_ a: URL, _ b: URL) -> Bool {
@@ -77,7 +77,9 @@ enum CrossOverSource {
         )
     }
 
-    static func discover() -> [CrossOverInstall] {
+    static func discover(
+        roots: [URL] = searchRoots, manual: [URL] = manualBundles(), pins: [RunnerBuild] = SupportedRunners.all
+    ) -> [CrossOverInstall] {
         let fm = FileManager.default
         var found: [CrossOverInstall] = []
         var seen: Set<String> = []
@@ -86,12 +88,12 @@ enum CrossOverSource {
             let key = bundle.standardizedFileURL.path(percentEncoded: false)
             guard !seen.contains(key), looksLikeCrossOver(bundle) else { return }
             seen.insert(key)
-            found.append(inspect(bundle: bundle, isManual: isManual))
+            found.append(inspect(bundle: bundle, isManual: isManual, pins: pins))
         }
 
-        for manual in manualBundles() where !isSearched(manual) { consider(manual, isManual: true) }
+        for bundle in manual where !isSearched(bundle, roots: roots) { consider(bundle, isManual: true) }
 
-        for root in searchRoots {
+        for root in roots {
             let entries = (try? fm.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)) ?? []
             for entry in entries where entry.pathExtension == "app" {
                 guard entry.deletingPathExtension().lastPathComponent.hasPrefix("CrossOver") else { continue }
@@ -110,7 +112,9 @@ enum CrossOverSource {
         return a.id < b.id
     }
 
-    static func inspect(bundle: URL, isManual: Bool = false) -> CrossOverInstall {
+    static func inspect(
+        bundle: URL, isManual: Bool = false, pins: [RunnerBuild] = SupportedRunners.all
+    ) -> CrossOverInstall {
         guard let version = releaseVersion(of: bundle) else {
             return CrossOverInstall(bundle: bundle, releaseVersion: nil, support: .unreadable, isManual: isManual)
         }
@@ -120,7 +124,7 @@ enum CrossOverSource {
             )
         }
 
-        guard let build = SupportedRunners.build(loaderSHA256: hash) else {
+        guard let build = SupportedRunners.build(loaderSHA256: hash, in: pins) else {
             return CrossOverInstall(
                 bundle: bundle, releaseVersion: version,
                 support: .unsupportedBuild(version), isManual: isManual
@@ -168,5 +172,81 @@ enum CrossOverSource {
                 )
             }
         }
+    }
+}
+
+// CrossOver on the runner model
+extension CrossOverSource {
+
+    static let missingWine = String(localized: "The clone has no Wine loader at \("lib/wine").")
+
+    // One runner per CrossOver build, in the order the Status pane lists them: copies
+    // found on disk, then clones whose copy is gone, then clones no longer pinned.
+    static func runners(
+        installs: [CrossOverInstall], installed: [RunnerBuild], damaged: [String], orphaned: [String],
+        problems: [String: [String]], pins: [RunnerBuild] = SupportedRunners.all,
+        fexAvailable: Bool = CompatTool.Flavor.fexAvailable
+    ) -> [Runner] {
+        var runners: [Runner] = []
+        var seen: Set<String> = []
+
+        func runner(_ build: RunnerBuild, source: URL?) -> Runner {
+            let clone = installed.first { $0.id == build.id }
+            let state: Runner.State
+            if clone != nil {
+                let found = problems[build.id] ?? []
+                state = found.isEmpty ? .ready : .damaged(files: found)
+            } else if damaged.contains(build.id) {
+                state = .damaged(files: [missingWine])
+            } else {
+                state = .available
+            }
+            // A clone can be a rebuild of the pinned build, with its own hashes.
+            let pinned = clone ?? build
+            return Runner(
+                id: build.id, kind: .crossOver, version: pinned.bundleVersion,
+                displayVersion: pinned.displayVersion,
+                flavors: Runner.flavors(of: pinned, fexAvailable: fexAvailable),
+                state: state, build: pinned, source: source, isInstalled: clone != nil
+            )
+        }
+
+        func unsupported(id: String, version: String, reason: String, source: URL?) -> Runner {
+            Runner(
+                id: id, kind: .crossOver, version: version, displayVersion: version, flavors: [],
+                state: .unsupported(reason: reason), build: nil, source: source, isInstalled: false
+            )
+        }
+
+        for install in installs {
+            switch install.support {
+            case .supported(let build):
+                guard seen.insert(build.id).inserted else { continue }
+                runners.append(runner(build, source: install.bundle))
+            case .unsupportedBuild(let version):
+                runners.append(unsupported(
+                    id: install.id, version: version,
+                    reason: String(localized: "Version \(version) not supported (supported: \(SupportedRunners.versionList))"),
+                    source: install.bundle
+                ))
+            case .unreadable:
+                continue
+            }
+        }
+        for build in installed where seen.insert(build.id).inserted {
+            runners.append(runner(build, source: nil))
+        }
+        for id in damaged where seen.insert(id).inserted {
+            guard let build = SupportedRunners.build(id: id, in: pins) else { continue }
+            runners.append(runner(build, source: nil))
+        }
+        for id in orphaned where seen.insert(id).inserted {
+            runners.append(unsupported(
+                id: id, version: id,
+                reason: String(localized: "Build \(id)") + String(localized: ", not supported"),
+                source: nil
+            ))
+        }
+        return runners
     }
 }

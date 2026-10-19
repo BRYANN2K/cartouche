@@ -66,7 +66,7 @@ enum PrefixTools {
               let field = text.split(whereSeparator: \.isWhitespace).first,
               let updated = Int(field)
         else { return nil }
-        for build in RunnerStore.clonedBuilds(in: runners) {
+        for build in RunnerRegistry.clonedBuilds(in: runners) {
             let inf = SupportPaths.clonedRoot(forBuild: build, runners: runners)
                 .appending(path: "share/wine/wine.inf")
             let modified = (try? FileManager.default.attributesOfItem(
@@ -84,7 +84,7 @@ enum PrefixTools {
     }
 
     static func tool(
-        for prefix: WinePrefix, among tools: [InstalledTool] = CompatToolList.installed(),
+        for prefix: WinePrefix, among tools: [InstalledTool] = RunnerRegistry.tools(),
         runners: URL = SupportPaths.runners
     ) -> InstalledTool? {
         let arch = PrefixStore.arch(of: prefix)
@@ -102,7 +102,7 @@ enum PrefixTools {
     }
 
     static func resolvedTool(
-        step: String, for prefix: WinePrefix, among tools: [InstalledTool] = CompatToolList.installed()
+        step: String, for prefix: WinePrefix, among tools: [InstalledTool] = RunnerRegistry.tools()
     ) throws -> InstalledTool {
         if let found = tool(for: prefix, among: tools) { return found }
         if let record = lastBuild(of: prefix) {

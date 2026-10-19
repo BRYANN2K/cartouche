@@ -277,12 +277,13 @@ enum SupportedRunners {
         ),
     ]
 
-    static func build(loaderSHA256 hash: String) -> RunnerBuild? {
-        all.lazy.compactMap { $0.matching(loaderSHA256: hash) }.first
+    // Tests pass their own pins so fixture trees can stand in for a real CrossOver.
+    static func build(loaderSHA256 hash: String, in pins: [RunnerBuild] = all) -> RunnerBuild? {
+        pins.lazy.compactMap { $0.matching(loaderSHA256: hash) }.first
     }
 
-    static func build(id: String) -> RunnerBuild? {
-        all.first { $0.id == id }
+    static func build(id: String, in pins: [RunnerBuild] = all) -> RunnerBuild? {
+        pins.first { $0.id == id }
     }
 
     static func displayVersion(forID id: String) -> String {

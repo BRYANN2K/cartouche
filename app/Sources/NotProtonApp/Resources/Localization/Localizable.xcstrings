@@ -1004,6 +1004,22 @@
         }
       }
     },
+    "Accessibility" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accessibilità"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "辅助功能"
+          }
+        }
+      }
+    },
     "Add" : {
       "localizations" : {
         "it" : {
@@ -1052,6 +1068,54 @@
         }
       }
     },
+    "Adds Steam Play to the Steam app" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiunge Steam Play all'app Steam"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "为 Steam 应用添加 Steam Play"
+          }
+        }
+      }
+    },
+    "Allow Cartouche to press keys for your controller?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consentire a Cartouche di premere i tasti per il tuo controller?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许 Cartouche 为你的手柄模拟按键吗？"
+          }
+        }
+      }
+    },
+    "Allow Cartouche to read the keyboard?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consentire a Cartouche di leggere la tastiera?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许 Cartouche 读取键盘吗？"
+          }
+        }
+      }
+    },
     "Allow Client Updates" : {
       "localizations" : {
         "it" : {
@@ -1064,6 +1128,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "允许客户端更新"
+          }
+        }
+      }
+    },
+    "Allowed" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consentito"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已允许"
           }
         }
       }
@@ -1176,6 +1256,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "应用 ID"
+          }
+        }
+      }
+    },
+    "App Management" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gestione app"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App 管理"
           }
         }
       }
@@ -1647,6 +1743,150 @@
         }
       }
     },
+    "Cartouche adds its tools to the Steam app" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche aggiunge i suoi strumenti all'app Steam"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 会将其工具添加到 Steam 应用"
+          }
+        }
+      }
+    },
+    "Cartouche asks for a permission the first time you use the feature that needs it." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche chiede un permesso la prima volta che usi la funzione che ne ha bisogno."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 会在你首次使用需要某项权限的功能时请求该权限。"
+          }
+        }
+      }
+    },
+    "Cartouche can't open at login. Allow it in Login Items in System Settings." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche non può aprirsi al login. Consentilo in Elementi login nelle Impostazioni di Sistema."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 无法在登录时打开。请在系统设置的“登录项”中允许它。"
+          }
+        }
+      }
+    },
+    "Cartouche can't press keys for the controller. Allow Accessibility in System Settings." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche non può premere i tasti per il controller. Consenti Accessibilità nelle Impostazioni di Sistema."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 无法为手柄模拟按键。请在系统设置中允许“辅助功能”。"
+          }
+        }
+      }
+    },
+    "Cartouche can't read Downloads. Allow it in System Settings." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche non può leggere Download. Consentilo nelle Impostazioni di Sistema."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 无法读取“下载”文件夹。请在系统设置中允许。"
+          }
+        }
+      }
+    },
+    "Cartouche can't read the keyboard. Allow Input Monitoring in System Settings." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche non può leggere la tastiera. Consenti Monitoraggio input nelle Impostazioni di Sistema."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 无法读取键盘。请在系统设置中允许“输入监控”。"
+          }
+        }
+      }
+    },
+    "Cartouche can't read this disk. Allow Removable Volumes in System Settings." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche non può leggere questo disco. Consenti Volumi rimovibili nelle Impostazioni di Sistema."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 无法读取此磁盘。请在系统设置中允许“可移除宗卷”。"
+          }
+        }
+      }
+    },
+    "Cartouche can't use the keychain. Sign in again." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche non può usare il portachiavi. Accedi di nuovo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 无法使用钥匙串。请重新登录。"
+          }
+        }
+      }
+    },
+    "Cartouche can't use the local network. Allow Local Network in System Settings." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche non può usare la rete locale. Consenti Rete locale nelle Impostazioni di Sistema."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 无法使用本地网络。请在系统设置中允许“本地网络”。"
+          }
+        }
+      }
+    },
     "Cartouche cannot use Steam from a folder with a colon in its name." : {
       "localizations" : {
         "it" : {
@@ -1807,6 +2047,22 @@
         }
       }
     },
+    "Cartouche looks for Windows installers that finish downloading and suggests installing them." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche cerca gli installer Windows appena scaricati e ti propone di installarli."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 会查找刚下载完成的 Windows 安装程序，并建议你安装。"
+          }
+        }
+      }
+    },
     "Cartouche needs the App Management permission." : {
       "localizations" : {
         "it" : {
@@ -1823,6 +2079,38 @@
         }
       }
     },
+    "Cartouche needs to change the Steam app" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche deve modificare l'app Steam"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 需要修改 Steam 应用"
+          }
+        }
+      }
+    },
+    "Cartouche relaunches when your game quits" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche si riavvia quando chiudi il gioco"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 会在游戏退出后重新启动"
+          }
+        }
+      }
+    },
     "Cartouche successfully installed." : {
       "localizations" : {
         "it" : {
@@ -1835,6 +2123,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cartouche 安装成功。"
+          }
+        }
+      }
+    },
+    "Cartouche tells you when a download or an install finishes, even when its window is closed." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche ti avvisa quando un download o un'installazione termina, anche a finestra chiusa."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载或安装完成时，即使窗口已关闭，Cartouche 也会通知你。"
           }
         }
       }
@@ -2143,6 +2447,38 @@
         }
       }
     },
+    "Console games and the rest of Cartouche still work." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I giochi per console e il resto di Cartouche funzionano comunque."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "主机游戏和 Cartouche 的其他功能仍可使用。"
+          }
+        }
+      }
+    },
+    "Continue" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continua"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "继续"
+          }
+        }
+      }
+    },
     "Continue Anyway" : {
       "localizations" : {
         "it" : {
@@ -2155,6 +2491,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "仍然继续"
+          }
+        }
+      }
+    },
+    "Controller for keyboard-only games" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controller per i giochi solo da tastiera"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在仅支持键盘的游戏中使用手柄"
           }
         }
       }
@@ -2818,6 +3170,22 @@
         }
       }
     },
+    "Download finished, install finished, ready to play" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download completato, installazione completata, pronto per giocare"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载完成、安装完成、可以开始游戏"
+          }
+        }
+      }
+    },
     "Download missing Valve binaries." : {
       "localizations" : {
         "it" : {
@@ -2878,6 +3246,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在下载缺失的组件"
+          }
+        }
+      }
+    },
+    "Downloads Folder" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartella Download"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“下载”文件夹"
+          }
+        }
+      }
+    },
+    "Dragging an installer onto Cartouche still works." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trascinare un installer su Cartouche funziona comunque."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将安装程序拖到 Cartouche 上仍然可用。"
           }
         }
       }
@@ -3026,6 +3426,38 @@
         }
       }
     },
+    "Game folders on an external disk" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartelle di giochi su un disco esterno"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "外置磁盘上的游戏文件夹"
+          }
+        }
+      }
+    },
+    "Get a notification when a game is ready?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ricevere una notifica quando un gioco è pronto?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "游戏准备就绪时通知你吗？"
+          }
+        }
+      }
+    },
     "If Cartouche is installed there, it will stay installed. Continue anyway?" : {
       "localizations" : {
         "it" : {
@@ -3038,6 +3470,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "如果 Cartouche 安装在那里，它将保持安装状态。仍要继续吗？"
+          }
+        }
+      }
+    },
+    "Input Monitoring" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monitoraggio input"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入监控"
           }
         }
       }
@@ -3266,6 +3714,22 @@
         }
       }
     },
+    "Keychain" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Portachiavi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "钥匙串"
+          }
+        }
+      }
+    },
     "Last used" : {
       "localizations" : {
         "it" : {
@@ -3294,6 +3758,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "启动日志"
+          }
+        }
+      }
+    },
+    "Left ⌘ as Ctrl still works." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⌘ sinistro come Ctrl funziona comunque."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "左 ⌘ 作为 Ctrl 仍然可用。"
           }
         }
       }
@@ -3410,6 +3890,22 @@
         }
       }
     },
+    "Local Network" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rete locale"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本地网络"
+          }
+        }
+      }
+    },
     "Location" : {
       "localizations" : {
         "it" : {
@@ -3422,6 +3918,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "位置"
+          }
+        }
+      }
+    },
+    "Login Items" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elementi login"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录项"
           }
         }
       }
@@ -3570,6 +4082,38 @@
         }
       }
     },
+    "Netplay and LAN games" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Netplay e giochi in LAN"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "联机对战和局域网游戏"
+          }
+        }
+      }
+    },
+    "Netplay over the internet still works." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il netplay via internet funziona comunque."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通过互联网联机对战仍然可用。"
+          }
+        }
+      }
+    },
     "Never" : {
       "localizations" : {
         "it" : {
@@ -3714,6 +4258,54 @@
         }
       }
     },
+    "Not Now" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non ora"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以后再说"
+          }
+        }
+      }
+    },
+    "Not allowed" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non consentito"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未允许"
+          }
+        }
+      }
+    },
+    "Not asked yet" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non ancora richiesto"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未请求"
+          }
+        }
+      }
+    },
     "Not found. Supported: %@." : {
       "localizations" : {
         "it" : {
@@ -3762,6 +4354,38 @@
         }
       }
     },
+    "Notifications" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifiche"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通知"
+          }
+        }
+      }
+    },
+    "Notifications are off for Cartouche. Allow them in System Settings." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le notifiche di Cartouche sono disattivate. Consentile nelle Impostazioni di Sistema."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 的通知已关闭。请在系统设置中允许。"
+          }
+        }
+      }
+    },
     "OK" : {
       "localizations" : {
         "it" : {
@@ -3790,6 +4414,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "打开%@"
+          }
+        }
+      }
+    },
+    "Open Cartouche at login" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri Cartouche al login"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录时打开 Cartouche"
+          }
+        }
+      }
+    },
+    "Open Cartouche at login?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aprire Cartouche al login?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录时打开 Cartouche 吗？"
           }
         }
       }
@@ -3938,6 +4594,22 @@
         }
       }
     },
+    "Play with others on your network?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Giocare con altri sulla tua rete?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "与你网络中的其他人一起玩吗？"
+          }
+        }
+      }
+    },
     "Please run CrossOver and try again." : {
       "localizations" : {
         "it" : {
@@ -4030,6 +4702,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "独占空间"
+          }
+        }
+      }
+    },
+    "Progress still shows in Cartouche." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'avanzamento resta visibile in Cartouche."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "进度仍会显示在 Cartouche 中。"
           }
         }
       }
@@ -4350,6 +5038,86 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "重新安装"
+          }
+        }
+      }
+    },
+    "Relaunch" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riavvia"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新启动"
+          }
+        }
+      }
+    },
+    "Relaunch Cartouche" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riavvia Cartouche"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新启动 Cartouche"
+          }
+        }
+      }
+    },
+    "Relaunch Cartouche to finish" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riavvia Cartouche per completare"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新启动 Cartouche 以完成"
+          }
+        }
+      }
+    },
+    "Remap the Mac keyboard and mouse per game" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rimappa tastiera e mouse del Mac per ogni gioco"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按游戏重新映射 Mac 键盘和鼠标"
+          }
+        }
+      }
+    },
+    "Removable Volumes" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volumi rimovibili"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可移除宗卷"
           }
         }
       }
@@ -5173,6 +5941,22 @@
     "Steam" : {
       "shouldTranslate" : false
     },
+    "Steam Play in Steam" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam Play in Steam"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 中的 Steam Play"
+          }
+        }
+      }
+    },
     "Steam already loads another tool's dylib (%@). Cartouche leaves it in place. Remove that tool from Steam, then install again." : {
       "localizations" : {
         "it" : {
@@ -5233,6 +6017,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "位于 %@ 的 Steam 未连接。"
+          }
+        }
+      }
+    },
+    "Steam can't read controllers. Allow Steam in Accessibility in System Settings." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam non può leggere i controller. Consenti Steam in Accessibilità nelle Impostazioni di Sistema."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 无法读取手柄。请在系统设置的“辅助功能”中允许 Steam。"
           }
         }
       }
@@ -5313,6 +6113,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未能完全恢复 Steam。请再次执行“修复 Steam”。"
+          }
+        }
+      }
+    },
+    "Steam games still run." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I giochi Steam si avviano comunque."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 游戏仍可运行。"
           }
         }
       }
@@ -5429,6 +6245,22 @@
         }
       }
     },
+    "Steam lists Cartouche's compatibility tools" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam elenca gli strumenti di compatibilità di Cartouche"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 已列出 Cartouche 的兼容性工具"
+          }
+        }
+      }
+    },
     "Steam not found." : {
       "localizations" : {
         "it" : {
@@ -5509,6 +6341,22 @@
         }
       }
     },
+    "Steam, for controllers in Steam games" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam, per i controller nei giochi Steam"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam，用于 Steam 游戏中的手柄"
+          }
+        }
+      }
+    },
     "Stopping Steam" : {
       "localizations" : {
         "it" : {
@@ -5521,6 +6369,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在停止 Steam"
+          }
+        }
+      }
+    },
+    "Store sign-ins for Epic, GOG, Amazon and RetroAchievements" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salva gli accessi a Epic, GOG, Amazon e RetroAchievements"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存 Epic、GOG、Amazon 和 RetroAchievements 的登录信息"
+          }
+        }
+      }
+    },
+    "Suggest installers that appear in Downloads" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggerisci gli installer che compaiono in Download"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "推荐出现在“下载”中的安装程序"
           }
         }
       }
@@ -5941,6 +6821,22 @@
         }
       }
     },
+    "The folder shows as unavailable until then." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fino ad allora la cartella risulta non disponibile."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在此之前，该文件夹会显示为不可用。"
+          }
+        }
+      }
+    },
     "The game SAVE DATA inside the prefix WILL BE LOST." : {
       "localizations" : {
         "it" : {
@@ -6181,6 +7077,22 @@
         }
       }
     },
+    "This game can't read the keyboard. Allow it in Input Monitoring in System Settings." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo gioco non può leggere la tastiera. Consentilo in Monitoraggio input nelle Impostazioni di Sistema."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此游戏无法读取键盘。请在系统设置的“输入监控”中允许。"
+          }
+        }
+      }
+    },
     "This tool is intended to repair a prefix after switching between Rosetta/FEX CrossOver." : {
       "localizations" : {
         "it" : {
@@ -6245,6 +7157,86 @@
         }
       }
     },
+    "To add Steam Play, Cartouche modifies Steam, which macOS blocks until you allow Cartouche in App Management." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per aggiungere Steam Play, Cartouche modifica Steam, cosa che macOS blocca finché non consenti Cartouche in Gestione app."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "为了添加 Steam Play，Cartouche 需要修改 Steam，在你于“App 管理”中允许 Cartouche 之前，macOS 会阻止此操作。"
+          }
+        }
+      }
+    },
+    "To find and run the games in this folder, Cartouche needs to read the disk." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per trovare e avviare i giochi in questa cartella, Cartouche deve leggere il disco."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "为了查找并运行此文件夹中的游戏，Cartouche 需要读取该磁盘。"
+          }
+        }
+      }
+    },
+    "To host or join a game on your local network, Cartouche needs Local Network access." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per ospitare o unirti a una partita sulla tua rete locale, Cartouche ha bisogno dell'accesso a Rete locale."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "为了在本地网络上主持或加入游戏，Cartouche 需要“本地网络”访问权限。"
+          }
+        }
+      }
+    },
+    "To play keyboard-only games with a controller, Cartouche turns buttons into key presses, which needs Accessibility." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per giocare con un controller ai giochi solo da tastiera, Cartouche trasforma i pulsanti in tasti premuti, il che richiede Accessibilità."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "为了用手柄玩仅支持键盘的游戏，Cartouche 会把按钮转换为按键，这需要“辅助功能”权限。"
+          }
+        }
+      }
+    },
+    "To remap keys while a game runs, Cartouche needs Input Monitoring." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per rimappare i tasti mentre un gioco è in esecuzione, Cartouche ha bisogno di Monitoraggio input."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "为了在游戏运行时重新映射按键，Cartouche 需要“输入监控”权限。"
+          }
+        }
+      }
+    },
     "Tool" : {
       "localizations" : {
         "it" : {
@@ -6277,6 +7269,22 @@
         }
       }
     },
+    "Try Again" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riprova"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重试"
+          }
+        }
+      }
+    },
     "Unknown" : {
       "localizations" : {
         "it" : {
@@ -6289,6 +7297,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未知"
+          }
+        }
+      }
+    },
+    "Unknown, will be asked when needed" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sconosciuto, verrà chiesto quando serve"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未知，需要时会请求"
           }
         }
       }
@@ -6389,6 +7413,22 @@
         }
       }
     },
+    "Use games on an external disk?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usare giochi su un disco esterno?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用外置磁盘上的游戏吗？"
+          }
+        }
+      }
+    },
     "Use the newer Cartouche app to update or repair the installed files." : {
       "localizations" : {
         "it" : {
@@ -6465,6 +7505,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "不支持版本 %@（支持：%@）"
+          }
+        }
+      }
+    },
+    "Waiting for a relaunch" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In attesa di un riavvio"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等待重新启动"
+          }
+        }
+      }
+    },
+    "Watch your Downloads folder?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controllare la cartella Download?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "监视你的“下载”文件夹吗？"
+          }
+        }
+      }
+    },
+    "Windows games, for the keyboard in some games" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Giochi Windows, per la tastiera in alcuni giochi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Windows 游戏，用于部分游戏中的键盘"
           }
         }
       }
@@ -6551,6 +7639,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用此工具不会删除游戏存档。"
+          }
+        }
+      }
+    },
+    "Your game and settings stay as they are." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il gioco e le impostazioni restano come sono."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的游戏和设置会保持不变。"
           }
         }
       }
@@ -6747,6 +7851,70 @@
         }
       }
     },
+    "macOS adds Cartouche to Login Items, where you can remove it at any time." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS aggiunge Cartouche agli Elementi login, da cui puoi rimuoverlo in qualsiasi momento."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS 会将 Cartouche 添加到“登录项”，你可以随时将其移除。"
+          }
+        }
+      }
+    },
+    "macOS applies Input Monitoring after a relaunch." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS applica Monitoraggio input dopo un riavvio."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS 会在重新启动后应用“输入监控”。"
+          }
+        }
+      }
+    },
+    "macOS applies it after Cartouche relaunches, which takes a few seconds." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS lo applica dopo il riavvio di Cartouche, che richiede pochi secondi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS 会在 Cartouche 重新启动后应用此权限，只需几秒钟。"
+          }
+        }
+      }
+    },
+    "macOS blocked the change. Allow Cartouche in App Management, then try again." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS ha bloccato la modifica. Consenti Cartouche in Gestione app, poi riprova."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS 阻止了此更改。请在“App 管理”中允许 Cartouche，然后重试。"
+          }
+        }
+      }
+    },
     "macOS did not reset %@ for Steam." : {
       "localizations" : {
         "it" : {
@@ -6759,6 +7927,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "macOS 未能重置 Steam 的 %@ 权限。"
+          }
+        }
+      }
+    },
+    "macOS still blocks the change. If you allowed Cartouche in App Management, relaunch Cartouche to finish." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS blocca ancora la modifica. Se hai consentito Cartouche in Gestione app, riavvia Cartouche per completare."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS 仍在阻止此更改。如果你已在“App 管理”中允许 Cartouche，请重新启动 Cartouche 以完成。"
           }
         }
       }

@@ -196,7 +196,7 @@ enum DeploymentContent {
                               fonts: SupportPaths.fonts,
                               overlayShim: SupportPaths.overlayShim, iconmaker: SupportPaths.iconmaker,
                               appinfo: SupportPaths.appinfo, compatTools: SupportPaths.Steam.compatTools,
-                              tools: CompatToolList.installed(), runners: SupportPaths.runners)
+                              tools: RunnerRegistry.tools(), runners: SupportPaths.runners)
             return try inspect(files: files, bundled: Build(version: version, builtAt: payload.builtAt),
                                installed: readBuild(at: record(beside: SupportPaths.deployedVersion)),
                                legacyVersion: SteamBundle.deployedVersion(), additionalDifferences: pinned.sorted())
@@ -211,11 +211,11 @@ enum DeploymentContent {
             (destination: bridge.appending(path: $0.bridgePath), hash: $0.sha256, name: "bridge/\($0.bridgePath)")
         }
         let list = runners.deletingLastPathComponent().appending(path: "tools")
-        let tools = CompatToolList.installed(runners: runners, file: list)
+        let tools = RunnerRegistry.tools(runners: runners, file: list)
         if !tools.isEmpty || FileManager.default.fileExists(atPath: list.path(percentEncoded: false)) {
             files.append((list, Digest.sha256(of: Data(CompatToolList.contents(tools).utf8)), "tools"))
         }
-        for build in RunnerStore.installedBuilds(in: runners) {
+        for build in RunnerRegistry.installedBuilds(in: runners) {
             for (arch, hash) in build.patchedNtdll {
                 let file = SupportPaths.clonedRoot(forBuild: build.id, runners: runners)
                     .appending(path: "lib/wine/\(arch.rawValue)/ntdll.dll")

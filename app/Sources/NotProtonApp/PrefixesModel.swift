@@ -27,7 +27,7 @@ final class PrefixesModel {
     func lastTool(_ prefix: WinePrefix) -> String? {
         if let tool = currentTools[prefix.id] { return tool.display }
         guard let record = records[prefix.id] else { return nil }
-        return record.display ?? SupportedRunners.displayVersion(forID: record.build)
+        return record.display ?? RunnerRegistry.displayVersion(forID: record.build)
     }
 
     private(set) var hasLoaded = false
@@ -70,7 +70,7 @@ final class PrefixesModel {
 
     init(
         libraries: @escaping @Sendable () -> [SteamLibrary] = { PrefixStore.libraries() },
-        installedTools: @escaping @Sendable () -> [InstalledTool] = { CompatToolList.installed() },
+        installedTools: @escaping @Sendable () -> [InstalledTool] = { RunnerRegistry.tools() },
         rebuild: @escaping @Sendable (WinePrefix, InstalledTool, Bool) throws -> URL? = {
             try PrefixTools.recreate($0, as: $1, keepBackup: $2)
         },

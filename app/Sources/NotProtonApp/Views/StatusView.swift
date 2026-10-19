@@ -210,7 +210,7 @@ struct StatusView: View {
         }
         .confirmationDialog(
             status.pendingRemoval.map {
-                String(localized: "Remove the \(SupportedRunners.displayVersion(forID: $0)) copy?")
+                String(localized: "Remove the \(RunnerRegistry.displayVersion(forID: $0)) copy?")
             } ?? "",
             isPresented: asking(.removeBuild),
             titleVisibility: .visible
@@ -531,11 +531,11 @@ struct StatusView: View {
         if rows.isEmpty {
             StatusRow(
                 title: "CrossOver",
-                value: String(localized: "Not found. Supported: \(SupportedRunners.versionList)."),
+                value: String(localized: "Not found. Supported: \(RunnerRegistry.versionList)."),
                 tone: .bad
             )
         }
-        let tools = SupportedRunners.tools(for: snapshot.installedRunners)
+        let tools = RunnerRegistry.tools(for: snapshot.installedRunners)
         ForEach(rows) { row in
             StatusRow(
                 title: row.title,
@@ -572,9 +572,9 @@ struct StatusView: View {
 
     private func crossOverValue(_ row: CrossOverRow) -> String {
         if let version = row.unsupportedVersion {
-            return String(localized: "Version \(version) not supported (supported: \(SupportedRunners.versionList))")
+            return String(localized: "Version \(version) not supported (supported: \(RunnerRegistry.versionList))")
         }
-        let build = String(localized: "Build \(SupportedRunners.displayVersion(forID: row.buildID))")
+        let build = String(localized: "Build \(RunnerRegistry.displayVersion(forID: row.buildID))")
         switch row.copy {
         case .ready: return build
         case .none: return build + (row.licensed == false ? String(localized: ", not set up or activated") : String(localized: ", not set up"))
@@ -668,7 +668,7 @@ struct StatusView: View {
 
     private func buildSize(_ build: String) -> String? {
         guard let runner = status.runnerSizes[build] else { return nil }
-        let flavors = SupportedRunners.build(id: build)?.tools.map(\.flavor) ?? []
+        let flavors = RunnerRegistry.build(id: build)?.tools.map(\.flavor) ?? []
         return Self.sizeText(runner: runner, templates: status.templateSizes[build] ?? [:], flavors: flavors)
     }
 

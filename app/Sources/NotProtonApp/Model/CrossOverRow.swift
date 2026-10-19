@@ -19,11 +19,11 @@ struct CrossOverRow: Identifiable, Equatable {
     let unsupportedVersion: String?
 
     var id: String { install?.id ?? buildID }
-    var build: RunnerBuild? { SupportedRunners.build(id: buildID) }
+    var build: RunnerBuild? { RunnerRegistry.build(id: buildID) }
 
     var title: String {
         if let install { return install.name }
-        return "CrossOver \(SupportedRunners.displayVersion(forID: buildID))"
+        return "CrossOver \(RunnerRegistry.displayVersion(forID: buildID))"
     }
 
     var canSetUp: Bool { install != nil && unsupportedVersion == nil }
@@ -89,6 +89,6 @@ struct CrossOverRow: Identifiable, Equatable {
         if case .supported(let build) = install.support {
             return rows.first { $0.buildID == build.id && $0.install != nil }
         }
-        return rows.first { $0.install.map { CrossOverSource.same($0.bundle, install.bundle) } ?? false }
+        return rows.first { $0.install.map { RunnerRegistry.sameBundle($0.bundle, install.bundle) } ?? false }
     }
 }
