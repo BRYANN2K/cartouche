@@ -81,6 +81,22 @@
         }
       }
     },
+    "%@ changed since it was installed." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ è cambiato dopo l’installazione."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 在安装后已被更改。"
+          }
+        }
+      }
+    },
     "%@ could not be copied out of the prefix. The prefix has been left as it was and nothing has been lost. Check free space and permissions, then try again." : {
       "localizations" : {
         "it" : {
@@ -93,6 +109,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法从容器中复制 %@。容器保持原样，未丢失任何内容。请检查剩余空间和权限，然后重试。"
+          }
+        }
+      }
+    },
+    "%@ could not be copied. " : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile copiare %@. "
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法复制 %@。"
           }
         }
       }
@@ -1868,6 +1900,22 @@
         }
       }
     },
+    "Built by Cartouche from CodeWeavers’ open-source code" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compilato da Cartouche dal codice open source di CodeWeavers"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "由 Cartouche 使用 CodeWeavers 的开源代码构建"
+          }
+        }
+      }
+    },
     "Calculating…" : {
       "localizations" : {
         "it" : {
@@ -2091,6 +2139,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cartouche 未包含任何组件。"
+          }
+        }
+      }
+    },
+    "Cartouche could not download %@. Check your internet connection and try again." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche non è riuscito a scaricare %@. Controlla la connessione a Internet e riprova."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 无法下载 %@。请检查网络连接后重试。"
           }
         }
       }
@@ -2799,6 +2863,22 @@
         }
       }
     },
+    "Copy Game Porting Toolkit" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copia Game Porting Toolkit"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制 Game Porting Toolkit"
+          }
+        }
+      }
+    },
     "Copy the built bridge files" : {
       "localizations" : {
         "it" : {
@@ -2811,6 +2891,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "复制已构建的桥接文件"
+          }
+        }
+      }
+    },
+    "Copying" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copia in corso"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在复制"
           }
         }
       }
@@ -2990,6 +3086,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "不会移除 CrossOver 原应用。"
+          }
+        }
+      }
+    },
+    "Damaged" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Danneggiato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已损坏"
           }
         }
       }
@@ -3346,6 +3458,22 @@
         }
       }
     },
+    "DirectX 11 and 12 through Apple’s D3DMetal" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DirectX 11 e 12 tramite D3DMetal di Apple"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通过 Apple 的 D3DMetal 运行 DirectX 11 和 12"
+          }
+        }
+      }
+    },
     "Doesn’t run on Linux" : {
       "localizations" : {
         "it" : {
@@ -3422,6 +3550,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已下载缺失的组件。"
+          }
+        }
+      }
+    },
+    "Downloading" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download in corso"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在下载"
           }
         }
       }
@@ -3650,6 +3794,22 @@
         }
       }
     },
+    "Found in %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trovato in %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "位于 %@"
+          }
+        }
+      }
+    },
     "Game" : {
       "localizations" : {
         "it" : {
@@ -3730,6 +3890,22 @@
         }
       }
     },
+    "How to Get It" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Come ottenerlo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如何获取"
+          }
+        }
+      }
+    },
     "If Cartouche is installed there, it will stay installed. Continue anyway?" : {
       "localizations" : {
         "it" : {
@@ -3806,6 +3982,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "将 Cartouche 安装到 Steam。"
+          }
+        }
+      }
+    },
+    "Install runner" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installa runner"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装运行环境"
           }
         }
       }
@@ -4578,6 +4770,22 @@
         }
       }
     },
+    "No longer offered" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non più offerto"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已不再提供"
+          }
+        }
+      }
+    },
     "No recent ProtonDB report tried online play on Linux." : {
       "localizations" : {
         "it" : {
@@ -4690,6 +4898,22 @@
         }
       }
     },
+    "Not found" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non trovato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未找到"
+          }
+        }
+      }
+    },
     "Not found. Supported: %@." : {
       "localizations" : {
         "it" : {
@@ -4706,6 +4930,22 @@
         }
       }
     },
+    "Not installed" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non installato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未安装"
+          }
+        }
+      }
+    },
     "Not installed." : {
       "localizations" : {
         "it" : {
@@ -4718,6 +4958,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "尚未安装。"
+          }
+        }
+      }
+    },
+    "Not supported" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non supportato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不受支持"
           }
         }
       }
@@ -4782,6 +5038,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "好"
+          }
+        }
+      }
+    },
+    "Official WineHQ build, less tuned for games" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Build ufficiale di WineHQ, meno ottimizzata per i giochi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WineHQ 官方版本，对游戏的优化较少"
           }
         }
       }
@@ -5230,6 +5502,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "读取组件列表"
+          }
+        }
+      }
+    },
+    "Ready" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pronto"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "就绪"
           }
         }
       }
@@ -7365,6 +7653,38 @@
         }
       }
     },
+    "The download of %@ has no Wine at %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il download di %1$@ non contiene Wine in %2$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 的下载内容中，%@ 处没有 Wine。"
+          }
+        }
+      }
+    },
+    "The download was damaged. Try again." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il download è danneggiato. Riprova."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载的文件已损坏。请重试。"
+          }
+        }
+      }
+    },
     "The folder shows as unavailable until then." : {
       "localizations" : {
         "it" : {
@@ -8263,6 +8583,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你的游戏和设置会保持不变。"
+          }
+        }
+      }
+    },
+    "Your licensed copy" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La tua copia con licenza"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的授权副本"
+          }
+        }
+      }
+    },
+    "Your own copy" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La tua copia"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你自己的副本"
           }
         }
       }

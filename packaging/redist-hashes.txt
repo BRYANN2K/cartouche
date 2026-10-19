@@ -1,0 +1,32 @@
+# SHA-256 and size of Game Porting Toolkit files, which must never be redistributed.
+# redist-scan.sh hashes every file of one of these sizes and fails on a match, so
+# Apple's files are caught under any name, including names Wine also uses (d3d11.dll).
+# Add a version with: sh packaging/redist-hash.sh gptk-<version> <lib folder of your own copy>
+#
+# sha256 size what
+#
+# Apple's evaluation image (pinned in MacPorts' game-porting-toolkit Portfile) and
+# Gcenx's repackaging (release Game-Porting-Toolkit-3.0-3), checked 2026-10-19
+d49395fb07e536804d1da0858590e53f6aa6fab12512e18fd80a74c87f9f063c 25006010 Evaluation_environment_for_Windows_games_3.0.dmg
+d377683937340f914823dbb2e1252b329cbf834ff58907d0293db8cebf0e392e 239200808 game-porting-toolkit-3.0-3.tar.xz
+#
+# redist/lib of Game Porting Toolkit 4.0b3 (D3DMetal 4.0b3), hashed on 2026-10-19 from a
+# copy installed on a maintainer's Mac. The x86_64-unix .so files are symlinks to libd3dshared.dylib.
+a64950e8324cec32c9a442daa1fafd03823bd199fdd84fee5c73679b5fe86660 7973168 gptk-4.0b3/external/D3DMetal.framework/Versions/A/D3DMetal
+26e3166820a15850f9977e2336ee7f4d1237f402c8520a1bd30716fc2655ea18 688 gptk-4.0b3/external/D3DMetal.framework/Versions/A/Resources/Info.plist
+553d0035773ddd1590045f8fdc3a4c6ead31e36336721aeca8421e88ed1c9f80 1389 gptk-4.0b3/external/D3DMetal.framework/Versions/A/Resources/LICENSE
+c1ea924b9818099d60c861eedb23266632a7db39240b2412a7d405c3a7695408 479721 gptk-4.0b3/external/D3DMetal.framework/Versions/A/Resources/default.metallib
+62e2faa5bf5a7d6f2bf5accae75fe5b0f2c84e261e1b4b011ff947ed48ee245c 103792 gptk-4.0b3/external/D3DMetal.framework/Versions/A/Resources/libdxccontainer.dylib
+eaa33a6476ea5310261b55f800907c40b99f9dc91e1b0f2cb40bc3cd190f4f09 28998496 gptk-4.0b3/external/D3DMetal.framework/Versions/A/Resources/libdxcompiler.dylib
+568c7006672394e9d077a0a8de2e464a2471a77bcefe9f1b79e5396d03c24472 2091456 gptk-4.0b3/external/D3DMetal.framework/Versions/A/Resources/libdxilconv.dylib
+7a5ddc8081054b2c09ede8df1a9a7190fa7c00f3c219232f6e269b4ce02f6ca7 30555312 gptk-4.0b3/external/D3DMetal.framework/Versions/A/Resources/libmetalirconverter.dylib
+a1989325e56ef9a28b17d7320d6ce713693aa44f50fe309d33263a9a99918b3e 466 gptk-4.0b3/external/D3DMetal.framework/Versions/A/Resources/version.plist
+e417636d671126c99baa2ba002afe5fc27d843032d54c4bb781c21a4f4a51eeb 4120 gptk-4.0b3/external/D3DMetal.framework/Versions/A/_CodeSignature/CodeResources
+a70ba718a06c1372e0c7fe747dcd4c3ba6262791ccf0dd5cdebe6a8921c378ef 250672 gptk-4.0b3/external/libd3dshared.dylib
+78c2cd82697dde7081bae72c0ebd82eb41131e7c80b1f99d16ca5f54e5e962e1 73728 gptk-4.0b3/wine/x86_64-windows/d3d10.dll
+39b05a887598697d46225f998354c41582d12b3d35fceb4509df9b2386a10b2e 139264 gptk-4.0b3/wine/x86_64-windows/d3d11.dll
+3174fac027d3ff10971645ac41b665cd53949c87d6d2d7d53b0073bf4bb36981 196608 gptk-4.0b3/wine/x86_64-windows/d3d12.dll
+8fee579ce538f5a56de72d8ff64dec9d2f018496358069a0216f29a9330ff7fd 36864 gptk-4.0b3/wine/x86_64-windows/d3d12core.dll
+d53d9ea91935f0de126ba528264fc4c9b4dfea8bfe43f3f1256bd3e8963d67ee 135168 gptk-4.0b3/wine/x86_64-windows/dxgi.dll
+de4872e71e6b3f54775b3e564cc487d984c52fec6711bfee250228843ba762d0 192512 gptk-4.0b3/wine/x86_64-windows/nvapi64.dll
+2e522873d2dec412c29f73096f1c1dc6bd8016dc40fd76fbeddd2eb7e226d3cb 135632 gptk-4.0b3/wine/x86_64-windows/nvngx-on-metalfx.dll

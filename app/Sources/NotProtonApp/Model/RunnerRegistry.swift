@@ -33,7 +33,9 @@ struct RunnerRegistry: Sendable {
         roots: [URL] = CrossOverSource.searchRoots,
         manual: [URL] = CrossOverSource.manualBundles(),
         pins: [RunnerBuild] = SupportedRunners.all,
-        fexAvailable: Bool = CompatTool.Flavor.fexAvailable
+        fexAvailable: Bool = CompatTool.Flavor.fexAvailable,
+        // Free runners (Wine builds, Game Porting Toolkit) are listed after CrossOver when given
+        free: FreeRunnerScan? = nil
     ) -> RunnerRegistry {
         let installs = CrossOverSource.discover(roots: roots, manual: manual, pins: pins)
         let installed = RunnerStore.installedBuilds(in: runners, pins: pins)
@@ -47,7 +49,7 @@ struct RunnerRegistry: Sendable {
             runners: CrossOverSource.runners(
                 installs: installs, installed: installed, damaged: damaged, orphaned: orphaned,
                 problems: problems, pins: pins, fexAvailable: fexAvailable
-            ),
+            ) + (free?.runners(runners: runners, fexAvailable: fexAvailable) ?? []),
             installs: installs,
             state: RunnerStore.state(of: installed, problems: problems),
             installed: installed,
@@ -68,8 +70,10 @@ struct RunnerRegistry: Sendable {
             }
             return RunnerPatcher.verify(
                 build: build, root: SupportPaths.clonedRoot(forBuild: build.id, runners: runners), bridge: bridge)
-        case .wineBuild, .portingToolkit:
-            return []
+        case .wineBuild:
+            return WineRunnerInstaller.verify(runner.id, runners: runners)
+        case .portingToolkit:
+            return PortingToolkitSource.verify(version: runner.version, runners: runners)
         }
     }
 }

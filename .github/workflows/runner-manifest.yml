@@ -1,0 +1,47 @@
+name: runner-manifest
+
+# Publishes runners.json on the compat-data release, where the app looks for a
+# newer list of Wine builds once a day. Runs when main changes the shipped copy.
+on:
+  push:
+    branches: [main]
+    paths: [app/Sources/NotProtonApp/Resources/runners.json]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: compat-data-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check it against the published copy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          manifest=app/Sources/NotProtonApp/Resources/runners.json
+          if gh release download compat-data --pattern runners.json --dir previous 2>/dev/null; then
+            python3 packaging/runner_manifest.py check "$manifest" --published previous/runners.json
+          else
+            python3 packaging/runner_manifest.py check "$manifest"
+          fi
+
+      - name: Upload
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # A prerelease is never "latest", so the Sparkle feed is unaffected
+          if ! gh release view compat-data >/dev/null 2>&1; then
+            gh release create compat-data --prerelease --latest=false \
+              --title "Compatibility data" \
+              --notes "Nightly compatibility data for Cartouche, built by .github/workflows/compat-data.yml. Sources: AppleGamingWiki (CC BY-NC-SA 3.0); ProtonDB (ODbL 1.0, the ProtonDB counts are shared under the same license); AreWeAntiCheatYet (MIT). Format: docs/schema/compat.schema.json."
+          fi
+          gh release upload compat-data app/Sources/NotProtonApp/Resources/runners.json --clobber

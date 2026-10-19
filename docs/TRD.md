@@ -56,12 +56,18 @@ Steam (Mac client)
 ### Runners and backends
 
 - A runner has a source kind (CrossOver, Wine build, Game Porting Toolkit), a version, CPU flavors (Rosetta, FEX) and a state (available, installing, ready, damaged, unsupported).
-- One registry lists runners. Every feature reads runners only from it (P1). Today CrossOver is the only source in the registry.
+- One registry lists runners. Every feature reads runners only from it (P1). CrossOver, the Wine builds and the user's Game Porting Toolkit copy are sources in the registry (P2).
 - A build whose hashes are not pinned is listed as unsupported with the reason. It is not offered to Steam or to games.
 - Damage detection: a cloned runner whose files no longer match their pinned hashes becomes damaged, with the file named, and Repair restores it.
 - CrossOver behavior is unchanged by the runner model (a parity requirement of P1).
 - Free runners (P2): Wine CrossOver built by our CI from CodeWeavers' LGPL sources, official WineHQ builds, and the user's own Game Porting Toolkit copied into `runners/` on their Mac.
-- Each supported build is pinned in a manifest: URL, SHA-256, ntdll hashes and RVAs. `ntdll-patch/resolve.py` finds the RVAs.
+- Wine CrossOver is built from the CrossOver 26.3.0 source tarball (Wine 11.0 inside), pinned by URL, SHA-256 and size in `packaging/wine-crossover/pins.env`. The workflow `.github/workflows/wine-crossover.yml` runs on `macos-15-intel` with Xcode 16.4 and llvm-mingw 20261006. The asset `wine-crossover-26.3.0-1-x86_64.tar.xz` is published by CI. It carries the Wine license files and `SOURCE.md` (the source offer), and it bundles freetype, gnutls (with its libraries), MoltenVK and SDL2 with `@rpath` names. MSync is in these sources.
+- WineHQ builds are the official macOS builds made by Gcenx, downloaded by the app and pinned in `runners.json` (wine-stable 11.0_1, wine-devel 11.18).
+- Game Porting Toolkit is never in the repository, a release or a download we host. The app finds it in mounted volumes (`/Volumes/*/redist/lib`), apps with "Porting Toolkit" in their name in `/Applications` and `~/Applications`, the Homebrew kegs, and folders the user picked. The version comes from `D3DMetal.framework`. `packaging/redist-scan.sh` also scans tar archives and matches files by SHA-256 and size against `packaging/redist-hashes.txt`.
+- D3DMetal is offered only from a ready GPTK copy or from a CrossOver that has `lib64/apple_gptk/external/D3DMetal.framework`. That path is not confirmed on a real CrossOver.
+- Installed free runners live in `runners/wine-<id>/` (with a receipt of key file hashes) and `runners/gptk-<version>/lib` (receipt of every file hash). Downloads go to `~/Library/Caches/Cartouche/runners` and are deleted after unpacking. A download whose size or SHA-256 differs is deleted.
+- Free runners are listed by the registry but not offered to Steam yet. Their ntdll hook offsets need the built ntdll. CI runs `ntdll-patch/resolve.py` and uploads the values. Then the maintainer pins them in `NtdllPatcher` and `SupportedRunner`, as for CrossOver builds. P3 lists their Steam tools.
+- Each supported build is pinned: URL, size and SHA-256 in the runner manifest, ntdll hashes and RVAs in the code. `ntdll-patch/resolve.py` finds the RVAs.
 - Backends (P3): D3DMetal, DXMT, DXVK, wined3d. DXMT and DXVK are downloaded with pinned SHA-256. D3DMetal comes only from the user's GPTK or CrossOver.
 - A game setup is runner, backend, CPU translation and environment variables. The choice is written to Steam's `CompatToolMapping` through `SpecifyCompatTool`.
 - Steam sees one compatibility tool per valid runner and backend pair, named `<runner> · <backend>`.
@@ -124,7 +130,9 @@ Steam (Mac client)
 |---|---|---|---|
 | App data | `~/Library/Application Support/Cartouche` | Settings, runners, prefixes, caches | P0 |
 | Logs | `~/Library/Logs/Cartouche` | App, Wine, game, installer logs | P0 |
-| Runner manifest | Shipped with the app, refreshed with compat data | URL, SHA-256, ntdll pins per build | P2 |
+| Runner manifest | `runners.json` in the app, a newer copy on the compat-data release | Format 1 and a revision. URL, size and SHA-256 per download. A newer copy is accepted only if valid, newer, and from https on github.com. It never changes the pin of a build the app already lists | P2 |
+| Runner folders | `runners/` in the app data folder | `wine-<id>/`, `gptk-<version>/lib`, each with a receipt of file hashes | P2 |
+| Runner downloads | `~/Library/Caches/Cartouche/runners` | Archives, deleted after unpacking | P2 |
 | Compatibility cache | `compatibility/` in the app data folder | Last valid `compat.json.gz` and the time of the last contact | P4 |
 | MacGamingDB cache | `compatibility/macgamingdb/<appid>.json` | One answer per game: aggregate rating and raw report rows. Never uploaded | P4 |
 | Permission ledger and relaunch state | App defaults | What Cartouche asked, and the screen to reopen after a relaunch | P17 |
@@ -146,8 +154,8 @@ The compatibility schemas are in `docs/DATA-SCHEMA.md`. The FPS store schema (P8
 | Dobby | Function hooks in the dylib | Apache-2.0 | Cloned at a pinned commit, built from source |
 | lsteamclient, steam-shim | Steam API bridge | Steamworks SDK License, BSD-3-Clause | Source in the repository |
 | cJSON, jsoncpp | JSON in C and C++ | MIT, public domain or MIT | Source in the repository |
-| Wine CrossOver (CodeWeavers sources) | Free runner | LGPL | Built by our CI, downloaded by the app |
-| Wine (WineHQ builds) | Secondary runner | LGPL | Downloaded by the app |
+| Wine CrossOver (CodeWeavers sources) | Free runner | LGPL | Built by our CI, downloaded by the app. Bundles freetype, gnutls, MoltenVK, SDL2 |
+| Wine (WineHQ builds, by Gcenx) | Secondary runner | LGPL | Downloaded by the app, not bundled |
 | Game Porting Toolkit, D3DMetal | Runner and DirectX 12 backend | Apple license | Never bundled. The user's own copy |
 | DXMT | DirectX 11 backend | To confirm in P3 | Downloaded, pinned SHA-256 |
 | DXVK | Older DirectX games | zlib | Downloaded, pinned SHA-256 |
@@ -163,7 +171,7 @@ The compatibility schemas are in `docs/DATA-SCHEMA.md`. The FPS store schema (P8
 | ProtonDB export | Linux reports, anti-cheat | ODbL | Read by CI, attribution and share-alike |
 | AreWeAntiCheatYet | Anti-cheat status | MIT | Read by CI |
 
-The table lists some components of phases that are not merged (P2, P3, P6, P10, P11). Those rows are a plan. `THIRD-PARTY-LICENSES` lists what the repository ships today and will grow with those phases.
+The table lists some components of phases that are not merged (P3, P6, P10, P11). P2 is in progress. Those rows are a plan. `THIRD-PARTY-LICENSES` lists what the repository ships today and will grow with those phases.
 
 ## Security and trust boundaries
 
@@ -183,7 +191,7 @@ Own name, bundle ID `dev.bryann2k.cartouche` (ADR 0014), data and log folders, S
 Runner protocol, registry and states. CrossOver re-expressed on it with identical behavior. Damage detection by pinned hashes. Change: [`p1-runner-model`](../openspec/changes/archive/2026-10-19-p1-runner-model/). Spec: `openspec/specs/runner-management/`. Merged.
 
 ### P2 Free runners
-CI build of Wine CrossOver, WineHQ runner, GPTK detection. Pinned ntdll offsets. Manifest with SHA-256. Change: [`p2-free-runners`](../openspec/changes/p2-free-runners/).
+CI build of Wine CrossOver, WineHQ runner, GPTK detection. Manifest with SHA-256. The Runners model fetches a newer manifest at most once a day (`RunnerManifest.refresh`). Pinned ntdll offsets and Steam use of free runners are not done yet. Change: [`p2-free-runners`](../openspec/changes/p2-free-runners/).
 
 ### P3 Graphics backends
 Per-game setup, one Steam tool per runner and backend pair, Mac or Windows version, pinned DXMT and DXVK. Change: [`p3-graphics-backends`](../openspec/changes/p3-graphics-backends/).

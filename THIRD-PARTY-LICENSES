@@ -14,8 +14,14 @@ Game Porting Toolkit and D3DMetal
 ---------------------------------
 
 Cartouche does not ship Apple's Game Porting Toolkit or D3DMetal, and no file
-from either is in the repository or in a release. The release workflow scans
-the app and its zip for them.
+from either is in the repository, in a release or in a download that Cartouche
+hosts. When the user has their own copy, the app copies it, at run time, from
+the user's install (a mounted Apple image, a Game Porting Toolkit app, a
+Homebrew keg or a folder the user picked) into the runners folder on the
+user's Mac. The release workflow scans the app and its zip, and the wine-crossover
+workflow its archive, for these files,
+by name, by SHA-256 and inside tar archives (packaging/redist-scan.sh,
+packaging/redist-hashes.txt).
 
 Components in the app
 ---------------------
@@ -66,6 +72,48 @@ JsonCpp
           steam-shim/json/json-forwards.h (the original notice is in the files)
   Where: steam-shim.
 
+Wine CrossOver (CodeWeavers sources)
+  License: LGPL-2.1-or-later (Wine). The other components in the sources keep
+           their own licenses.
+  Source: CodeWeavers' CrossOver 26.3.0 source tarball,
+          https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
+          SHA-256 ac99c8ca4b3848f3e81784135f023df266b61c2345726ea55a50b3e030dd6872
+          (149054023 bytes). It holds Wine 11.0 under sources/wine, plus
+          dxvk, moltenvk, vkd3d, freetype, gnutls, gstreamer and others.
+  Where: not part of the app and not in the repository. Built by CI
+         (.github/workflows/wine-crossover.yml on a macos-15-intel runner with
+         Xcode 16.4) with the scripts in packaging/wine-crossover/. CI
+         publishes the asset wine-crossover-26.3.0-1-x86_64.tar.xz on a
+         GitHub release. The app downloads it, on the user's request, checks
+         its SHA-256 against runners.json and unpacks it into the runners
+         folder. The build has not run yet, so no asset is published yet.
+  The asset holds LICENSE, COPYING.LIB and AUTHORS from the Wine sources, and
+  SOURCE.md.
+  Source offer. SOURCE.md in the asset names the tarball URL and its hash. The
+  same GitHub release carries a copy of the tarball, and SOURCE.md links to
+  the build scripts at the commit that built the asset.
+  PE code is cross-compiled with llvm-mingw 20261006 (pinned by SHA-256),
+  https://github.com/mstorsjo/llvm-mingw. It brings the mingw-w64 runtime
+  (ZPL and public domain parts, to confirm) and LLVM libc++ and compiler-rt
+  (Apache-2.0 with LLVM exception).
+  Bundled Homebrew libraries, copied into the asset with @rpath names. The
+  licenses are to confirm from each formula where marked.
+    freetype (libfreetype.6.dylib)  FreeType License or GPLv2, a choice
+    gnutls (libgnutls.30.dylib)     LGPL-2.1-or-later. It links nettle, gmp,
+                                    p11-kit, libtasn1, libidn2, libunistring
+                                    and others, which are bundled too. Their
+                                    licenses: to confirm from each formula.
+    molten-vk (libMoltenVK.dylib)   Apache-2.0
+    sdl2 (libSDL2-2.0.0.dylib)      zlib
+
+Wine, WineHQ builds
+  License: LGPL
+  Source: official macOS builds made by Gcenx,
+          https://github.com/Gcenx/macOS_Wine_builds (releases). Pinned in
+          app/Sources/NotProtonApp/Resources/runners.json: wine-stable 11.0_1
+          and wine-devel 11.18, each with URL, size and SHA-256.
+  Where: downloaded, not bundled. See "Downloaded, not shipped".
+
 Parts from Valve
 ----------------
 
@@ -100,6 +148,12 @@ the app pins them, and are not part of Cartouche's release.
                                   app/Sources/NotProtonApp/Resources/valve-packages.manifest
   Winetricks                      LGPL, from github.com/Winetricks/winetricks
   Libretro cores and core info    Per core, from buildbot.libretro.com
+  Wine CrossOver build            LGPL, built by CI, from Cartouche's GitHub
+                                  releases (see above)
+  Wine, WineHQ builds             LGPL, from Gcenx's releases on GitHub (see
+                                  above)
+  Runner manifest                 runners.json, a newer copy from the compat-data
+                                  release, accepted only if valid
 
 Community data
 --------------
@@ -112,6 +166,6 @@ never redistributes it.
 Not yet shipped
 ---------------
 
-Components planned for later phases (free Wine runners, DXMT, DXVK, innoextract,
-legendary, gogdl, nile, comet, the Swift MCP SDK) are not in the repository
-yet. They will be added here when they are.
+Components planned for later phases (DXMT, DXVK, innoextract, legendary,
+gogdl, nile, comet, the Swift MCP SDK) are not in the repository yet. They
+will be added here when they are.

@@ -1,0 +1,54 @@
+// Free runners on the runner model: Wine builds from the manifest and the user's
+// own Game Porting Toolkit. RunnerRegistry.refresh adds them when asked to.
+
+import Foundation
+
+struct FreeRunnerScan: Sendable {
+    var manifest: RunnerManifest
+    // Game Porting Toolkit copies found on this Mac
+    var toolkits: [PortingToolkitInstall] = []
+
+    static var standard: FreeRunnerScan {
+        FreeRunnerScan(manifest: .current(), toolkits: PortingToolkitSource.discover())
+    }
+
+    func runners(runners: URL, fexAvailable: Bool) -> [Runner] {
+        WineRunnerSource.runners(manifest: manifest, runners: runners, fexAvailable: fexAvailable)
+            + PortingToolkitSource.runners(found: toolkits, runners: runners)
+    }
+}
+
+enum WineRunnerSource {
+
+    static func runners(manifest: RunnerManifest, runners: URL, fexAvailable: Bool) -> [Runner] {
+        var listed: [Runner] = manifest.builds.map { build in
+            let installed = WineRunnerInstaller.isInstalled(build.id, runners: runners)
+            let problems = installed ? WineRunnerInstaller.verify(build.id, runners: runners) : []
+            let state: Runner.State = !installed ? .available : problems.isEmpty ? .ready : .damaged(files: problems)
+            return Runner(
+                id: build.id, kind: .wineBuild, version: build.version, displayVersion: build.displayVersion,
+                flavors: build.cpuFlavors.filter { $0 != .fex || fexAvailable },
+                state: state, build: nil, source: nil, isInstalled: installed
+            )
+        }
+        // A build the manifest no longer pins stays on disk but is not used
+        let pinned = Set(manifest.builds.map(\.id))
+        for id in installedIDs(in: runners) where !pinned.contains(id) {
+            listed.append(Runner(
+                id: id, kind: .wineBuild, version: id, displayVersion: id, flavors: [],
+                state: .unsupported(reason: String(localized: "Build \(id)") + String(localized: ", not supported")),
+                build: nil, source: nil, isInstalled: false
+            ))
+        }
+        return listed
+    }
+
+    static func installedIDs(in runners: URL) -> [String] {
+        let entries = (try? FileManager.default.contentsOfDirectory(at: runners, includingPropertiesForKeys: nil)) ?? []
+        return entries.map(\.lastPathComponent)
+            .filter { $0.hasPrefix("wine-") }
+            .map { String($0.dropFirst("wine-".count)) }
+            .filter { WineRunnerInstaller.isInstalled($0, runners: runners) }
+            .sorted()
+    }
+}

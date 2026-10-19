@@ -31,6 +31,7 @@ let package = Package(
                 .copy("Resources/payload.manifest"),
                 .copy("Resources/valve-packages.manifest"),
                 .copy("Resources/compat.schema.json"),
+                .copy("Resources/runners.json"),
                 .copy("Resources/detour2.bin"),
                 .copy("Resources/detour2-fex.bin"),
                 .copy("Resources/detour32.bin"),
