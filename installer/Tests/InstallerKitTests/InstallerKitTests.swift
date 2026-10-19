@@ -2,8 +2,9 @@ import Foundation
 import Testing
 @testable import InstallerKit
 
-private func tempFolder(_ files: [String: String]) throws -> URL {
+func tempFolder(_ files: [String: String]) throws -> URL {
     let dir = FileManager.default.temporaryDirectory.appending(path: "ik-\(UUID().uuidString)", directoryHint: .isDirectory)
+    try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     for (path, content) in files {
         let url = dir.appending(path: path)
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)

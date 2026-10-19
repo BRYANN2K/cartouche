@@ -20,6 +20,8 @@ let package = Package(
         .package(url: "https://github.com/sparkle-project/Sparkle", exact: "2.10.0"),
         // Settings > Consoles
         .package(path: "../retroarch"),
+        // Windows installer analysis and install runner
+        .package(path: "../installer"),
     ],
     targets: [
         // The folder names the app, the dylib and the run script share
@@ -29,6 +31,7 @@ let package = Package(
             dependencies: [
                 "CartoucheIdentity", .product(name: "Sparkle", package: "Sparkle"),
                 .product(name: "RetroArchKit", package: "retroarch"),
+                .product(name: "InstallerKit", package: "installer"),
             ],
             path: "Sources/NotProtonApp",
             resources: (hasPayload ? [.copy("Resources/payload")] : []) + [

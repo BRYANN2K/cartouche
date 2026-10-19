@@ -67,12 +67,15 @@ public enum Checksums {
     }
 
     // One file per task: a single MD5 stream can't be split, but parts can run side by side.
-    public static func verify(_ manifest: ChecksumManifest) async -> [URL: ChecksumResult] {
+    // progress gets the bytes hashed since its last call, from any part.
+    public static func verify(
+        _ manifest: ChecksumManifest, progress: (@Sendable (Int64) -> Void)? = nil
+    ) async -> [URL: ChecksumResult] {
         await withTaskGroup(of: (URL, ChecksumResult).self) { group in
             for entry in manifest.entries {
                 group.addTask {
                     guard FileManager.default.fileExists(atPath: entry.file.path(percentEncoded: false)) else { return (entry.file, .absent) }
-                    guard let actual = try? md5(of: entry.file) else { return (entry.file, .absent) }
+                    guard let actual = try? md5(of: entry.file, progress: progress) else { return (entry.file, .absent) }
                     return (entry.file, actual == entry.md5 ? .ok : .mismatch(expected: entry.md5, actual: actual))
                 }
             }

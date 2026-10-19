@@ -54,6 +54,15 @@ Sparkle 2.10.0
   License text: https://github.com/sparkle-project/Sparkle/blob/2.10.0/LICENSE
   Where: embedded in Cartouche.app. It checks for and installs updates.
 
+innoextract 1.9
+  License: zlib
+  Source: https://constexpr.org/innoextract/, pinned with three upstream build
+          patches in installer/innoextract/pins
+  Where: Cartouche.app/Contents/Helpers/innoextract, built by CI with
+         installer/innoextract/build.sh. Boost (BSL-1.0) and liblzma (public
+         domain, 0BSD) are linked statically into it. It reads Windows
+         installers for the analysis step and never runs them.
+
 Dobby
   License: Apache-2.0
   Source: https://github.com/jmpews/Dobby, commit
@@ -166,6 +175,6 @@ never redistributes it.
 Not yet shipped
 ---------------
 
-Components planned for later phases (DXMT, DXVK, innoextract, legendary,
-gogdl, nile, comet, the Swift MCP SDK) are not in the repository yet. They
-will be added here when they are.
+Components planned for later phases (DXMT, DXVK, legendary, gogdl, nile,
+comet, the Swift MCP SDK) are not in the repository yet. They will be added
+here when they are.

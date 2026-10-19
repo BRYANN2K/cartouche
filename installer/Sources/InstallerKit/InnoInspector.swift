@@ -37,16 +37,17 @@ public enum InnoInspector {
         case notInno(String)
     }
 
-    public static func innoextractPath() -> String? {
-        ["/opt/homebrew/bin/innoextract", "/usr/local/bin/innoextract"]
-            .first { FileManager.default.isExecutableFile(atPath: $0) }
-    }
+    public static func innoextractPath() -> String? { Innoextract.path() }
 
-    public static func inspect(_ setup: URL, tool: String? = innoextractPath()) throws -> InnoReport {
+    // Only innoextract runs, with the setup as a file to read.
+    public static func inspect(
+        _ setup: URL, tool: String? = Innoextract.path(), runner: any ToolRunning = ProcessToolRunner()
+    ) throws -> InnoReport {
         guard let tool else { throw Failure.toolMissing }
-        let info = try run(tool, ["--info", setup.path(percentEncoded: false)])
+        let path = setup.path(percentEncoded: false)
+        let info = try runner.run(tool, ["--info", path])
         if info.contains("Not a supported Inno Setup installer") { throw Failure.notInno(info) }
-        let list = try run(tool, ["--list", "--silent", setup.path(percentEncoded: false)])
+        let list = try runner.run(tool, ["--list", "--silent", path])
         return parse(info: info, list: list)
     }
 
@@ -66,18 +67,5 @@ public enum InnoInspector {
         }
         report.files = list.split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
         return report
-    }
-
-    private static func run(_ tool: String, _ args: [String]) throws -> String {
-        let p = Process()
-        p.executableURL = URL(filePath: tool)
-        p.arguments = args
-        let out = Pipe()
-        p.standardOutput = out
-        p.standardError = out
-        try p.run()
-        let data = out.fileHandleForReading.readDataToEndOfFile()
-        p.waitUntilExit()
-        return String(decoding: data, as: UTF8.self)
     }
 }

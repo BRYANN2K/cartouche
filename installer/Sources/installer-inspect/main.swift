@@ -44,7 +44,7 @@ report["space"] = ["installed": space.installed, "temporary": space.temporary]
 report["command"] = InnoCommand(installDir: #"C:\Games\\#(report["name"]!)"#, mode: .guided, language: language).arguments
 
 if let manifest = Checksums.findManifest(in: folder), let parsed = try? Checksums.parse(manifest) {
-    var m: [String: Any] = ["file": manifest.path(percentEncoded: false).replacingOccurrences(of: folder.path(percentEncoded: false), with: ""),
+    var m: [String: Any] = ["file": manifest.resolvingSymlinksInPath().path(percentEncoded: false).replacingOccurrences(of: (folder.resolvingSymlinksInPath().path(percentEncoded: false) as NSString).appendingPathComponent(""), with: ""),
                             "entries": parsed.entries.count, "mentionsOptionalParts": parsed.mentionsOptionalParts]
     if args.contains("--verify") {
         let start = Date()

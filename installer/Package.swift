@@ -17,6 +17,7 @@ let package = Package(
             dependencies: ["InstallerKit"],
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
-        .testTarget(name: "InstallerKitTests", dependencies: ["InstallerKit"]),
+        // Fixtures are read from the source tree by path
+        .testTarget(name: "InstallerKitTests", dependencies: ["InstallerKit"], exclude: ["Fixtures"]),
     ]
 )

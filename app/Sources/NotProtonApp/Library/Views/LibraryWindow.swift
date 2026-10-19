@@ -95,9 +95,10 @@ struct LibraryWindow: View {
                 .help(Text("Add a Windows game or your own console games"))
             }
         }
-        .sheet(item: $model.addGames) { kind in
+        .sheet(item: $model.addGames.withoutWindows) { kind in
             AddGamesSheet(kind: kind)
         }
+        .installSheet(library: model, compat: compat)
         .animation(Motion(reduceMotion: reduceMotion).panel, value: model.selectedGameID)
     }
 

@@ -1,0 +1,7 @@
+# innoextract for Cartouche.app/Contents/Helpers. zlib license.
+# The three patches let 1.9 build with CMake 4 and current Boost; they are the
+# ones Homebrew's formula applies. Each line: kind url sha256
+source  https://constexpr.org/innoextract/files/innoextract-1.9.tar.gz 6344a69fc1ed847d4ed3e272e0da5998948c6b828cb7af39c6321aba6cf88126
+patch   https://github.com/dscharrer/innoextract/commit/83d0bf4365b09ddd17dddb400ba5d262ddf16fb8.patch?full_index=1 fe5299d1fdea5c66287aef2f70fee41d86aedc460c5b165da621d699353db07d
+patch   https://github.com/dscharrer/innoextract/commit/264c2fe6b84f90f6290c670e5f676660ec7b2387.patch?full_index=1 f968a9c0521083dd4076ce5eed56127099a9c9888113fc50f476b914396045cc
+patch   https://github.com/dscharrer/innoextract/commit/882796e0e9b134b02deeaae4bbfe92920adb6fe2.patch?full_index=1 d5af3e86eb2b74bff559885440d330678e5dbb028ce165bb836ddb14224af201

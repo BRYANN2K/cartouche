@@ -82,6 +82,11 @@ jobs:
       - name: Build the bridge
         run: make bridge
 
+      - name: Build innoextract
+        run: |
+          brew install boost xz
+          make innoextract
+
       - name: Save the Wine trees
         if: steps.wine-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
@@ -139,6 +144,9 @@ jobs:
 
       - name: Run the Swift tests
         run: make -s app-tests
+
+      - name: Run the InstallerKit tests
+        run: make -s installer-tests
 
       - name: Scan the bundle for Game Porting Toolkit files
         run: sh packaging/redist-scan.sh out/Cartouche.app

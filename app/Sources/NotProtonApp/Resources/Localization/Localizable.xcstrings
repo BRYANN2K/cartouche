@@ -177,6 +177,22 @@
         }
       }
     },
+    "%@ could not be installed" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile installare %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法安装 %@"
+          }
+        }
+      }
+    },
     "%@ could not be read as a property list." : {
       "localizations" : {
         "it" : {
@@ -237,6 +253,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法写入 %@。"
+          }
+        }
+      }
+    },
+    "%@ cover" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copertina di %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 封面"
           }
         }
       }
@@ -353,6 +385,38 @@
         }
       }
     },
+    "%@ in total" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ in totale"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "共 %@"
+          }
+        }
+      }
+    },
+    "%@ installed" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ installati"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已安装 %@"
+          }
+        }
+      }
+    },
     "%@ is already listed." : {
       "localizations" : {
         "it" : {
@@ -369,6 +433,54 @@
         }
       }
     },
+    "%@ is damaged" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ è danneggiato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 已损坏"
+          }
+        }
+      }
+    },
+    "%@ is damaged. Download it again." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ è danneggiato. Scaricalo di nuovo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 已损坏。请重新下载。"
+          }
+        }
+      }
+    },
+    "%@ is installed" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ è installato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 已安装"
+          }
+        }
+      }
+    },
     "%@ is left from a rebuild that did not finish and may hold the only copy of the saves. Move it somewhere safe, then try again." : {
       "localizations" : {
         "it" : {
@@ -381,6 +493,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 是上次未完成重建留下的文件，可能保存着唯一的游戏存档。请先将其移到安全位置，然后重试。"
+          }
+        }
+      }
+    },
+    "%@ is missing" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manca %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缺少 %@"
           }
         }
       }
@@ -509,6 +637,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 不存在，无法安装。"
+          }
+        }
+      }
+    },
+    "%@ is ready" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ è pronto"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 已就绪"
           }
         }
       }
@@ -908,6 +1052,22 @@
         }
       }
     },
+    "%lld min" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld min"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 分钟"
+          }
+        }
+      }
+    },
     "%lld of %lld recent ProtonDB reports say it doesn’t run on Linux." : {
       "localizations" : {
         "it" : {
@@ -920,6 +1080,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld/%lld 份近期 ProtonDB 报告称其无法在 Linux 上运行。"
+          }
+        }
+      }
+    },
+    "%lld parts found" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld parti trovate"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "找到 %lld 个分卷"
+          }
+        }
+      }
+    },
+    "%lld parts found. Add the missing file to the folder." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld parti trovate. Aggiungi il file mancante alla cartella."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "找到 %lld 个分卷。请将缺少的文件放入文件夹。"
+          }
+        }
+      }
+    },
+    "%lld parts, about %@ installed" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld parti, circa %2$@ una volta installato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld 个分卷，安装后约 %2$@"
           }
         }
       }
@@ -1148,6 +1356,22 @@
         }
       }
     },
+    "A damaged installer file" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un file del programma di installazione danneggiato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装程序文件已损坏"
+          }
+        }
+      }
+    },
     "A game or Wine tool is running on build %@. Quit it before updating Cartouche." : {
       "localizations" : {
         "it" : {
@@ -1276,6 +1500,22 @@
         }
       }
     },
+    "A path the installer cannot handle" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un percorso che il programma di installazione non gestisce"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装程序无法处理的路径"
+          }
+        }
+      }
+    },
     "A prefix appears here once a Windows game has been launched through Cartouche." : {
       "localizations" : {
         "it" : {
@@ -1288,6 +1528,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "通过 Cartouche 启动 Windows 游戏后，对应的游戏容器就会显示在这里。"
+          }
+        }
+      }
+    },
+    "About %@ needed, %@ free" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Servono circa %1$@, liberi %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "约需 %1$@，可用 %2$@"
           }
         }
       }
@@ -1464,6 +1720,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "从其他文件夹添加 CrossOver 应用。"
+          }
+        }
+      }
+    },
+    "Add the game to Steam" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi il gioco a Steam"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将游戏添加到 Steam"
           }
         }
       }
@@ -1964,6 +2236,22 @@
         }
       }
     },
+    "Automatic" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatico"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动"
+          }
+        }
+      }
+    },
     "Average" : {
       "localizations" : {
         "it" : {
@@ -1976,6 +2264,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "平均"
+          }
+        }
+      }
+    },
+    "Back" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indietro"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "返回"
           }
         }
       }
@@ -2376,6 +2680,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "由 Cartouche 使用 CodeWeavers 的开源代码构建"
+          }
+        }
+      }
+    },
+    "CPU" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CPU"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CPU"
           }
         }
       }
@@ -2943,6 +3263,22 @@
         }
       }
     },
+    "Check Again" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controlla di nuovo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新检查"
+          }
+        }
+      }
+    },
     "Check for Updates…" : {
       "localizations" : {
         "it" : {
@@ -3039,6 +3375,70 @@
         }
       }
     },
+    "Checking files" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controllo dei file"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在检查文件"
+          }
+        }
+      }
+    },
+    "Checking files…" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controllo dei file…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在检查文件…"
+          }
+        }
+      }
+    },
+    "Checking the Installer" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controllo del programma di installazione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在检查安装程序"
+          }
+        }
+      }
+    },
+    "Checksums match" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I checksum corrispondono"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "校验和一致"
+          }
+        }
+      }
+    },
     "Choose" : {
       "localizations" : {
         "it" : {
@@ -3051,6 +3451,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "选择"
+          }
+        }
+      }
+    },
+    "Choose Folder…" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli cartella…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择文件夹…"
           }
         }
       }
@@ -3099,6 +3515,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "选择 Steam 应用。"
+          }
+        }
+      }
+    },
+    "Choose the folder that holds the installer." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli la cartella che contiene il programma di installazione."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请选择包含安装程序的文件夹。"
+          }
+        }
+      }
+    },
+    "Choose the folder with the installer. Keep the .bin files next to setup.exe." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli la cartella con il programma di installazione. Tieni i file .bin accanto a setup.exe."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请选择包含安装程序的文件夹。将 .bin 文件与 setup.exe 放在一起。"
+          }
+        }
+      }
+    },
+    "Choose which file starts the game." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli il file che avvia il gioco."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请选择启动游戏的文件。"
           }
         }
       }
@@ -3195,6 +3659,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "复制 CrossOver"
+          }
+        }
+      }
+    },
+    "Close" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chiudi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭"
           }
         }
       }
@@ -3483,6 +3963,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "仍然继续"
+          }
+        }
+      }
+    },
+    "Continue in Background" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continua in background"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在后台继续"
           }
         }
       }
@@ -4098,6 +4594,22 @@
         }
       }
     },
+    "Delete the installer files and free %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elimina i file di installazione e libera %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除安装文件并释放 %@"
+          }
+        }
+      }
+    },
     "Delete the prefix for %@?" : {
       "localizations" : {
         "it" : {
@@ -4210,6 +4722,22 @@
         }
       }
     },
+    "Delete…" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elimina…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除…"
+          }
+        }
+      }
+    },
     "Detaching from Steam" : {
       "localizations" : {
         "it" : {
@@ -4318,6 +4846,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下载完成、安装完成、可以开始游戏"
+          }
+        }
+      }
+    },
+    "Download it again." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scaricalo di nuovo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请重新下载。"
           }
         }
       }
@@ -4466,6 +5010,22 @@
         }
       }
     },
+    "Drop a folder here" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trascina qui una cartella"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将文件夹拖到这里"
+          }
+        }
+      }
+    },
     "Drop a setup.exe or a game folder on Add Games to install it." : {
       "localizations" : {
         "it" : {
@@ -4510,6 +5070,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "拖入你自己的游戏备份，或存放它们的文件夹"
+          }
+        }
+      }
+    },
+    "Enough space" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spazio sufficiente"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "空间充足"
           }
         }
       }
@@ -4690,6 +5266,22 @@
         }
       }
     },
+    "Files are intact" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I file sono integri"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文件完好"
+          }
+        }
+      }
+    },
     "Find" : {
       "localizations" : {
         "it" : {
@@ -4750,6 +5342,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "位于 %@"
+          }
+        }
+      }
+    },
+    "From the GOG game info" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dalle informazioni del gioco GOG"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "来自 GOG 游戏信息"
+          }
+        }
+      }
+    },
+    "From the Start Menu shortcut" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dal collegamento del menu Start"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "来自开始菜单快捷方式"
           }
         }
       }
@@ -4914,6 +5538,22 @@
         }
       }
     },
+    "Guided" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guidato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "引导"
+          }
+        }
+      }
+    },
     "Hidden Games" : {
       "localizations" : {
         "it" : {
@@ -5042,6 +5682,22 @@
         }
       }
     },
+    "Identified as %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Identificato come %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "识别为 %@"
+          }
+        }
+      }
+    },
     "If Cartouche is installed there, it will stay installed. Continue anyway?" : {
       "localizations" : {
         "it" : {
@@ -5054,6 +5710,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "如果 Cartouche 安装在那里，它将保持安装状态。仍要继续吗？"
+          }
+        }
+      }
+    },
+    "Inno Setup %@ installer" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Programma di installazione Inno Setup %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inno Setup %@ 安装程序"
           }
         }
       }
@@ -5154,6 +5826,22 @@
         }
       }
     },
+    "Install a Windows Game" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installa un gioco Windows"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装 Windows 游戏"
+          }
+        }
+      }
+    },
     "Install runner" : {
       "localizations" : {
         "it" : {
@@ -5166,6 +5854,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "安装运行环境"
+          }
+        }
+      }
+    },
+    "Install to" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installa in"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装到"
           }
         }
       }
@@ -5198,6 +5902,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "安装已被阻止。请刷新“状态”页面，并使用此前安装此版本的 Cartouche 应用。"
+          }
+        }
+      }
+    },
+    "Installation stopped" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installazione interrotta"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装已停止"
           }
         }
       }
@@ -5250,6 +5970,54 @@
         }
       }
     },
+    "Installed. These programs were created, the first one is the most likely." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installato. Sono stati creati questi programmi, il primo è il più probabile."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已安装。创建了以下程序，第一个可能性最大。"
+          }
+        }
+      }
+    },
+    "Installer" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installazione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装程序"
+          }
+        }
+      }
+    },
+    "Installer files moved to the Trash. %@ freed." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File di installazione spostati nel Cestino. %@ liberati."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装文件已移到废纸篓。已释放 %@。"
+          }
+        }
+      }
+    },
     "Installing" : {
       "localizations" : {
         "it" : {
@@ -5262,6 +6030,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在安装"
+          }
+        }
+      }
+    },
+    "Installing %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installazione di %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在安装 %@"
+          }
+        }
+      }
+    },
+    "Installing Visual C++ and DirectX" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installazione di Visual C++ e DirectX"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在安装 Visual C++ 和 DirectX"
           }
         }
       }
@@ -5314,6 +6114,38 @@
         }
       }
     },
+    "It is in Steam's library too." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "È anche nella libreria di Steam."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "它也已加入 Steam 库。"
+          }
+        }
+      }
+    },
+    "It may be optional: the checksum file says some parts are optional downloads." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Potrebbe essere facoltativo: il file dei checksum indica che alcune parti sono download facoltativi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "它可能是可选的：校验和文件说明部分分卷为可选下载。"
+          }
+        }
+      }
+    },
     "It replaces the cover from Steam until you choose Use the Original Cover." : {
       "localizations" : {
         "it" : {
@@ -5326,6 +6158,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "它会替换 Steam 的封面，直到你选择“使用原始封面”。"
+          }
+        }
+      }
+    },
+    "It runs in Guided mode only." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Funziona solo in modalità Guidata."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅能以引导模式运行。"
           }
         }
       }
@@ -5426,6 +6274,22 @@
         }
       }
     },
+    "Largest program in the folder" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il programma più grande nella cartella"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文件夹中最大的程序"
+          }
+        }
+      }
+    },
     "Last used" : {
       "localizations" : {
         "it" : {
@@ -5458,6 +6322,22 @@
         }
       }
     },
+    "Launcher from the publisher" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Launcher dell’editore"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发行商的启动器"
+          }
+        }
+      }
+    },
     "Left ⌘ as Ctrl still works." : {
       "localizations" : {
         "it" : {
@@ -5470,6 +6350,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "左 ⌘ 作为 Ctrl 仍然可用。"
+          }
+        }
+      }
+    },
+    "Less than a minute" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meno di un minuto"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不到一分钟"
           }
         }
       }
@@ -5746,6 +6642,22 @@
         }
       }
     },
+    "Matched in the compatibility data" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trovato nei dati di compatibilità"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已在兼容性数据中匹配"
+          }
+        }
+      }
+    },
     "Medium" : {
       "localizations" : {
         "it" : {
@@ -5906,6 +6818,38 @@
         }
       }
     },
+    "Move the installer files to the Trash?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spostare i file di installazione nel Cestino?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将安装文件移到废纸篓？"
+          }
+        }
+      }
+    },
+    "Move to Trash" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sposta nel Cestino"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移到废纸篓"
+          }
+        }
+      }
+    },
     "Native" : {
       "localizations" : {
         "it" : {
@@ -6030,6 +6974,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "暂无游戏容器"
+          }
+        }
+      }
+    },
+    "No Steam account was found on this Mac, so no shortcut was added." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun account Steam trovato su questo Mac, quindi non è stato aggiunto alcun collegamento."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此 Mac 上未找到 Steam 账户，因此未添加快捷方式。"
           }
         }
       }
@@ -6226,6 +7186,22 @@
         }
       }
     },
+    "No program was found in the install folder." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun programma trovato nella cartella di installazione."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装文件夹中未找到程序。"
+          }
+        }
+      }
+    },
     "No recent ProtonDB report tried online play on Linux." : {
       "localizations" : {
         "it" : {
@@ -6274,6 +7250,22 @@
         }
       }
     },
+    "No runner is set up for installs. Set one up in Runners first." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun runner configurato per le installazioni. Configurane uno prima in Runner."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未设置可用于安装的运行器。请先在“运行器”中设置。"
+          }
+        }
+      }
+    },
     "No runner set up" : {
       "localizations" : {
         "it" : {
@@ -6286,6 +7278,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未设置运行器"
+          }
+        }
+      }
+    },
+    "No setup.exe in this folder" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun setup.exe in questa cartella"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此文件夹中没有 setup.exe"
           }
         }
       }
@@ -6306,6 +7314,22 @@
         }
       }
     },
+    "No windows. Default options are used." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessuna finestra. Vengono usate le opzioni predefinite."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不显示窗口。使用默认选项。"
+          }
+        }
+      }
+    },
     "None" : {
       "localizations" : {
         "it" : {
@@ -6318,6 +7342,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无"
+          }
+        }
+      }
+    },
+    "None set up" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessuno configurato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未设置"
           }
         }
       }
@@ -6350,6 +7390,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未允许"
+          }
+        }
+      }
+    },
+    "Not an Inno Setup installer" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non è un programma di installazione Inno Setup"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不是 Inno Setup 安装程序"
           }
         }
       }
@@ -6402,6 +7458,38 @@
         }
       }
     },
+    "Not enough disk space" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spazio su disco insufficiente"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "磁盘空间不足"
+          }
+        }
+      }
+    },
+    "Not enough memory for the decompressors" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memoria insufficiente per i decompressori"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解压程序内存不足"
+          }
+        }
+      }
+    },
     "Not found" : {
       "localizations" : {
         "it" : {
@@ -6414,6 +7502,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未找到"
+          }
+        }
+      }
+    },
+    "Not found in the compatibility data. You can pick the game in the next step." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non trovato nei dati di compatibilità. Puoi scegliere il gioco nel passaggio successivo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "兼容性数据中未找到。你可以在下一步选择游戏。"
           }
         }
       }
@@ -6510,6 +7614,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "不受支持"
+          }
+        }
+      }
+    },
+    "Not this game? Search" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non è questo il gioco? Cerca"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不是这个游戏？搜索"
           }
         }
       }
@@ -6670,6 +7790,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Linux 上联机可用：%lld/%lld 份报告"
+          }
+        }
+      }
+    },
+    "Open" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开"
           }
         }
       }
@@ -7138,6 +8274,22 @@
         }
       }
     },
+    "Preparing a new prefix" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparazione di un nuovo prefisso"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在准备新的游戏容器"
+          }
+        }
+      }
+    },
     "Privacy" : {
       "localizations" : {
         "it" : {
@@ -7166,6 +8318,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "独占空间"
+          }
+        }
+      }
+    },
+    "Probable causes, most likely first:" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cause probabili, dalla più probabile:"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可能的原因，按可能性排序："
+          }
+        }
+      }
+    },
+    "Program" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Programma"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "程序"
           }
         }
       }
@@ -7266,6 +8450,22 @@
         }
       }
     },
+    "Reading the installer…" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lettura del programma di installazione…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在读取安装程序…"
+          }
+        }
+      }
+    },
     "Ready" : {
       "localizations" : {
         "it" : {
@@ -7278,6 +8478,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "就绪"
+          }
+        }
+      }
+    },
+    "Ready to Install" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pronto per l’installazione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "准备安装"
           }
         }
       }
@@ -7506,6 +8722,22 @@
         }
       }
     },
+    "Recommended" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consigliato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "推荐"
+          }
+        }
+      }
+    },
     "Record prefix build" : {
       "localizations" : {
         "it" : {
@@ -7582,6 +8814,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "刷新设置"
+          }
+        }
+      }
+    },
+    "Registered by the installer" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registrato dal programma di installazione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "由安装程序注册"
           }
         }
       }
@@ -8162,6 +9410,54 @@
         }
       }
     },
+    "Retry with Fewer Threads" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riprova con meno thread"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用更少线程重试"
+          }
+        }
+      }
+    },
+    "Retry with Less Memory" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riprova con meno memoria"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用更少内存重试"
+          }
+        }
+      }
+    },
+    "Retry with a Short Path" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riprova con un percorso breve"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用短路径重试"
+          }
+        }
+      }
+    },
     "Reveal Log in Finder" : {
       "localizations" : {
         "it" : {
@@ -8350,6 +9646,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld/%lld 份近期 ProtonDB 报告称其可在 Linux 上运行。"
+          }
+        }
+      }
+    },
+    "Save the game" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salva il gioco"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存游戏"
           }
         }
       }
@@ -8606,6 +9918,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "显示未安装的游戏"
+          }
+        }
+      }
+    },
+    "Show Installer Window" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra la finestra di installazione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示安装程序窗口"
           }
         }
       }
@@ -8914,6 +10242,38 @@
         }
       }
     },
+    "Space may run short" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lo spazio potrebbe non bastare"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "空间可能不足"
+          }
+        }
+      }
+    },
+    "Speed" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Velocità"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "速度"
+          }
+        }
+      }
+    },
     "Staging components" : {
       "localizations" : {
         "it" : {
@@ -8926,6 +10286,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在准备组件"
+          }
+        }
+      }
+    },
+    "Standard decompression" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Decompressione standard"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "标准解压"
           }
         }
       }
@@ -9253,6 +10629,22 @@
         }
       }
     },
+    "Steam is open, so the shortcut was not added. Quit Steam and install again to add it." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam è aperto, quindi il collegamento non è stato aggiunto. Esci da Steam e installa di nuovo per aggiungerlo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 正在运行，因此未添加快捷方式。请退出 Steam 后重新安装以添加。"
+          }
+        }
+      }
+    },
     "Steam is restored to its unmodified state and Cartouche is removed, including the compatibility tool that lives inside the Steam folder. Windows games and Steam Play prefixes are not removed." : {
       "localizations" : {
         "it" : {
@@ -9429,6 +10821,22 @@
         }
       }
     },
+    "Steam's shortcuts file could not be read." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile leggere il file dei collegamenti di Steam."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法读取 Steam 的快捷方式文件。"
+          }
+        }
+      }
+    },
     "Steam, for controllers in Steam games" : {
       "localizations" : {
         "it" : {
@@ -9441,6 +10849,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Steam，用于 Steam 游戏中的手柄"
+          }
+        }
+      }
+    },
+    "Stop" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interrompi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止"
           }
         }
       }
@@ -9973,6 +11397,22 @@
         }
       }
     },
+    "The folder has not grown for 5 minutes and the installer is idle." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La cartella non cresce da 5 minuti e il programma di installazione è inattivo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文件夹已有 5 分钟没有增长，且安装程序处于空闲状态。"
+          }
+        }
+      }
+    },
     "The folder shows as unavailable until then." : {
       "localizations" : {
         "it" : {
@@ -10037,6 +11477,22 @@
         }
       }
     },
+    "The installation failed" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’installazione non è riuscita"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装失败"
+          }
+        }
+      }
+    },
     "The installed build record is invalid." : {
       "localizations" : {
         "it" : {
@@ -10049,6 +11505,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已安装版本的记录无效。"
+          }
+        }
+      }
+    },
+    "The installer seems stuck." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il programma di installazione sembra bloccato."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装程序似乎卡住了。"
+          }
+        }
+      }
+    },
+    "The installer window opens so you can pick languages and options." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si apre la finestra di installazione per scegliere lingue e opzioni."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将打开安装程序窗口，供你选择语言和选项。"
+          }
+        }
+      }
+    },
+    "The installer's Visual C++ and DirectX packages are replaced by their Wine versions. Your Mac stays awake until it's done." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I pacchetti Visual C++ e DirectX del programma di installazione vengono sostituiti dalle loro versioni per Wine. Il Mac resta attivo fino al termine."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装程序自带的 Visual C++ 和 DirectX 软件包将由对应的 Wine 版本替代。完成前 Mac 不会进入睡眠。"
           }
         }
       }
@@ -10081,6 +11585,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "修补后的 %@ ntdll 哈希值为 %@，但构建版本 %@ 预期为 %@。未写入任何内容。"
+          }
+        }
+      }
+    },
+    "The prefix could not be created (status %d)." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile creare il prefisso (stato %d)."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法创建游戏容器（状态 %d）。"
+          }
+        }
+      }
+    },
+    "The runner cannot run this installer" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il runner non riesce a eseguire questo programma di installazione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "该运行器无法运行此安装程序"
           }
         }
       }
@@ -10229,6 +11765,22 @@
         }
       }
     },
+    "This folder could not be read." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile leggere questa cartella."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法读取此文件夹。"
+          }
+        }
+      }
+    },
     "This game can't read the keyboard. Allow it in Input Monitoring in System Settings." : {
       "localizations" : {
         "it" : {
@@ -10305,6 +11857,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此操作会将 Steam 恢复原状，但不会移除 Cartouche 使用的支持组件。"
+          }
+        }
+      }
+    },
+    "Time left" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tempo rimanente"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "剩余时间"
           }
         }
       }
@@ -10453,6 +12021,22 @@
         }
       }
     },
+    "Try Another Runner" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prova un altro runner"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尝试其他运行器"
+          }
+        }
+      }
+    },
     "Ultra" : {
       "localizations" : {
         "it" : {
@@ -10517,6 +12101,22 @@
         }
       }
     },
+    "Unpacked" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estratti"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已解压"
+          }
+        }
+      }
+    },
     "Unpacking" : {
       "localizations" : {
         "it" : {
@@ -10529,6 +12129,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在解包"
+          }
+        }
+      }
+    },
+    "Unpacking game files" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estrazione dei file del gioco"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在解压游戏文件"
           }
         }
       }
@@ -10885,6 +12501,22 @@
         }
       }
     },
+    "Waiting for the other install to finish" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In attesa che termini l’altra installazione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在等待另一个安装完成"
+          }
+        }
+      }
+    },
     "Watch your Downloads folder?" : {
       "localizations" : {
         "it" : {
@@ -10929,6 +12561,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "打开游戏时，Cartouche 会向 MacGamingDB 获取该游戏的 Mac 报告。MacGamingDB 能看到是哪款游戏，但看不到任何账户或 Mac 标识符。"
+          }
+        }
+      }
+    },
+    "Which file starts the game?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quale file avvia il gioco?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "哪个文件启动游戏？"
           }
         }
       }
@@ -11066,6 +12714,38 @@
     },
     "Winetricks…" : {
       "shouldTranslate" : false
+    },
+    "With heavy decompression (%@)" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con decompressione pesante (%@)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要大量解压（%@）"
+          }
+        }
+      }
+    },
+    "Write the game's launcher" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scrivi il launcher del gioco"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写入游戏启动器"
+          }
+        }
+      }
     },
     "You will not lose saves by using this tool." : {
       "localizations" : {
@@ -11371,6 +13051,22 @@
         }
       }
     },
+    "innoextract is missing, so the installer could not be read." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "innoextract non è presente, quindi il programma di installazione non può essere letto."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缺少 innoextract，因此无法读取安装程序。"
+          }
+        }
+      }
+    },
     "is not %@: %@" : {
       "localizations" : {
         "it" : {
@@ -11575,6 +13271,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "setup.exe 和 .bin"
+          }
+        }
+      }
+    },
+    "setup.exe and its %lld other files go to the Trash. The installed game is not touched." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "setup.exe e gli altri suoi %lld file vanno nel Cestino. Il gioco installato non viene toccato."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "setup.exe 及其另外 %lld 个文件将移到废纸篓。已安装的游戏不受影响。"
           }
         }
       }

@@ -686,6 +686,11 @@ app: app-payload $(ICON_CAR)
 		exit 1; \
 	fi
 	@echo "==> Payload complete in the bundle"
+	@if [ -x "$(INNOEXTRACT)" ]; then \
+		mkdir -p "$(APP_BUNDLE)/Contents/Helpers" && \
+		cp -f "$(INNOEXTRACT)" "$(APP_BUNDLE)/Contents/Helpers/innoextract" && \
+		codesign -f -s "$(APP_SIGN_ID)" "$(APP_BUNDLE)/Contents/Helpers/innoextract"; \
+	else echo "==> $(INNOEXTRACT) not built, installer analysis needs a Homebrew innoextract (run: $(MAKE) innoextract)"; fi
 	codesign -f -s "$(APP_SIGN_ID)" "$(APP_BUNDLE)"
 	codesign --verify --strict "$(APP_BUNDLE)"
 	@echo "==> Built $(APP_BUNDLE) ($(APP_VERSION))"
@@ -694,6 +699,15 @@ app-zip: app
 	rm -f "$(APP_ZIP)"
 	ditto -c -k --keepParent "$(APP_BUNDLE)" "$(APP_ZIP)"
 	@echo "==> Wrote $(APP_ZIP)"
+
+# innoextract for the Windows installer analysis, built from pinned sources
+INNOEXTRACT := $(OUT_DIR)/innoextract
+.PHONY: innoextract installer-tests
+innoextract:
+	sh installer/innoextract/build.sh build/innoextract "$(INNOEXTRACT)"
+
+installer-tests:
+	@cd installer && swift test
 
 # Release tooling in packaging/
 .PHONY: redistscan packagingcheck
