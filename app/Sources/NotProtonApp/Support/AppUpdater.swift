@@ -4,6 +4,8 @@ import Sparkle
 final class AppUpdater {
 
     private let controller: SPUStandardUpdaterController
+    // The controller keeps its delegate weakly
+    private let channels = UpdateChannelDelegate()
 
     init() {
         #if DEBUG
@@ -13,7 +15,7 @@ final class AppUpdater {
         #endif
         controller = SPUStandardUpdaterController(
             startingUpdater: scheduling,
-            updaterDelegate: nil,
+            updaterDelegate: channels,
             userDriverDelegate: nil
         )
     }

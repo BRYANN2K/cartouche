@@ -1532,6 +1532,22 @@
         }
       }
     },
+    "Betas get new features first and may have more bugs. Turning this off keeps the beta until the next release." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le beta ricevono prima le novità e possono avere più bug. Disattivando l'opzione, la beta resta fino alla prossima versione."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "测试版会先获得新功能，但可能有更多错误。关闭此选项后，测试版会保留到下一个正式版本。"
+          }
+        }
+      }
+    },
     "Block Client Updates" : {
       "localizations" : {
         "it" : {
@@ -4958,6 +4974,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已重建“%@”的游戏容器。原容器保存在 %@。请先进入游戏确认存档正常，再删除备份以释放空间。"
+          }
+        }
+      }
+    },
+    "Receive beta updates" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ricevi aggiornamenti beta"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "接收测试版更新"
           }
         }
       }

@@ -46,6 +46,8 @@
 	<string>Cartouche runs games from folders on external disks.</string>
 	<key>SUFeedURL</key>
 	<string>https://github.com/BRYANN2K/NotProton/releases/latest/download/appcast.xml</string>
+	<key>SURequireSignedFeed</key>
+	<true/>
 	<key>SUPublicEDKey</key>
 	<string>GQF06ayCCpIxh8XlQPQYWTwbYO2SckfWqr9rYCuJrqI=</string>
 </dict>

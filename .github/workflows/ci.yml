@@ -1,0 +1,73 @@
+name: ci
+
+# The pull request gate. Branch protection on main requires the "required" check,
+# which passes only when every job below passed.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  OPENSPEC_VERSION: "1.14.3"
+
+jobs:
+  app:
+    uses: ./.github/workflows/app.yml
+
+  lint:
+    uses: ./.github/workflows/lint.yml
+
+  openspec:
+    name: openspec validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install the pinned OpenSpec
+        run: npm install --global "@fission-ai/openspec@$OPENSPEC_VERSION"
+
+      - name: Validate every change and spec
+        run: openspec validate --all --strict --no-interactive
+
+  redistribution:
+    name: redistribution scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan the repository for Game Porting Toolkit files
+        run: sh packaging/redist-scan.sh .
+
+      - name: Check the scan still catches a planted file
+        run: sh packaging/tests/redist-scan-test.sh
+
+      - name: Check the workflows are wired
+        run: python3 packaging/tests/workflow_check.py
+
+  required:
+    name: required
+    if: always()
+    needs: [app, lint, openspec, redistribution]
+    runs-on: ubuntu-latest
+    steps:
+      # A skipped or cancelled job must block the merge too
+      - name: Check every job passed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "results: $RESULTS"
+          for r in $RESULTS; do
+            [ "$r" = success ] || exit 1
+          done

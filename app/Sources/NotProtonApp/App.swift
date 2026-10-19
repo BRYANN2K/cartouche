@@ -28,6 +28,10 @@ struct CartoucheApp: App {
         }
         .defaultSize(width: 900, height: 760)
         .commands { menus }
+
+        Settings {
+            UpdatesSettingsView()
+        }
     }
 
     @CommandsBuilder

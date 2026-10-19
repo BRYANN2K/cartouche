@@ -1,11 +1,14 @@
 name: app
 
+# ci.yml runs this on pull requests and main, release.yml on tags
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
   workflow_call:
+    inputs:
+      ref:
+        description: Commit or tag to build, the calling ref when empty
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -17,14 +20,17 @@ env:
 jobs:
   build:
     name: full app build
-    runs-on: xcode-27
+    # The MACOS_RUNNER and XCODE_APP repository variables can point at another image
+    runs-on: ${{ vars.MACOS_RUNNER || 'xcode-27' }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
 
       - name: Record the toolchain
         run: |
-          sudo xcode-select -s /Applications/Xcode_27.0.app
+          sudo xcode-select -s "${{ vars.XCODE_APP || '/Applications/Xcode_27.0.app' }}"
           xcodebuild -version
           swift --version
           echo "macOS SDK $(xcrun --sdk macosx --show-sdk-version)"
@@ -129,9 +135,13 @@ jobs:
           make -s gamedrivecheck
           make -s launchercheck
           make -s seedcheck
+          make -s packagingcheck
 
       - name: Run the Swift tests
         run: make -s app-tests
+
+      - name: Scan the bundle for Game Porting Toolkit files
+        run: sh packaging/redist-scan.sh out/Cartouche.app
 
       - name: Package the app bundle
         run: |

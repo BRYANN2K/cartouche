@@ -613,6 +613,10 @@ APP_BUNDLE_PAYLOAD := $(APP_BUNDLE)/Contents/Resources/NotProtonApp_NotProtonApp
 APP_ZIP     := $(OUT_DIR)/Cartouche.zip
 APP_VERSION := $(shell sed -n 's/^\#define CARTOUCHE_VERSION "\(.*\)"/\1/p' dylib/version.h)
 
+# Sparkle compares CFBundleVersion and reads 0.2.0-beta.1 as equal to 0.2.0, so a
+# pre-release carries 0.2.0b1 there (packaging/release.py bundle-version)
+APP_BUNDLE_VERSION := $(shell echo '$(APP_VERSION)' | sed -E 's/-(b)eta\.([0-9]+)$$/\1\2/; s/-(t)est\.([0-9]+)$$/\1\2/')
+
 APP_SIGN_ID ?= -
 
 ICONGEN   := $(OUT_DIR)/make-icon
@@ -647,7 +651,7 @@ app: app-payload $(ICON_CAR)
 	cp app/Info.plist "$(APP_BUNDLE)/Contents/Info.plist"
 	/usr/libexec/PlistBuddy -c \
 		"Set :CFBundleShortVersionString $(APP_VERSION)" -c \
-		"Set :CFBundleVersion $(APP_VERSION)" \
+		"Set :CFBundleVersion $(APP_BUNDLE_VERSION)" \
 		"$(APP_BUNDLE)/Contents/Info.plist"
 	cp "$$(swift build --package-path app -c release --show-bin-path)/NotProtonApp" \
 		"$(APP_BUNDLE)/Contents/MacOS/Cartouche"
@@ -684,6 +688,17 @@ app-zip: app
 	rm -f "$(APP_ZIP)"
 	ditto -c -k --keepParent "$(APP_BUNDLE)" "$(APP_ZIP)"
 	@echo "==> Wrote $(APP_ZIP)"
+
+# Release tooling in packaging/
+.PHONY: redistscan packagingcheck
+redistscan:
+	@sh packaging/redist-scan.sh .
+
+packagingcheck:
+	@sh packaging/tests/redist-scan-test.sh
+	@python3 packaging/tests/workflow_check.py
+	@sh packaging/tests/signing-test.sh
+	@python3 -m unittest discover -s packaging/tests -p 'test_*.py'
 
 clean:
 	rm -rf $(OUT_DIR)

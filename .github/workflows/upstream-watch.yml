@@ -1,0 +1,36 @@
+name: upstream-watch
+
+# Opens one issue per new version of NotProton, the Mac Steam client, the
+# CrossOver source, the Wine macOS builds, DXMT and the Game Porting Toolkit
+on:
+  schedule:
+    - cron: "23 4 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Report only, open no issue
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: upstream-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    name: watch upstream versions
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check every source
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DRY_RUN: ${{ inputs.dry_run && '--dry-run' || '' }}
+        # A source that fails turns the run red after the others were checked
+        run: python3 packaging/upstream-watch/watch.py --repo "$GITHUB_REPOSITORY" $DRY_RUN
