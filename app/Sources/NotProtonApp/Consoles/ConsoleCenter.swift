@@ -12,6 +12,8 @@ final class ConsoleCenter {
 
     let paths: RetroArchPaths
     let settings: ConsolesSettingsModel
+    // The standalone emulators found and the one each console plays in (P16)
+    let emulators: EmulatorShelf
 
     private(set) var added: [Console] = []
     private(set) var games: [ConsoleGame] = []
@@ -56,11 +58,14 @@ final class ConsoleCenter {
     @ObservationIgnored var covers = CoverStore()
     // The core file a game plays with; tests hand in their own core
     @ObservationIgnored var resolveCore: (@MainActor (String) async throws -> URL)?
+    // Plays a game in a standalone emulator; tests hand in their own environment
+    @ObservationIgnored var standaloneEnvironment: [String: String]?
 
     init(settings: ConsolesSettingsModel, cores: CoreManager, library: LibraryModel? = nil,
-         database: ContentDatabase? = nil) {
+         database: ContentDatabase? = nil, emulators: EmulatorShelf? = nil) {
         self.settings = settings
         paths = settings.paths
+        self.emulators = emulators ?? EmulatorShelf(paths: settings.paths)
         self.cores = cores
         shelf = ConsoleShelf(paths: settings.paths, cores: cores)
         store = ConsoleLibrary(paths: settings.paths)

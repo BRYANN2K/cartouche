@@ -15,6 +15,12 @@ protocol ConsoleRunning: Sendable {
     func quit() async -> PlayReport
     // RetroArch quit by itself: what was played
     func ended() async -> PlayReport?
+    // Cartouche is quitting
+    func leaveForTermination() async -> PlayReport
+}
+
+extension ConsoleRunning {
+    func leaveForTermination() async -> PlayReport { await quit() }
 }
 
 extension ConsolePlayer: ConsoleRunning {}
@@ -24,6 +30,8 @@ struct Playing: Equatable {
 
     let gameID: String
     var phase: Phase
+    // The standalone emulator it plays in; nil for RetroArch
+    var emulator: String?
 }
 
 // The CRT power-on over the window: the game's screenshot, if Cartouche has one
@@ -77,11 +85,23 @@ extension ConsoleCenter {
     func play(_ id: String, slot: Int? = nil, resume: Bool = false, reduceMotion: Bool = false) async {
         guard let game = game(id), let console = console(of: game), playing == nil else { return }
         problem = nil
+        // Claimed before the emulators are looked for, so a second Play waits
+        playing = Playing(gameID: id, phase: .starting)
+        let route = await routeForPlay(console)
+        if let missing = route.missingText {
+            playing = nil
+            problem = missing
+            return
+        }
+        if let installed = route.emulator {
+            await playStandalone(game, in: installed, reduceMotion: reduceMotion)
+            return
+        }
         if let bios = bios(for: game), !bios.isReady {
+            playing = nil
             problem = bios.message
             return
         }
-        playing = Playing(gameID: id, phase: .starting)
         if !reduceMotion {
             powerOn = PowerOn(gameID: id, picture: Self.screenshot(of: game, covers: covers))
         }
@@ -95,6 +115,7 @@ extension ConsoleCenter {
                 try await cores.install(core)
                 coreURL = try await cores.ready(core)
             }
+            // After a standalone emulator, RetroArch's player is made again
             if runner == nil {
                 if settings.capabilities == nil { await settings.refresh() }
                 runner = makeRunner(settings)
@@ -138,7 +159,7 @@ extension ConsoleCenter {
         let store = store, date = now()
         let finished = DispatchSemaphore(value: 0)
         Task.detached {
-            let report = await runner.quit()
+            let report = await runner.leaveForTermination()
             let seconds = Double(report.played.components.seconds) + Double(report.played.components.attoseconds) / 1e18
             try? await store.update(id) { game in
                 game.playSeconds += seconds
@@ -151,7 +172,7 @@ extension ConsoleCenter {
         powerOn = nil
     }
 
-    private func finish(_ report: PlayReport) async {
+    func finish(_ report: PlayReport) async {
         guard let id = playing?.gameID else { return }
         let seconds = Double(report.played.components.seconds) + Double(report.played.components.attoseconds) / 1e18
         let date = now()
@@ -159,6 +180,7 @@ extension ConsoleCenter {
             game.playSeconds += seconds
             game.lastPlayed = date
         }
+        if playing?.emulator != nil { runner = nil }
         playing = nil
         powerOn = nil
         statesChanged += 1
@@ -166,7 +188,7 @@ extension ConsoleCenter {
     }
 
     // A RetroArch closed from its own menu or window ends the session too
-    private func watchForEnd() {
+    func watchForEnd() {
         watchPlay?.cancel()
         watchPlay = Task { [weak self] in
             while !Task.isCancelled {

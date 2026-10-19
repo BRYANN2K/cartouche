@@ -21,7 +21,8 @@ public struct ConsoleRow: Sendable, Equatable, Identifiable {
     public var id: String { console.id }
 
     public var coreText: String {
-        switch core {
+        if !console.hasCore { return String(localized: "Plays in a standalone emulator", bundle: .module) }
+        return switch core {
         case .verified: String(localized: "Core ready", bundle: .module)
         case .missing: String(localized: "Core not downloaded", bundle: .module)
         case .unrecorded, .changed: String(localized: "Core changed since it was downloaded", bundle: .module)

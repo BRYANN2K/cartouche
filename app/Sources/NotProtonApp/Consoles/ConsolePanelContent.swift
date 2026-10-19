@@ -27,11 +27,15 @@ struct ConsolePanelContent {
     let states: [SaveState]
     let bios: BIOSStatus?
     let playing: Playing?
+    // RetroArch, or the standalone emulator the console plays in (P16)
+    var route: ConsoleRoute = .retroArch
 
     var biosMissing: Bool { bios.map { !$0.isReady } ?? false }
 
     // The BIOS warning comes right under Play, Continue From once a state exists
     var sections: [Section] {
+        // States and the BIOS folder are RetroArch's; an emulator keeps its own
+        guard route == .retroArch else { return [.play, .stats, .setup, .controls, .more] }
         var out: [Section] = [.play]
         if biosMissing { out.append(.bios) }
         if !states.isEmpty { out.append(.continueFrom) }
@@ -47,11 +51,19 @@ struct ConsolePanelContent {
         switch playing?.phase {
         case .starting: String(localized: "Starting…")
         case .playing: String(localized: "Playing")
-        case nil: hasAutoState ? String(localized: "Resume") : String(localized: "Play")
+        case nil: hasAutoState && route == .retroArch ? String(localized: "Resume") : String(localized: "Play")
         }
     }
 
-    var canPlay: Bool { playing == nil && !biosMissing && game.exists }
+    var canPlay: Bool {
+        guard route == .retroArch else { return playing == nil && route.emulator != nil && game.exists }
+        return playing == nil && !biosMissing && game.exists
+    }
+
+    // Under Play: "Dolphin is not installed", or the emulator that starts the game
+    var playNote: String? {
+        route.missingText ?? route.emulator.map { String(localized: "Plays in \($0.title)") }
+    }
 
     // "Super Nintendo. Played yesterday."
     func subtitle(now: Date = Date()) -> String {

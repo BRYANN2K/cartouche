@@ -18,7 +18,8 @@ struct ConsolePanel: View {
         guard let system = center.console(of: console) else { return nil }
         return ConsolePanelContent(game: console, console: system, states: center.states(for: console),
                                    bios: center.bios(for: console),
-                                   playing: center.isPlaying(console.id) ? center.playing : nil)
+                                   playing: center.isPlaying(console.id) ? center.playing : nil,
+                                   route: center.route(for: system))
     }
 
     var body: some View {
@@ -44,6 +45,7 @@ struct ConsolePanel: View {
                 }
             }
             .id(game.id)
+            .task(id: game.id) { if let system = center.console(of: console) { await center.refreshEmulators(for: system) } }
             .transition(Motion(reduceMotion: reduceMotion).entrance)
             .sheet(isPresented: $showingMore) {
                 ConsoleMoreSheet(game: console, content: content, center: center)
@@ -74,6 +76,9 @@ struct ConsolePanel: View {
                 .fixedSize()
                 .controlSize(.large)
                 .accessibilityLabel(Text("More"))
+            }
+            if let note = content.playNote {
+                Text(note).font(.callout).foregroundStyle(content.route.missingText == nil ? Color.secondary : Color.orange)
             }
         case .bios:
             if let warning = content.biosWarning {
@@ -118,7 +123,8 @@ struct ConsolePanel: View {
             .groupBackground()
         case .setup:
             group(section.title) {
-                ConsoleSetupRows(game: console, content: content, center: center)
+                EmulatorRows(console: content.console, route: content.route, center: center)
+                if content.route == .retroArch { ConsoleSetupRows(game: console, content: content, center: center) }
             }
         case .controls:
             group(section.title) {

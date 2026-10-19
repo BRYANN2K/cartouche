@@ -216,7 +216,8 @@ final class ActivityCenter {
     func follow(_ consoles: ConsoleCenter) {
         consoleSource = { [weak consoles] in
             guard let consoles, let playing = consoles.playing, let game = consoles.game(playing.gameID) else { return nil }
-            return RunningGame(id: game.id, name: game.name, target: .console, starting: playing.phase == .starting)
+            return RunningGame(id: game.id, name: game.name, target: .console, starting: playing.phase == .starting,
+                               emulator: playing.emulator)
         }
         quitConsole = { [weak consoles] in await consoles?.quit() }
     }

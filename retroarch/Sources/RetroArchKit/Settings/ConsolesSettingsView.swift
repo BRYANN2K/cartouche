@@ -10,11 +10,15 @@ public enum RetroArchSource {
 public struct ConsolesSettingsView: View {
 
     @Bindable var model: ConsolesSettingsModel
+    // The standalone emulators found and each console's choice (P16)
+    var emulators: EmulatorShelf?
     // Picks a RetroArch.app; the app may hand in its own panel
     var chooseApp: @MainActor () -> URL?
 
-    public init(model: ConsolesSettingsModel, chooseApp: @escaping @MainActor () -> URL? = ConsolesSettingsView.openPanel) {
+    public init(model: ConsolesSettingsModel, emulators: EmulatorShelf? = nil,
+                chooseApp: @escaping @MainActor () -> URL? = ConsolesSettingsView.openPanel) {
         self.model = model
+        self.emulators = emulators
         self.chooseApp = chooseApp
     }
 
@@ -51,6 +55,7 @@ public struct ConsolesSettingsView: View {
             Section {
                 ForEach(model.consoles) { row in
                     ConsoleRowView(row: row, model: model)
+                    if let emulators { ConsoleEmulatorPicker(console: row.console, emulators: emulators) }
                 }
                 Menu {
                     ForEach(model.addable) { console in
@@ -68,6 +73,8 @@ public struct ConsolesSettingsView: View {
                 }
             }
 
+            if let emulators { StandaloneEmulatorsSection(emulators: emulators) }
+
             Section {
                 HStack {
                     Text("RetroArch is free software under the GPL-3.0, built by Cartouche from its source code.", bundle: .module)
@@ -80,7 +87,10 @@ public struct ConsolesSettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .task { await model.refresh() }
+        .task {
+            await model.refresh()
+            await emulators?.refresh()
+        }
     }
 
     @MainActor
@@ -111,7 +121,7 @@ private struct ConsoleRowView: View {
                 }
             }
             Spacer()
-            if row.core != .verified {
+            if row.core != .verified, row.console.hasCore {
                 Button {
                     Task { await model.updateCore(of: row.console) }
                 } label: {

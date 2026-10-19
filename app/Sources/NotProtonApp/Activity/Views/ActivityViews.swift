@@ -87,7 +87,8 @@ struct PlayingCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             SlotHeader(label: game.starting ? String(localized: "Starting…")
-                                            : game.onRetroArch ? String(localized: "Playing on RetroArch") : String(localized: "Playing"),
+                                            : game.emulator.map { String(localized: "Playing on \($0)") }
+                                            ?? (game.onRetroArch ? String(localized: "Playing on RetroArch") : String(localized: "Playing")),
                        title: game.name)
             HStack(spacing: 6) {
                 Circle().fill(.green).frame(width: 6, height: 6).accessibilityHidden(true)
@@ -98,7 +99,8 @@ struct PlayingCard: View {
                 Button("Quit", action: quit)
                     .controlSize(.small)
                     .disabled(game.starting)
-                    .help(game.onRetroArch ? Text("Quit the game. RetroArch saves where you are first.") : Text("Quit \(game.name)"))
+                    .help(game.emulator.map { Text("Quit \($0).") }
+                          ?? (game.onRetroArch ? Text("Quit the game. RetroArch saves where you are first.") : Text("Quit \(game.name)")))
             }
         }
         .accessibilityElement(children: .contain)

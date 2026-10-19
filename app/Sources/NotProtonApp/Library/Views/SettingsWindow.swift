@@ -55,6 +55,7 @@ struct SettingsWindow: View {
     let consoles: ConsolesSettingsModel
 
     @State private var tab: SettingsTab = .general
+    @Environment(ConsoleCenter.self) private var consoleCenter: ConsoleCenter?
 
     var body: some View {
         TabView(selection: $tab) {
@@ -75,7 +76,7 @@ struct SettingsWindow: View {
         case .accounts: AccountsSettingsView(model: model)
         case .compatibility: CompatibilitySettingsView(model: model)
         case .privacy: PrivacySettingsView(center: permissions)
-        case .consoles: ConsolesSettingsView(model: consoles)
+        case .consoles: ConsolesSettingsView(model: consoles, emulators: consoleCenter?.emulators)
         }
     }
 

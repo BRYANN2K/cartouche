@@ -18,8 +18,10 @@ struct RunningGame: Equatable, Sendable {
     var fps: Int?
     // RetroArch is still starting the game; Quit waits
     var starting = false
+    // The standalone emulator a console game plays in (P16); nil for RetroArch
+    var emulator: String?
 
-    var onRetroArch: Bool { target == .console }
+    var onRetroArch: Bool { target == .console && emulator == nil }
 }
 
 struct DownloadActivity: Identifiable, Equatable, Sendable {

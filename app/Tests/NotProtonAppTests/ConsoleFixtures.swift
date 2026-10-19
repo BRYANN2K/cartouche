@@ -197,6 +197,8 @@ final class ConsoleScene {
         folders = GameFolders(defaults: scratch.defaults)
         center.covers = covers
         center.folderList = folders
+        // Standalone emulators (P16) are looked for in the scene, never in /Applications
+        center.emulators.detector = EmulatorDetector(folders: [applications])
         var infos: [String: Data] = [:]
         for console in ConsoleCatalog.all {
             web.put("/nightly/\(console.core)_libretro.dylib.zip",
@@ -209,6 +211,9 @@ final class ConsoleScene {
     }
 
     func remove() { fixture.remove() }
+
+    // The scene's own Applications folder, for fake standalone emulator apps
+    var applications: URL { work.appending(path: "Applications", directoryHint: .isDirectory) }
 
     // Covers from a cache in the scene, never the network
     var covers: CoverStore {

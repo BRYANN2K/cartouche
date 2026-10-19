@@ -51,10 +51,13 @@ public struct Console: Sendable, Identifiable, Equatable, Hashable {
         self.glyph = glyph
         self.maker = maker
         self.extensions = extensions
-        self.cores = cores ?? [core]
+        self.cores = cores ?? (core.isEmpty ? [] : [core])
     }
 
     public var coreFile: String { "\(core)_libretro.dylib" }
+
+    // False for a console only a standalone emulator plays (P16)
+    public var hasCore: Bool { !core.isEmpty }
 
     public var isDisc: Bool { glyph == .disc }
 }
@@ -114,6 +117,30 @@ public enum ConsoleCatalog {
         Console(id: "atari2600", name: "Atari 2600", core: "stella",
                 system: "Atari - 2600", coreName: "Stella",
                 maker: .others, extensions: ["a26", "bin"], cores: ["stella"]),
+        // Consoles a standalone emulator plays best (P16, EmulatorCatalog). The
+        // core is the buildbot's for Apple silicon, where there is one.
+        Console(id: "gamecube", name: "GameCube", core: "dolphin",
+                system: "Nintendo - GameCube", coreName: "Dolphin", glyph: .disc, maker: .nintendo,
+                extensions: ["iso", "gcm", "rvz", "gcz", "ciso", "wia", "tgc", "dol"]),
+        Console(id: "wii", name: "Wii", core: "dolphin",
+                system: "Nintendo - Wii", coreName: "Dolphin", glyph: .disc, maker: .nintendo,
+                extensions: ["iso", "wbfs", "rvz", "gcz", "ciso", "wia", "wad"]),
+        Console(id: "3ds", name: "Nintendo 3DS", core: "azahar",
+                system: "Nintendo - Nintendo 3DS", coreName: "Azahar", glyph: .handheld, maker: .nintendo,
+                extensions: ["3ds", "cci", "cxi", "3dsx", "z3dsx", "zcci", "zcxi"], cores: ["azahar", "citra"]),
+        Console(id: "switch", name: "Nintendo Switch", core: "",
+                system: "Nintendo - Nintendo Switch", glyph: .handheld, maker: .nintendo,
+                extensions: ["nsp", "xci", "nro"]),
+        // Play! needs no BIOS file
+        Console(id: "ps2", name: "PlayStation 2", core: "play",
+                system: "Sony - PlayStation 2", coreName: "Play!", glyph: .disc, maker: .sony,
+                extensions: ["iso", "cso", "zso", "mdf"]),
+        Console(id: "psp", name: "PlayStation Portable", core: "ppsspp",
+                system: "Sony - PlayStation Portable", coreName: "PPSSPP", glyph: .handheld, maker: .sony,
+                extensions: ["iso", "cso", "pbp"]),
+        Console(id: "xbox", name: "Xbox", core: "",
+                system: "Microsoft - Xbox", glyph: .disc, maker: .others,
+                extensions: ["iso", "xiso"]),
     ]
 
     public static func console(_ id: String) -> Console? { all.first { $0.id == id } }
@@ -140,5 +167,6 @@ public enum ConsoleCatalog {
         "mesen": "Mesen", "fceumm": "FCEUmm", "bsnes": "bsnes", "mesen-s": "Mesen-S",
         "parallel_n64": "ParaLLEl N64", "gambatte": "Gambatte", "vbam": "VBA-M", "desmume": "DeSmuME",
         "picodrive": "PicoDrive", "mednafen_psx_hw": "Beetle PSX HW", "pcsx_rearmed": "PCSX ReARMed",
+        "citra": "Citra",
     ]
 }

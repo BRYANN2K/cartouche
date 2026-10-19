@@ -1,6 +1,22 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%@ (not installed)" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (non installato)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@（未安装）"
+          }
+        }
+      }
+    },
     "%@ is missing" : {
       "localizations" : {
         "it" : {
@@ -17,6 +33,22 @@
         }
       }
     },
+    "%@ is not installed" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ non è installato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未安装 %@"
+          }
+        }
+      }
+    },
     "%@ is not the expected file" : {
       "localizations" : {
         "it" : {
@@ -29,6 +61,44 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 不是所需的文件"
+          }
+        }
+      }
+    },
+    "%@ plays in" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Emulatore per %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 使用的模拟器"
+          }
+        }
+      }
+    },
+    "%@ quit at once (exit code %d)." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ quit at once (exit code %2$d)."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ si è chiuso subito (codice di uscita %2$d)."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 立即退出了（退出代码 %2$d）。"
           }
         }
       }
@@ -77,6 +147,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已找到 BIOS"
+          }
+        }
+      }
+    },
+    "Cartouche finds %@ in Applications and starts them with their own settings. It never changes those settings." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche trova %@ in Applicazioni e li avvia con le loro impostazioni. Non modifica mai queste impostazioni."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 会在“应用程序”中找到 %@，并以它们自己的设置启动。Cartouche 从不更改这些设置。"
           }
         }
       }
@@ -289,6 +375,22 @@
         }
       }
     },
+    "None found in Applications." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessuno trovato in Applicazioni."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在“应用程序”中未找到。"
+          }
+        }
+      }
+    },
     "Official release %@" : {
       "localizations" : {
         "it" : {
@@ -321,6 +423,22 @@
         }
       }
     },
+    "Other Emulators" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Altri emulatori"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其他模拟器"
+          }
+        }
+      }
+    },
     "Others" : {
       "localizations" : {
         "it" : {
@@ -333,6 +451,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "其他"
+          }
+        }
+      }
+    },
+    "Plays in a standalone emulator" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si gioca in un emulatore autonomo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在独立模拟器中运行"
           }
         }
       }
@@ -384,6 +518,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "RetroArch %@，不支持 MCP：游戏可以启动，但 Cartouche 无法控制"
+          }
+        }
+      }
+    },
+    "RetroArch (%@)" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroArch (%@)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroArch（%@）"
           }
         }
       }

@@ -12,7 +12,9 @@ struct CatalogTests {
             #expect(console.system.contains(" - "), "\(console.id): \(console.system) is not a libretro name")
             #expect(ConsoleCatalog.coreName(console.core) == console.coreName)
             #expect(!console.extensions.isEmpty, "\(console.id) lists no file type")
-            #expect(console.cores.first == console.core, "\(console.id): the recommended core comes first")
+            // A console only a standalone emulator plays lists no core (P16)
+            #expect(console.cores.first == console.core || (!console.hasCore && console.cores.isEmpty),
+                    "\(console.id): the recommended core comes first")
         }
         #expect(Set(ConsoleCatalog.all.map(\.id)).count == ConsoleCatalog.all.count)
     }
@@ -50,7 +52,7 @@ struct CatalogTests {
     @Test func makersGroupTheSheet() {
         let grouped = ConsoleMaker.allCases.flatMap { ConsoleCatalog.made(by: $0) }
         #expect(Set(grouped.map(\.id)) == Set(ConsoleCatalog.all.map(\.id)))
-        #expect(ConsoleCatalog.made(by: .sony).map(\.id) == ["ps1"])
+        #expect(ConsoleCatalog.made(by: .sony).map(\.id) == ["ps1", "ps2", "psp"])
     }
 
     @Test func coreNamesAreShownAsTheirProjectsWriteThem() {

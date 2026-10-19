@@ -21,7 +21,8 @@ public actor ConsoleShelf {
 
     public func add(_ id: String) async throws {
         guard let console = ConsoleCatalog.console(id) else { return }
-        try await cores.install(console.core)
+        // A console only a standalone emulator plays has no core to download
+        if console.hasCore { try await cores.install(console.core) }
         try save(Set(added().map(\.id)).union([id]))
     }
 
@@ -29,7 +30,7 @@ public actor ConsoleShelf {
         guard let console = ConsoleCatalog.console(id) else { return }
         let remaining = added().filter { $0.id != id }
         try save(Set(remaining.map(\.id)))
-        if !remaining.contains(where: { $0.core == console.core }) {
+        if console.hasCore, !remaining.contains(where: { $0.core == console.core }) {
             try await cores.delete(console.core)
         }
     }
