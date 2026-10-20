@@ -110,6 +110,6 @@ struct GameMenuTests {
         #expect(app.contains("Settings {"))
         #expect(menus.contains("Button(\"Find\")") && menus.contains(".keyboardShortcut(\"f\", modifiers: .command)"))
         #expect(!menus.contains(".keyboardShortcut(\"i\", modifiers: .command)"))
-        #expect(app.contains("MenuBarExtra(isInserted: $showInMenuBar)"))
+        #expect(app.contains("MenuBarExtra(isInserted: Binding(get: { showInMenuBar }"))
     }
 }

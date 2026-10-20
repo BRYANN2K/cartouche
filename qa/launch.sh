@@ -55,10 +55,11 @@ SERVER="$ROOT/qa/mocks/server.py"
 # Remember the real home before anything could reassign it.
 REAL_HOME="$(cd "$HOME" && pwd -P)"
 
-echo "==> Building out/Cartouche-QA.app (payload skipped: make -s -o app-payload qa-app)"
-# SWIFT_FLAGS lets a sandboxed caller pass e.g. --disable-sandbox through.
-make -C "$ROOT" -s -o app-payload qa-app SWIFT_FLAGS="${SWIFT_FLAGS:-}"
 APP="$ROOT/out/Cartouche-QA.app"
+if [ "${QA_NO_BUILD:-}" != 1 ]; then
+    echo "==> Building out/Cartouche-QA.app (payload skipped: make -s -o app-payload qa-app)"
+    make -C "$ROOT" -s -o app-payload qa-app SWIFT_FLAGS="${SWIFT_FLAGS:-}"
+fi
 [ -x "$APP/Contents/MacOS/Cartouche" ] || fail "the build did not produce $APP"
 
 # The scratch HOME lives inside the worktree: a fresh dir under scratch/ that

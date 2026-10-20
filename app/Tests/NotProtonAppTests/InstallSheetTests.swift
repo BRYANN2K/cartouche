@@ -112,6 +112,21 @@ struct InstallSheetTests {
         #expect(center.sheet.installDir == #"C:\Games\Elden Ring"#)
     }
 
+    @Test("After a failed install, Close then Add Games starts again from the drop step")
+    func failedThenAddGames() throws {
+        let (center, folder) = try sheetFixture("failed-reopen")
+        let request = InstallRequest(setup: folder.appending(path: "setup.exe"), source: folder, name: "G", appID: nil, gogID: nil,
+                                     expectedBytes: 1, installerBytes: 1, installerFiles: [], manifest: nil)
+        let job = InstallJob(request: request, inputs: InstallInputs(runnerID: "r", gameName: "G"))
+        job.phase = .failed
+        center.sheet.show(job)
+        center.isSheetPresented = true
+        center.sheet.close()
+        center.open()
+        #expect(center.sheet.step == .drop)
+        #expect(center.sheet.job == nil)
+    }
+
     @Test("Without a runner, Install is disabled")
     func noRunner() async throws {
         let (center, folder) = try sheetFixture("sheet-norunner")

@@ -129,7 +129,10 @@ struct CartoucheApp: App {
                 .onChange(of: runners.registry.runners) { _, _ in Task { await syncRunnerList() } }
         }
 
-        MenuBarExtra(isInserted: $showInMenuBar) {
+        // AppKit re-reports the item's visibility on every update; writing the same value back
+        // into the defaults would refresh the scene again, endlessly
+        MenuBarExtra(isInserted: Binding(get: { showInMenuBar },
+                                         set: { if $0 != showInMenuBar { showInMenuBar = $0 } })) {
             StatusItemMenu(model: library, actions: actions)
         } label: {
             if NSImage(named: "MenuBarGlyph") != nil {

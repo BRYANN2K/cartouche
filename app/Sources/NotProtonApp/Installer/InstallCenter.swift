@@ -59,7 +59,7 @@ final class InstallCenter {
         if let url = urls.first {
             sheet.reset()
             sheet.analyze(url)
-        } else if let job = running ?? jobs.last(where: { $0.phase == .choosing || $0.phase == .failed }) {
+        } else if let job = running ?? jobs.last(where: { $0.phase == .choosing }) {
             sheet.show(job)
         } else if sheet.job.map({ !$0.isRunning && $0.phase != .choosing }) ?? true, sheet.step != .analysis {
             sheet.reset()

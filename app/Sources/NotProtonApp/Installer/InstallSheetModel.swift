@@ -312,7 +312,8 @@ final class InstallSheetModel {
         if let job, job.phase == .ready || job.phase == .stopped {
             center.forget(job)
             reset()
-        } else if job == nil {
+        } else if job == nil || job?.phase == .failed {
+            // A failed job stays listed for a retry, but the next Add Games starts fresh
             reset()
         }
         center.isSheetPresented = false
