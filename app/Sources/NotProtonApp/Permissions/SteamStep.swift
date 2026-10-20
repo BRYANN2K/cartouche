@@ -14,23 +14,31 @@ final class SteamStep {
         case notApplied
         case failed(String)
         case done
+        // Steam is NotProton's to hand over: the row offers Replace NotProton
+        case notProton
     }
 
     private(set) var phase: Phase = .idle
 
     @ObservationIgnored let flow: PermissionFlow
     @ObservationIgnored let install: @MainActor () async throws -> Void
+    @ObservationIgnored let replace: (@MainActor () async throws -> Void)?
+    @ObservationIgnored let usesNotProton: (@Sendable () -> Bool)?
     @ObservationIgnored var relaunch: @MainActor (ScreenRoute) -> Void
     @ObservationIgnored private var visitedSettings = false
 
     init(
         flow: PermissionFlow,
         install: @escaping @MainActor () async throws -> Void,
-        relaunch: @escaping @MainActor (ScreenRoute) -> Void
+        relaunch: @escaping @MainActor (ScreenRoute) -> Void,
+        replace: (@MainActor () async throws -> Void)? = nil,
+        usesNotProton: (@Sendable () -> Bool)? = nil
     ) {
         self.flow = flow
         self.install = install
         self.relaunch = relaunch
+        self.replace = replace
+        self.usesNotProton = usesNotProton
     }
 
     private var center: PermissionCenter { flow.center }
@@ -46,12 +54,27 @@ final class SteamStep {
             String(localized: "macOS still blocks the change. If you allowed Cartouche in App Management, relaunch Cartouche to finish.")
         case .failed(let message): message
         case .done: String(localized: "Steam lists Cartouche's compatibility tools")
+        case .notProton:
+            String(localized: "Steam uses NotProton. Cartouche replaces it inside Steam. NotProton's app and data stay on this Mac. To switch back, remove Cartouche and install NotProton again.")
         }
     }
 
     func setUp() {
         flow.start(.appManagement, context: .onboarding, attempt: { [weak self] in
             await self?.attempt() ?? .unknown
+        }) { _ in }
+    }
+
+    // The row appears, or an install failed on NotProton's insert: offer the takeover
+    func refresh() {
+        guard phase == .idle, usesNotProton?() == true else { return }
+        phase = .notProton
+    }
+
+    func replaceNotProton() {
+        guard let replace else { return }
+        flow.start(.appManagement, context: .onboarding, attempt: { [weak self] in
+            await self?.attempt(using: replace) ?? .unknown
         }) { _ in }
     }
 
@@ -69,10 +92,14 @@ final class SteamStep {
     }
 
     private func attempt() async -> PermissionState {
+        await attempt(using: install)
+    }
+
+    private func attempt(using work: @MainActor () async throws -> Void) async -> PermissionState {
         let looksAllowed = center.state(.appManagement) == .allowed
         phase = .working
         do {
-            try await install()
+            try await work()
             center.record(.allowed, for: .appManagement)
             phase = .done
             return .allowed
@@ -87,7 +114,11 @@ final class SteamStep {
             phase = looksAllowed || visitedSettings ? .notApplied : .blocked(.appManagement)
             return .denied
         } catch {
-            phase = .failed(error.localizedDescription)
+            if usesNotProton?() == true {
+                phase = .notProton
+            } else {
+                phase = .failed(error.localizedDescription)
+            }
             return .unknown
         }
     }
@@ -106,12 +137,13 @@ struct SteamStepRow: View {
             action: primary
         )
         .permissionExplanations(step.flow)
+        .task { step.refresh() }
     }
 
     private var tone: StatusTone? {
         switch step.phase {
         case .done: .ok
-        case .blocked, .notApplied, .failed: .warning
+        case .blocked, .notApplied, .failed, .notProton: .warning
         case .idle, .working: nil
         }
     }
@@ -137,6 +169,10 @@ struct SteamStepRow: View {
         case .notApplied:
             StatusAction(label: String(localized: "Relaunch Cartouche"), isProminent: true) {
                 step.relaunchCartouche()
+            }
+        case .notProton:
+            StatusAction(label: String(localized: "Replace NotProton"), isProminent: true) {
+                step.replaceNotProton()
             }
         case .done: nil
         }

@@ -48,22 +48,50 @@ struct IdentityTests {
         #expect(Data(base64Encoded: key)?.count == 32)
     }
 
-    @Test("No localized string names NotProton")
+    // The Replace NotProton takeover is the one feature besides the About credit
+    // that names NotProton to the user.
+    static let takeoverStrings: Set<String> = [
+        "Steam uses NotProton.",
+        "Steam uses NotProton. Cartouche replaces it inside Steam. NotProton's app and data stay on this Mac. To switch back, remove Cartouche and install NotProton again.",
+        "Cartouche replaces NotProton inside Steam. NotProton's app and data stay on this Mac. To switch back, remove Cartouche and install NotProton again.",
+        "Replace NotProton",
+        "Remove NotProton from Steam and install Cartouche.",
+        "Cartouche replaced NotProton in Steam.",
+    ]
+
+    @Test("Only the takeover strings name NotProton")
     func catalogIsRenamed() throws {
-        let catalog = try String(
-            contentsOf: Self.repoRoot.appending(path: "app/Sources/NotProtonApp/Resources/Localization/Localizable.xcstrings"),
-            encoding: .utf8)
-        #expect(!catalog.localizedCaseInsensitiveContains("NotProton"))
+        let data = try Data(contentsOf: Self.repoRoot.appending(
+            path: "app/Sources/NotProtonApp/Resources/Localization/Localizable.xcstrings"))
+        let catalog = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let strings = try #require(catalog["strings"] as? [String: Any])
+        var named: Set<String> = []
+        for (key, entry) in strings {
+            var texts = [key]
+            if let localizations = (entry as? [String: Any])?["localizations"] as? [String: Any] {
+                for case let localization as [String: Any] in localizations.values {
+                    if let value = (localization["stringUnit"] as? [String: Any])?["value"] as? String {
+                        texts.append(value)
+                    }
+                }
+            }
+            if texts.contains(where: { $0.localizedCaseInsensitiveContains("notproton") }) {
+                named.insert(key)
+            }
+        }
+        #expect(named == Self.takeoverStrings,
+                "NotProton is named by \(named.subtracting(Self.takeoverStrings)), expected only the takeover strings")
     }
 
-    @Test("Only the About attribution names NotProton in app text")
+    @Test("Only the About attribution and the takeover name NotProton in app text")
     func onlyAttributionNamesNotProton() throws {
-        let literal = try Regex(#""[^"\n]*NotProton[^"\n]*""#)
+        let literal = #/"([^"\n]*NotProton[^"\n]*)"/#
         var offenders: [String] = []
         for file in try Self.appSources() where file.lastPathComponent != "Attribution.swift" {
-            let lines = try String(contentsOf: file, encoding: .utf8).split(separator: "\n", omittingEmptySubsequences: false)
-            for (number, line) in lines.enumerated() where line.contains(literal) {
-                offenders.append("\(file.lastPathComponent):\(number + 1)")
+            let text = try String(contentsOf: file, encoding: .utf8)
+            for match in text.matches(of: literal) where !Self.takeoverStrings.contains(String(match.output.1)) {
+                let line = text[..<match.range.lowerBound].split(separator: "\n", omittingEmptySubsequences: false).count
+                offenders.append("\(file.lastPathComponent):\(line)")
             }
         }
         #expect(offenders.isEmpty, "NotProton in user-facing text: \(offenders)")
@@ -171,6 +199,14 @@ struct IdentityTests {
     }
 
     // Only the shared header names NotProton's Steam-side files, so it can detect them.
+    // The takeover path names NotProton in identifiers in the files listed below;
+    // even there, a quoted name is limited to the takeover's user-facing strings.
+    static let takeoverFiles: Set<String> = [
+        "AppLog.swift", "AppModels.swift", "NotProtonTakeover.swift",
+        "OnboardingModel.swift", "StatusView.swift", "SteamBundle.swift",
+        "SteamInstaller.swift", "SteamStep.swift", "SystemStatus.swift",
+    ]
+
     @Test("No code uses NotProton's names inside Steam")
     func noNotProtonSteamNames() throws {
         let extensions: Set<String> = ["c", "h", "m", "sh", "py", "swift", "js", "cpp"]
@@ -183,10 +219,17 @@ struct IdentityTests {
         }
         let allowed: Set<String> = ["cartouche_identity.h", "Attribution.swift"]
         let name = try Regex("(?i)notproton(?!App)")
+        let literal = #/(?i)"([^"\n]*notproton(?!App)[^"\n]*)"/#
         var offenders: [String] = []
         for file in files where !allowed.contains(file.lastPathComponent) {
             guard let text = try? String(contentsOf: file, encoding: .utf8) else { continue }
-            if text.contains(name) { offenders.append(file.lastPathComponent) }
+            if Self.takeoverFiles.contains(file.lastPathComponent) {
+                for match in text.matches(of: literal) where !Self.takeoverStrings.contains(String(match.output.1)) {
+                    offenders.append("\(file.lastPathComponent): \(match.output.1)")
+                }
+            } else if text.contains(name) {
+                offenders.append(file.lastPathComponent)
+            }
         }
         #expect(offenders.isEmpty, "NotProton names in \(offenders)")
         #expect(try Self.headerDefine("CARTOUCHE_OTHER_DYLIB_NAME") == SteamBundle.otherDylibName)

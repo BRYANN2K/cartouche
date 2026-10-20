@@ -37,6 +37,7 @@ struct InstallOutcome: Sendable {
     let signatureDatabases: Int
     let backedUpPlist: Bool
     let bridgeStaged: Int
+    var replacedNotProton = false
 }
 
 enum SteamInstaller {
@@ -66,6 +67,8 @@ enum SteamInstaller {
         holdingInstallationLock: Bool = false,
         lockFolder: URL = SupportPaths.applicationSupport,
         modifications: SteamModifications = .shared,
+        replacingNotProton: Bool = false,
+        otherToolSupport: URL = SupportPaths.applicationSupport,
         runnerIsRunning: @Sendable (URL) -> Bool = { RunnerInstaller.isRunning(from: $0) },
         verifyRunner: (RunnerBuild, URL) throws -> Void = RunnerInstaller.verifyClone,
         patchRunner: (RunnerBuild, URL, URL) throws -> Void = { build, root, bridge in
@@ -85,10 +88,13 @@ enum SteamInstaller {
         let plist = app.appending(path: "Contents/Info.plist")
         let dylib = app.appending(path: "Contents/MacOS/\(SupportPaths.dylibName)")
         try assertBundleIsPresent(app)
-        try assertInsertIsDeployedOrAbsent(at: plist, dylib: dylib)
         let other = SteamBundle.otherInjection(in: app)
-        guard other.isEmpty else {
+        let takeover = replacingNotProton && SteamBundle.onlyOtherTool(other)
+        guard other.isEmpty || takeover else {
             throw StepFailure(step: step, detail: otherToolRefusal(other))
+        }
+        if !takeover {
+            try assertInsertIsDeployedOrAbsent(at: plist, dylib: dylib)
         }
         let installationLock = holdingInstallationLock
             ? nil : try DeploymentContent.acquireInstallationLock(in: lockFolder, steamFolder: app.deletingLastPathComponent())
@@ -166,7 +172,11 @@ enum SteamInstaller {
 
             let priorPlist = try? Data(contentsOf: plist)
             let priorHash = cdhash(of: app)
+            let holding = backups.appending(path: "takeover-\(UUID().uuidString)")
             do {
+                if takeover {
+                    try NotProtonTakeover.strip(from: app, holding: holding, applicationSupport: otherToolSupport)
+                }
                 try setInsert(at: plist, to: dylib)
 
                 report(.signing)
@@ -174,9 +184,11 @@ enum SteamInstaller {
                 try adHocSign(app.appending(path: "Contents/MacOS/steam_osx"))
                 try adHocSign(app)
             } catch {
+                if takeover { NotProtonTakeover.restore(app: app, from: holding) }
                 revertPlist(priorPlist, at: plist, app: app)
                 throw error
             }
+            if takeover { try? FileManager.default.removeItem(at: holding) }
             if cdhash(of: app) != priorHash {
                 resetInputAccess()
             }
@@ -206,7 +218,8 @@ enum SteamInstaller {
             build: build,
             signatureDatabases: payload.signatures.count,
             backedUpPlist: backedUp,
-            bridgeStaged: bridgeResult.staged.count
+            bridgeStaged: bridgeResult.staged.count,
+            replacedNotProton: takeover
         )
     }
 

@@ -529,9 +529,15 @@ struct GameProcessTests {
         let stamp = GameProcesses.logDate.string(from: Date(timeIntervalSinceNow: -60))
         try "[\(stamp)] AppID 1245620 adding PID \(game.processIdentifier) as a tracked process \"eldenring.exe\"\n"
             .write(to: fixture.steam.appending(path: "logs/gameprocess_log.txt"), atomically: true, encoding: .utf8)
-        #expect(fixture.reader.read().runningAppID == 1_245_620)
-        let pids = fixture.reader.read().trackedPIDs
-        #expect(pids.count == 1 && pids[game.processIdentifier] != nil)
+        // Right after launch the child may not have exec'd the script yet, so its path is not the game's
+        let deadline = Date().addingTimeInterval(5)
+        var snapshot = fixture.reader.read()
+        while snapshot.trackedPIDs[game.processIdentifier] == nil, Date() < deadline {
+            try await Task.sleep(for: .milliseconds(50))
+            snapshot = fixture.reader.read()
+        }
+        #expect(snapshot.runningAppID == 1_245_620)
+        #expect(snapshot.trackedPIDs.count == 1 && snapshot.trackedPIDs[game.processIdentifier] != nil)
         game.terminate()
         game.waitUntilExit()
         #expect(fixture.reader.read().runningAppID == nil)

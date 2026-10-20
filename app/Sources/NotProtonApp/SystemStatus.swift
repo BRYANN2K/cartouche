@@ -468,14 +468,28 @@ final class SystemStatus {
     }
 
     func installIntoSteam() async {
+        await installIntoSteam(replacingNotProton: false)
+    }
+
+    // The user clicked Replace NotProton: the same install, with the takeover of the
+    // bundle it injects as its first step.
+    func replaceNotProton() async {
+        await installIntoSteam(replacingNotProton: true)
+    }
+
+    private func installIntoSteam(replacingNotProton: Bool) async {
         await perform(from: InstallPhase.checkingPayload.label) { progress in
             let lock = try DeploymentContent.acquireInstallationLock()
             defer { lock.release() }
             let result = try await Task.detached(priority: .userInitiated) {
-                try SteamInstaller.run(holdingInstallationLock: true, report: { progress($0.label) })
+                try SteamInstaller.run(
+                    holdingInstallationLock: true, replacingNotProton: replacingNotProton,
+                    report: { progress($0.label) })
             }.value
 
-            var parts = [String(localized: "Cartouche successfully installed.")]
+            var parts = [result.replacedNotProton
+                ? String(localized: "Cartouche replaced NotProton in Steam.")
+                : String(localized: "Cartouche successfully installed.")]
             if result.stoppedClient { parts.append(Self.restartHint) }
             let install = usableCrossOver
             let state = await Task.detached(priority: .userInitiated) {

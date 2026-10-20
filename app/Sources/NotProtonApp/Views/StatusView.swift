@@ -495,6 +495,19 @@ struct StatusView: View {
                 tone: .warning,
                 detail: String(localized: "Repair your Steam install before installing Cartouche.")
             )
+        case .notProton:
+            StatusRow(
+                title: "Cartouche",
+                value: String(localized: "Steam uses NotProton."),
+                tone: .warning,
+                detail: String(localized: "Cartouche replaces NotProton inside Steam. NotProton's app and data stay on this Mac. To switch back, remove Cartouche and install NotProton again."),
+                action: StatusAction(
+                    label: String(localized: "Replace NotProton"),
+                    isProminent: true,
+                    help: String(localized: "Remove NotProton from Steam and install Cartouche."),
+                    isEnabled: status.canInstall
+                ) { Task { await status.replaceNotProton() } }
+            )
         }
     }
 

@@ -154,8 +154,10 @@ final class RunnersViewUITests {
         defer { host.close() }
         #expect(try await host.wait(for: "Damaged"))
         let texts = try host.texts(named: "settings-runners-missing")
+        // The long temporary path wraps, so OCR may split a sentence across lines
+        let joined = texts.joined(separator: " ")
         for wanted in ["Damaged", "is gone", "Choose", "Repair"] {
-            #expect(texts.contains { $0.contains(wanted) }, "\(wanted) in \(texts)")
+            #expect(joined.contains(wanted), "\(wanted) in \(texts)")
         }
     }
 

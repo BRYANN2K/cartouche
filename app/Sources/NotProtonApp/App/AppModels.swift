@@ -24,7 +24,9 @@ extension CartoucheApp {
         let step = SteamStep(
             flow: PermissionFlow(center: permissions),
             install: { [systemStatus] in try await OnboardingSteam.install(through: systemStatus) },
-            relaunch: { [relaunch] route in Task { await relaunch.relaunch(to: route) } })
+            relaunch: { [relaunch] route in Task { await relaunch.relaunch(to: route) } },
+            replace: { [systemStatus] in try await OnboardingSteam.replaceNotProton(through: systemStatus) },
+            usesNotProton: { SteamBundle.usesNotProton() })
         let model = OnboardingModel(
             runners: RunnerOffer(
                 build: { RunnerOffer.recommended(RunnerManifest.current()) },

@@ -4541,6 +4541,38 @@
         }
       }
     },
+    "Cartouche replaced NotProton in Steam." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche ha sostituito NotProton in Steam."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 已替换 Steam 中的 NotProton。"
+          }
+        }
+      }
+    },
+    "Cartouche replaces NotProton inside Steam. NotProton's app and data stay on this Mac. To switch back, remove Cartouche and install NotProton again." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche sostituisce NotProton in Steam. L'app e i dati di NotProton restano su questo Mac. Per tornare indietro, rimuovi Cartouche e installa di nuovo NotProton."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 会替换 Steam 中的 NotProton。NotProton 的应用和数据会保留在这台 Mac 上。若要换回，请移除 Cartouche 并重新安装 NotProton。"
+          }
+        }
+      }
+    },
     "Cartouche successfully installed." : {
       "localizations" : {
         "it" : {
@@ -13446,6 +13478,22 @@
         }
       }
     },
+    "Remove NotProton from Steam and install Cartouche." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rimuovi NotProton da Steam e installa Cartouche."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从 Steam 中移除 NotProton 并安装 Cartouche。"
+          }
+        }
+      }
+    },
     "Remove build" : {
       "localizations" : {
         "it" : {
@@ -13618,6 +13666,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请先修复 Steam，再安装 Cartouche。"
+          }
+        }
+      }
+    },
+    "Replace NotProton" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sostituisci NotProton"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "替换 NotProton"
           }
         }
       }
@@ -15797,6 +15861,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Steam 停止了下载"
+          }
+        }
+      }
+    },
+    "Steam uses NotProton." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam usa NotProton."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 正在使用 NotProton。"
+          }
+        }
+      }
+    },
+    "Steam uses NotProton. Cartouche replaces it inside Steam. NotProton's app and data stay on this Mac. To switch back, remove Cartouche and install NotProton again." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam usa NotProton. Cartouche lo sostituisce in Steam. L'app e i dati di NotProton restano su questo Mac. Per tornare indietro, rimuovi Cartouche e installa di nuovo NotProton."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 正在使用 NotProton。Cartouche 会替换 Steam 中的它。NotProton 的应用和数据会保留在这台 Mac 上。若要换回，请移除 Cartouche 并重新安装 NotProton。"
           }
         }
       }

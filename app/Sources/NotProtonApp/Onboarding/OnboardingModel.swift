@@ -333,8 +333,22 @@ enum OnboardingSteam {
 
     @MainActor
     static func install(through status: SystemStatus) async throws {
+        try await install(through: status, replacingNotProton: false)
+    }
+
+    @MainActor
+    static func replaceNotProton(through status: SystemStatus) async throws {
+        try await install(through: status, replacingNotProton: true)
+    }
+
+    @MainActor
+    private static func install(through status: SystemStatus, replacingNotProton: Bool) async throws {
         await status.refresh()
-        await status.installIntoSteam()
+        if replacingNotProton {
+            await status.replaceNotProton()
+        } else {
+            await status.installIntoSteam()
+        }
         guard let failure = status.failure else { return }
         if status.failureRemedy == .appManagement {
             throw WriteRefused(path: SupportPaths.Steam.deployedDylib.path(percentEncoded: false))

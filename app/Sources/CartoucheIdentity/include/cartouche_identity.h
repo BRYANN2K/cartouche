@@ -44,4 +44,7 @@
 #define CARTOUCHE_OTHER_DYLIB_NAME "notproton.dylib"
 #define CARTOUCHE_OTHER_STEAM_PREFIX "notproton"
 
+// NotProton's pristine copy of Steam's plist, inside its own data folder
+#define CARTOUCHE_OTHER_PLIST_BACKUP "backups/Info.plist.before-notproton"
+
 #endif // CARTOUCHE_IDENTITY_H

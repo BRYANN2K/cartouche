@@ -7,6 +7,8 @@ enum SteamDeployment: Sendable, Equatable {
     case installed(version: String?)
     case outdated(deployed: String, bundled: String)
     case foreign(insert: String)
+    // Every foreign insert is NotProton's dylib, so Steam is NotProton's to hand over
+    case notProton(insert: String)
 }
 
 enum SteamBundle {
@@ -41,7 +43,10 @@ enum SteamBundle {
         let deployedDylib = SupportPaths.Steam.deployedDylib(inBundle: app)
             .path(percentEncoded: false)
         let components = insert.split(separator: ":").map(String.init)
-        guard components.contains(deployedDylib) else { return .foreign(insert: insert) }
+        guard components.contains(deployedDylib) else {
+            return onlyOtherTool(components.filter { isForeign($0) })
+                ? .notProton(insert: insert) : .foreign(insert: insert)
+        }
 
         guard files.fileExists(atPath: deployedDylib) else { return .notInstalled }
 
@@ -59,7 +64,23 @@ enum SteamBundle {
 
     static func foreignInserts(at plist: URL) -> [String] {
         (currentInsert(at: plist) ?? "").split(separator: ":").map(String.init)
-            .filter { URL(filePath: $0).lastPathComponent != SupportPaths.dylibName }
+            .filter { isForeign($0) }
+    }
+
+    private static func isForeign(_ insert: String) -> Bool {
+        URL(filePath: insert).lastPathComponent != SupportPaths.dylibName
+    }
+
+    // Every named insert is the other injector's dylib, and there is at least one
+    static func onlyOtherTool(_ inserts: [String]) -> Bool {
+        !inserts.isEmpty && inserts.allSatisfy {
+            URL(filePath: $0).lastPathComponent == otherDylibName
+        }
+    }
+
+    // Steam declares the other injector's dylib and nothing else foreign
+    static func usesNotProton(in app: URL = SupportPaths.Steam.app) -> Bool {
+        onlyOtherTool(foreignInserts(at: SupportPaths.Steam.infoPlist(inBundle: app)))
     }
 
     // Another tool's insert entries in this bundle, and the other injector's dylib even when nothing loads it
