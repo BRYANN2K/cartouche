@@ -2,7 +2,7 @@
 
 What Cartouche is, who it is for, and what the first release (v0.1.0) must do. Read by the maintainer and contributors before they write a spec.
 
-Status: draft for the maintainer to approve. Date: 2026-10-19. Phases (P0 to P18) are defined in `docs/ROADMAP.md`.
+Status: product requirements, updated 2026-10-20. Implementation status is tracked in `docs/ROADMAP.md`. Phases (P0 to P18) are defined in `docs/ROADMAP.md`.
 
 ## Problem
 
@@ -36,7 +36,7 @@ Windows games on an Apple silicon Mac are hard to run.
 - No DRM circumvention, no cracks, no Steam emulators, no piracy-specific features or wording.
 - No downloading or linking to ROM, BIOS or game files. Cartouche works on the user's own files.
 - No redistribution of D3DMetal or any Apple Game Porting Toolkit file.
-- No server run by the project.
+- No app backend in v0.1.0. A public game list with user stars and opt-in statistics sharing is planned for the website in v0.1.1; its submission and hosting design is not yet decided.
 - No notarization, no Mac App Store.
 - No support for macOS older than 15.
 - No claim that online play with anti-cheat works on a Mac.
@@ -61,7 +61,7 @@ Source: the maintainer's scope decisions of 2026-10-19, recorded in `docs/ROADMA
 | Mac permissions | P17 | Each macOS permission asked when its feature is used, explained first, listed in Settings with a way to fix it |
 | Onboarding | P18 | Install a non-notarized app (Open Anyway), then a five-step, skippable first launch that ends on a playable game |
 
-P16 has no OpenSpec change yet.
+P0–P18 have code on main. Merged does not mean all real-machine checks passed. See the archived changes and their evidence.
 
 ## Key user flows
 
@@ -71,7 +71,7 @@ P16 has no OpenSpec change yet.
 2. Games not installed show in black and white. Selecting one shows it in color.
 3. The user searches, favorites or hides games.
 4. The game panel answers three questions: can I play it, how fast, with which setup.
-5. When Steam is closed, the library shows the last import and installed status from Steam's local files.
+5. When Steam is closed, show the last account-matched export, labelled cached and potentially stale. Appmanifests supply installed games and installed status. localconfig.vdf supplies play data only, not ownership (ADR 0021).
 6. When Steam is not installed, the Steam source offers Download Steam, Install with Homebrew (only if Homebrew is present) and Locate Steam.
 
 ### Steam Play
@@ -84,13 +84,16 @@ P16 has no OpenSpec change yet.
 
 ### Windows installer
 
-1. The user drops a folder or a setup.exe on Cartouche.
+1. The user drops an installer, folder, archive or ROM. Cartouche detects its type. Built-in zip, rar and 7z extraction is planned (ADR 0016). Already-installed Windows games can be used in place by default or copied (ADR 0018).
 2. Cartouche analyses it without running anything: parts, missing parts, checksums, installer type, game name, space needed.
 3. The user reviews the result. A missing required part blocks Install. A part the manifest calls optional only warns.
 4. Cartouche installs in a fresh prefix under Rosetta, with real progress. The user can continue in the background.
 5. On failure, Cartouche names the likely cause and offers retries (verify files, fewer threads, less memory, short path, other runner).
-6. The user confirms which exe starts the game. Redistributables are replaced by winetricks equivalents.
+6. The user confirms which exe starts the game. Planned runtime detection reads PE imports, runs one winetricks verb at a time with a timeout and Skip, and uses Wine Mono for .NET (ADR 0020). Main currently finds redistributable files and runs a batch of verbs.
 7. Installer files are deleted only when the user asks, and go to the Trash.
+8. Planned: Cartouche directly extracts supported parts for installers with external unpackers (ADR 0017). Current code prepares their prefix and runs setup.
+9. Planned: uninstall of a managed game moves it to the Trash and offers Keep save files. Removing an in-place import never deletes its source files.
+10. Planned: identify by store IDs, engine metadata, exe version info, exe name, then folder names. Steam store search is a fallback gated by the online-lookups privacy choice (ADR 0019).
 
 ### Stores
 
@@ -147,7 +150,7 @@ Each measure comes from a scenario in an OpenSpec change. A phase is done only w
 | Bundle ID and name | `dev.bryann2k.cartouche`, `Cartouche` | P0 |
 | NotProton files touched by a first launch | 0 (modification times unchanged) | P0 |
 | Existing tests after the runner refactor | All pass, none removed or skipped | P1 |
-| Free runner download | SHA-256 matches manifest; `winecfg` window within 60 s | P2 |
+| Free runner download | SHA-256 matches manifest; explicit first boot finishes before launch; cold initialization is not subject to the old 60 s window target (ADR 0015) | P2 |
 | Apple files in repository and release assets | 0 matches in the CI scan | P2 |
 | Backend applied at launch | Log shows the chosen d3d11 library only | P3 |
 | Nightly compatibility file | Valid against the schema, under 25 MB gzip, dated that night | P4 |
@@ -188,13 +191,10 @@ From `FORK-PLAN.md` ("Règles d'interface"). Full rules will live in `docs/DESIG
 - No section header for a single item.
 - No decoration without a role: no gradients, badges, star ratings or colors that carry no state.
 
-## Not decided
+## Release details and open questions
 
-- Which GitHub organization and repository host the appcast and releases.
-- Name of the personal Homebrew tap.
-- Channel used to export the Steam library from the injected Steam code (file or local route).
+- App repository: BRYANN2K/cartouche, private until v0.1.0. Public Wine build recipes and releases: BRYANN2K/cartouche-wine (ADR 0015). Landing page: https://cartouche.bryann2k.dev, linked from About.
+- Personal Homebrew tap: BRYANN2K/homebrew-cartouche; complete the release guide’s setup and validation.
 - Default core per console, and whether RetroArch playlists are only imported or also written back.
-- Whether a controller mapping screen is built or RetroArch autoconfig is enough.
+- Validate the merged controller mapping screens on physical devices (P15 evidence).
 - List view, real sorting, a full-screen game page, several Steam accounts on one Mac, keyboard navigation of the grid.
-- Success measures for P12 and P13: their OpenSpec changes are being written.
-- Whether the single scope stays as set on 2026-10-19.

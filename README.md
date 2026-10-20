@@ -2,7 +2,7 @@
 
 Cartouche is a free macOS game launcher for Apple silicon Macs. It runs Windows games through Steam Play inside the Mac Steam client, through Epic, GOG and Amazon, or from a Windows installer. It also plays console games through its own bundled RetroArch.
 
-Cartouche started as a fork of [NotProton](https://github.com/NotProtonNot/NotProton) and is now its own project; it is not built on NotProton. Agent control through MCP is still planned (P11).
+Cartouche started as a fork of [NotProton](https://github.com/NotProtonNot/NotProton) and is now its own project; it is not built on NotProton. Agent control through MCP is merged (P11). The app repository stays private until v0.1.0; Wine build recipes and assets are public in [cartouche-wine](https://github.com/BRYANN2K/cartouche-wine). The website is [cartouche.bryann2k.dev](https://cartouche.bryann2k.dev).
 
 **Status: early development.** There is no release yet. Expect missing features and breaking changes.
 
@@ -33,6 +33,12 @@ The tap installs the same signed app. The first open goes through the same three
 ### Why macOS asks
 
 Cartouche is free and signed with its own certificate. It is not notarized by Apple, because notarization needs a paid Apple developer membership. The certificate does not remove the first-open warning. It keeps Cartouche's identity the same across releases, so updates install without a prompt and the permissions you grant do not reset. The install script avoids the warning because curl does not mark the download as quarantined.
+
+## Local Windows games
+
+Drop an already-installed Windows game folder to use it in place (the default) or copy it. An in-place import never gives Cartouche ownership of the source files. Removing it from the library must not delete them.
+
+Planned before v0.1.0: built-in zip, rar and 7z extraction, direct extraction for supported installers with external unpackers, ranked local identification, and runtime setup based on PE imports. CrossOver Wine becomes the default runner with an explicit first-boot step. Fresh initialization can take several minutes; games must wait until it finishes. See [the roadmap](docs/ROADMAP.md).
 
 ## What it does today
 

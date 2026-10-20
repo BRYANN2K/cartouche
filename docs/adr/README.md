@@ -19,3 +19,11 @@ Format: Status, Context, Decision, Alternatives rejected, Consequences. Files ar
 | [0012](0012-install-script-avoids-gatekeeper-warning.md) | Install script to avoid the Gatekeeper warning (amends 0003) | Accepted, 2026-10-19 |
 | [0013](0013-macgamingdb-read-live.md) | MacGamingDB is read live by the app and never redistributed (supersedes 0005 in part) | Accepted, 2026-10-19 |
 | [0014](0014-bundle-identifier-dev-bryann2k-cartouche.md) | Bundle identifier dev.bryann2k.cartouche (supersedes 0002 in part) | Accepted, 2026-10-19 |
+| [0015](0015-public-wine-builds-and-first-boot.md) | Public Wine builds and serialized first boot | Accepted, 2026-10-20 |
+| [0016](0016-built-in-archive-import.md) | Built-in archive import | Accepted, 2026-10-20 |
+| [0017](0017-installers-with-external-unpackers.md) | Installers with external unpackers | Accepted, 2026-10-20 |
+| [0018](0018-local-game-import-and-removal.md) | Local game import and safe removal | Accepted, 2026-10-20 |
+| [0019](0019-ranked-game-identification.md) | Ranked game identification | Accepted, 2026-10-20 |
+| [0020](0020-pe-based-runtime-installation.md) | PE-based runtime installation | Accepted, 2026-10-20 |
+| [0021](0021-steam-library-with-steam-closed.md) | Steam library with Steam closed | Accepted, 2026-10-20 |
+| [0022](0022-protected-steam-webui-export.md) | Steam library export through a protected WebUI route | Accepted, 2026-10-20 |

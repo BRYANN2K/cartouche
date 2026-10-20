@@ -28,10 +28,28 @@ Each phase is one OpenSpec change in `openspec/changes/`. A phase is done when e
 | P17 | `p17-mac-permissions` | Every macOS permission asked at the right moment, explained, recoverable | P0 |
 | P18 | `p18-onboarding` | First launch: install, Gatekeeper, detection, choices, permissions | P5, P17 |
 
-## Waves (what runs in parallel)
+## Current status (2026-10-20)
+
+P0–P18 have code on main. P10 remains in `openspec/changes/`; the other phase changes are archived. Archival is not proof that every original criterion passed. P5 still lacks the Steam-side full-library export writer. Real-service, real-game and clean-machine checks remain in phase evidence.
+
+Merged follow-ups include review fixes, already-installed Windows-game import (in place by default or copied), external-unpacker detection and prefix preparation, NotProton replacement, and Wine publication from BRYANN2K/cartouche-wine.
+
+Before v0.1.0, these accepted follow-ups remain planned or in progress:
+
+- CrossOver Wine as default, with serialized explicit first boot and no launch until completion (ADR 0015).
+- Shared built-in zip, rar and 7z decompression and dropped-item classification (ADR 0016).
+- Direct extraction for supported installers with external unpackers (ADR 0017, in progress; main still runs setup).
+- Managed-game uninstall to the Trash, optional save copy, and safe in-place removal (ADR 0018).
+- Ranked local identification and privacy-gated Steam search (ADR 0019).
+- PE-based runtimes, one winetricks verb at a time, timeout, Skip, Wine Mono for .NET (ADR 0020).
+- Full Steam library export through a token-protected WebUI route and cached/stale presentation when Steam is closed (ADRs 0021–0022; in progress on `phase/steam-export`).
+
+The app repository stays private until v0.1.0. Wine build recipes and assets are public in BRYANN2K/cartouche-wine. The landing page is https://cartouche.bryann2k.dev, linked from About.
+
+## Original dependency waves (historical build order)
 
 ```
-Wave 1  P0                              (running)
+Wave 1  P0                              (original starting point)
 Wave 2  P1   P4   P9   P12  P17
 Wave 3  P2   P5
 Wave 4  P3   P6   P13

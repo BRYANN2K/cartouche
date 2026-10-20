@@ -13,7 +13,7 @@ here="$(cd "$(dirname "$0")" && pwd -P)"
 
 [ $# -eq 3 ] || { echo "usage: package.sh <install folder> <source tarball> <out folder>" >&2; exit 2; }
 install=$1 source_tar=$2 out=$3
-repository=${REPOSITORY:-BRYANN2K/cartouche}
+repository=${REPOSITORY:-BRYANN2K/cartouche-wine}
 commit=${GITHUB_SHA:-$(git -C "$here" rev-parse HEAD 2>/dev/null || echo unknown)}
 
 [ -x "$install/bin/wine" ] || { echo "package.sh: $install/bin/wine is missing" >&2; exit 1; }

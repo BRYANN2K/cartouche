@@ -107,10 +107,10 @@ final class BackendInstallerTests {
 
     @Test("DXVK's x64 and x32 folders land where the run script reads them")
     func installDXVKOldLayout() async throws {
-        let files = ["x64/d3d11.dll": "MZ dxvk 64", "x64/dxgi.dll": "MZ dxgi 64", "x32/d3d11.dll": "MZ dxvk 32"]
+        let files = ["x64/d3d11.dll": "MZ dxvk 64", "x64/d3d10core.dll": "MZ d3d10core 64", "x32/d3d11.dll": "MZ dxvk 32"]
         let pin = try pin(.dxvk, for: archive("dxvk.tar.gz", top: "dxvk-macOS-async", files: files))
         let receipt = try await BackendInstaller.install(pin, backends: backends, downloads: downloads)
-        #expect(Set(receipt.files.keys) == ["x86_64-windows/d3d11.dll", "x86_64-windows/dxgi.dll", "i386-windows/d3d11.dll"])
+        #expect(Set(receipt.files.keys) == ["x86_64-windows/d3d11.dll", "x86_64-windows/d3d10core.dll", "i386-windows/d3d11.dll"])
     }
 
     @Test("A DXMT download whose SHA-256 differs is deleted and nothing is unpacked")

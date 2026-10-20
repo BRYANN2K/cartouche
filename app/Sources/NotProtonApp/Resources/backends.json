@@ -26,8 +26,8 @@
       "size": 2785833,
       "sha256": "810b1e5caf8ce975b784fae866a130ad23fa0ea233b0e5609cbc4a45f3ef6f00",
       "files": [
-        "x86_64-windows/d3d11.dll",
-        "x86_64-windows/dxgi.dll"
+        "x86_64-windows/d3d10core.dll",
+        "x86_64-windows/d3d11.dll"
       ]
     }
   ]

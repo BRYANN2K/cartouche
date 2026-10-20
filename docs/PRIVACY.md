@@ -2,11 +2,12 @@
 
 What Cartouche asks macOS for, what it sends over the network, and what stays on your Mac. Read by users, contributors and reviewers. The rules come from `openspec/specs/mac-permissions/` and `openspec/specs/compatibility-data/`, and from the code.
 
-Cartouche has no server and no account. It does not collect analytics. Every request below goes to a service run by someone else.
+Cartouche v0.1.0 has no server and no account. It does not collect analytics. Every request below goes to a service run by someone else. Opt-in statistics sharing and a public game list with user stars at cartouche.bryann2k.dev are planned for v0.1.1. No submission service or final field list is approved yet; update this page before enabling either feature.
 
 ## What is built and what is planned
 
-- Everything this page describes is merged except agent control (P11), which is still a proposal and sends nothing.
+- Agent control (P11) is merged. It exposes local tools to the MCP clients you authorize. Clients may send tool results to their own services; review the client’s policy. Cartouche itself sends no agent data to a Cartouche server.
+- Planned local-game changes are described separately below; they are not claims about current behavior.
 - FPS tracking (P8) is merged: sessions are measured and stored locally. Sharing them with MacGamingDB is coded but has no destination: MacGamingDB publishes no way to send reports. The sharing UI is hidden in v0.1.0 and comes back as an opt-in in v0.1.1 (see `docs/ROADMAP.md`). Nothing is sent.
 - Store sign-ins (P10), netplay, RetroAchievements, the translation service and iCloud Drive saves (P14) are merged and described below.
 
@@ -92,6 +93,12 @@ Cartouche sends no account, no Mac serial number and no list of your library. Th
 | The translation service you configured | When you ask to translate the screen in a console game | RetroArch sends the current frame to that service. You choose the service; Cartouche only writes its address into RetroArch's settings | The option does nothing until you set a service |
 | iCloud Drive (Apple) | While "Save states to iCloud Drive" is on | Your console save files and save states, synced by macOS like any iCloud Drive folder | Turning the option off copies the files back to the Mac |
 
+### Planned game identification and local files
+
+ADR 0019 requires local identification first: store IDs, engine metadata, PE version information, executable name, then folder names. Steam store search is a fallback only when the online-lookups privacy choice permits it. That request may reveal the searched game title and your IP address to Steam. The full ranked resolver and its privacy gate are planned; this section does not claim they are merged.
+
+Archive decompression and direct extraction of supported installers with external unpackers run locally. They do not upload game files. In-place Windows-game import is merged and leaves the original files where they are. Removing such an import must never delete those files. Planned managed-game uninstall moves the game to the Trash and offers a local copy of save files first (ADRs 0016–0018).
+
 ### MacGamingDB
 
 - The request is `GET https://macgamingdb.app/api/rest/games/<Steam App ID>`.
@@ -133,6 +140,12 @@ Cartouche sends no account, no Mac serial number and no list of your library. Th
 - The translation service is an address you set in Settings > Consoles. RetroArch's AI service sends the frame to it only when you ask for a translation.
 - With "Save states to iCloud Drive" on, Cartouche's `saves` and `states` folders become links to `iCloud Drive/Cartouche/Saves` and `…/States`. The newer copy wins when they merge, and turning the option off copies everything back. Sync is Apple's own iCloud Drive; Cartouche has no cloud.
 - Coach mode reads named values of a running game through Cartouche's own relay. It sends nothing to a server.
+
+### Steam owned-library export (in progress)
+
+The full owned-games list will come from Steam’s signed-in client, through a WebUI route registered by Cartouche’s injected dylib. Only Cartouche’s injected page script receives the random token for that Steam launch. The dylib validates the request and atomically writes SteamExport v1 `steam-library.json` locally. This adds no loopback HTTP service and requires neither a public Steam profile nor a user Web API key. The export stays on your Mac; this feature does not upload your library to Cartouche.
+
+When Steam is closed, Cartouche uses the last account-matched export even if stale and labels it cached/stale. Installed status comes from appmanifests. localconfig.vdf is play data only, not ownership. Implementation is in progress on `phase/steam-export`; see ADR 0022 and `openspec/changes/steam-export/`.
 
 ## What stays on your Mac
 
