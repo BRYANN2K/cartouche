@@ -25,7 +25,6 @@ struct CrossOverFixture: ~Copyable {
     static func patched(_ arch: WineArch) -> Data { Data("patched \(arch.rawValue) ntdll".utf8) }
 
     init(pinned: Bool = true) throws {
-        // Every throw happens before a stored property is set, as a noncopyable type requires.
         let fm = FileManager.default
         let work = try scratchDirectory("crossover-runner")
         let applications = work.appending(path: "Applications")
@@ -209,7 +208,6 @@ struct CrossOverRunnerTests {
         let started = attempt.apply(.install, to: runner.id)
         #expect(!started)
 
-        // Setting it up is refused before anything is copied.
         let install = try #require(registry.installs.first)
         #expect(throws: StepFailure.self) { try fixture.setUp(install) }
         #expect(!FileManager.default.fileExists(atPath: fixture.runners.path(percentEncoded: false)))
@@ -241,7 +239,6 @@ struct CrossOverRunnerTests {
         #expect(runner.reason == problem)
         #expect(damaged.state == .unpatched(builds: [runner.id], problems: ["\(runner.id): \(problem)"]))
 
-        // The Status pane offers Repair on that row, which sets the runner up again from its copy.
         let row = try #require(CrossOverRow.rows(
             installs: damaged.installs, licenses: [:], installed: damaged.installed,
             damaged: damaged.damaged, orphaned: damaged.orphaned, unpatched: damaged.state.builds

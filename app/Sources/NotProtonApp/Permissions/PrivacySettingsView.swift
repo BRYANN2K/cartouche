@@ -1,4 +1,3 @@
-// Settings > Privacy: every permission, its state, and the way to change it.
 
 import SwiftUI
 

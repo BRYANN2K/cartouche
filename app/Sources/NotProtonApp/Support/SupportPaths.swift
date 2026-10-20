@@ -1,5 +1,3 @@
-// Path construction for the Cartouche support directory and Steam
-
 import CartoucheIdentity
 import CartoucheMCP
 import Foundation
@@ -21,12 +19,10 @@ enum SupportPaths {
         home.appending(path: "Library/Application Support")
     }
 
-    // ~/Library/Application Support/Cartouche
     static var support: URL {
         applicationSupport.appending(path: supportDirName)
     }
 
-    // ~/Library/Logs/Cartouche
     static var logs: URL {
         home.appending(path: "Library/Logs/\(supportDirName)")
     }
@@ -44,7 +40,6 @@ enum SupportPaths {
     static var overlayShim: URL { support.appending(path: "overlay-shim.dylib") }
     static var iconmaker: URL { support.appending(path: "iconmaker") }
     static var appinfo: URL { support.appending(path: "appinfo") }
-    // The frame counter the run script injects, and the sessions it records
     static var fpsCounter: URL { support.appending(path: fpsCounterName) }
     static var performance: URL { support.appending(path: CARTOUCHE_PERFORMANCE_DIR) }
 
@@ -58,17 +53,14 @@ enum SupportPaths {
 
     static var deployedVersion: URL { support.appending(path: "dylib.version") }
 
-    // The console session on record while a game runs; a killed Cartouche
-    // reads it at the next launch to pick the session back up or count it
+    // The console session on record while a game runs; a killed Cartouche reads it at the next launch to pick the session back up or count it
     static var consoleSession: URL { support.appending(path: "console-session.json") }
 
-    // The socket the bundled cartouche-mcp helper connects to; the agent
-    // server binds it while Settings > Agents is on.
+    // The socket the bundled cartouche-mcp helper connects to; the agent server binds it while Settings > Agents is on.
     static var agentSocket: URL { MCPSocketPath.file }
 
     // Read by the dylib at Steam launch, in np_compat_load_tool_list.
     static var toolList: URL { support.appending(path: "tools") }
-    // Read with it, one tool per runner and graphics backend pair
     static var backendToolList: URL { support.appending(path: CARTOUCHE_BACKEND_TOOL_LIST) }
     static var compatRequests: URL { support.appending(path: CARTOUCHE_COMPAT_REQUESTS) }
     static var backends: URL { support.appending(path: CARTOUCHE_BACKENDS_DIR) }

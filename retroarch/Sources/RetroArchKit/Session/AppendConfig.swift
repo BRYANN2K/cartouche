@@ -1,8 +1,6 @@
 import Foundation
 
-// cartouche.cfg, which RetroArch reads after its own retroarch.cfg through
-// --appendconfig. Its values win over the user's, and it is the only
-// configuration Cartouche writes.
+// cartouche.cfg: read after retroarch.cfg via --appendconfig, so its values win over the user's.
 public struct AppendConfig: Sendable, Equatable {
 
     public enum Problem: Error, Equatable {
@@ -13,25 +11,20 @@ public struct AppendConfig: Sendable, Equatable {
     public var autoSaveState = true
     // The UDP commands, for builds that have no MCP server
     public var networkCommands = false
-    // Not RetroArch's 55355, where the user's own RetroArch may listen: a QUIT
-    // sent there would close it
+    // Not RetroArch's 55355, where the user's own RetroArch may listen: a QUIT sent there would close it.
     public var networkCommandPort: UInt16 = 55455
     public var fullscreen = false
     // Loads name.state.auto with the game: Resume
     public var autoLoadState = false
-    // Run-ahead, one frame: the panel's Lower input lag
     public var runAhead = false
     // RetroAchievements' hardcore mode, which forbids states and rewind
     public var hardcore = false
-    // Play Together: the name the other players see, and whether a hosted
-    // game is listed in libretro's lobby, played through its relay
+    // Play Together: the name other players see; announce lists in libretro's lobby, played through its relay.
     public var netplayNickname: String?
     public var netplayAnnounce = false
-    // RetroAchievements: the account RetroArch signs in with, by token
     public var achievements: AchievementsLogin?
-    // Translate the screen: RetroArch's AI service with the user's service
+    // RetroArch's AI service, with the user's service.
     public var translation: TranslationSetup?
-    // For tests and diagnostics: drivers, logging
     public var extra: [String: String] = [:]
 
     public init(paths: RetroArchPaths) { self.paths = paths }
@@ -39,8 +32,7 @@ public struct AppendConfig: Sendable, Equatable {
     public var values: [(String, String)] {
         func path(_ url: URL) -> String { url.path(percentEncoded: false) }
         var values: [(String, String)] = [
-            // RetroArch would otherwise write the merged settings, ours
-            // included, back into its retroarch.cfg when it quits
+            // Otherwise RetroArch writes the merged settings, ours included, back into its retroarch.cfg on quit.
             ("config_save_on_exit", "false"),
             ("confirm_quit", "false"),
             ("libretro_directory", path(paths.cores)),
@@ -49,8 +41,7 @@ public struct AppendConfig: Sendable, Equatable {
             ("savefile_directory", path(paths.saves)),
             ("savestate_directory", path(paths.states)),
             ("screenshot_directory", path(paths.screenshots)),
-            // Folders RetroArch would otherwise share with the user's own
-            // RetroArch, in ~/Documents/RetroArch and ~/Library/Application Support
+            // Otherwise shared with the user's own RetroArch, in ~/Documents/RetroArch and ~/Library/Application Support.
             ("playlist_directory", path(paths.playlists)),
             ("log_dir", path(paths.logs)),
             ("recording_output_directory", path(paths.recordings)),
@@ -118,8 +109,7 @@ public struct AppendConfig: Sendable, Equatable {
         ]
     }
 
-    // The same configuration with the token taken out, written again once
-    // RetroArch has read it, so the token does not stay on disk
+    // Rewritten without the token once RetroArch has read it, so the token does not stay on disk.
     public var withoutSecrets: AppendConfig {
         var copy = self
         copy.achievements?.token = ""
@@ -140,8 +130,7 @@ public struct AppendConfig: Sendable, Equatable {
 
     public func write() throws {
         try paths.create()
-        // The atomic write's temporary file would be readable before the
-        // chmod below; a 0700 folder keeps the token covered either way
+        // The atomic write's temp file is readable before the chmod below; a 0700 folder keeps the token covered either way.
         try FileManager.default.setAttributes([.posixPermissions: 0o700],
                                               ofItemAtPath: paths.appendConfig.deletingLastPathComponent().path(percentEncoded: false))
         try Data(render().utf8).write(to: paths.appendConfig, options: .atomic)

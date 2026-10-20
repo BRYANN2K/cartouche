@@ -1,5 +1,4 @@
-// Reads an Inno Setup installer with innoextract, which parses the setup data
-// without executing anything.
+// Reads an Inno Setup installer with innoextract, which parses the setup data without executing anything.
 
 import Foundation
 
@@ -21,7 +20,6 @@ public struct InnoReport: Sendable, Equatable {
         let known = ["unarc", "isdone", "facompress", "cls-lollypop", "cls-srep", "cls-magic2", "cls-mpzz", "razor", "xtool", "precomp", "liblz4", "oo2core"]
         return known.filter { k in files.contains { $0.lowercased().contains(k) } }
     }
-    // Skinned installer window (botva2), often with music.
     public var customInterface: Bool { files.contains { $0.lowercased().hasSuffix("botva2.dll") } }
     // Inno Download Plugin: the installer may fetch files while it runs.
     public var downloadsDuringInstall: Bool { files.contains { $0.lowercased().hasSuffix("idp.dll") } }

@@ -3,19 +3,13 @@ import Foundation
 import GameController
 import Observation
 
-// The Controls sheet's options for one game. Each permission is asked from
-// here, never in onboarding.
 @MainActor
 final class ControlsSession {
     let game: Game
-    // Remap keys for this game: Input Monitoring, applied after a relaunch
     let remap: GatedOption
-    // Play with a controller: Accessibility
     let play: GatedOption
-    // Reopened after a relaunch for Input Monitoring
     var opensOnKeyboard = false
 
-    // One flow each, so each row shows its own explanation
     init(game: Game, controls: GameControls, remapFlow: PermissionFlow, playFlow: PermissionFlow) {
         self.game = game
         remap = GatedOption(.inputMonitoring, flow: remapFlow, isOn: controls.remapKeys)
@@ -29,7 +23,6 @@ final class ControlsCenter {
 
     let monitor: ControllerMonitor
     let couch: CouchNavigator
-    // The game whose Controls sheet is open
     private(set) var presented: Game?
     private(set) var session: ControlsSession?
     private(set) var controls: [String: GameControls] = [:]
@@ -37,7 +30,6 @@ final class ControlsCenter {
 
     @ObservationIgnored let store: ControlsStore
     @ObservationIgnored var files: ControlsFiles
-    // Input Monitoring's flow, which the relaunch service watches, and Accessibility's
     @ObservationIgnored let flow: PermissionFlow
     @ObservationIgnored let playFlow: PermissionFlow
     @ObservationIgnored weak var relaunch: RelaunchService?
@@ -46,15 +38,12 @@ final class ControlsCenter {
     @ObservationIgnored let focus: any GameFocus
     @ObservationIgnored let keyboardPlay: KeyboardPlayBridge
     @ObservationIgnored let remapper: KeyRemapper
-    // Whether Cartouche is the frontmost app; couch mode acts only then
     @ObservationIgnored var isActive: @MainActor () -> Bool = { NSApp.isActive }
-    // Game controller events reach a background app only when asked for
     @ObservationIgnored var backgroundEvents: @MainActor (Bool) -> Void = { GCController.shouldMonitorBackgroundEvents = $0 }
     @ObservationIgnored private var monitoringBackground = false
     @ObservationIgnored var open: @MainActor (URL) -> Void = { NSWorkspace.shared.open($0) }
     @ObservationIgnored private var loop: Task<Void, Never>?
     @ObservationIgnored private var frontObserver: (any NSObjectProtocol)?
-    // The option-using game that is in front, found on each tick
     @ObservationIgnored private(set) var frontmostGame: Game?
 
     init(
@@ -81,26 +70,20 @@ final class ControlsCenter {
         controls = await store.all()
     }
 
-    // The library the games come from, and the relaunch service that reopens Controls
     func connect(relaunch: RelaunchService, library: LibraryModel) {
         self.relaunch = relaunch
         self.library = library
         couch.library = library
         relaunch.center = permissions
-        // The screen to reopen if macOS's Quit & Reopen comes after the Input Monitoring prompt
         relaunch.watch(flow) { [weak self] in self?.route }
     }
 
-    // The app's own start: controllers, the saved choices, and the poll
     func start(relaunch: RelaunchService, library: LibraryModel) async {
-        // The window's task runs again when the window comes back
         guard loop == nil else { return }
         connect(relaunch: relaunch, library: library)
         monitor.start()
         await load()
         couch.start()
-        // Frontmost changes start and stop the taps; the fast poll only runs
-        // while a game that needs it is the one in front
         frontObserver = NotificationCenter.default.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
         ) { [weak self] _ in
@@ -133,8 +116,6 @@ final class ControlsCenter {
 
     var route: ScreenRoute? { presented.map { ScreenRoute.controls(game: $0.id, finishing: .inputMonitoring) } }
 
-    // After a relaunch the relaunch service asked for: the same game's Controls,
-    // with the option the permission was for turned on without asking again
     func reopen(_ route: ScreenRoute) async {
         guard route.screen == "controls", let id = route.detail, let game = library?.game(id) else { return }
         library?.select(id)
@@ -147,7 +128,6 @@ final class ControlsCenter {
         }
     }
 
-    // Saves the choice and writes what the next launch reads
     func update(_ game: Game, _ change: (inout GameControls) -> Void) async {
         var value = controls(for: game)
         change(&value)
@@ -163,7 +143,7 @@ final class ControlsCenter {
         tick(now: ProcessInfo.processInfo.systemUptime)
     }
 
-    // Steam Input's settings for the game live in Steam
+    // Steam Input settings live in Steam.
     func openInSteam(_ game: Game) {
         guard let appID = game.steamAppID else { return }
         open(URL(string: "steam://nav/games/details/\(appID)")!)
@@ -171,7 +151,6 @@ final class ControlsCenter {
 
     // MARK: The poll
 
-    // Games whose option is on and whose permission macOS gave
     var keyboardPlayGames: [Game] {
         guard permissions.state(.accessibility) == .allowed else { return [] }
         return games { $0.playWithController }
@@ -188,8 +167,7 @@ final class ControlsCenter {
 
     var needsPolling: Bool { couch.isOn || !keyboardPlayGames.isEmpty || !keyRemapGames.isEmpty }
 
-    // 16 ms only while a game that needs it, or couch mode's own window, is in
-    // front; everything else ticks once a second and on frontmost changes
+    // 16 ms only while a game that needs it, or couch mode's window, is in front; else once a second plus frontmost changes.
     private var wantsFastPoll: Bool {
         if couch.isOn && isActive() { return true }
         guard let frontmostGame else { return false }

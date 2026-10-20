@@ -1,5 +1,4 @@
-// installer-inspect <folder> [--verify] [--json]
-// Prints what the launcher would show before installing. Never runs the installer.
+// installer-inspect <folder> [--verify] [--json] Prints what the launcher would show before installing. Never runs the installer.
 
 import Foundation
 import InstallerKit
@@ -49,7 +48,6 @@ if let manifest = Checksums.findManifest(in: folder), let parsed = try? Checksum
     if args.contains("--verify") {
         let start = Date()
         let results = (try? await Checksums.verify(parsed, root: folder)) ?? [:]
-        // Same-named files in different folders collide on lastPathComponent.
         var named: [String: String] = [:]
         for (url, result) in results {
             var name = url.lastPathComponent

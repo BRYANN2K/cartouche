@@ -1,12 +1,4 @@
-// The mockup's WebGL cover reveal (launcher.html, "Download reveal shader") in
-// Metal: the gray cover burns into color from the bottom behind a domain-warped
-// noise front, with a rim tinted by the cover's own colors, refraction and a
-// chromatic split right behind the front, embers rising off it, and a ring of
-// light when the download completes.
-//
-// The source is compiled when the app first needs it, with the Metal framework's
-// own compiler: the offline metal tool is an optional Xcode download that neither
-// this build nor CI can count on.
+// The mockup's WebGL cover reveal in Metal; compiled at runtime because the offline metal tool is an optional Xcode download.
 
 import CoreGraphics
 import Foundation
@@ -15,7 +7,6 @@ import MetalKit
 
 // Matches the shader's U struct: four floats, then a float2 and a float4, 16-byte aligned
 struct RevealUniforms: Equatable, Sendable {
-    // Progress, 0 to 1
     var progress: Float = 0
     // Seconds, for the moving noise; 0 freezes it
     var time: Float = 0
@@ -80,22 +71,17 @@ enum RevealShader {
         float2 g = float2(field(p + float2(e, 0), t) - field(p - float2(e, 0), t),
                           field(p + float2(0, e), t) - field(p - float2(0, e), t)) / (2.0 * e);
         float band = exp(-abs(d) * 22.0);
-        // Liquid-glass refraction near the front, split per channel
         float2 off = g * 0.010 * band * (1.0 - F);
         float3 col = float3(T.sample(s, tc + off * 1.0).r, T.sample(s, tc + off * 1.6).g, T.sample(s, tc + off * 2.3).b);
-        // Freshly revealed color is a little hotter
         col = mix(col, col * 1.18 + 0.04, band * 0.6);
         float3 base = T.sample(s, tc).rgb;
-        // The gray side soaks darker right above the front
         float3 g0 = gray(base) * 0.8 * (1.0 - 0.45 * exp(-max(d, 0.0) * 16.0));
         float reveal = 1.0 - smoothstep(-0.004, 0.004, d);
         float3 c = mix(g0, col, reveal);
-        // Rim: a white core, then a glow tinted by the cover's own colors
         float core = 1.0 - smoothstep(0.0, 0.006, abs(d));
         float glow = exp(-abs(d) * 46.0) * (0.75 + 0.25 * sin(t * 6.0 + uv.x * 20.0));
         float3 tint = normalize(T.sample(s, u.crop.xy + float2(uv.x, 1.0 - front) * u.crop.zw).rgb + 0.15) * 1.2;
         c += (tint * glow * 0.8 + float3(1.0, 0.95, 0.85) * core) * (1.0 - F) * step(0.001, P) * step(P, 0.999);
-        // Embers drifting up from the front into the gray part
         if (u.M > 0.5) {
             for (int i = 0; i < 26; i++) {
                 float fi = float(i), sd = h(float2(fi, 3.1));
@@ -108,7 +94,6 @@ enum RevealShader {
                 c += tint * 1.4 * smoothstep(r, 0.0, dd) * (1.0 - life) * (1.0 - F) * step(0.01, P);
             }
         }
-        // Finish: a ring of light sweeps out from the center, then settles
         float ring = exp(-abs(length((uv - 0.5) * float2(aspect, 1.0)) - (1.0 - F) * 0.9) * 26.0) * F;
         c += ring * 0.9 + F * F * 0.25;
         return float4(c, 1.0);
@@ -116,8 +101,7 @@ enum RevealShader {
     """
 }
 
-// One device, queue and pipeline for every cover. Nil when the Mac has no Metal
-// device or the source does not compile, and the static split is used instead.
+// Nil when there is no Metal device or the source does not compile; the static split is used instead.
 final class RevealRenderer: @unchecked Sendable {
 
     static let pixelFormat = MTLPixelFormat.bgra8Unorm
@@ -135,7 +119,6 @@ final class RevealRenderer: @unchecked Sendable {
 
     private static let made: RevealRenderer? = RevealRenderer()
 
-    // The first call compiles the shader; the app warms it up off the main thread
     static var shared: RevealRenderer? { made }
 
     static func warmUp() {
@@ -172,7 +155,6 @@ final class RevealRenderer: @unchecked Sendable {
         return texture
     }
 
-    // Aspect-fill: the part of the image a target of this shape shows
     static func crop(image: CGSize, target: CGSize) -> SIMD4<Float> {
         guard image.width > 0, image.height > 0, target.width > 0, target.height > 0 else { return SIMD4(0, 0, 1, 1) }
         let imageAspect = image.width / image.height, targetAspect = target.width / target.height
@@ -194,7 +176,6 @@ final class RevealRenderer: @unchecked Sendable {
         encoder.endEncoding()
     }
 
-    // One frame into an image, for tests and evidence frame captures
     func render(_ image: CGImage, width: Int, height: Int, uniforms: RevealUniforms) -> CGImage? {
         guard let source = texture(for: image) else { return nil }
         let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: Self.pixelFormat, width: width, height: height, mipmapped: false)

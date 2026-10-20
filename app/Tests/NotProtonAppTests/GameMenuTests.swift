@@ -84,8 +84,7 @@ struct GameMenuTests {
         #expect(actions.contains(.graphics(.dxmt)) && actions.contains(.hide) && actions.contains(.changeCover))
         #expect(actions.contains(.showInFinder) && actions.contains(.uninstall))
 
-        // The Game menu renders GameMenu.items for the selected game, the same call as the context menu
-        let app = try String(contentsOf: IdentityTests.repoRoot.appending(path: "app/Sources/NotProtonApp/App.swift"), encoding: .utf8)
+        let app = try String(contentsOf: IdentityTests.repoRoot.appending(path: "app/Sources/NotProtonApp/App/AppCommands.swift"), encoding: .utf8)
         let grid = try String(contentsOf: IdentityTests.repoRoot.appending(path: "app/Sources/NotProtonApp/Library/Views/LibraryGrid.swift"), encoding: .utf8)
         #expect(app.contains("GameMenuContent(items: GameMenu.items(for: game, in: model, stores: stores))"))
         #expect(grid.contains("menu: { GameMenu.items(for: game, in: model, stores: stores) }"))
@@ -107,9 +106,10 @@ struct GameMenuTests {
     @Test("Settings ⌘, and Find ⌘F are in the app's menus, and Install no longer takes ⌘I")
     func appShortcuts() throws {
         let app = try String(contentsOf: IdentityTests.repoRoot.appending(path: "app/Sources/NotProtonApp/App.swift"), encoding: .utf8)
+        let menus = try String(contentsOf: IdentityTests.repoRoot.appending(path: "app/Sources/NotProtonApp/App/AppCommands.swift"), encoding: .utf8)
         #expect(app.contains("Settings {"))
-        #expect(app.contains("Button(\"Find\")") && app.contains(".keyboardShortcut(\"f\", modifiers: .command)"))
-        #expect(!app.contains(".keyboardShortcut(\"i\", modifiers: .command)"))
+        #expect(menus.contains("Button(\"Find\")") && menus.contains(".keyboardShortcut(\"f\", modifiers: .command)"))
+        #expect(!menus.contains(".keyboardShortcut(\"i\", modifiers: .command)"))
         #expect(app.contains("MenuBarExtra(isInserted: $showInMenuBar)"))
     }
 }

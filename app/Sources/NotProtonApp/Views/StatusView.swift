@@ -1,5 +1,3 @@
-// 'Status' view, see SystemStatus for actual logic
-
 import SwiftUI
 
 enum StatusTone: Sendable {

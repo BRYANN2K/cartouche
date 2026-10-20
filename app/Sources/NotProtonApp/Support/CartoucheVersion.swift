@@ -1,8 +1,6 @@
 import Foundation
 
-// Orders Cartouche versions the semver way: 0.1.0 < 0.2.0-beta.1 < 0.2.0-beta.2 < 0.2.0.
-// String.compare(options: .numeric) puts 0.2.0-beta.1 after 0.2.0, which would make
-// a beta look newer than its release. packaging/release.py version_key agrees.
+// String.compare(options: .numeric) puts 0.2.0-beta.1 after 0.2.0; packaging/release.py version_key agrees.
 enum CartoucheVersion {
 
     static func compare(_ lhs: String, _ rhs: String) -> ComparisonResult {
@@ -14,7 +12,6 @@ enum CartoucheVersion {
             let y = i < b.core.count ? b.core[i] : 0
             if x != y { return x < y ? .orderedAscending : .orderedDescending }
         }
-        // A pre-release comes before the release it leads to
         switch (a.pre.isEmpty, b.pre.isEmpty) {
         case (true, true): return .orderedSame
         case (true, false): return .orderedDescending
@@ -38,7 +35,6 @@ enum CartoucheVersion {
         }
     }
 
-    // Digits only: Int("+1") would also read as 1
     fileprivate static func number(_ text: String) -> Int? {
         !text.isEmpty && text.allSatisfy { $0.isASCII && $0.isNumber } ? Int(text) : nil
     }

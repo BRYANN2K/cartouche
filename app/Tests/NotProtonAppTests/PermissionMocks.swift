@@ -17,7 +17,6 @@ final class FakeTCC: PermissionProbe, PermissionRequester, Sendable {
     }
 
     private let calls = Mutex(Calls())
-    // Like the live probe, these answer only to a deep check
     let deepOnly: Set<Permission>
 
     static let fileChecks: Set<Permission> = [.appManagement, .downloads, .removableVolumes]

@@ -118,8 +118,6 @@ struct CrossOverLicenseTests {
         #expect(status.detail == CrossOverLicense.notActivated)
     }
 
-    // Both read the same to the user, so the log is the only thing left that can tell an
-    // install that never had a license from one whose license was refused.
     @Test("No license file reads apart from a license that fails")
     func absentLicenseReadsApartFromInvalid() throws {
         let fix = try Self.fixture()
@@ -154,8 +152,6 @@ struct CrossOverLicenseTests {
         #expect(status.detail == CrossOverLicense.notActivated)
     }
 
-    // The sidecar that verifies is not always the first one present, and taking only
-    // the first turned a good license into an invalid one.
     @Test("A stale .sha256 does not condemn a license the .sig verifies")
     func staleSidecarDoesNotCondemnTheLicense() throws {
         let fix = try Self.fixture()
@@ -202,8 +198,6 @@ struct CrossOverLicenseTests {
         #expect(status.detail == CrossOverLicense.notActivated)
     }
 
-    // The reason reaches the user only through the thrown failure. requireValid searches the
-    // machine's own directories, so only the two agreeing is fixed, not the text itself.
     @Test("The refusal carries the reason the check found and nothing else")
     func refusalCarriesTheReason() throws {
         let fix = try Self.fixture()
@@ -225,8 +219,6 @@ struct CrossOverLicenseTests {
         }
     }
 
-    // An unreadable key exits the same status as a signature that does not match, which
-    // leaves the log as the only place the two are told apart.
     @Test("An unreadable verification key reads apart from a license that fails in the log")
     func unreadableKeyReadsApartFromInvalid() throws {
         let fix = try Self.fixture()
@@ -241,7 +233,6 @@ struct CrossOverLicenseTests {
         #expect(status.detail == CrossOverLicense.notActivated)
     }
 
-    // Same exit status again, and the license here is the one thing known to be good.
     @Test("A signature openssl cannot read is not called an invalid license")
     func unreadableSidecarIsNotCalledInvalid() throws {
         let fix = try Self.fixture()

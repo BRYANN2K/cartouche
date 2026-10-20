@@ -99,7 +99,6 @@ struct RunnerManifestTests {
         #expect(RunnerManifest.merged(bundled: shipped, refreshed: swapped) == shipped)
     }
 
-    // A throwaway EdDSA key, never the real one; serves runners.json and its .sig
     static func feed(manifest: Data, key: Curve25519.Signing.PrivateKey) throws
         -> (Curve25519.Signing.PublicKey, @Sendable (URL) async throws -> (Data, Int)) {
         let signature = try key.signature(for: manifest)
@@ -151,20 +150,17 @@ struct RunnerManifestTests {
         let newer = try Self.manifest([Self.entry()], revision: shipped.revision + 1)
         let key = Curve25519.Signing.PrivateKey().publicKey
 
-        // No signature file at all
         let noSig = await RunnerManifest.refresh(from: url, cache: cache, fetch: { url in
             url.pathExtension == "sig" ? (Data(), 404) : (newer, 200)
         }, key: key)
         guard case .rejected = noSig else { Issue.record("\(noSig)"); return }
         #expect(!FileManager.default.fileExists(atPath: cache.path(percentEncoded: false)))
 
-        // Signed by another key
         let forged = try Self.feed(manifest: newer, key: Curve25519.Signing.PrivateKey())
         let wrong = await RunnerManifest.refresh(from: url, cache: cache, fetch: forged.1, key: key)
         guard case .rejected = wrong else { Issue.record("\(wrong)"); return }
         #expect(!FileManager.default.fileExists(atPath: cache.path(percentEncoded: false)))
 
-        // Garbage in the signature file
         let garbage = await RunnerManifest.refresh(from: url, cache: cache, fetch: { url in
             url.pathExtension == "sig" ? (Data("not a signature".utf8), 200) : (newer, 200)
         }, key: key)
@@ -187,7 +183,6 @@ struct RunnerManifestTests {
         let key = Curve25519.Signing.PrivateKey().publicKey
         #expect(RunnerManifest.current(cache: cache, key: key) == shipped)
 
-        // Signed by a different key than the one asked
         let signing = Curve25519.Signing.PrivateKey()
         let signature = try signing.signature(for: newer)
         try Data(signature.base64EncodedString().utf8)

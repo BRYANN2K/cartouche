@@ -44,7 +44,6 @@ struct ProgressTrackerTests {
             if s < 301 { #expect(!last.stuck) }
         }
         #expect(last.stuck)
-        // Growth clears it.
         #expect(!t.record(bytes: 30, cpu: 0.5, at: t0 + 302).stuck)
     }
 
@@ -121,7 +120,6 @@ struct InstallRunnerTests {
         try run.start()
         let seen = Box<InstallProgress>()
         _ = await run.monitor(folder: folder, expected: 1000, policy: .init(interval: 0.5)) { seen.append($0) }
-        // One busy shell is about one core: a wrong time unit would be off by the timebase.
         let peak = seen.all.map(\.cpu).max() ?? 0
         #expect(peak > 30)
         #expect(peak < 150)

@@ -15,11 +15,9 @@ public enum OfficialReleaseError: Error, Equatable, LocalizedError {
     }
 }
 
-// A stable RetroArch from the libretro buildbot, kept in Cartouche's builds
-// folder. The disk image is opened read-only and RetroArch.app copied out.
+// The disk image is opened read-only and RetroArch.app copied out.
 public struct OfficialRelease: Sendable {
 
-    // Stable releases offered in Settings, newest first
     public static let versions = ["1.22.2"]
 
     public static let stable = URL(string: "https://buildbot.libretro.com/stable/")!

@@ -1,9 +1,7 @@
 import Foundation
 import Network
 
-// The optional HTTP transport: POST /mcp with a JSON-RPC body and a bearer
-// token, on loopback only. Off by default; the token is made once and shown
-// in Settings > Agents.
+// POST /mcp with a JSON-RPC body and a bearer token, loopback only; off by default, token made once, shown in Settings > Agents.
 public final class MCPHTTPServer: @unchecked Sendable {
 
     public enum HTTPError: LocalizedError {
@@ -40,8 +38,7 @@ public final class MCPHTTPServer: @unchecked Sendable {
 
     public var port: UInt16 { lock.withLock { boundPort } }
 
-    // Reports "running" once bound or the failure reason — the listener can
-    // only say "port in use" asynchronously, after start() already returned.
+    // The listener can only say "port in use" asynchronously, after start() already returned.
     public var onState: (@Sendable (String) -> Void)?
 
     public init(token: String, handler: @escaping @Sendable (Data) async -> Data) {
@@ -112,8 +109,7 @@ public final class MCPHTTPServer: @unchecked Sendable {
         }
     }
 
-    // Reads until the request is complete (headers + Content-Length body),
-    // answers, then closes: one request per connection keeps state simple.
+    // One request per connection keeps state simple.
     private func receive(on connection: NWConnection, id: UUID) {
         connection.receive(minimumIncompleteLength: 1, maximumLength: 1 << 20) { [weak self] data, _, complete, error in
             guard let self else { return }
@@ -130,9 +126,7 @@ public final class MCPHTTPServer: @unchecked Sendable {
                     return
                 }
             } catch {
-                // Bad framing (negative or malformed Content-Length, chunked):
-                // answer 400 and close rather than wait for bytes that never
-                // make a whole request.
+                // Bad framing (negative or malformed Content-Length, chunked): answer 400 rather than wait for bytes that never make a whole request.
                 connection.send(content: Self.response(400, #"{"error":"bad request"}"#),
                                 completion: .contentProcessed { [weak self] _ in self?.drop(id) })
                 return
@@ -149,8 +143,7 @@ public final class MCPHTTPServer: @unchecked Sendable {
     // MARK: The request/answer
 
     private func answer(_ request: Request) async -> Data {
-        // A browser on another site could reach the loopback port through DNS
-        // rebinding: Host must name loopback, and a sent Origin must too.
+        // A browser on another site could reach the loopback port through DNS rebinding: Host must name loopback, and a sent Origin must too.
         guard Self.acceptsHost(request) else {
             return Self.response(403, #"{"error":"forbidden"}"#)
         }
@@ -185,8 +178,7 @@ public final class MCPHTTPServer: @unchecked Sendable {
         return Data((head + body).utf8)
     }
 
-    // Compared at constant cost so a guessing token learns nothing from how
-    // far in it differs.
+    // Compared at constant cost so a guessing token learns nothing from how far in it differs.
     static func authorized(_ header: String?, token: String) -> Bool {
         guard let header else { return false }
         let expected = "Bearer \(token)"
@@ -213,9 +205,7 @@ public final class MCPHTTPServer: @unchecked Sendable {
         return true
     }
 
-    // Nil until the buffer holds the whole request; throws when the framing is
-    // wrong so the caller can answer 400 instead of waiting on a size that
-    // never arrives (or trapping on a negative one).
+    // Nil until the whole request is buffered; throws on bad framing so the caller answers 400 instead of waiting on a size that never arrives.
     static func request(in buffer: Data) throws -> Request? {
         guard let end = buffer.range(of: Data("\r\n\r\n".utf8)) else { return nil }
         let head = String(decoding: buffer[..<end.lowerBound], as: UTF8.self)

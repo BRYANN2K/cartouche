@@ -1,5 +1,3 @@
-// Validation for downloaded Valve binaries
-
 import Foundation
 
 struct ValvePackage: Sendable, Equatable, Identifiable {

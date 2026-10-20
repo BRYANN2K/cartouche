@@ -1,5 +1,3 @@
-// Logic for Prefix menu, not great, could use some improvements
-
 import Foundation
 
 struct SteamLibrary: Sendable, Hashable {
@@ -97,7 +95,6 @@ enum PrefixStore {
         return name
     }
 
-    // Every appid under compatdata that actually has a prefix.
     static func all(
         libraries: [SteamLibrary] = PrefixStore.libraries(),
         userdata: URL = SupportPaths.Steam.userData.appending(path: "userdata")
@@ -394,8 +391,7 @@ enum PrefixStore {
         return serverIsBusy(prefix, root: root, lsof: lsof, drainTimeout: drainTimeout)
     }
 
-    // A launch takes this lock while it sets the prefix up. Holding it stops a launch from
-    // starting partway through a rebuild/delete.
+    // A launch takes this lock while it sets the prefix up. Holding it stops a launch from starting partway through a rebuild/delete.
     static func claim(
         _ prefix: WinePrefix, root: URL = serverRoot, lsof: String = "/usr/sbin/lsof",
         drainTimeout: DispatchTimeInterval = .seconds(2)

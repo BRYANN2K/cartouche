@@ -19,9 +19,6 @@ struct SteamAppInfoTests {
 
     static let table = ["appinfo", "common", "name", "oslist", "steam_release_date", "depots", "config"]
 
-    // Elden Ring is Windows only, Baldur's Gate 3 and Cyberpunk 2077 have a Mac build,
-    // Hollow Knight lists both with a number and a nested section around its oslist,
-    // an app with no oslist is Windows, a Mac-only app has no Windows version to pick
     static let apps: [(UInt32, String?)] = [
         (1_245_620, "windows"), (1_086_940, "windows,macos"), (1_091_500, "macos,windows"),
         (367_520, "windows,macos,linux"), (440, nil), (12_345, "macos"),

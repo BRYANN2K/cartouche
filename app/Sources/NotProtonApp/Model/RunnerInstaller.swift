@@ -1,4 +1,3 @@
-// Clones CrossOver's Wine runtime into ~/Library/Application Support/Cartouche/runners
 
 import Darwin
 import Foundation
@@ -100,8 +99,6 @@ enum RunnerInstaller {
         }
     }
 
-    // Also catches templates left on a drive that was not present (unplugged or unmounted)
-    // at the time the deployed copy of CrossOver was removed.
     static func removeStalePrefixTemplates(
         runners: URL, libraries: [SteamLibrary], reportBusy: Bool = true
     ) -> [StepFailure] {
@@ -223,8 +220,7 @@ enum RunnerInstaller {
         }
     }
 
-    // Wine keeps a wineserver running inside the clone, so a process running from there is a
-    // live session.
+    // Wine keeps a wineserver running inside the clone, so a process running from there is a live session.
     static func isRunning(from clone: URL, ps: String = "/bin/ps") -> Bool {
         guard let result = try? Shell.run(ps, ["-axww", "-o", "comm="]), result.succeeded
         else { return true }

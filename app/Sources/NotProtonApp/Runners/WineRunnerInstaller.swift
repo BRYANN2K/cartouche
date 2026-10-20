@@ -1,5 +1,4 @@
-// Downloads a Wine build from the runner manifest, checks it against its pin and
-// unpacks it into runners/<id>. Nothing is unpacked before the SHA-256 matches.
+// Downloaded Wine checked against its pin; nothing is unpacked before the SHA-256 matches.
 
 import Foundation
 
@@ -41,7 +40,6 @@ enum WineRunnerInstaller {
         }
     }
 
-    // The build's folder on disk, whichever naming it was made with
     static func dir(for id: String, runners: URL = SupportPaths.runners) -> URL {
         candidates(for: id, runners: runners).first {
             var isDir: ObjCBool = false
@@ -66,7 +64,6 @@ enum WineRunnerInstaller {
         [loader, "bin/wineserver"] + WineArch.allCases.map { "lib/wine/\($0.rawValue)/ntdll.dll" }
     }
 
-    // Files that no longer match the receipt. Empty means ready.
     static func verify(_ id: String, runners: URL = SupportPaths.runners) -> [String] {
         guard let root = installedFolder(for: id, runners: runners),
               let receipt = receipt(for: id, runners: runners) else { return [] }
@@ -92,7 +89,6 @@ enum WineRunnerInstaller {
         return try unpack(archive, build: build, runners: runners, extraHashes: extras)
     }
 
-    // Unpacks next to the runners folder and moves the build in only when it is complete
     static func unpack(
         _ archive: URL, build: RunnerManifest.Build, runners: URL, extraHashes: Set<String> = []
     ) throws -> Receipt {

@@ -1,8 +1,5 @@
-// Pause and Resume go to Steam through the code Cartouche injects in Steam's UI:
-// the app writes the command to steam-downloads.json, the page reads it from
-// Steam's own loopback host and calls SteamClient.Downloads. Steam has no
-// steam:// link for either. Cancel and Try Again are steam:// links, so Steam
-// confirms before it deletes anything.
+// Pause and Resume go to Steam through code Cartouche injects in Steam's UI: the command goes to steam-downloads.json,
+// the injected page reads it from Steam's loopback host and calls SteamClient.Downloads. Cancel and Try Again are steam:// links.
 
 import AppKit
 import Foundation
@@ -15,18 +12,16 @@ protocol SteamDownloadControlling: AnyObject {
     func retry(appID: Int) throws
 }
 
-// The file the injected page polls. Version 1.
 struct SteamDownloadCommandFile: Codable, Equatable, Sendable {
     struct Command: Codable, Equatable, Sendable {
         enum Verb: String, Codable, Sendable {
             case pause, resume
         }
 
-        // Increases with every command, so the page runs each one once
         let id: Int
         let appid: Int
         let verb: Verb
-        // Unix time; the page ignores anything older than 30 seconds
+        // The page ignores anything older than 30 seconds
         let at: Int
     }
 
@@ -34,7 +29,6 @@ struct SteamDownloadCommandFile: Codable, Equatable, Sendable {
     var commands: [Command] = []
 
     static let fileName = "steam-downloads.json"
-    // Enough for the page to catch up after a slow poll
     static let kept = 16
 }
 

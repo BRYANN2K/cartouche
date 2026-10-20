@@ -1,12 +1,10 @@
 import CryptoKit
 import Foundation
 
-// One BIOS file a core can use, and what the BIOS folder holds for it
 public struct BIOSFile: Sendable, Equatable, Identifiable {
     public enum State: Sendable, Equatable {
         case found
         case missing
-        // There, but its MD5 is not the one the core expects
         case wrongFile
     }
 
@@ -19,8 +17,7 @@ public struct BIOSFile: Sendable, Equatable, Identifiable {
     public var id: String { name }
 }
 
-// What a console's games need from the BIOS folder. It names files and MD5s
-// only: Cartouche never offers a BIOS download.
+// What a console's games need from the BIOS folder. It names files and MD5s only: Cartouche never offers a BIOS download.
 public struct BIOSStatus: Sendable, Equatable {
     public enum Summary: Sendable, Equatable {
         case notNeeded
@@ -65,7 +62,6 @@ public struct BIOSChecker: Sendable {
                 needed: !firmware.optional || accepted.contains(firmware.path),
                 state: state(of: firmware.path, md5: firmware.md5))
         }
-        // Named by the console's rule though the .info file is not here yet
         for name in accepted where !files.contains(where: { $0.name == name }) {
             files.append(BIOSFile(name: name, description: name, md5: nil, needed: true, state: state(of: name, md5: nil)))
         }

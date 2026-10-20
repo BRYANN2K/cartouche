@@ -1,7 +1,4 @@
-// The Wine builds Cartouche may download, each pinned by URL, size and SHA-256.
-// Shipped with the app as runners.json; a newer copy published next to the
-// compatibility data can add builds without an app update. The published copy is
-// trusted only with a valid EdDSA signature from the Sparkle key (docs/RELEASE.md).
+// Each build pinned by URL, size and SHA-256; a published manifest is trusted only with a valid EdDSA signature from the Sparkle key.
 
 import CryptoKit
 import Foundation
@@ -23,14 +20,12 @@ struct RunnerManifest: PinnedManifest {
         let id: String
         let kind: String
         let origin: Origin
-        // Product name, not translated
         let name: String
         let version: String
         let displayVersion: String
         let url: URL
         let size: Int64
         let sha256: String
-        // The folder inside the archive that becomes runners/<id>
         let root: String
         let loader: String
         let flavors: [String]
@@ -85,8 +80,7 @@ extension RunnerManifest {
 
     static var cacheFile: URL { SupportPaths.support.appending(path: "runners.json") }
 
-    // The newer of the shipped copy and a refreshed one. A refreshed copy may add builds
-    // and drop them, but a build it shares with the shipped copy must keep its pin.
+    // A refreshed copy may add or drop builds, but a shared build must keep its pin.
     static func merged(bundled: RunnerManifest, refreshed: RunnerManifest?) -> RunnerManifest {
         guard let refreshed, refreshed.revision > bundled.revision else { return bundled }
         for build in refreshed.builds {
@@ -98,7 +92,6 @@ extension RunnerManifest {
         return refreshed
     }
 
-    // What the app installs from. Falls back to an empty list only if the app itself is broken.
     static func current(cache: URL = cacheFile, key: Curve25519.Signing.PublicKey? = signingKey()) -> RunnerManifest {
         let shipped: RunnerManifest
         do {
@@ -111,9 +104,7 @@ extension RunnerManifest {
         return merged(bundled: shipped, refreshed: refreshed)
     }
 
-    // The cached copy is trusted like the published one: without a signed .sig it
-    // could offer builds CI never pinned. A missing key means a build environment
-    // where nothing is signed, so the cache is read as is.
+    // Without a signed .sig a cached copy could offer builds CI never pinned; a missing key means an unsigned build environment, so the cache is read as is.
     private static func verified(cache: URL, key: Curve25519.Signing.PublicKey?) -> Data? {
         guard let data = try? Data(contentsOf: cache) else { return nil }
         guard let key else { return data }
@@ -137,8 +128,6 @@ extension RunnerManifest {
         manifest.appendingPathExtension("sig")
     }
 
-    // The public half of the key CI signs with: the Sparkle key, already shipped for
-    // the appcast as SUPublicEDKey. Nil outside the app bundle (tests pass their own).
     static func signingKey(bundle: Bundle = .main) -> Curve25519.Signing.PublicKey? {
         (bundle.object(forInfoDictionaryKey: "SUPublicEDKey") as? String)
             .flatMap { Data(base64Encoded: $0) }
@@ -159,8 +148,7 @@ extension RunnerManifest {
         case unavailable
     }
 
-    // Keeps the published copy when it is signed, valid and newer than what the app has.
-    // A manifest the shipped key does not sign is refused and the bundled copy stays.
+    // Unsigned or invalid manifests are refused; the bundled copy stays.
     static func refresh(
         from url: URL, cache: URL = cacheFile,
         fetch: @Sendable (URL) async throws -> (Data, Int) = HTTPFetch.download(

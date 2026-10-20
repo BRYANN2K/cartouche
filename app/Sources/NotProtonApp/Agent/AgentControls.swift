@@ -2,10 +2,8 @@ import Foundation
 import RetroArchKit
 import UserNotifications
 
-// The controls tools: the agent reads and writes the same GameControls the
-// Controls sheet does, so an SDL mapping, a RetroArch remap or the Mac
-// driver keys land exactly where a user's choice would. Steam games stay
-// refused — Steam Input owns their layout.
+// The agent reads and writes the same GameControls the Controls sheet does, so mappings land where a user's choice
+// would. Steam games stay refused - Steam Input owns their layout.
 struct AgentControls: AgentToolProvider {
 
     func tools() -> [AgentTool] {
@@ -217,25 +215,19 @@ struct AgentControls: AgentToolProvider {
 
 }
 
-// Approval alerts outside the app window: "Claude wants to…" with Allow/Deny.
-// The answer itself always goes through AgentService.answer — a notification
-// tap just brings the app forward; the buttons answer directly. Everything goes
-// through NotificationRouter, the app's one notification delegate.
+// The answer always goes through AgentService.answer - a notification tap just brings the app forward. Everything goes through NotificationRouter, the app's one notification delegate.
 enum AgentNotifier {
 
     static let category = "CARTOUCHE_AGENT_APPROVAL"
     static let allowAction = "allow"
     static let denyAction = "deny"
 
-    // Answered in the app or timed out: the alert goes away. The center only exists in an .app bundle.
     static func dismiss(_ id: UUID) {
         guard Bundle.main.bundleURL.pathExtension == "app" else { return }
         UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: [id.uuidString])
     }
-    // The live answer hop; tests swap it.
     @MainActor static var onAnswer: @MainActor (UUID, Bool) -> Void = { _, _ in }
 
-    // Called once at launch so a tap on a notification from a previous run still answers
     @MainActor
     static func register(in router: NotificationRouter = .shared) {
         router.handle(category: category) { action, info in

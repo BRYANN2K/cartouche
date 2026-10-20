@@ -22,8 +22,6 @@ struct SteamBundleTests {
         )
     }
 
-    // Without it, the pattern matches any process whose command line merely mentions the
-    // path, including this test runner.
     @Test("Every pattern is directory-scoped")
     func patternsAreDirectoryScoped() {
         let patterns = SteamBundle.sweepPatterns(

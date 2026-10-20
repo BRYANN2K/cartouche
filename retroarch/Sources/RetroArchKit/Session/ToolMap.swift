@@ -1,8 +1,7 @@
 import Foundation
 
-// The RetroArch tools Cartouche calls, matched by name against what the
-// running build lists, with the parameters Cartouche sends. A build whose
-// list lacks one leaves that need unavailable rather than failing the session.
+//// The RetroArch tools Cartouche calls, matched by name against what the running build lists. A build whose list
+//// lacks one leaves that need unavailable rather than failing the session.
 public struct ToolMap: Sendable, Equatable {
 
     public enum Need: String, CaseIterable, Sendable {
@@ -38,7 +37,6 @@ public struct ToolMap: Sendable, Equatable {
             }
         }
 
-        // Parameter name, and the values Cartouche sends when it is an enum
         var parameters: [(String, [String])] {
             switch self {
             case .loadContent: [("core", []), ("content", [])]
@@ -79,8 +77,7 @@ public struct ToolMap: Sendable, Equatable {
     }
 }
 
-// What GET_STATUS answers: "GET_STATUS PLAYING super_nes,game.sfc",
-// "GET_STATUS PAUSED ...", or "GET_STATUS CONTENTLESS"
+// What GET_STATUS answers: "GET_STATUS PLAYING super_nes,game.sfc", "GET_STATUS PAUSED ...", or "GET_STATUS CONTENTLESS"
 public struct GameStatus: Sendable, Equatable {
     public enum State: String, Sendable { case playing, paused, contentless }
 
@@ -104,7 +101,6 @@ public struct GameStatus: Sendable, Equatable {
         }
         let word = rest.prefix { $0 != " " }
         guard let state = State(rawValue: word.lowercased()), state != .contentless else { return nil }
-        // A system id has no comma; the file name after it may have several
         let detail = rest.dropFirst(word.count).drop { $0 == " " }
         let system = detail.prefix { $0 != "," }
         let content = detail.dropFirst(system.count).dropFirst()

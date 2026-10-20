@@ -13,7 +13,6 @@ actor FakeRunner: ConsoleRunning {
     private(set) var quits = 0
     private var started: ContinuousClock.Instant?
     private var exitedByItself = false
-    // When set, quit() reports this instead of the real elapsed time
     private var fakePlayed: Duration?
     let states: URL
     let picture: Data

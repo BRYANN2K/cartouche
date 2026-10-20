@@ -3,7 +3,7 @@ import Testing
 
 @testable import RetroArchKit
 
-// P16: finding the apps in /Applications and ~/Applications. Every app here
+// Finding the apps in /Applications and ~/Applications. Every app here
 // is a fake one made in a scratch folder.
 @Suite("Standalone emulator detection")
 struct EmulatorDetectionTests {

@@ -28,8 +28,6 @@ struct RunnerPatcherTests {
         return (scratch, build)
     }
 
-    // The launch path used to copy this on every run, so the button is now the only thing
-    // that closes the gap after an app update replaces the bridge copy.
     @Test("A builtin the bridge has replaced is reported, then repaired by the install")
     func repairsStaleBuiltin() throws {
         guard let (root, build) = try Self.healthyClone() else { return }
@@ -62,8 +60,6 @@ struct RunnerPatcherTests {
         #expect(RunnerPatcher.verify(build: build, root: root).isEmpty)
     }
 
-    // A runner back on stock ntdll runs games that fail their ownership check, which is
-    // the failure this whole path exists to prevent.
     @Test("A runner back on stock ntdll is reported, then repaired by the install")
     func repairsStockNtdll() throws {
         guard let (root, build) = try Self.healthyClone() else { return }
@@ -84,8 +80,6 @@ struct RunnerPatcherTests {
         #expect(RunnerPatcher.verify(build: build, root: root).isEmpty)
     }
 
-    // Without the entitlement dyld drops the overlay insert and the game still runs, so
-    // nothing but this check reports it.
     @Test("A loader signed without the dyld entitlement is reported, then repaired")
     func repairsStrippedEntitlement() throws {
         guard let (root, build) = try Self.healthyClone() else { return }
@@ -107,8 +101,6 @@ struct RunnerPatcherTests {
         #expect(RunnerPatcher.verify(build: build, root: root).isEmpty)
     }
 
-    // Re-running has to be free, or the button cannot be the answer to every runner
-    // problem the UI reports.
     @Test("Installing into a runner that is already right writes nothing")
     func installIsIdempotent() throws {
         guard let (root, build) = try Self.healthyClone() else { return }
@@ -155,13 +147,10 @@ struct RunnerPatcherTests {
             try Data().write(to: file)
         }
 
-        // A windows directory alongside them must not be mistaken for a unix loader.
         let windows = root.appending(path: "lib/wine/x86_64-windows/wine")
         try fm.createDirectory(at: windows.deletingLastPathComponent(), withIntermediateDirectories: true)
         try Data().write(to: windows)
 
-        // Compared by name rather than by URL, since the temporary directory is reached
-        // through a symlink that only one of the two sides resolves.
         let found = Set(RunnerPatcher.unixLoaders(in: root).map(RunnerPatcher.name(of:)))
         #expect(found == ["aarch64-unix/wine.app/Contents/MacOS/wine", "x86_64-unix/wine"])
     }

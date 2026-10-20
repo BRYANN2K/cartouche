@@ -69,7 +69,6 @@ struct OnboardingResumeTests {
         while first.step < step { first.skip() }
         #expect(first.step == step)
 
-        // Quit: a new launch builds everything again from the saved state
         let next = try scene.model()
         next.presentIfDue()
 
@@ -113,7 +112,6 @@ struct OnboardingResumeTests {
         await next.addConsoles()
         #expect(next.step == .folders)
         #expect(buildbot.requests.count == downloaded, "nothing was downloaded again")
-        // The cores are on disk as recorded
         let cores = CoreManager(paths: scene.retroarch)
         #expect(await cores.check("snes9x") == .verified)
         #expect(await cores.check("swanstation") == .verified)

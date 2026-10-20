@@ -1,5 +1,4 @@
-// The JSON shape every record file on disk shares: sorted, pretty, ISO-8601
-// dates. Installed games and store records use it.
+// The JSON shape every record file on disk shares: sorted, pretty, ISO-8601 dates. Installed games and store records use it.
 
 import Foundation
 

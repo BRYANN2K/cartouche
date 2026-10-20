@@ -1,5 +1,4 @@
-// Relaunching is Cartouche's job: it waits for running games, saves the
-// screen, starts a new copy once this one has quit, and that copy reopens there.
+// Relaunching is Cartouche's job: it waits for running games, saves the screen, starts a new copy once this one quit, which reopens there.
 
 import AppKit
 import Foundation
@@ -10,7 +9,6 @@ protocol GameActivity: Sendable {
     func isGameRunning() async -> Bool
 }
 
-// A game started by Cartouche runs from one of its runner clones
 struct RunnerGameActivity: GameActivity {
     func isGameRunning() async -> Bool {
         await Task.detached(priority: .utility) {
@@ -21,7 +19,6 @@ struct RunnerGameActivity: GameActivity {
     }
 }
 
-// Several sources of "a game is running", any one of them holds the relaunch
 struct CompositeGameActivity: GameActivity {
     let activities: [any GameActivity]
 
@@ -33,7 +30,6 @@ struct CompositeGameActivity: GameActivity {
     }
 }
 
-// A console game RetroArch or a standalone emulator is playing
 @MainActor
 struct ConsoleGameActivity: GameActivity {
     let center: ConsoleCenter
@@ -42,7 +38,6 @@ struct ConsoleGameActivity: GameActivity {
 
 @MainActor
 protocol Relauncher {
-    // False when the helper could not start and nothing was asked to quit
     func relaunch() -> Bool
 }
 
@@ -62,8 +57,7 @@ struct LiveRelauncher: Relauncher {
         }
     }
 
-    // A shell outlives the app, polls until `pid` is gone, then runs the command.
-    // If the app is still there after 30 seconds the quit was cancelled, so it gives up.
+    // A shell outlives the app, polls until `pid` is gone, then runs the command. If the app is still there after 30 seconds the quit was cancelled, so it gives up.
     static func reopen(after pid: Int32, run command: [String]) throws -> Process {
         let script = """
             n=0
@@ -109,7 +103,6 @@ final class RelaunchService {
     @ObservationIgnored let games: any GameActivity
     @ObservationIgnored let relauncher: any Relauncher
     @ObservationIgnored let pollInterval: Duration
-    // Longer than the helper's 30 s window: a cancelled quit is noticed this way
     @ObservationIgnored let giveUpAfter: Duration
     @ObservationIgnored var now: () -> Date = Date.init
     @ObservationIgnored private var cancelled = false
@@ -141,7 +134,6 @@ final class RelaunchService {
         defaults.set(now().timeIntervalSince1970, forKey: Self.savedKey)
     }
 
-    // At launch, once: where the last copy of Cartouche was before it relaunched
     func restore() -> ScreenRoute? {
         defer {
             defaults.removeObject(forKey: Self.routeKey)
@@ -153,7 +145,6 @@ final class RelaunchService {
         return try? JSONDecoder().decode(ScreenRoute.self, from: data)
     }
 
-    // Saves the screen right before a prompt whose permission needs a relaunch
     func watch(_ flow: PermissionFlow, route: @escaping @MainActor () -> ScreenRoute?) {
         flow.beforePrompt = { [weak self] permission in
             guard permission.needsRelaunch, let route = route() else { return }
@@ -208,7 +199,6 @@ final class RelaunchService {
             _ = restore()
             return
         }
-        // A quit the user cancels leaves the phase stuck; past the helper's window, reset
         let giveUp = giveUpAfter
         Task {
             try? await Task.sleep(for: giveUp)

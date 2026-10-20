@@ -1,5 +1,3 @@
-// Links to the exact System Settings pane for each permission, with the
-// Privacy & Security root as the fallback.
 
 import Foundation
 
@@ -21,7 +19,6 @@ enum SettingsLink {
         }
     }
 
-    // The exact pane first, then the fallbacks, tried in order
     static func urls(
         for permission: Permission,
         on system: OperatingSystemVersion = ProcessInfo.processInfo.operatingSystemVersion,

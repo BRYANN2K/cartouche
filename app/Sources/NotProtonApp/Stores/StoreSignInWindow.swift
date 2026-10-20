@@ -1,7 +1,5 @@
-// The sign-in window shows the store's own page, as a browser would. The user
-// types their password there, on the store's site; Cartouche only watches the
-// addresses the page goes to, and on Epic's last page reads the code it shows.
-// The web view keeps no cookies or data once it closes.
+// The sign-in window shows the store's own page, as a browser would; Cartouche only watches the addresses it goes
+// to, and on Epic's last page reads the code it shows. The web view keeps no cookies or data once it closes.
 
 import InstallerKit
 import SwiftUI
@@ -66,7 +64,6 @@ struct StoreSignInWindow: View {
 }
 
 extension View {
-    // Lets the store center open the sign-in window from whichever window is open
     func storeSignIn(_ center: StoreCenter) -> some View { modifier(StoreSignInOpener(center: center)) }
 }
 
@@ -81,8 +78,7 @@ private struct StoreSignInOpener: ViewModifier {
     }
 }
 
-// A web view with no stored data, reporting each address it reaches. Epic shows
-// the code as the text of its last page, so that page's text is read too.
+// A web view with no stored data; Epic shows the code as its last page's text, so that text is read too.
 struct StoreWebView: NSViewRepresentable {
     let page: SignInPage
     let reached: @MainActor (URL, String?) -> Bool

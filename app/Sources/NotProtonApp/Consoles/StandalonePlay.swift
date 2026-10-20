@@ -12,16 +12,13 @@ extension StandalonePlayer: ConsoleRunning {
 
 extension ConsoleCenter {
 
-    // Where the console's games play, from what was last found
     func route(for console: Console) -> ConsoleRoute { emulators.route(for: console) }
 
-    // The folders are read again at Play, so an emulator removed since is noticed
     func routeForPlay(_ console: Console) async -> ConsoleRoute {
         await refreshEmulators(for: console)
         return emulators.route(for: console)
     }
 
-    // Only consoles a standalone emulator plays need the folders read
     func refreshEmulators(for console: Console) async {
         guard !EmulatorCatalog.emulators(for: console.id).isEmpty else { return }
         await emulators.refresh()
@@ -31,7 +28,6 @@ extension ConsoleCenter {
         emulators.choose(id, for: console)
     }
 
-    // playing is already .starting when this runs
     func playStandalone(_ game: ConsoleGame, in installed: InstalledEmulator, reduceMotion: Bool) async {
         playing = Playing(gameID: game.id, phase: .starting, emulator: installed.emulator.name)
         if !reduceMotion {
@@ -41,7 +37,6 @@ extension ConsoleCenter {
                                       log: paths.logs.appending(path: "\(installed.id).log"))
         runner = player
         do {
-            // The emulator reads the game file; core is not used
             try await player.play(PlayRequest(core: installed.executable, content: game.fileURL))
             playing = Playing(gameID: game.id, phase: .playing, emulator: installed.emulator.name)
             await beginRecord(gameID: game.id, emulator: installed.emulator.name)

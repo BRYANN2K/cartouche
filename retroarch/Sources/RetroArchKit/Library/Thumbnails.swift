@@ -1,7 +1,6 @@
 import Foundation
 
-// libretro-thumbnails: box art, title screens and screenshots, one folder per
-// system, files named after the database name
+// libretro-thumbnails: box art, title screens and screenshots, one folder per system, files named after the database name
 public enum ThumbnailKind: String, Sendable, CaseIterable {
     case boxart = "Named_Boxarts"
     case title = "Named_Titles"
@@ -13,7 +12,6 @@ public struct Thumbnails: Sendable {
     public typealias Fetch = @Sendable (URL) async throws -> (Data, Int)
 
     public var base = URL(string: "https://thumbnails.libretro.com/")!
-    // A folder per system and kind, under Cartouche's cover cache
     public var cache: URL
     public var fetch: Fetch
 
@@ -22,13 +20,11 @@ public struct Thumbnails: Sendable {
         self.fetch = fetch
     }
 
-    // The project names files with &*/:`<>?\|" replaced by _
     public static func fileName(_ databaseName: String) -> String {
         String(databaseName.map { "&*/:`<>?\\|\"".contains($0) ? "_" : $0 })
     }
 
-    // Every character but letters, digits and -._~ escaped, parentheses,
-    // commas and spaces included
+    // Every character but letters, digits and -._~ escaped, parentheses, commas and spaces included
     static func escape(_ component: String) -> String {
         var allowed = CharacterSet.alphanumerics.intersection(CharacterSet(charactersIn: Unicode.Scalar(0)..<Unicode.Scalar(128)))
         allowed.insert(charactersIn: "-._~")
@@ -44,13 +40,11 @@ public struct Thumbnails: Sendable {
             .appending(path: Self.fileName(name) + ".png")
     }
 
-    // On disk already, without the network
     public func local(system: String, kind: ThumbnailKind, name: String) -> URL? {
         let file = cached(system: system, kind: kind, name: name)
         return FileManager.default.fileExists(atPath: file.path(percentEncoded: false)) ? file : nil
     }
 
-    // The project answered that it has no such picture; offline is not that
     public func isMissing(system: String, kind: ThumbnailKind, name: String) -> Bool {
         FileManager.default.fileExists(atPath: missingMark(system: system, kind: kind, name: name).path(percentEncoded: false))
     }
@@ -59,8 +53,7 @@ public struct Thumbnails: Sendable {
         cached(system: system, kind: kind, name: name).appendingPathExtension("missing")
     }
 
-    // The cached picture, or the downloaded one kept in the cache; nil when
-    // the project has none, or offline before the first view
+    // The cached picture, or the downloaded one kept in the cache; nil when the project has none, or offline before the first view
     public func image(system: String, kind: ThumbnailKind, name: String) async -> URL? {
         if let found = local(system: system, kind: kind, name: name) { return found }
         guard let (data, status) = try? await fetch(url(system: system, kind: kind, name: name)) else { return nil }

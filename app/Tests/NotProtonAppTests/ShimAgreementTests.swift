@@ -26,7 +26,6 @@ struct ShimAgreementTests {
         return String(rest[..<end.lowerBound])
     }
 
-    // Each loop the shim runs over an arch list, in the order they appear.
     private static func archLists(in block: String) -> [Set<String>] {
         block.split(separator: "\n").compactMap { line in
             guard let marker = line.range(of: "for arch in ") else { return nil }
@@ -50,8 +49,6 @@ struct ShimAgreementTests {
 
         #expect(lists.count == 2)
 
-        // The windows halves are named literally. The unix one is whichever arch directory the
-        // loader turned up in, so both sides resolve that rather than naming a fixed arch.
         let arches = try #require(lists.last)
         let unix = "\"${wine_unix##*/}\""
         #expect(arches.contains(unix))

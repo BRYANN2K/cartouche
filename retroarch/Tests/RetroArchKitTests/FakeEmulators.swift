@@ -8,7 +8,6 @@ import Foundation
 // gets SIGTERM. No real emulator is ever read, started or changed.
 enum FakeEmulators {
 
-    // Where a script writes its arguments, and the file that makes it quit
     static let argsKey = "CARTOUCHE_FAKE_EMULATOR_ARGS"
     static let quitKey = "CARTOUCHE_FAKE_EMULATOR_QUIT"
     static let exitKey = "CARTOUCHE_FAKE_EMULATOR_EXIT"

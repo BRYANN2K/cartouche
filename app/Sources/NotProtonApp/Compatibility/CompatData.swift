@@ -1,5 +1,4 @@
-// The nightly compat.json, as described by docs/schema/compat.schema.json.
-// MacGamingDB is not in it: MacGamingDB.swift reads it live.
+// The nightly compat.json, per docs/schema/compat.schema.json.
 
 import Foundation
 
@@ -20,7 +19,6 @@ struct CompatData: Decodable, Sendable {
         let description: String
     }
 
-    // Unpacks, checks against the schema and decodes. Any failure means the file is not used.
     static func read(_ data: Data, schema: CompatSchema) throws -> CompatData {
         let json = data.first == 0x1f ? try Gzip.decompress(data) : data
         let tree: SchemaValue
@@ -54,7 +52,6 @@ struct CompatData: Decodable, Sendable {
 
 struct CompatSource: Decodable, Sendable, Equatable {
     let name: String
-    // The name with its license, as shown next to the data
     let credit: String
     let url: String
     let license: String
@@ -103,7 +100,6 @@ enum TranslationLayer: String, Codable, Sendable {
 enum CompatRating: String, Codable, Sendable, CaseIterable {
     case unplayable, barelyPlayable = "barely_playable", playable, good, veryGood = "very_good", excellent
 
-    // Reports store the rating as 0 to 5
     init?(score: Int) {
         guard Self.allCases.indices.contains(score) else { return nil }
         self = Self.allCases[score]

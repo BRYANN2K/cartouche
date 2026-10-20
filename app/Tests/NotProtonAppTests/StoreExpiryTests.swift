@@ -35,7 +35,6 @@ struct StoreExpiryTests {
         #expect(scene.model.badge(.source(.epic)) == "!")
         #expect(scene.model.isExpired(.source(.epic)))
         #expect(scene.model.expiredStore == .epic)
-        // Both games still listed; the installed one plays, the other needs the session to download
         let installed = try #require(scene.model.game("epic:Fennec"))
         let other = try #require(scene.model.game("epic:Owl"))
         #expect(installed.installed && !other.installed)

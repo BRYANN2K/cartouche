@@ -1,4 +1,3 @@
-// Download one hash pinned file from a list of CDN hosts
 
 import Foundation
 
@@ -25,7 +24,6 @@ enum PinnedDownload {
         return URLSession(configuration: config)
     }
 
-    // A single-URL pin: its directory is the only base
     static func obtain(
         _ url: URL,
         sha256: String,
@@ -54,8 +52,7 @@ enum PinnedDownload {
         report: @Sendable (Progress) -> Void = { _ in }
     ) async throws -> URL {
         let archive = downloads.appending(path: file)
-        // QA mode: the mock's synthetic files cannot match the real pins, so the
-        // hashes it lists in __pins.json count too (QAEnvironment)
+        // QA mode: the mock's synthetic files cannot match the real pins, so the hashes it lists in __pins.json count too (QAEnvironment)
         let extras = await QAEnvironment.extraHashes(session: session)
         if let onDisk = Digest.sha256IfPresent(archive), onDisk == sha256 || extras.contains(onDisk) {
             report(.reusing)

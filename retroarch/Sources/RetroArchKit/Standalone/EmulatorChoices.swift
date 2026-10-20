@@ -2,15 +2,12 @@ import Foundation
 import Observation
 
 extension RetroArchPaths {
-    // Which emulator each console plays in, by console id
     public var emulatorChoices: URL { root.appending(path: "emulators.json") }
 }
 
-// Where a console's games play
 public enum ConsoleRoute: Sendable, Equatable {
     case retroArch
     case standalone(InstalledEmulator)
-    // The emulator the console needs is not on this Mac, and RetroArch has no core for it
     case missing(StandaloneEmulator)
 
     public var emulator: InstalledEmulator? {
@@ -18,16 +15,12 @@ public enum ConsoleRoute: Sendable, Equatable {
         return nil
     }
 
-    // "Dolphin is not installed"
     public var missingText: String? {
         guard case .missing(let emulator) = self else { return nil }
         return String(localized: "\(emulator.name) is not installed", bundle: .module)
     }
 
-    // A saved choice and what is installed decide. A chosen emulator that is
-    // gone falls back to RetroArch when the console's core is already here
-    // (coreReady), and is named as not installed otherwise. With no choice, a
-    // detected emulator comes before RetroArch.
+    // A chosen-but-gone emulator falls back to RetroArch when its core is here, else is named not installed; with no choice, a detected emulator wins.
     public static func resolve(
         _ console: Console, choice: String?, installed: [InstalledEmulator], coreReady: Bool
     ) -> ConsoleRoute {
@@ -50,7 +43,6 @@ public enum ConsoleRoute: Sendable, Equatable {
     }
 }
 
-// One entry of a console's emulator picker
 public struct EmulatorChoice: Sendable, Equatable, Hashable, Identifiable {
     public static let retroArch = "retroarch"
 
@@ -59,9 +51,6 @@ public struct EmulatorChoice: Sendable, Equatable, Hashable, Identifiable {
     public var title: String
 }
 
-// The emulator each console plays in, kept in Cartouche's own folder, and the
-// standalone emulators found on this Mac. Settings > Consoles and the game
-// panel share one.
 @MainActor
 @Observable
 public final class EmulatorShelf {
@@ -69,7 +58,6 @@ public final class EmulatorShelf {
     public let paths: RetroArchPaths
     public private(set) var installed: [InstalledEmulator] = []
     public private(set) var choices: [String: String] = [:]
-    // Whether the folders were read once
     public private(set) var hasLooked = false
 
     @ObservationIgnored public var detector: EmulatorDetector
@@ -80,7 +68,6 @@ public final class EmulatorShelf {
         choices = Self.load(paths)
     }
 
-    // Reads the application folders again, off the main thread
     public func refresh() async {
         let detector = detector
         installed = await Task.detached { detector.installed() }.value
@@ -93,14 +80,11 @@ public final class EmulatorShelf {
         ConsoleRoute.resolve(console, choice: choices[console.id], installed: installed, coreReady: coreReady(console))
     }
 
-    // The console's core is in Cartouche's cores folder
     public func coreReady(_ console: Console) -> Bool {
         console.hasCore && FileManager.default.fileExists(
             atPath: paths.cores.appending(path: console.coreFile).path(percentEncoded: false))
     }
 
-    // RetroArch with its core, each emulator found for the console, and a
-    // chosen one that is gone, so the picker still shows what was picked
     public func options(for console: Console) -> [EmulatorChoice] {
         var options: [EmulatorChoice] = []
         if console.hasCore {
@@ -117,7 +101,6 @@ public final class EmulatorShelf {
         return options
     }
 
-    // What the picker shows as picked: the saved choice, else where the games play
     public func selected(for console: Console) -> String {
         if let saved = choices[console.id] { return saved }
         switch route(for: console) {
@@ -135,7 +118,6 @@ public final class EmulatorShelf {
         try? encoder.encode(choices).write(to: paths.emulatorChoices, options: .atomic)
     }
 
-    // The consoles each found emulator plays: "GameCube, Wii"
     public func consoleNames(of found: InstalledEmulator) -> String {
         found.emulator.consoles.compactMap { ConsoleCatalog.console($0)?.name }
             .formatted(.list(type: .and, width: .narrow))

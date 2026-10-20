@@ -1,11 +1,9 @@
-// What RunnerManifest and BackendManifest share: a bundled JSON of pinned
-// downloads, validated before anything installs from it.
+// A bundled JSON of pinned downloads, validated before anything installs from it.
 
 import Foundation
 
 protocol PinnedManifest: Codable, Equatable, Sendable {
     static var format: Int { get }
-    // The bundled resource's base name: runners.json's "runners"
     static var resource: String { get }
     var format: Int { get }
     func problems() -> [String]
@@ -36,7 +34,6 @@ extension PinnedManifest {
         text.count == 64 && text.allSatisfy { $0.isHexDigit && !$0.isUppercase }
     }
 
-    // A relative path with no step out of its folder
     static func isInside(_ path: String) -> Bool {
         !path.isEmpty && !path.hasPrefix("/") && !path.split(separator: "/").contains("..")
     }

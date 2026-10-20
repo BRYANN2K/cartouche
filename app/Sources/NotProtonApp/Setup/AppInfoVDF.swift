@@ -1,6 +1,4 @@
-// Steam's binary appinfo.vdf format, shared by the app (SteamAppInfo) and the
-// appinfo helper the run script shells out to (helpers/appinfo/main.swift,
-// compiled with this file by the Makefile).
+// Steam's binary appinfo.vdf format, shared with the appinfo helper the run script shells out to.
 
 import Foundation
 
@@ -48,7 +46,6 @@ enum AppInfoVDF {
             return v
         }
 
-        // Values and, before the string table existed, keys are NUL terminated.
         mutating func cstring() throws -> String {
             var stop = p
             while stop < end && b[stop] != 0 { stop += 1 }
@@ -57,7 +54,6 @@ enum AppInfoVDF {
             return String(decoding: b[p..<stop], as: UTF8.self)
         }
 
-        // A wide string ends at a NUL pair, not a single NUL.
         mutating func wcstring() throws -> String {
             var stop = p
             while stop + 1 < end && !(b[stop] == 0 && b[stop + 1] == 0) { stop += 2 }
@@ -78,8 +74,6 @@ enum AppInfoVDF {
         }
     }
 
-    // v29 moved every key into one table at the end of the file and left an index
-    // in its place, so the table has to be read before any app can be parsed.
     static func readStringTable(_ b: [UInt8], at offset: Int) throws -> [String] {
         var c = Cursor(b: b, p: offset)
         let count = try c.u32()
@@ -105,8 +99,7 @@ enum AppInfoVDF {
                 key = try c.cstring()
             }
             switch type {
-            // Handles every type the format defines. An unused-but-legal type inside
-            // an app entry would otherwise drop the whole entry and its name.
+            // Handles every type the format defines. An unused-but-legal type inside an app entry would otherwise drop the whole entry and its name.
             case 0x00: out[key] = .section(try readSection(&c, table, depth: depth + 1))
             case 0x01: out[key] = .string(try c.cstring())
             case 0x02: out[key] = .number(Int64(Int32(bitPattern: try c.u32())))
@@ -130,8 +123,7 @@ enum AppInfoVDF {
         var table: [String]? = nil
         var pos: Int
         var entriesEnd = b.count
-        // The sha1 of the entry's own binary vdf arrived in v28, which moves the
-        // start of the key data 20 bytes further into every app entry.
+        // The sha1 of the entry's own binary vdf arrived in v28, which moves the start of the key data 20 bytes further into every app entry.
         var entryHeader = 60
         switch magic {
         case 0x0756_4429:
@@ -160,7 +152,6 @@ enum AppInfoVDF {
             let keys = { () throws -> [String: Value] in
                 var kv = Cursor(b: b, p: start, end: entryEnd)
                 let root = try readSection(&kv, table)
-                // Each entry wraps its keys in one "appinfo" section.
                 if case .section(let inner)? = root["appinfo"] { return inner }
                 return root
             }

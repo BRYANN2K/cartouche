@@ -35,7 +35,6 @@ struct ExtrasIntegrationTests {
         var request: PlayRequest { PlayRequest(core: Rig.testCore!, content: rom) }
     }
 
-    // Built without achievements, the rig has no cheevos_hardcore option
     static func rigHasAchievements(_ player: ConsolePlayer) async -> Bool {
         (try? await player.session?.option("cheevos_enable")) != nil
     }

@@ -1,4 +1,3 @@
-// A game's controller layout: what the game gets when each button is pressed.
 // Buttons are named by position, so one layout fits every controller family.
 
 import Foundation
@@ -15,7 +14,6 @@ enum PadButton: String, Codable, CodingKeyRepresentable, CaseIterable, Identifia
 
     var isTrigger: Bool { self == .leftTrigger || self == .rightTrigger }
 
-    // The physical button on this family's controller
     func label(_ family: PadFamily) -> String {
         switch (self, family) {
         case (.south, .playStation): "Cross"
@@ -93,7 +91,6 @@ enum PadButton: String, Codable, CodingKeyRepresentable, CaseIterable, Identifia
 }
 
 struct ControllerLayout: Codable, Equatable, Sendable {
-    // What the game gets for a button; a button left out sends itself
     var buttons: [PadButton: PadButton] = [:]
     var swapSticks = false
 
@@ -116,20 +113,17 @@ struct ControllerLayout: Codable, Equatable, Sendable {
     static func preset(_ preset: Preset) -> ControllerLayout {
         switch preset {
         case .standard: ControllerLayout()
-        // The sticks trade places, their clicks with them
         case .southpaw: ControllerLayout(buttons: [.leftStick: .rightStick, .rightStick: .leftStick], swapSticks: true)
         case .swapAB: ControllerLayout(buttons: [.south: .east, .east: .south])
         }
     }
 
-    // The preset this layout is, if any
     var preset: Preset? { Preset.allCases.first { Self.preset($0) == self } }
 
     var isStandard: Bool { self == .standard }
 
     func target(of button: PadButton) -> PadButton { buttons[button] ?? button }
 
-    // Identity entries are dropped, so equal layouts compare equal
     mutating func set(_ button: PadButton, sends target: PadButton) {
         buttons[button] = target == button ? nil : target
     }

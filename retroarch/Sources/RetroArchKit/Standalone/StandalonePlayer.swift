@@ -3,8 +3,7 @@ import Foundation
 
 public enum StandaloneError: Error, Equatable, LocalizedError {
     case exitedEarly(emulator: String, status: Int32)
-    // A single-instance app hands a second launch to the one already open and
-    // exits 0: the game runs, but the session Cartouche started is over
+    // A single-instance app hands a second launch to the one already open and exits 0: the game runs, but the session is over.
     case handedOff(emulator: String)
 
     public var errorDescription: String? {
@@ -17,18 +16,11 @@ public enum StandaloneError: Error, Equatable, LocalizedError {
     }
 }
 
-// Plays one console game in a standalone emulator: starts its executable with
-// the documented arguments and the user's own environment, so it reads its own
-// settings, and knows the game ended when the emulator quits. It never writes
-// the emulator's settings.
 public actor StandalonePlayer {
 
     public let emulator: InstalledEmulator
-    // The environment the emulator starts from; the app's own when nil
     public var environment: [String: String]?
-    // What the emulator prints, for diagnostics
     public var log: URL?
-    // How long a polite Quit and then SIGTERM are given before SIGKILL
     public var quitLimits: (polite: Duration, term: Duration) = (.seconds(8), .seconds(4))
     // An emulator gone within this time did not start
     public var startCheck: Duration = .milliseconds(500)
@@ -50,15 +42,13 @@ public actor StandalonePlayer {
 
     public var processIdentifier: Int32? { child?.identifier }
 
-    // The request's content is the game file; RetroArch's choices do not apply
     public func play(_ request: PlayRequest) async throws {
         if child != nil { _ = await quit() }
         if let log { try? FileManager.default.createDirectory(at: log.deletingLastPathComponent(), withIntermediateDirectories: true) }
         let child = try ChildProcess(
             executable: emulator.executable, arguments: emulator.emulator.arguments(for: request.content),
             environment: environment, stderr: log, pipes: false, onLine: { _ in })
-        // Any exit inside startCheck means it did not start — or handed off
-        // to an already open copy, where the session would end at once
+        // Any exit inside startCheck means it did not start - or handed off to an already open copy, where the session would end at once.
         if await child.waitForExit(within: startCheck), let status = child.exitStatus {
             throw status == 0
                 ? StandaloneError.handedOff(emulator: emulator.emulator.name)
@@ -69,13 +59,11 @@ public actor StandalonePlayer {
         Self.bringForward(child.identifier)
     }
 
-    // Resolves once the emulator's process ends
     public func waitUntilExit() async {
         if let child { _ = await child.exited() }
     }
 
-    // Quits as the emulator's own Quit does, so it can save; then SIGTERM,
-    // and SIGKILL only when it ignored both
+    // Quits as the emulator's own Quit does so it can save; then SIGTERM, and SIGKILL only when ignored.
     @discardableResult
     public func quit() async -> PlayReport {
         guard let child else { return PlayReport(stop: StopReport(way: .notRunning, duration: .zero), played: .zero) }
@@ -97,7 +85,6 @@ public actor StandalonePlayer {
         return finish(StopReport(way: way, duration: .now - begin))
     }
 
-    // The emulator quit by itself: what was played, once
     public func ended() async -> PlayReport? {
         guard let child, child.exitStatus != nil else { return nil }
         return finish(StopReport(way: .quit, duration: .zero))
@@ -115,14 +102,12 @@ public actor StandalonePlayer {
         return PlayReport(stop: stop, played: played)
     }
 
-    // RetroArch's choices have no meaning in another emulator
     public func setLook(_ look: ConsoleLook) async throws {}
     public func setLowerInputLag(_ on: Bool) async throws {}
     public func setHardcore(_ on: Bool) async throws {}
     public func setDisc(_ disc: Int) async throws {}
 
-    // An app started from its executable stays behind Cartouche until asked
-    // forward; a command-line stand-in has no app to bring
+    // An app started from its executable stays behind Cartouche until asked forward; a command-line stand-in has no app to bring.
     private static func bringForward(_ pid: Int32) {
         Task.detached {
             for _ in 0..<30 {

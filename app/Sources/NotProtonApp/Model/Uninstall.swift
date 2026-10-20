@@ -86,8 +86,7 @@ enum Uninstall {
         var restored = true
         var missing: [URL] = []
         var failures: [any Error] = []
-        // The other injector uses the same Steam, insert keys, update block and legacycompat folder.
-        // When it is there, Steam is not restored and none of those shared parts are touched.
+        // The other injector uses the same Steam, insert keys, update block and legacycompat folder. When it is there, Steam is not restored and none of those shared parts are touched.
         let shared = targets.contains { !SteamBundle.otherInjection(in: $0).isEmpty }
             || !SteamBundle.foreignInserts(at: innerPlist).isEmpty
 
@@ -210,8 +209,7 @@ enum Uninstall {
         return true
     }
 
-    // Takes Cartouche's dylib and insert entry out of a Steam that another tool also injects,
-    // leaving that tool's dylib, insert entry and controller key in place.
+    // Takes Cartouche's dylib and insert entry out of a Steam that another tool also injects, leaving that tool's dylib, insert entry and controller key in place.
     static func detachOwn(from app: URL, stop: () throws -> Bool) throws -> (stopped: Bool, detached: Bool) {
         let files = FileManager.default
         let plist = app.appending(path: "Contents/Info.plist")
@@ -229,8 +227,7 @@ enum Uninstall {
         return (stopped, true)
     }
 
-    // What the user owns stays: installed and store games with their prefixes,
-    // and the console saves, states, BIOS dumps and screenshots
+    // What the user owns stays: installed and store games with their prefixes, and the console saves, states, BIOS dumps and screenshots
     static let keptFolders: Set<String> = ["installs", "stores"]
     static let keptConsoleFolders: Set<String> = ["saves", "states", "bios", "screenshots"]
 

@@ -1,5 +1,3 @@
-// Clones CrossOver, throws it in bridge, invokes ntdll patch,
-
 import Foundation
 
 enum RunnerSetup {

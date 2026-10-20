@@ -26,8 +26,6 @@ private final class Recorder: @unchecked Sendable {
     private var clashed = false
     private let held: DispatchSemaphore?
 
-    // A held turn blocks inside the rebuild until the test lets it go, so what the model
-    // published stays readable instead of lasting only as long as a sleep.
     init(holdingEachTurn: Bool = false) {
         held = holdingEachTurn ? DispatchSemaphore(value: 0) : nil
     }
@@ -272,7 +270,6 @@ struct PrefixesModelTests {
         let (newDir, newLibrary) = try makeLibrary(appIDs: ["4401430"])
         defer { try? FileManager.default.removeItem(at: newDir) }
 
-        // Swapped between loads, the way deleting a prefix changes what is there.
         let libraries = Libraries([oldLibrary])
         let model = PrefixesModel(libraries: { libraries.current })
 
@@ -287,8 +284,6 @@ struct PrefixesModelTests {
         #expect(!model.isLoading)
     }
 
-    // The toolbar, context menu and Prefix menu all act on the selection, so one pointing at a
-    // prefix that is gone offers an action on nothing. Delete and rebuild both reload.
     @Test("A load drops selected prefixes that are no longer there")
     func loadPrunesStaleSelection() async throws {
         let (dir, library) = try makeLibrary(appIDs: ["1574480", "1649240"])
@@ -398,8 +393,6 @@ struct PrefixesModelTests {
         #expect(model.outcome == "Backed up 2 prefixes.")
     }
 
-    // Selecting every prefix that needs rebuilding used to offer nothing, so they had to be
-    // picked and confirmed one at a time.
     @Test("Rebuilding takes every selected prefix, one after another")
     func rebuildTakesTheWholeSelection() async throws {
         let (dir, library) = try makeLibrary(appIDs: ["1574480", "1649240", "253750"])
@@ -427,7 +420,6 @@ struct PrefixesModelTests {
         #expect(!model.isBusy)
     }
 
-    // A prefix whose game is running refuses, and it used to be the only one attempted.
     @Test("A prefix that refuses to rebuild does not stop the ones queued behind it")
     func rebuildReportsAPartialRun() async throws {
         let (dir, library) = try makeLibrary(appIDs: ["1574480", "1649240", "253750"])
@@ -450,8 +442,6 @@ struct PrefixesModelTests {
         #expect(model.busy.isEmpty)
     }
 
-    // The pane used to keep the sentence and drop the error, so a refusal it could act on
-    // arrived as a string with no remedy left in it.
     @Test("A refused rebuild reaches the pane with its remedy intact")
     func rebuildCarriesTheRemedy() async throws {
         let (dir, library) = try makeLibrary(appIDs: ["1574480", "1649240"])
@@ -619,8 +609,6 @@ struct PrefixesModelTests {
         #expect(model.outcome == "untouched")
     }
 
-    // The spinner on a row comes off this set. Every selected row spins from the moment the
-    // run starts, and a row stops as its own turn ends rather than when the queue does.
     @Test("Every selected row is busy from the start and each stops as its turn ends")
     func busyFollowsTheQueue() async throws {
         let (dir, library) = try makeLibrary(appIDs: ["1574480", "1649240", "253750"])
@@ -646,8 +634,6 @@ struct PrefixesModelTests {
         #expect(model.busy.isEmpty)
     }
 
-    // A rebuilt prefix has new sizes to measure and a deleted one must leave the list, so
-    // both runs end by reading the libraries again rather than keeping what was read before.
     @Test("A finished rebuild reads the libraries again")
     func rebuildReloadsTheList() async throws {
         let (dir, library) = try makeLibrary(appIDs: ["1574480", "1649240"])
@@ -669,8 +655,6 @@ struct PrefixesModelTests {
         #expect(model.prefixes.isEmpty)
     }
 
-    // Right-clicking four selected rows and deleting used to throw away one of them, which
-    // left the other three selected and looking untouched.
     @Test("Deleting takes every selected prefix")
     func deleteTakesTheWholeSelection() async throws {
         let (dir, library) = try makeLibrary(appIDs: ["1574480", "1649240", "253750"])
@@ -716,8 +700,6 @@ struct PrefixesModelTests {
                         + "if the game is launched again.")
     }
 
-    // A running game refuses, and it refuses in the middle of a list of them. Stopping
-    // there would leave the rest selected with no word about why nothing happened to them.
     @Test("A prefix that refuses does not stop the others")
     func refusalDoesNotStopTheRest() async throws {
         let (dir, library) = try makeLibrary(appIDs: ["1574480", "253750"])

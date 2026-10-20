@@ -2,8 +2,6 @@ import Foundation
 import InstallerKit
 import RetroArchKit
 
-// What diagnose reads out of a launch or install log, and what it proposes.
-// The same parse backs get_crash_report; fixtures drive the tests.
 struct AgentDiagnosis: Sendable {
     var problem: String
     var detail: String = ""
@@ -33,7 +31,6 @@ struct AgentDiagnosis: Sendable {
 
 @MainActor enum AgentDiagnose {
 
-    // Missing DLLs and common Wine failures, matched against the log tail.
     static let dllPattern = #"err:module:import_dll (?:Library |Loading library )?([A-Za-z0-9_.-]+\.dll)"#
 
     static func diagnose(game: Game, log: String, backend: AgentBackend) -> AgentDiagnosis {
@@ -42,8 +39,7 @@ struct AgentDiagnosis: Sendable {
         if let dll = firstMatch(dllPattern, in: log) {
             out.problem = "missing DLL: \(dll)"
             out.detail = "Wine could not load \(dll), so the game never started."
-            // The known fixes: a winetricks verb that ships the DLL family, or a
-            // backend change when the DLL is a D3D one the backend provides.
+            // The known fixes: a winetricks verb that ships the DLL family, or a backend change when the DLL is a D3D one the backend provides.
             let verb = dllVerb(dll)
             out.fixes.append(AgentDiagnosis.Fix(
                 tool: "run_winetricks", arguments: ["game": .string(game.id), "verbs": [.string(verb)]],
@@ -83,7 +79,6 @@ struct AgentDiagnosis: Sendable {
         return out
     }
 
-    // A DLL name to the winetricks verb that installs it, where one exists.
     static func dllVerb(_ dll: String) -> String {
         let lower = dll.lowercased()
         if lower.hasPrefix("vcruntime") || lower.hasPrefix("msvcp") || lower.hasPrefix("msvcr") { return "vcrun2022" }
@@ -115,7 +110,6 @@ struct AgentDiagnosis: Sendable {
                        backend: resolution.setup.backend,
                        translation: resolution.setup.translation)
 
-        // The game's own sessions say most: the best measured setup wins.
         let bySetup = Dictionary(grouping: sessions.compactMap { session -> (PlaySetup, Double)? in
             session.measured.average.map { (session.setup, $0) }
         }, by: \.0)
@@ -135,7 +129,6 @@ struct AgentDiagnosis: Sendable {
                 why: "measured \(Int(average)) FPS with this setup in a past session"))
         }
 
-        // What other Macs report for this game.
         if let top = backend.macEntry(game)?.topLayer, let layer = GraphicsBackend(top),
            layer != current.backend, backend.graphicsChoices(for: game).contains(layer) {
             fixes.append(.init(
@@ -144,14 +137,12 @@ struct AgentDiagnosis: Sendable {
                 why: "MacGamingDB reports favor \(layer.rawValue) for this game"))
         }
 
-        // A Mac version beats every Wine session.
         if backend.hasMacBuild(game), choice.version != .mac {
             fixes.append(.init(
                 tool: "set_version", arguments: ["game": .string(game.id), "version": .string("mac")],
                 why: "the game has a macOS build, which needs no translation at all"))
         }
 
-        // FEX where the runner serves it and Rosetta measured badly.
         if current.translation == .rosetta,
            backend.translationChoices(for: game).contains(.fex),
            let worst = sessions.compactMap(\.measured.average).min(), worst < 30 {
@@ -161,7 +152,6 @@ struct AgentDiagnosis: Sendable {
                 why: "FEX skips Rosetta for the game's CPU work"))
         }
 
-        // Measure first when there is nothing to compare.
         if sessions.isEmpty, !(resolution.setup.metalHUD) {
             fixes.append(.init(
                 tool: "set_game_config",

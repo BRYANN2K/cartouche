@@ -1,6 +1,5 @@
 import Foundation
 
-// A standalone emulator found on this Mac, as its Info.plist describes it
 public struct InstalledEmulator: Sendable, Equatable, Identifiable {
     public var emulator: StandaloneEmulator
     public var app: URL
@@ -10,7 +9,6 @@ public struct InstalledEmulator: Sendable, Equatable, Identifiable {
 
     public var id: String { emulator.id }
 
-    // "Dolphin 2509"
     public var title: String { version.map { "\(emulator.name) \($0)" } ?? emulator.name }
 
     public init(emulator: StandaloneEmulator, app: URL, executable: URL, version: String?) {
@@ -21,8 +19,7 @@ public struct InstalledEmulator: Sendable, Equatable, Identifiable {
     }
 }
 
-// Finds the standalone emulators the user installed in /Applications or
-// ~/Applications, one folder deep. It reads Info.plist files and nothing else.
+// Finds the standalone emulators the user installed in /Applications or ~/Applications, one folder deep. It reads Info.plist files and nothing else.
 public struct EmulatorDetector: Sendable {
 
     public var folders: [URL]
@@ -46,7 +43,6 @@ public struct EmulatorDetector: Sendable {
         return EmulatorCatalog.all.compactMap { found[$0.id] }
     }
 
-    // Each .app at the top of a folder, then in its subfolders (Emulators/Dolphin.app)
     func apps() -> [URL] {
         let manager = FileManager.default
         var apps: [URL] = []
@@ -63,7 +59,6 @@ public struct EmulatorDetector: Sendable {
         return apps
     }
 
-    // The emulator an app is, by its bundle identifier, else by its name
     public static func read(_ app: URL) -> InstalledEmulator? {
         let plist = app.appending(path: "Contents/Info.plist")
         guard let data = try? Data(contentsOf: plist),

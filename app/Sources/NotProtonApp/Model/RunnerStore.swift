@@ -1,5 +1,3 @@
-// Checks CrossOver state for status display
-
 import Foundation
 
 enum RunnerState: Sendable, Equatable {
@@ -29,7 +27,6 @@ enum RunnerStore {
         return state(of: installed, problems: problems(of: installed, runners: runners, verify: verify))
     }
 
-    // What verify finds wrong in each clone, keyed by build id. Clones with nothing wrong are left out.
     static func problems(
         of builds: [RunnerBuild], runners: URL, verify: (RunnerBuild, URL) -> [String]
     ) -> [String: [String]] {
@@ -128,7 +125,6 @@ enum CompatToolList {
         resolved(runners: runners, file: file).tools
     }
 
-    // The backend list sits beside the tool list, so a test's list gets its own
     static func backendFile(beside file: URL) -> URL {
         file.deletingLastPathComponent().appending(path: SupportPaths.backendToolList.lastPathComponent)
     }
@@ -137,7 +133,6 @@ enum CompatToolList {
         tools.map { "\($0.name)\t\($0.build)\t\($0.flavor.rawValue)\t\($0.backend.rawValue)\t\($0.display)\n" }.joined()
     }
 
-    // Each tool paired with every backend its CrossOver can serve
     static func backendTools(for tools: [InstalledTool], runners: URL = SupportPaths.runners) -> [BackendTool] {
         SupportedRunners.backendTools(for: tools) { tool in
             let root = SupportPaths.clonedRoot(forBuild: tool.build, runners: runners)
@@ -160,7 +155,6 @@ enum CompatToolList {
             for: builds, fexAvailable: fexAvailable, keeping: kept))
     }
 
-    // Returns true when the list file changed.
     @discardableResult
     static func sync(
         runners: URL = SupportPaths.runners,

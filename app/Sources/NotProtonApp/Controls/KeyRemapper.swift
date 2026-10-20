@@ -1,26 +1,20 @@
-// Remap keys for this game: while the game is in front, a key the user picked
-// reaches it as another key. Cartouche reads the keyboard through an event tap,
-// which needs Input Monitoring; macOS applies that permission after a relaunch.
+// While the game is in front, a picked key reaches it as another key; the event tap needs Input Monitoring, which macOS applies only after a relaunch.
 
 import CoreGraphics
 import Foundation
 
-// The keyboard side: rewrites key codes in place while the table is set
 @MainActor
 protocol KeyTapping: AnyObject {
     var table: [CGKeyCode: CGKeyCode] { get set }
-    // false when macOS refused the tap
     func start() -> Bool
     func stop()
 }
 
 final class LiveKeyTap: KeyTapping {
 
-    // Read by the tap's callback on the main run loop
     final class Shared: @unchecked Sendable {
         var table: [CGKeyCode: CGKeyCode] = [:]
-        // Each rewritten keyDown's target, so its keyUp matches even if the
-        // table was cleared after a focus change
+        // Each rewritten keyDown's target, so its keyUp matches even if the table was cleared after a focus change
         var held: [CGKeyCode: CGKeyCode] = [:]
         var port: CFMachPort?
 
@@ -78,8 +72,6 @@ final class LiveKeyTap: KeyTapping {
     }
 }
 
-// The tap runs only while the remapped game is in front; elsewhere every key
-// stays itself
 @MainActor
 final class KeyRemapper {
 
@@ -92,7 +84,6 @@ final class KeyRemapper {
         self.tap = tap
     }
 
-    // false when the tap could not start
     @discardableResult
     func tick(_ game: Game, remaps: [KeyRemap]) -> Bool {
         if !running {

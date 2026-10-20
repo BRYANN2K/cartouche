@@ -12,8 +12,6 @@ import Vision
 @Suite("Settings > Consoles", .serialized)
 struct ConsolesSettingsTests {
 
-    // An official release as the buildbot serves it, played by a script that
-    // answers --help without --mcp-stdio and records how it was started
     final class Stage {
         let work: URL
         let paths: RetroArchPaths
@@ -91,7 +89,6 @@ struct ConsolesSettingsTests {
         #expect(continueFrom.title == "Continue From" && continueFrom.note == "Needs the included RetroArch")
         #expect(coach.title == "Coach mode" && coach.note == "Needs the included RetroArch")
 
-        // The game still starts, with the core and the file on the command line
         let core = stage.work.appending(path: "snes9x_libretro.dylib")
         let rom = stage.work.appending(path: "Test Cart.sfc")
         let launcher = try #require(model.launcher)
@@ -176,7 +173,6 @@ struct ConsolesSettingsTests {
         return hosting
     }
 
-    // What the pane draws, read back with text recognition, as a person sees it
     private func renderedTexts(_ view: some View) async throws -> [String] {
         try await Task.sleep(for: .milliseconds(100))
         let png = try snapshot(view, scheme: .light)

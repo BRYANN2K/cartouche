@@ -1,12 +1,9 @@
-// One install from a Windows installer, from the checks to the exe choice.
-// The job lives in InstallCenter, not in the sheet, so closing the sheet never
-// stops it.
+// The job lives in InstallCenter, not the sheet, so closing it never stops the install.
 
 import Foundation
 import InstallerKit
 import Observation
 
-// What the review step hands to the install.
 struct InstallRequest: Sendable {
     var setup: URL
     var source: URL
@@ -14,7 +11,6 @@ struct InstallRequest: Sendable {
     let appID: Int?
     let gogID: String?
     let expectedBytes: Int64
-    // setup.exe and its parts, for the cleanup line.
     let installerBytes: Int64
     var installerFiles: [URL]
     var manifest: ChecksumManifest?
@@ -26,7 +22,6 @@ enum GameInstallPhase: Sendable, Equatable {
     case preparing
     case installing
     case redistributables
-    // Installed; the user confirms which exe starts the game.
     case choosing
     case ready
     case failed
@@ -42,18 +37,14 @@ final class InstallJob: Identifiable {
     var inputs: InstallInputs
     var phase: GameInstallPhase = .waiting
     var progress = InstallProgress()
-    // Set when the installer itself failed.
     var diagnosis: InstallDiagnosis?
-    // Set when Cartouche could not get as far as the installer.
     var problem: String?
     var folder: GameFolder?
     var installFolder: URL?
     var candidates: [ExeDetector.Candidate] = []
     var redistributables: [Redistributable] = []
-    // Nil when there were none to install.
     var redistributablesInstalled: Bool?
     var game: InstalledGame?
-    // Fixes already tried, so each is offered once.
     var tried: [RetryFix] = []
 
     @ObservationIgnored var run: InstallRun?
@@ -77,8 +68,7 @@ final class InstallJob: Identifiable {
         phase = .failed
     }
 
-    // Point the whole request at a copy of the installer folder
-    // (copy_to_internal_disk): setup, parts and manifest move together.
+    // Point the whole request at a copy of the installer folder (copy_to_internal_disk): setup, parts and manifest move together.
     func moveSource(to folder: URL) {
         let old = request.source.standardizedFileURL.path(percentEncoded: false)
         func rebased(_ url: URL) -> URL {
@@ -96,7 +86,6 @@ final class InstallJob: Identifiable {
         }
     }
 
-    // The retries the diagnosis offers that still change something.
     func availableFixes(runners: [String]) -> [RetryFix] {
         (diagnosis?.fixes ?? []).filter { inputs.applying($0, runners: runners) != nil }
     }

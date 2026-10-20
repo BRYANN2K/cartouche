@@ -129,8 +129,6 @@ struct AppVersionTests {
 @Suite("Failure remedies")
 struct FailureRemedyTests {
 
-    // No .app on it, matching the client's inner bundle, which is the case that made
-    // testing the extension the wrong test.
     private func bundle(named name: String = "Inner") throws -> URL {
         let root = URL.temporaryDirectory.appending(path: "np-remedy-\(UUID().uuidString)")
         let app = root.appending(path: name)
@@ -160,8 +158,6 @@ struct FailureRemedyTests {
         #expect(status.failure?.contains("App Management") == true)
     }
 
-    // The bundle root itself is refused by the repair step, so the walk has to consider the
-    // path it was given and not only the directories above it.
     @Test("A refusal of a bundle itself offers the settings pane")
     func theBundleItselfOffersThePane() throws {
         let status = SystemStatus()
@@ -251,8 +247,6 @@ struct FailureReportTests {
         #expect(report.remedy == .appManagement)
     }
 
-    // Sending the user to App Management for a batch it fixes half of leaves the other half
-    // failing with the pane already open.
     @Test("Refusals that disagree offer no remedy")
     func disagreementOffersNothing() throws {
         let report = try #require(
@@ -278,7 +272,6 @@ struct FailureReportTests {
         #expect(report.remedy == nil)
     }
 
-    // Every refusal says the same sentence, since none of them names its path.
     @Test("Repeated reasons are said once")
     func repeatedReasonsCollapse() throws {
         let report = try #require(
@@ -335,8 +328,6 @@ struct LicenseFreshnessTests {
         return dir
     }
 
-    // A bundle with no tie.pub in it, which the check turns down without reading any
-    // license file, so the verdict does not depend on what this machine is activated for.
     private func snapshot(
         install: CrossOverInstall?, license: CrossOverLicense.Status?, bridge: URL
     ) -> StatusSnapshot {
@@ -415,8 +406,6 @@ struct ActivationQuestionTests {
         )
     }
 
-    // The dialog warns that the tool cannot be installed. With one already set up none
-    // would have been built, so the warning described something that could not happen.
     @Test("An install asks nothing when the tool it would skip is already set up")
     func installWithToolAsksNothing() {
         #expect(
@@ -431,8 +420,6 @@ struct ActivationQuestionTests {
         #expect(SystemStatus.activationQuestion(.install, licensed: true, runner: .none) == nil)
     }
 
-    // Unlike an install there is no reduced version to go ahead with, so this one asks
-    // whatever is already set up.
     @Test("Setting up the tool asks whenever CrossOver is unactivated")
     func unactivatedToolAsks() {
         for runner in [RunnerState.none, .ready(builds: ["27.0.0.40921"])] {

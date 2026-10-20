@@ -23,7 +23,6 @@ struct CoverTests {
         #expect(covers.local(for: .steam(730, name: "CS2", installed: true), kind: .cover, override: nil)
             == .image(cache.appending(path: "730_library_600x900.jpg")))
 
-        // Newer clients: a folder per app, sometimes one level deeper
         let nested = cache.appending(path: "367520/4f1c2a")
         try FileManager.default.createDirectory(at: nested, withIntermediateDirectories: true)
         try SteamFixture.png("B", size: CGSize(width: 6, height: 9), hue: 0).write(to: nested.appending(path: "library_600x900.jpg"))

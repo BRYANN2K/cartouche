@@ -21,7 +21,6 @@ final class PortingToolkitTests {
 
     deinit { try? FileManager.default.removeItem(at: work) }
 
-    // Directory listings add a trailing slash, so URLs are compared by path
     static func path(_ url: URL) -> String {
         var path = url.standardizedFileURL.path(percentEncoded: false)
         while path.hasSuffix("/") { path.removeLast() }

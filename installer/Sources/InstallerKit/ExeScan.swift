@@ -1,6 +1,3 @@
-// After the install: which exe starts the game. Reads the .lnk shortcuts and
-// the Uninstall registry key the installer wrote into the prefix, and the exes
-// in the install folder, then ranks them with ExeDetector.
 
 import Foundation
 
@@ -31,7 +28,6 @@ public enum ShellLink {
             }
             at += size
         }
-        // NAME, RELATIVE_PATH, WORKING_DIR, ARGUMENTS, ICON_LOCATION, each when its flag is set.
         var strings: [Int: String] = [:]
         for (bit, slot) in [(UInt32(0x4), 0), (0x8, 1), (0x10, 2), (0x20, 3), (0x40, 4)] where flags & bit != 0 {
             let count = Int(data.u16(at)); at += 2
@@ -139,7 +135,6 @@ public enum WineRegistry {
         return out
     }
 
-    // "C:\Games\X\game.exe",0 → C:\Games\X\game.exe
     public static func iconPath(_ value: String) -> String {
         var v = value.trimmingCharacters(in: .whitespaces)
         if let comma = v.range(of: ",", options: .backwards), v[comma.upperBound...].allSatisfy({ $0.isNumber || $0 == "-" }) {
@@ -152,12 +147,10 @@ public enum WineRegistry {
 extension ExeDetector {
 
     public struct Scan: Sendable, Equatable {
-        // Where the game ended up: the folder asked for, or the one the installer registered.
         public let installFolder: URL
         public let candidates: [Candidate]
     }
 
-    // primary: a GOG play task's exe.
     public static func scan(installFolder expected: URL, prefix: URL, primary: URL? = nil) -> Scan {
         let fm = FileManager.default
         let uninstall = WineRegistry.uninstallEntries(prefix: prefix)

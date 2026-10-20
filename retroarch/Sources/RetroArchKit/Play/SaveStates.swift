@@ -1,6 +1,5 @@
 import Foundation
 
-// A save state RetroArch wrote for a game, with the picture it saves beside it
 public struct SaveState: Sendable, Equatable, Identifiable {
     // nil for the auto state written on quit
     public var slot: Int?
@@ -18,9 +17,8 @@ public struct SaveState: Sendable, Equatable, Identifiable {
     }
 }
 
-// The states of one game in Cartouche's states folder. RetroArch names them
-// after the loaded file: name.state, name.state1 …, name.state.auto, with
-// name.state1.png for the picture, in a folder per core.
+//// The states of one game in Cartouche's states folder. RetroArch names them after the loaded file: name.state,
+//// name.state1 …, name.state.auto, with name.state1.png for the picture, in a folder per core.
 public enum SaveStates {
 
     public static func list(for game: ConsoleGame, in paths: RetroArchPaths) -> [SaveState] {
@@ -53,7 +51,6 @@ public enum SaveStates {
                 picture: FileManager.default.fileExists(atPath: picture.path(percentEncoded: false)) ? picture : nil,
                 date: date))
         }
-        // Auto first, then the most recent
         return states.sorted { a, b in
             if a.isAuto != b.isAuto { return a.isAuto }
             return a.date > b.date

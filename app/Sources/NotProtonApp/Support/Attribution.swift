@@ -1,5 +1,3 @@
-// The About window credits. This is the only app text allowed to name NotProton,
-// and it stays in English in every language so the legal wording is exact.
 
 import AppKit
 

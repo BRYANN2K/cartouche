@@ -86,7 +86,6 @@ struct SteamInstallerTests {
         )
     }
 
-    // The registrar and stopper a test uses: record the call, do nothing.
     private final class Calls: @unchecked Sendable {
         private let lock = NSLock()
         private var registered: [URL] = []
@@ -177,7 +176,6 @@ struct SteamInstallerTests {
         defer { try? FileManager.default.removeItem(at: work) }
         let fixture = try await self.fixture(into: work)
 
-        // What Valve actually ships, asserted before the install rather than assumed.
         let before = try #require(SteamBundle.readInfoPlist(at: fixture.plist))
         let stock = try #require(before[SteamBundle.environmentKey] as? [String: Any])
         #expect(stock["LC_ALL"] as? String == "en_US.UTF-8")
@@ -207,8 +205,6 @@ struct SteamInstallerTests {
             #expect(result.succeeded, "\(target.lastPathComponent) does not verify: \(result.stderr)")
         }
 
-        // Valve's authority is gone, which is the whole reason repair replaces the bundle
-        // rather than editing it back.
         let described = try Shell.run("/usr/bin/codesign", ["-dvv", fixture.app.path(percentEncoded: false)])
         #expect(!(described.stdout + described.stderr).contains("TeamIdentifier=MXGJJ98X76"))
     }
@@ -345,7 +341,6 @@ struct SteamInstallerTests {
         }
     }
 
-    // Straight at the probe, so neither of these needs a Valve bundle to be fetched first.
     private func bundle(writable: Bool) throws -> URL {
         let app = try scratchDirectory("install").appending(path: "Steam.app")
         try FileManager.default.createDirectory(

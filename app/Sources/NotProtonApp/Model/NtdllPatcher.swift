@@ -1,12 +1,9 @@
-// Patches CrossOver's ntdll.dll so that lsteamclient is loaded.
 
 import Foundation
 
-// jump site
 struct NtdllHook: Sendable {
     let rva: Int
 
-    // The bytes that are supposed to be at `rva`.
     let stolen: [UInt8]
 }
 
@@ -21,7 +18,6 @@ struct NtdllPatch: Sendable {
     let payloadResource: String
     let payloadSHA256: String
 
-    // cave
     let caveRVA: Int
     let payloadRVA: Int
 
@@ -43,8 +39,7 @@ enum NtdllPatcher {
     static let step = String(localized: "Patch ntdll")
 
     private static let magicPE32Plus: UInt16 = 0x20b
-    // SECTION_NAME, SECTION_SIZE and SECTION_FLAGS in resolve.py. The patched file is checked
-    // against patchedNtdll, so a value that drifts here makes patching fail.
+    // SECTION_NAME, SECTION_SIZE and SECTION_FLAGS in resolve.py. The patched file is checked against patchedNtdll, so a value that drifts here makes patching fail.
     private static let sectionName: [UInt8] = Array(".npdet".utf8) + [0, 0]
     private static let sectionSize = 0x1000
     private static let sectionFlags: UInt32 = 0x6000_0020
@@ -344,7 +339,6 @@ enum NtdllPatcher {
         patches(for: build).first { $0.arch == arch }
     }
 
-    // Patch
     static func apply(_ patch: NtdllPatch, to image: Data, payload: Data) throws -> Data {
         var bytes = [UInt8](image)
         try validateHeaders(patch, bytes)
@@ -379,7 +373,6 @@ enum NtdllPatcher {
             )
         }
 
-        // check files
         var branches: [(offset: Int, code: [UInt8])] = []
         for hook in patch.hooks {
             let offset = try fileOffset(of: hook.rva, in: bytes, describing: String(localized: "hook site"), patch: patch)
@@ -607,7 +600,6 @@ enum NtdllPatcher {
         bytes.map { String(format: "%02x", $0) }.joined()
     }
 
-    // Resources
 
     static func payload(for patch: NtdllPatch) throws -> Data {
         guard let url = Bundle.module.url(forResource: patch.payloadResource, withExtension: "bin") else {

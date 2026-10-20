@@ -1,4 +1,3 @@
-// One runner the app can set up, whatever its source
 
 import Foundation
 
@@ -9,7 +8,6 @@ struct Runner: Sendable, Equatable, Identifiable {
         case wineBuild
         case portingToolkit
 
-        // Product names, so not translated.
         var name: String {
             switch self {
             case .crossOver: "CrossOver"
@@ -21,37 +19,27 @@ struct Runner: Sendable, Equatable, Identifiable {
 
     enum State: Sendable, Equatable {
         case available
-        // Being copied or patched. Keeps the state to fall back to if that fails.
         indirect case installing(from: State)
         case ready
-        // Each entry names a file that no longer matches its pin.
         case damaged(files: [String])
-        // Never offered to Steam or to games.
         case unsupported(reason: String)
     }
 
     enum Event: Sendable, Equatable {
         case install
-        // Verification after an install or on refresh. Empty means every pin matched.
         case verified(problems: [String])
         case failed
     }
 
     let id: String
     let kind: Kind
-    // The build's own version (CFBundleVersion for CrossOver), or what the copy reports
-    // when it is not a pinned build.
     let version: String
     let displayVersion: String
-    // CPU flavors this runner serves on this Mac.
     let flavors: [CompatTool.Flavor]
     var state: State
     // Pinned hashes. Nil when the build is not pinned.
     let build: RunnerBuild?
-    // The copy it is set up from, when one was found on disk.
     let source: URL?
-    // True when a complete copy sits under runners/, which is what Steam's tool list
-    // is built from.
     let isInstalled: Bool
 
     var reason: String? {
@@ -78,7 +66,6 @@ extension Runner.State {
 
     var canInstall: Bool { applying(.install) != nil }
 
-    // Nil when the event does not apply, for example installing an unsupported build.
     func applying(_ event: Runner.Event) -> Runner.State? {
         switch (self, event) {
         case (.unsupported, _):

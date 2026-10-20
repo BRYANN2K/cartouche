@@ -1,5 +1,3 @@
-// The app's view of every permission: reads states, asks macOS when a flow
-// tells it to, and opens System Settings for recovery.
 
 import AppKit
 import Foundation
@@ -50,12 +48,10 @@ final class PermissionCenter {
         }
     }
 
-    // One permission, for a feature about to offer it
     func refresh(_ permission: Permission) async {
         states[permission] = await read(permission, deep: false)
     }
 
-    // Back from System Settings: check again what the user went there to change
     func applicationDidBecomeActive() async {
         for permission in Permission.allCases {
             states[permission] = await read(permission, deep: ledger.wantsRecheck(permission))
@@ -80,7 +76,6 @@ final class PermissionCenter {
         return state
     }
 
-    // Only PermissionFlow calls this, after its explanation
     func request(_ permission: Permission, target: URL? = nil) async -> PermissionState {
         ledger.noteAsked(permission)
         if let target { ledger.setTarget(target, for: permission) }
@@ -91,7 +86,6 @@ final class PermissionCenter {
         return state
     }
 
-    // A feature's own attempt showed the answer, as App Management's write refusal does
     func record(_ state: PermissionState, for permission: Permission, target: URL? = nil) {
         if let target { ledger.setTarget(target, for: permission) }
         ledger.note(state, for: permission)

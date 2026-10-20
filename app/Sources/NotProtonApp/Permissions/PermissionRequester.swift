@@ -1,5 +1,4 @@
-// The calls that make macOS show its permission prompts. Only PermissionFlow
-// reaches them, after Cartouche's explanation.
+// Only PermissionFlow reaches these, after Cartouche's explanation.
 
 import AppKit
 import ApplicationServices
@@ -14,7 +13,6 @@ struct LivePermissionRequester: PermissionRequester {
     func request(_ permission: Permission, target: URL?) async -> SystemAnswer {
         switch permission {
         case .accessibility:
-            // The CFString constant is a mutable global in Swift 6, so its value is spelled out
             let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
             return AXIsProcessTrustedWithOptions(options) ? .granted : .notGranted
         case .inputMonitoring:
@@ -40,23 +38,20 @@ struct LivePermissionRequester: PermissionRequester {
             default: return .undetermined
             }
         case .appManagement, .steamInput, .gameInputMonitoring, .keychain:
-            // Not Cartouche's prompt to show: App Management answers a real write,
-            // the others belong to Steam and the games
+            // App Management's prompt is the write itself; the others belong to Steam and the games.
             return .unreadable
         }
     }
 
-    // The first read of a protected folder is what shows the prompt, and it
-    // blocks until the user answers
+    // The first read of a protected folder is what shows the prompt, and it blocks until the user answers
     private static func read(_ folder: URL) async -> SystemAnswer {
         await Task.detached(priority: .userInitiated) {
             LivePermissionProbe.readCheck(folder)
         }.value
     }
 
-    // Browsing for a Bonjour service is the first local network use, which
-    // shows the prompt. There is no answer to read back. The type is the one
-    // RetroArch publishes hosted games under, listed in NSBonjourServices.
+    // Bonjour browsing is the first local network use, which shows the prompt; there is no answer to read back.
+    // The type is the one RetroArch publishes hosted games under, listed in NSBonjourServices.
     private static func touchLocalNetwork() async -> SystemAnswer {
         let browser = NWBrowser(for: .bonjour(type: "_ra_netplay._tcp", domain: nil), using: .tcp)
         browser.start(queue: .global(qos: .userInitiated))

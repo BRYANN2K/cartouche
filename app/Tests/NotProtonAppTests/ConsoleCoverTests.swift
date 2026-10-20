@@ -13,14 +13,12 @@ struct ConsoleCoverTests {
     static let system = "Nintendo - Super Nintendo Entertainment System"
     static let name = "Legend of Zelda, The - A Link to the Past (USA)"
 
-    // The user's file is there, so the card is in colour
     private func game(file: URL = URL(fileURLWithPath: "/nonexistent/zelda.sfc")) -> Game {
         let console = ConsoleGame(console: "snes", name: GameTitle.display(Self.name), databaseName: Self.name,
                                   file: file, identifiedBy: .checksum)
         return ConsoleCenter.libraryGame(console)
     }
 
-    // A plain picture of the given size, red on the whole
     static func png(width: Int, height: Int, colour: NSColor = .systemRed) throws -> Data {
         let rep = try #require(NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: width, pixelsHigh: height, bitsPerSample: 8,
                                                 samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB,
@@ -107,7 +105,6 @@ struct ConsoleCoverTests {
             _ = try host.texts(named: "console-square-\(label)")
             host.close()
             let scale = bitmap.pixelsWide / 200
-            // Ignoring the safe area, the square starts at the window's top
             let top = 0
             func isRed(_ x: Int, _ y: Int) -> Bool {
                 guard let c = bitmap.colorAt(x: x * scale, y: top + y * scale) else { return false }

@@ -1,5 +1,3 @@
-// Where the first launch is and what the user chose so far. Saved after every
-// change, so a quit midway reopens on the same step with the same choices.
 
 import Foundation
 
@@ -30,15 +28,10 @@ enum OnboardingStep: String, Codable, CaseIterable, Sendable, Comparable {
 
 struct OnboardingState: Codable, Equatable, Sendable {
     var step: OnboardingStep = .welcome
-    // Console IDs from ConsoleCatalog, picked in the Consoles step
     var consoles: [String] = []
-    // Set once the user changes the picks, so found consoles no longer pick themselves
     var consolesChosen = false
-    // Consoles whose cores were downloaded during onboarding
     var addedConsoles: [String] = []
-    // Game folders offered in Folders and privacy, and whether each is kept
     var folders: [String: Bool] = [:]
-    // Done or skipped: the first launch is over
     var finished = false
 }
 
@@ -51,7 +44,6 @@ struct OnboardingStore: @unchecked Sendable {
         self.defaults = defaults
     }
 
-    // Nil before the first launch
     func load() -> OnboardingState? {
         defaults.data(forKey: Self.key).flatMap { try? JSONDecoder().decode(OnboardingState.self, from: $0) }
     }

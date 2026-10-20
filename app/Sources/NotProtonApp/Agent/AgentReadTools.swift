@@ -4,8 +4,7 @@ import RetroArchKit
 
 extension AgentTools {
 
-    // Read tools: they take nothing out of the app but what the user could see,
-    // and AgentScan still runs over every answer.
+    // Read tools: they take nothing out of the app but what the user could see, and AgentScan still runs over every answer.
     static var read: [AgentTool] {
         [
             AgentTool(
@@ -108,7 +107,6 @@ extension AgentTools {
                     let query = args["query"]?.string ?? ""
                     switch store {
                     case "installer":
-                        // The on-disk install folders are the catalog.
                         let names = (try? FileManager.default.contentsOfDirectory(
                             at: backend.roots.installs, includingPropertiesForKeys: nil))?
                             .filter { $0.hasDirectoryPath }.map(\.lastPathComponent) ?? []
@@ -564,7 +562,6 @@ extension AgentTools {
         ])
     }
 
-    // A user-granted file argument: existing file inside an allowed root.
     static func fileArg(_ args: JSONValue, in backend: AgentBackend) throws -> URL {
         let raw = try args.require("path")
         let url = URL(filePath: raw)

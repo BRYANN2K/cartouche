@@ -1,12 +1,10 @@
-// Fetches compat.json.gz at most once a day and keeps the last valid copy,
-// so the library works offline
+// Fetches compat.json.gz at most once a day and keeps the last valid copy, so the library works offline
 
 import Foundation
 
 struct CompatibilityClient: Sendable {
 
-    // The compat-data release of the repository that serves the Sparkle feed, so the
-    // repository is named in one place, SUFeedURL in Info.plist
+    // The compat-data release of the repository that serves the Sparkle feed, so the repository is named in one place, SUFeedURL in Info.plist
     static var feed: URL? {
         guard let appcast = Bundle.main.object(forInfoDictionaryKey: "SUFeedURL") as? String else { return nil }
         return URL(string: appcast).map(QAEnvironment.url).flatMap(feed(fromAppcast:))
@@ -21,7 +19,6 @@ struct CompatibilityClient: Sendable {
         return url.appending(path: "download/compat-data/compat.json.gz")
     }
 
-    // Body and HTTP status. Throws when the server cannot be reached.
     typealias Fetch = HTTPFetch.Fetch
 
     let directory: URL
@@ -37,7 +34,6 @@ struct CompatibilityClient: Sendable {
     }
 
     enum Outcome: Sendable {
-        // The server answered within the last day
         case skipped
         case updated(CompatData)
         case offline
@@ -74,7 +70,6 @@ struct CompatibilityClient: Sendable {
         try? atomicReplace(stateFile, with: data, step: "compatibility")
     }
 
-    // A failed connection does not count as the day's fetch, so the next launch tries again
     func refresh(now: Date, schema: CompatSchema) async -> Outcome {
         if let last = lastContact(), now.timeIntervalSince(last) < 24 * 3600, now >= last {
             return .skipped

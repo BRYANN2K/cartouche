@@ -180,7 +180,6 @@ struct SteamFixture {
         CoverStore(steamCache: steam.appending(path: "appcache/librarycache"), cache: caches, fetch: fetch)
     }
 
-    // A plain stand-in for box art, with the game's name on it
     static func png(_ text: String, size: CGSize, hue: Double) throws -> Data {
         let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: Int(size.width), pixelsHigh: Int(size.height),
                                    bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
@@ -206,7 +205,6 @@ struct SteamFixture {
 
 private func require<T>(_ value: T?) throws -> T { try SteamFixture.require(value) }
 
-// Every action a menu item list can run, children included
 extension GameMenuItem {
     var flatActions: [GameAction] { (action.map { [$0] } ?? []) + children.flatMap(\.flatActions) }
 }
@@ -260,7 +258,6 @@ func windowSnapshot<V: View>(_ view: V, named name: String, size: CGSize = CGSiz
     window.alphaValue = 0
     window.ignoresMouseEvents = true
     window.orderFrontRegardless()
-    // Lets tasks, toolbars and the inspector settle
     let end = Date().addingTimeInterval(settle)
     while Date() < end {
         try? await Task.sleep(for: .milliseconds(20))

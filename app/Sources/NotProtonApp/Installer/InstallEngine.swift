@@ -1,7 +1,4 @@
-// Runs an InstallJob: checks, fresh prefix, the installer under Rosetta with
-// its progress, the diagnosis, then the exe ranking and the redistributables.
-// Everything it starts is a Wine process or a macOS tool; nothing from the
-// installer's folder runs outside Wine.
+// Everything it starts is a Wine process or a macOS tool; nothing from the installer's folder runs outside Wine.
 
 import Foundation
 import InstallerKit
@@ -14,11 +11,9 @@ struct InstallEngine: Sendable {
     var environment: [String: String] = SetupEnvironment.base
     var policy = InstallRun.Policy()
     var keepAwake = true
-    // Returns the run unstarted: the engine starts it so Stop can kill it.
     var winetricks: @Sendable (_ verbs: [String], _ prefix: URL, _ wine: WineRunner, _ log: URL) async throws -> InstallRun
         = InstallerWinetricks.run
 
-    // The install runners in the order the review step offers them.
     func runnerIDs() -> [String] { InstallRunners.choices(registry()).map(\.id) }
 
     @MainActor
@@ -151,7 +146,6 @@ struct InstallEngine: Sendable {
         job.phase = .choosing
     }
 
-    // The user confirmed the exe: the record, the launcher, and Steam's shortcut if asked.
     @MainActor
     func finish(_ job: InstallJob, exe: URL, showInSteam: Bool, steam: SteamShortcuts = SteamShortcuts()) throws -> SteamShortcuts.Outcome? {
         guard let folder = job.folder else { return nil }
@@ -183,7 +177,6 @@ struct InstallEngine: Sendable {
         return outcome
     }
 
-    // Stop or cancel: end the installer's processes and remove the unfinished attempt.
     @MainActor
     func stop(_ job: InstallJob) {
         job.run?.stop()
@@ -215,7 +208,6 @@ struct InstallEngine: Sendable {
     }
 }
 
-// The CLS.ini files already rewritten, shared with the monitor's tick.
 final class CLSPatches: @unchecked Sendable {
     private let lock = NSLock()
     private var done: Set<String> = []
@@ -232,8 +224,6 @@ final class CLSPatches: @unchecked Sendable {
 
 enum InstallerWinetricks {
 
-    // The same pinned winetricks as Prefixes > Winetricks, run on the game's own prefix.
-    // The run comes back unstarted so the engine can track and stop it.
     @Sendable
     static func run(_ verbs: [String], prefix: URL, wine: WineRunner, log: URL) async throws -> InstallRun {
         let script = try await PinnedDownload.obtain(

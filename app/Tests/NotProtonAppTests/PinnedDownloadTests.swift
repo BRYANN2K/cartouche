@@ -8,7 +8,6 @@ import Testing
 @Suite("Pinned download")
 struct PinnedDownloadTests {
 
-    // The progress closure is Sendable, so what it records has to be too.
     private final class Reports: @unchecked Sendable {
         private let lock = NSLock()
         private var seen: [String] = []
@@ -165,8 +164,8 @@ struct PinnedDownloadTests {
         let downloads = work.appending(path: "downloads")
         try FileManager.default.createDirectory(at: downloads, withIntermediateDirectories: true)
         try Data(body.utf8).write(to: downloads.appending(path: "package.tar"))
-
         // No hosts at all, so anything that reaches the network cannot succeed.
+
         let reported = Reports()
         let got = try await PinnedDownload.obtain(
             file: "package.tar",

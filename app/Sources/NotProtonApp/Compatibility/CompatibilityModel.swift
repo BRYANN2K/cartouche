@@ -1,5 +1,3 @@
-// What the library and the game panel read: the compatibility data in use,
-// whether the last fetch reached the server, and how old the data is.
 
 import Foundation
 import Observation
@@ -10,7 +8,6 @@ final class CompatibilityModel {
 
     private(set) var data: CompatData?
     private(set) var isOffline = false
-    // MacGamingDB answers for the games opened so far
     private(set) var macReports: [Int: MacGamingDBEntry] = [:]
 
     @ObservationIgnored let client: CompatibilityClient
@@ -18,7 +15,6 @@ final class CompatibilityModel {
     @ObservationIgnored let macGamingDB: MacGamingDBClient
     @ObservationIgnored let choices: PrivacyChoices
     @ObservationIgnored var now: @Sendable () -> Date = { Date() }
-    // Settings > General's daily switch; tests drive it
     @ObservationIgnored var dailyChecks: () -> Bool = { DailyChecks.enabled() }
     @ObservationIgnored var chip: String? = MacChip.current()
 
@@ -32,7 +28,6 @@ final class CompatibilityModel {
         self.choices = choices
     }
 
-    // Called when a game's panel or Details sheet opens. Never for the whole library.
     func openGame(appID: Int) async {
         guard choices.fetchMacReports else { return }
         if let entry = await macGamingDB.reports(appID: appID, now: now()) {
@@ -40,7 +35,6 @@ final class CompatibilityModel {
         }
     }
 
-    // Reads the cached copy, so the library has data before any network answer.
     // Unpacking and validating run off the main actor; only the write stays here.
     func load() async {
         guard let schema else { return }
@@ -55,7 +49,6 @@ final class CompatibilityModel {
             return nil
         }
         if data == nil { await load() }
-        // The daily switch keeps the cached copy in place and asks for nothing
         guard dailyChecks() else { return .skipped }
         let outcome = await client.refresh(now: now(), schema: schema)
         switch outcome {

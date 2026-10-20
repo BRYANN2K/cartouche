@@ -1,7 +1,5 @@
-// Allow list of CrossOver builds the runner clones from. The ntdll hook sites
-// are hardcoded RVAs, so a build not pinned here would be patched at the wrong
-// offsets. New builds go in after running ntdll-patch/resolve.py and pinning
-// the hashes.
+// Allow list of CrossOver builds the runner clones from: the ntdll hook sites are hardcoded RVAs, so an unpinned
+// build would be patched at wrong offsets. New builds go in after ntdll-patch/resolve.py runs and hashes are pinned.
 
 import Foundation
 
@@ -12,13 +10,10 @@ enum WineArch: String, Sendable, CaseIterable {
 }
 
 struct RunnerBuild: Sendable, Equatable, Identifiable {
-    // CFBundleVersion, which also names the directory under runners/ and keys
-    // the ntdll hash tables. Changing it orphans an installed runner.
+    // CFBundleVersion names the directory under runners/ and keys the ntdll hash tables; changing it orphans an installed runner.
     let bundleVersion: String
 
-    // CFBundleShortVersionString. CrossOver inverts the usual pair and sets this
-    // to the build date, so it is the string the download page shows. Display
-    // only, never identity.
+    // CFBundleShortVersionString: CrossOver sets it to the build date, so it is what the download page shows. Display only, never identity.
     let releaseVersion: String
 
     let flavor: String?
@@ -102,7 +97,6 @@ struct BackendTool: Sendable, Hashable, Identifiable {
 
 enum SupportedRunners {
 
-    // Every tool paired with each backend it can serve, tools in their own order
     static func backendTools(
         for tools: [InstalledTool], backends: (InstalledTool) -> [GraphicsBackend]
     ) -> [BackendTool] {
@@ -281,7 +275,6 @@ enum SupportedRunners {
         ),
     ]
 
-    // Tests pass their own pins so fixture trees can stand in for a real CrossOver.
     static func build(loaderSHA256 hash: String, in pins: [RunnerBuild] = all) -> RunnerBuild? {
         pins.lazy.compactMap { $0.matching(loaderSHA256: hash) }.first
     }

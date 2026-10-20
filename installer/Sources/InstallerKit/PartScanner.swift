@@ -1,4 +1,3 @@
-// Finds the installer exe and its data parts in a dropped folder.
 
 import Foundation
 
@@ -21,7 +20,6 @@ public struct PartScan: Sendable {
 
 public enum PartScanner {
 
-    // data-01.bin, setup-1.bin, data_3.bin, game.bin.002
     nonisolated(unsafe) private static let numbered = /^(.*?[-_. ]?)(\d{1,3})(\.bin)$/
     nonisolated(unsafe) private static let split = /^(.*\.bin\.)(\d{3})()$/
 

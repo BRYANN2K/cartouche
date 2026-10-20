@@ -1,5 +1,3 @@
-// The install sheet's state: drop, analysis, review, install, choose the exe,
-// ready. Before Install it holds the analysis; after, it follows the job.
 
 import AppKit
 import Foundation
@@ -15,9 +13,7 @@ final class InstallSheetModel {
     enum Check: Sendable, Equatable {
         case running(Double?)
         case ok
-        // Orange: worth knowing, does not block.
         case warning
-        // Red: blocks Install.
         case failed
     }
 
@@ -280,7 +276,6 @@ final class InstallSheetModel {
         return job.availableFixes(runners: runners.isEmpty ? center.engine.runnerIDs() : runners.map(\.id))
     }
 
-    // Brings the installer's Wine windows to the front.
     func showInstallerWindow() {
         guard let members = job?.run?.group.members() else { return }
         for pid in members {

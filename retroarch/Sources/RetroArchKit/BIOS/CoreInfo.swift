@@ -1,7 +1,6 @@
 import Foundation
 
-// A libretro core's .info file: what it plays and the BIOS files it can use.
-// Lines are key = "value"; MD5s are in notes, as "(!) <file> (md5): <hash>".
+// A libretro core's .info file: what it plays and the BIOS files it can use. Lines are key = "value"; MD5s are in notes, as "(!) <file> (md5): <hash>".
 public struct CoreInfo: Sendable, Equatable {
 
     public struct Firmware: Sendable, Equatable {

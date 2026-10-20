@@ -45,7 +45,6 @@ struct UpdateChannelTests {
         #expect(!DailyChecks.enabled(defaults))
 
         var on = true
-        // The observer listens to this suite only, and the controller starts lazily
         let updater = AppUpdater(defaults: defaults, dailyChecks: { on })
         updater.start()
         // Sparkle stores the switch on the host's defaults; leave nothing behind

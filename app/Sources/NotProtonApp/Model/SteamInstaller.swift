@@ -1,5 +1,3 @@
-// 'Install' logic for the Steam patch componen
-
 import Foundation
 
 enum InstallPhase: Sendable {
@@ -406,8 +404,7 @@ enum SteamInstaller {
             .map { String($0.dropFirst("CDHash=".count)) }
     }
 
-    // macOS does not automatically clear a pre-existing input access approval, so it needs to be cleared
-    // or Steam Input will silently not work.
+    // macOS does not automatically clear a pre-existing input access approval, so it needs to be cleared or Steam Input will silently not work.
     static let inputAccessServices = ["Accessibility", "PostEvent", "ListenEvent"]
 
     static func resetInputAccess() {

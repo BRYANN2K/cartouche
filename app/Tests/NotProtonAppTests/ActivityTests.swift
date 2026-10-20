@@ -83,7 +83,6 @@ let epicDownload = StoreActivity(gameID: "epic:Fennec", title: "Sample Free Game
 @Suite("Activity slot")
 struct ActivitySlotTests {
 
-    // Every combination of the four kinds: the first present one in the order wins
     @Test("Playing beats installing beats a store job beats downloads, for all 16 combinations")
     func priority() {
         let install = InstallActivity(title: "Sample Game", fraction: 0.4, stuck: false, waiting: 0)
@@ -101,7 +100,6 @@ struct ActivitySlotTests {
                 else if !downloads.isEmpty { .downloads(downloads) }
                 else { nil }
             #expect(slot == expected, "mask \(mask)")
-            // The status menu lists every kind present, whatever the slot shows
             let kinds = ActivityMenuSection.all(playing: playing, install: installing, store: store,
                                                 downloads: downloads).map(\.kind)
             #expect(kinds.count == mask.nonzeroBitCount, "mask \(mask)")
@@ -244,7 +242,6 @@ struct ActivityCenterTests {
         #expect(center.downloads.isEmpty)
         #expect(notifier.posted == ["ready God of War 1593500"])
         #expect(reloaded == [1_593_500])
-        // The cover keeps its effect for the finish ring
         let game = Game.steam(1_593_500, name: "God of War", installed: true)
         #expect(center.reveal(for: game)?.finishedAt != nil)
         await center.refresh()
@@ -523,7 +520,6 @@ struct GameProcessTests {
         let fixture = try DownloadFixture("running")
         defer { fixture.remove() }
         try fixture.manifest(1_245_620, "Elden Ring", flags: 4)
-        // The tracked process runs from the game's folder, as the real game would
         let dir = fixture.steam.appending(path: "steamapps/common/Elden Ring")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let script = dir.appending(path: "run.sh")

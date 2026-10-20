@@ -1,5 +1,4 @@
-// Steam's text KeyValues files (libraryfolders.vdf, appmanifest_*.acf,
-// loginusers.vdf, localconfig.vdf): quoted keys, quoted values, braces.
+// Steam's text KeyValues files (libraryfolders.vdf, appmanifest_*.acf, loginusers.vdf, localconfig.vdf): quoted keys, quoted values, braces.
 
 import Foundation
 

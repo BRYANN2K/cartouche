@@ -1,6 +1,3 @@
-// Settings > Agents and the in-app half of approvals (the notification is the
-// other), as launcher.html's SETTINGS.Agents. The model is AgentControlModel;
-// everything the pane shows is already observable through it.
 
 import AppKit
 import SwiftUI
@@ -9,7 +6,6 @@ import CartoucheMCP
 struct AgentsSettingsView: View {
     @Bindable var model: AgentControlModel
 
-    // The full path: Claude Code does not search Cartouche's bundle for the helper
     private static var claudeCode: String {
         let helper = MCPSocketServer.bundledHelper()
         return "claude mcp add cartouche -- '\(helper.replacingOccurrences(of: "'", with: "'\\''"))'"
@@ -104,7 +100,6 @@ struct AgentsSettingsView: View {
         return String(localized: "HTTP listens on 127.0.0.1 only; the helper clients run through Cartouche’s own channel.")
     }
 
-    // "claude · runner=x · 2 minutes ago · done"
     private func subtitle(_ action: AgentAction) -> String {
         var parts = [action.client]
         if !action.detail.isEmpty { parts.append(action.detail) }
@@ -134,8 +129,6 @@ struct AgentsSettingsView: View {
     }
 }
 
-// The pending request as a sheet on the main window: it stays until answered —
-// Deny, Allow, or the service's own timeout. Queued requests show one by one.
 struct AgentApprovalSheet: View {
     let approval: AgentApproval
     let model: AgentControlModel
@@ -163,8 +156,6 @@ struct AgentApprovalSheet: View {
 }
 
 extension View {
-    // A pending approval turns into a sheet over the main window; answering it
-    // drops it and the next one waiting, if any, takes its place.
     func agentApprovals(_ model: AgentControlModel) -> some View {
         sheet(item: Binding(get: { model.pending.first }, set: { _ in })) { approval in
             AgentApprovalSheet(approval: approval, model: model)

@@ -130,7 +130,6 @@ struct CoreManagerTests {
     @Test func removingSuperNintendoDeletesItsCoreAndNoGame() async throws {
         let bot = try await Buildbot()
         let shelf = ConsoleShelf(paths: bot.paths, cores: bot.cores)
-        // The user's games, beside Cartouche's folder and inside it
         let games = bot.work.appending(path: "Games", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: games, withIntermediateDirectories: true)
         let files = [

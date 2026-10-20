@@ -26,7 +26,6 @@ struct OnboardingFlowTests {
         #expect(!model.isPresented)
         #expect(scene.store.load()?.finished == true)
         #expect(scene.untouched)
-        // Once over, it does not come back at the next launch
         let next = try scene.model()
         next.presentIfDue()
         #expect(!next.isPresented)

@@ -47,7 +47,6 @@ struct LibrarySidebar: View {
     private func row(_ item: SidebarItem, symbol: String) -> some View {
         Label(LibraryModel.title(item), systemImage: symbol)
             .badge(model.badge(item).map { Text(verbatim: $0) })
-            // An expired store session is a red badge
             .badgeProminence(model.isExpired(item) ? .increased : .standard)
             .tag(item)
     }
@@ -145,7 +144,6 @@ struct LibraryWindow: View {
     }
 }
 
-// The Windows kind opens the install sheet instead, through InstallSheetHost.
 struct AddGamesSheet: View {
     @State var kind: AddGamesKind
     let library: LibraryModel
@@ -164,8 +162,6 @@ struct AddGamesSheet: View {
             }
         }
         .onChange(of: kind, initial: true) { _, kind in
-            // Windows installers go through the install sheet, which the host
-            // opens and dismisses this one for
             if kind == .windows { library.addGames = .windows }
         }
         .frame(width: 520)

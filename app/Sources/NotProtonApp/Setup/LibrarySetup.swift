@@ -1,6 +1,3 @@
-// The library's view of a game's setup: what the panel and the menus offer, and what
-// Steam is told when the user changes it. Requests and per-game variables go to the
-// library's own folder, so tests in a scratch folder never reach the real one.
 
 import Foundation
 
@@ -11,14 +8,12 @@ extension LibraryModel {
     var compatRequestsFile: URL { store.folder.appending(path: SupportPaths.compatRequests.lastPathComponent) }
     var setupsFolder: URL { store.folder.appending(path: SupportPaths.setups.lastPathComponent) }
 
-    // A Steam game with both a macOS and a Windows build. An installer game never
-    // gets the choice: its folder only holds the Windows install.
+    // An installer game never gets the choice: its folder only holds the Windows install.
     func hasMacBuild(_ game: Game) -> Bool {
         game.source != .installer && game.steamAppID.map(macBuilds.contains) ?? false
     }
 
-    // Runners a Windows installer game may use: the install runners, which allow
-    // ready free Wine builds that are not offered to Steam
+    // Install runners allow ready free Wine builds that Steam games are not offered.
     var installRunners: [Runner] { InstallRunners.choices(RunnerRegistry(runners: runners)) }
 
     func resolution(for game: Game) -> GameSetupResolver.Resolution {
@@ -31,21 +26,18 @@ extension LibraryModel {
             return GameSetupResolver.resolve(choice, defaults: setupDefaults, runners: runners,
                                              availability: backendAvailability, offered: installRunners)
         }
-        // Store games run under Rosetta, as Windows installs do
         if game.source.isStore { choice.translation = .rosetta }
         return GameSetupResolver.resolve(choice, defaults: setupDefaults, runners: runners,
                                          availability: backendAvailability, hasMacBuild: hasMacBuild(game))
     }
 
-    // What the Graphics menu lists for the game's runner and translation
     func graphicsChoices(for game: Game) -> [GraphicsBackend] {
         let setup = resolution(for: game).setup
         guard let runner = setup.runner else { return [] }
         return BackendSupport.backends(for: runner, translation: setup.translation, availability: backendAvailability)
     }
 
-    // FEX only where the runner serves it, so never on macOS 15; store and
-    // installer games run under Rosetta, as Windows installs do
+    // FEX only where the runner serves it, so never on macOS 15; store and installer games run under Rosetta, as Windows installs do.
     func translationChoices(for game: Game) -> [GameSetupChoice.Translation] {
         if game.source.isStore || game.source == .installer { return [.rosetta] }
         return resolution(for: game).setup.runner.map(BackendSupport.translations(for:)) ?? []
@@ -58,7 +50,6 @@ extension LibraryModel {
         return out
     }
 
-    // Asks Steam for the tool of the game's new setup and writes its variables.
     // An installer game never goes through Steam: its own launcher is rewritten.
     func tellSteam(_ id: String) {
         guard let game = game(id), game.source != .installer, let appID = game.steamAppID else { return }
@@ -72,8 +63,7 @@ extension LibraryModel {
 
     // A game mapped in Steam to one of Cartouche's pairs shows that pair here, so the two agree
     func adoptSteamChoices(_ mappings: [Int: String], written: Date? = nil) {
-        // A choice Steam has not applied yet, or not saved to config.vdf yet, is newer than
-        // what config.vdf says
+        // A choice Steam has not applied yet, or not saved to config.vdf yet, beats what config.vdf says.
         let pending = SteamCompatChoice.pending(file: compatRequestsFile)
         let asked = SteamCompatChoice.asked(file: compatRequestsFile)
         var updates: [String: GameSetupChoice] = [:]
@@ -96,10 +86,7 @@ extension LibraryModel {
         adoptSetups(updates)
     }
 
-    // Applies a setup choice to a game installed from a Windows installer: the
-    // launcher is rewritten with the same environment a store game would get,
-    // DXMT's winemetal.dll is refreshed, and the record keeps the runner that
-    // now runs the prefix. The game and its prefix are never copied.
+    // The launcher is rewritten as a store game's would be, DXMT's winemetal.dll refreshed; the game and its prefix are never copied.
     func applyInstallerSetup(_ setup: GameSetupChoice, for game: Game) {
         setupNotices[game.id] = nil
         guard game.id.hasPrefix("installer:") else { return }

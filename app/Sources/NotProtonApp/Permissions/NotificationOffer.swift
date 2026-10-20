@@ -1,5 +1,3 @@
-// Notifications are offered once, after the first download or install
-// finishes. Never at launch.
 
 import Foundation
 
@@ -15,7 +13,6 @@ enum NotificationOffer {
         event != .launch && state == .notAsked && !offeredBefore
     }
 
-    // Downloads and installs call this when they finish
     @MainActor
     static func offer(after event: Event, flow: PermissionFlow, then: @escaping @MainActor (PermissionFlow.Outcome) -> Void = { _ in }) {
         let ledger = flow.center.ledger

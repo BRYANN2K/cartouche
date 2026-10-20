@@ -85,13 +85,10 @@ for entry in sizes {
     let ctx = NSGraphicsContext(bitmapImageRep: rep)!
     NSGraphicsContext.current = ctx
 
-    // Clip to the squircle, then draw the source image scaled to fill.
     let rect = NSRect(x: 0, y: 0, width: s, height: s)
     let path = NSBezierPath(roundedRect: rect, xRadius: r, yRadius: r)
     path.addClip()
 
-    // Scale-to-fill: pick the scale that covers the canvas on both axes,
-    // then center the overflow.
     let srcSize = srcImage.size
     let scale = max(s / srcSize.width, s / srcSize.height)
     let drawW = srcSize.width * scale
@@ -119,14 +116,12 @@ for entry in sizes {
     try png.write(to: fileURL)
 }
 
-// iconutil produces the .icns from the populated iconset directory.
 let proc = Process()
 proc.executableURL = URL(fileURLWithPath: "/usr/bin/iconutil")
 proc.arguments = ["-c", "icns", iconsetURL.path, "-o", outputPath]
 try proc.run()
 proc.waitUntilExit()
 
-// Clean up the intermediate iconset.
 try? fm.removeItem(at: iconsetURL)
 
 if proc.terminationStatus != 0 {

@@ -1,5 +1,3 @@
-// How the library window hosts the install sheet: Add Games for Windows opens
-// it, and every finished install shows up under Windows Installers.
 
 import SwiftUI
 
@@ -18,21 +16,18 @@ private struct InstallSheetHost: ViewModifier {
     func body(content: Content) -> some View {
         content
             .sheet(isPresented: $center.isSheetPresented, onDismiss: {
-                // Console Games from the first step opens once this sheet is gone.
                 if pendingConsoles {
                     pendingConsoles = false
                     library.addGames = .consoles
                 }
             }) { InstallSheet(center: center) }
             .onChange(of: library.addGames) {
-                // The Windows kind is this sheet; consoles keep the Add Games sheet.
                 if library.addGames == .windows {
                     library.addGames = nil
                     center.open()
                 }
             }
             .task {
-                // Matches use the data the library already loaded.
                 center.compat = { [compat] in compat.data }
                 center.onGameReady = { _ in library.showInstalledGames(InstalledGames.all()) }
                 center.showConsoleGames = {
@@ -45,7 +40,6 @@ private struct InstallSheetHost: ViewModifier {
 }
 
 extension Binding where Value == AddGamesKind? {
-    // The Add Games sheet without the Windows kind, which opens the install sheet instead.
     var withoutWindows: Binding<AddGamesKind?> {
         Binding(get: { wrappedValue == .windows ? nil : wrappedValue }, set: { wrappedValue = $0 })
     }
@@ -53,7 +47,6 @@ extension Binding where Value == AddGamesKind? {
 
 extension LibraryModel {
 
-    // Replaces the Windows installer entries; console games stay as they are.
     func showInstalledGames(_ games: [InstalledGame]) {
         otherGames.removeAll { $0.source == .installer }
         otherGames += games.map(Game.init(installed:))

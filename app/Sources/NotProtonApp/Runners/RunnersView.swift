@@ -1,11 +1,7 @@
-// The Runners section of Settings > Compatibility: every runner RunnersModel lists —
-// Wine builds to download, the user's Game Porting Toolkit to copy or use in place,
-// the licensed CrossOver — with the one-time toolkit question as a sheet.
 
 import AppKit
 import SwiftUI
 
-// The Mac this Mac is, in words performance estimates are based on
 struct ThisMacSection: View {
     private let mac = PerformanceReport.Mac.current()
 
@@ -60,8 +56,6 @@ private struct RunnerRow: View {
     let row: RunnersModel.Row
     let model: RunnersModel
 
-    // A spinner while a build downloads or a toolkit copies: the state stays
-    // available or damaged while the model is busy with it
     private var working: Bool {
         if case .installing = row.state { return true }
         return row.action == .none && row.kind != .crossOver && (row.state == .available || damaged)
@@ -109,8 +103,6 @@ private struct RunnerRow: View {
     }
 }
 
-// The one-time question a found toolkit asks: copy it into the runners folder,
-// or read it where it is
 struct ToolkitQuestionSheet: View {
     let question: RunnersModel.ToolkitQuestion
     let model: RunnersModel
@@ -156,7 +148,6 @@ struct ToolkitQuestionSheet: View {
     }
 }
 
-// Where the model's Choose… opens a real panel; tests hand the model a fixture URL
 enum ToolkitFolderPicker {
 
     @MainActor

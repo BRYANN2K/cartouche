@@ -15,7 +15,6 @@ struct ReleaseFeedTests {
         #expect(plist["SURequireSignedFeed"] as? Bool == true)
     }
 
-    // Tags vX.Y.Z-beta.N and vX.Y.Z-test.N carry X.Y.ZbN and X.Y.ZtN as bundle version
     @Test("Bundle versions of betas sort before their release and after the one before")
     func bundleVersionsOrder() {
         let ordered = ["0.0.1t1", "0.0.1t2", "0.1.0", "0.1.1", "0.2.0b1", "0.2.0b2", "0.2.0b10", "0.2.0", "0.10.0"]

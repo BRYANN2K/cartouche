@@ -1,15 +1,11 @@
 import CryptoKit
 import Foundation
 
-// RetroAchievements, through the same requests RetroArch's rcheevos makes
-// (dorequest.php): sign in once with the password to get a token, then use
-// the token. The password is never kept; the token goes to the keychain.
+// Same requests as rcheevos (dorequest.php); the password goes out once, only the token is kept (keychain).
 
-// The account RetroArch signs in with
 public struct AchievementsLogin: Sendable, Equatable {
     public var username: String
     public var token: String
-    // Another server than retroachievements.org, for the tests' own
     public var host: URL?
 
     public init(username: String, token: String, host: URL? = nil) {
@@ -19,7 +15,6 @@ public struct AchievementsLogin: Sendable, Equatable {
     }
 }
 
-// One game's achievements for the signed-in account, as the site counts them
 public struct AchievementProgress: Codable, Sendable, Equatable {
     public var unlocked: Int
     public var unlockedHardcore: Int
@@ -71,14 +66,12 @@ public struct AchievementsClient: Sendable {
         return AchievementsLogin(username: user, token: token, host: host == Self.site ? nil : host)
     }
 
-    // The game RetroAchievements knows by this hash, nil when it knows none
     public func gameID(hash: String) async throws -> Int? {
         let reply = try await request([("r", "gameid"), ("m", hash)])
         let id = (reply["GameID"] as? NSNumber)?.intValue ?? 0
         return id > 0 ? id : nil
     }
 
-    // Every game of one console the account has played, by game ID
     public func progress(console: Int, login: AchievementsLogin) async throws -> [Int: AchievementProgress] {
         let reply = try await request([("r", "allprogress"), ("u", login.username), ("t", login.token), ("c", String(console))])
         var out: [Int: AchievementProgress] = [:]
@@ -91,7 +84,6 @@ public struct AchievementsClient: Sendable {
         return out
     }
 
-    // The game's achievement set and Rich Presence script
     public func gameData(_ game: Int, login: AchievementsLogin) async throws -> (title: String, richPresence: String) {
         let reply = try await request([("r", "patch"), ("u", login.username), ("t", login.token), ("g", String(game))])
         let patch = reply["PatchData"] as? [String: Any] ?? [:]
@@ -123,9 +115,7 @@ public struct AchievementsClient: Sendable {
     }
 }
 
-// What RetroAchievements calls each console, and how it hashes a cartridge
-// (rcheevos' rc_hash). Disc consoles and the Nintendo 64 hash in ways only
-// rcheevos does; their game is learned from RetroArch's log once played.
+// Disc consoles and the Nintendo 64 hash in ways only rcheevos does; their game is learned from RetroArch's log once played.
 public enum AchievementsConsole {
 
     public static func id(_ console: String) -> Int? {

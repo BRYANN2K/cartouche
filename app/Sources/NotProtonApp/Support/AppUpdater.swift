@@ -5,9 +5,7 @@ import Sparkle
 final class AppUpdater {
 
     private var controller: SPUStandardUpdaterController?
-    // The controller keeps its delegate weakly
     private let channels = UpdateChannelDelegate()
-    // Settings > General's daily switch; tests drive it
     private let dailyChecks: () -> Bool
     private let defaults: UserDefaults
 
@@ -16,7 +14,6 @@ final class AppUpdater {
         self.dailyChecks = dailyChecks
     }
 
-    // Built and started from the bootstrap, after the move-to-Applications check
     func start() {
         guard controller == nil else { return }
         #if DEBUG
@@ -37,8 +34,6 @@ final class AppUpdater {
         }
     }
 
-    // The daily switch pauses Sparkle's automatic check; Check for Updates is unaffected.
-    // Set only on change so writing the default does not re-fire the observer
     func applyDailyChecks() {
         guard let controller else { return }
         let wanted = dailyChecks()
@@ -47,7 +42,6 @@ final class AppUpdater {
         }
     }
 
-    // What Sparkle's automatic check is set to, for tests
     var automaticallyChecks: Bool { controller?.updater.automaticallyChecksForUpdates ?? false }
 
     func check() {

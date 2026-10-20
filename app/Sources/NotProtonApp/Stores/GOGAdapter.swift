@@ -1,9 +1,4 @@
-// GOG through gogdl, with comet beside the game for achievements and friends.
-// The user signs in on GOG's own page, which ends on an embed.gog.com address
-// carrying a one-time code; gogdl trades it for tokens in auth.json, which the
-// vault keeps. gogdl downloads; the library list and save locations come from
-// GOG's own web APIs with the account's token. Flags are those of gogdl 1.3.1
-// (gogdl/args.py) and comet 0.3.2 (src/main.rs).
+// Flags are those of gogdl 1.3.1 (gogdl/args.py) and comet 0.3.2 (src/main.rs).
 
 import Foundation
 import InstallerKit
@@ -11,7 +6,6 @@ import InstallerKit
 struct GOGAdapter: StoreAdapter {
 
     let context: ClientContext
-    // GOG's hosts; tests point them at a local server
     var embed = URL(string: "https://embed.gog.com")!
     var remoteConfig = URL(string: "https://remote-config.gog.com")!
     var gamesDB = URL(string: "https://gamesdb.gog.com")!
@@ -100,7 +94,6 @@ struct GOGAdapter: StoreAdapter {
         return StoreGame(id: id, title: title)
     }
 
-    // The portrait cover from GOG's games database
     func artURL(_ game: StoreGame) async -> URL? {
         guard let json = try? await get(gamesDB.appending(path: "platforms/gog/external_releases/\(game.id)"), token: nil),
               let format = ((json["game"] as? [String: Any])?["vertical_cover"] as? [String: Any])?["url_format"] as? String
@@ -118,8 +111,7 @@ struct GOGAdapter: StoreAdapter {
         return StoreInstall(path: folder, version: Self.build(of: game.id, in: folder))
     }
 
-    // For update and repair, gogdl's --path is the game folder itself; only
-    // download appends the game folder under it (gogdl/args.py).
+    // For update and repair, --path is the game folder itself; only download appends the game folder under it (gogdl/args.py).
     func update(_ id: String, install: StoreInstall, progress: @escaping @Sendable (Double) -> Void) async throws -> StoreInstall {
         _ = try await checked(["update", id, "--platform", "windows", "--path", install.path.clientPath,
                                "--skip-dlcs"], progress: progress)
@@ -137,7 +129,6 @@ struct GOGAdapter: StoreAdapter {
     }
 
     func importGame(at folder: URL, library: [StoreGame]) async throws -> (StoreGame, StoreInstall) {
-        // DLC info files sit next to the game's: primary() picks the root's.
         guard let found = GOGInfo.primary(in: folder), let game = library.first(where: { $0.id == found.info.id }) else {
             throw StoreError.unknownGame(folder.lastPathComponent)
         }
@@ -170,8 +161,7 @@ struct GOGAdapter: StoreAdapter {
                            workingDirectory: PrefixPaths.join(install.path, info.workingDir ?? (path as NSString).deletingLastPathComponent))
     }
 
-    // comet answers the game's GOG Galaxy calls with the account's tokens, read
-    // from auth.json while the game runs, and quits once the game disconnects
+    // comet answers the game's GOG Galaxy calls with the account's tokens from auth.json while the game runs, and quits once it disconnects.
     func companion(_ id: String) async throws -> ClientCommand? {
         let executable = try await context.files.ensure(.comet)
         let name = (try? await context.secrets.secret(.gog))?.account ?? ""

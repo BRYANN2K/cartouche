@@ -117,7 +117,6 @@ struct YourPlayTests {
         }
         await scene.renderPanel("panel-your-play-three-setups")
 
-        // Use This Setup
         scene.model.setSetup(CompareSetupsSheet.choice(best.setup, from: scene.model.setup(for: scene.game.id),
                                                        macBuild: scene.model.hasMacBuild(scene.game)),
                              for: scene.game.id, tellSteam: false)

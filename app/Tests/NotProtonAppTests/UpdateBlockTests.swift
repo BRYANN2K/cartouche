@@ -26,8 +26,6 @@ struct UpdateBlockTests {
         }
     }
 
-    // The client owns that directory. Creating it would leave a config file somewhere the
-    // client is not installed, which is worse than not writing the best-effort copy.
     @Test("The best-effort copy is skipped when the client directory is not there")
     func skipsBestEffortWhenDirectoryAbsent() throws {
         let work = try scratchDirectory("cfg")
@@ -91,8 +89,6 @@ struct UpdateBlockTests {
         #expect(text == "BootStrapperInhibitUpdateOnLaunch=enable\n")
     }
 
-    // The block being present used to mean the key appearing anywhere in the file, so a
-    // config that turns it off read as one that turns it on.
     @Test("The key set to anything but enable is not a block")
     func disabledKeyIsNotABlock() throws {
         let work = try scratchDirectory("cfg")
@@ -159,7 +155,6 @@ struct UpdateBlockTests {
         #expect(!FileManager.default.fileExists(atPath: cfg.path(percentEncoded: false)))
     }
 
-    // A file the block was never in is not a file this changed, so repair does not report it.
     @Test("A file without the block is left as it is")
     func aFileWithoutTheBlockIsUntouched() throws {
         let work = try scratchDirectory("cfg")
@@ -199,7 +194,6 @@ struct UpdateBlockTests {
         #expect(UpdateBlock.isPresent(at: [cfg]))
     }
 
-    // "\r\n" is one Character, so this file used to read as one line and removal deleted it.
     @Test("Removing the block from a CRLF file keeps the other lines")
     func removalKeepsTheRestOfACRLFFile() throws {
         let work = try scratchDirectory("cfg")

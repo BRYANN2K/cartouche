@@ -1,5 +1,4 @@
-// What one install run is made of, and how it becomes a Wine command line.
-// A retry changes these inputs and runs again.
+// What one install run is made of; a retry changes these inputs and runs again.
 
 import Foundation
 
@@ -10,7 +9,6 @@ public struct InstallInputs: Sendable, Equatable, Codable {
     public var mode: InnoCommand.Mode
     public var language: String?
     public var log: String = #"C:\installer.log"#
-    // Check the parts' checksums again before running.
     public var verifyFirst = false
     // Cores Wine shows the installer. Nil is all of them.
     public var threads: Int?
@@ -33,7 +31,6 @@ public struct InstallInputs: Sendable, Equatable, Codable {
 
 public enum WinePath {
 
-    // Letters, digits, spaces and a few marks, at most 40 characters.
     public static func folderName(_ game: String, limit: Int = 40) -> String {
         let allowed = CharacterSet.alphanumerics.union(.init(charactersIn: " -_.'&()"))
         let ascii = game.folding(options: .diacriticInsensitive, locale: nil)
@@ -43,9 +40,7 @@ public enum WinePath {
         return name.isEmpty ? "Game" : name
     }
 
-    // C:\Games\X → <prefix>/drive_c/Games/X. Only drive C, which is inside the prefix.
-    // .lnk and registry paths are installer data: "." and ".." are dropped so the
-    // result can never leave drive_c.
+    // C:\Games\X → <prefix>/drive_c/Games/X. Only drive C, which is inside the prefix. .lnk and registry paths are installer data: "." and ".." are dropped so the result can never leave drive_c.
     public static func unix(_ windows: String, prefix: URL) -> URL? {
         let path = windows.replacingOccurrences(of: "\\", with: "/")
         guard path.count >= 2, path.lowercased().hasPrefix("c:") else { return nil }
@@ -61,7 +56,6 @@ public enum WinePath {
     }
 }
 
-// One process to start: what InstallRunner launches and tests compare.
 public struct InstallLaunch: Sendable, Equatable {
     public var executable: String
     public var arguments: [String]
@@ -74,7 +68,6 @@ public struct InstallLaunch: Sendable, Equatable {
     }
 }
 
-// The Wine side of a runner, as the app resolves it from the runner registry.
 public struct WineRunner: Sendable, Equatable {
     public let root: URL
     public let loader: URL
@@ -135,7 +128,6 @@ public enum WineInstall {
         )
     }
 
-    // dosdevices/s: → the installer's folder, for the short source path.
     public static func mapSource(_ folder: URL, prefix: URL) throws {
         let link = prefix.appending(path: "dosdevices").appending(path: sourceDrive)
         let fm = FileManager.default

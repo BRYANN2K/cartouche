@@ -9,7 +9,6 @@ import Testing
 @MainActor
 struct GameFolderTests {
 
-    // Four Game Boy homebrew cartridges the recorded database rows know
     private func gameBoyFolder(_ scene: ConsoleScene) throws -> URL {
         let folder = scene.work.appending(path: "Games/Consoles", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
@@ -37,7 +36,6 @@ struct GameFolderTests {
         #expect(seen(texts, "4 games found"))
         print("evidence: folder holds \(ConsoleFixtures.gameBoy.count) Game Boy files, found \(scene.center.found), tile reads '4 games found': \(seen(texts, "4 games found"))")
 
-        // Settings > Library shows the folder and its count
         let section = Form { GameFoldersSection(folders: scene.folders) }.formStyle(.grouped).environment(scene.center)
         let pane = try await renderedTexts(section, size: CGSize(width: 640, height: 300), named: "settings-game-folders")
         _ = try await renderedTexts(section, size: CGSize(width: 640, height: 300), named: "settings-game-folders", dark: true)
@@ -62,7 +60,6 @@ struct GameFolderTests {
         await scene.center.startWatching()
         #expect(scene.library.consoleGames.isEmpty)
 
-        // The user's file, copied in from elsewhere while Cartouche runs
         let outside = scene.work.appending(path: "Downloads/quest.gb")
         try FileManager.default.createDirectory(at: outside.deletingLastPathComponent(), withIntermediateDirectories: true)
         try ConsoleFixtures.homebrewGB(title: "CARTOUCHE QUEST").write(to: outside)

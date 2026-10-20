@@ -1,5 +1,4 @@
-// Just in time: a feature asks for its permission when the user starts it.
-// Cartouche explains in one sentence first, and only Continue reaches macOS.
+// A feature asks for its permission when the user starts it; Cartouche explains first, only Continue reaches macOS.
 
 import Foundation
 import Observation
@@ -67,9 +66,7 @@ final class PermissionFlow {
         case allowed
         case denied
         case notNow
-        // The answer comes later: in System Settings, or after a relaunch
         case pending
-        // Not a permission this place may ask for
         case refused
     }
 
@@ -82,8 +79,7 @@ final class PermissionFlow {
     private(set) var asking: Ask?
 
     @ObservationIgnored let center: PermissionCenter
-    // Runs right before the macOS prompt. The relaunch service saves the screen here,
-    // since macOS's Quit & Reopen comes with no warning.
+    // Runs right before the macOS prompt. The relaunch service saves the screen here, since macOS's Quit & Reopen comes with no warning.
     @ObservationIgnored var beforePrompt: (@MainActor (Permission) -> Void)?
     @ObservationIgnored private var pending: (
         target: URL?, attempt: (@MainActor () async -> PermissionState)?, finish: @MainActor (Outcome) -> Void
@@ -93,8 +89,7 @@ final class PermissionFlow {
         self.center = center
     }
 
-    // `attempt` replaces the macOS prompt for App Management, whose only request is
-    // the write itself.
+    // `attempt` replaces the macOS prompt for App Management, whose only request is the write itself.
     func start(
         _ permission: Permission,
         context: Context = .app,
@@ -113,7 +108,6 @@ final class PermissionFlow {
         }
         switch center.state(permission) {
         case .allowed:
-            // Nothing to explain: macOS will not block it
             if let attempt {
                 Task { finish(Self.outcome(await attempt())) }
             } else {

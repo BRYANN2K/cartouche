@@ -1,8 +1,4 @@
-// A console game's layout as a RetroArch remap file. RetroArch loads
-// <input_remapping_directory>/<core name>/<content name>.rmp when the game
-// starts (configuration.c, config_load_remap), so the layout applies at the
-// next launch. The folder is the one cartouche.cfg names, inside Cartouche's
-// own RetroArch folder.
+// RetroArch loads <input_remapping_directory>/<core name>/<content name>.rmp when the game starts (config_load_remap); the folder is the one cartouche.cfg names.
 
 import Foundation
 import RetroArchKit
@@ -58,8 +54,7 @@ enum RetroArchRemap {
         return text.hasPrefix(header)
     }
 
-    // Writes the file for each core that can play the game, so a core picked later
-    // finds it too. The standard layout removes the files Cartouche wrote.
+    // Writes the file for each core that can play the game, so a core picked later finds it too. The standard layout removes the files Cartouche wrote.
     static func apply(_ layout: ControllerLayout, game: ConsoleGame, paths: RetroArchPaths) throws {
         var cores = ConsoleCatalog.console(game.console)?.cores ?? []
         if let chosen = game.setup.core, !cores.contains(chosen) { cores.append(chosen) }

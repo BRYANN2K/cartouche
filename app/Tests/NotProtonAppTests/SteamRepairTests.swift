@@ -38,8 +38,6 @@ struct SteamRepairTests {
         #expect(environment.count == 1)
     }
 
-    // The case that actually occurs: an injected bundle is ad-hoc signed and an ad-hoc signature
-    // verifies strictly, so only the authority check catches it. Repair checks both.
     @Test("An ad-hoc signed bundle is refused even though it verifies strictly")
     func refusesAdHocSignedBundle() async throws {
         let work = try scratchDirectory("repair")
@@ -51,15 +49,12 @@ struct SteamRepairTests {
         try FileManager.default.copyItem(at: staged, to: copy)
         try Shell.check("/usr/bin/codesign", ["-f", "-s", "-", copy.path(percentEncoded: false)])
 
-        // Strict verification passes, which is precisely the trap.
         let strict = try Shell.run("/usr/bin/codesign", ["--verify", "--strict", copy.path(percentEncoded: false)])
         #expect(strict.succeeded, "an ad-hoc signature was expected to verify against itself")
 
         #expect(throws: StepFailure.self) { try SteamRepair.verifyValveSignature(copy) }
     }
 
-    // codesign echoes the path it was given into the description it prints, so a bundle under
-    // directories named after the fields repair looks for used to answer for them.
     @Test("A path named after the expected fields cannot answer for them")
     func refusesFieldsSuppliedByThePath() throws {
         let work = try scratchDirectory("repair")
@@ -90,13 +85,9 @@ struct SteamRepairTests {
         let path = app.path(percentEncoded: false)
         try Shell.check("/usr/bin/codesign", ["-f", "-s", "-", path])
 
-        // The same trap as above: this verifies against itself, so only the authority
-        // check stands between it and being installed as stock.
         let strict = try Shell.run("/usr/bin/codesign", ["--verify", "--strict", path])
         #expect(strict.succeeded, "the ad-hoc signature was expected to verify against itself")
 
-        // And it is genuinely not Valve's, so the refusal below is the fields being
-        // matched whole rather than anything about this bundle's own signature.
         let described = try Shell.run("/usr/bin/codesign", ["-dvv", path])
         let text = described.stdout + described.stderr
         #expect(text.contains("Signature=adhoc"))
@@ -215,8 +206,6 @@ struct SteamRepairTests {
 
     // MARK: - The invalidated backup
 
-    // What matters is that both sides agree on the name, so this drives one with the other. A
-    // test that hardcoded the name would still pass if the two diverged.
     @Test("Repair removes the backup the installer wrote")
     func removesTheBackupTheInstallerWrote() throws {
         let work = try scratchDirectory("repair")
@@ -251,8 +240,6 @@ struct SteamRepairTests {
         defer { try? FileManager.default.removeItem(at: work) }
         let staged = try await stagedStockBundle(into: work)
 
-        // Stand in for the tampered bundle being replaced, so this exercises the
-        // replaceItemAt path rather than the install-into-nothing one.
         let destination = work.appending(path: "dest/Steam.app")
         try FileManager.default.createDirectory(
             at: destination.appending(path: "Contents/MacOS"), withIntermediateDirectories: true
@@ -323,8 +310,6 @@ struct SteamRepairTests {
             .filter { $0.hasPrefix(".Steam.app.") }.isEmpty)
     }
 
-    // The wording is defined once on PinnedDownload.Progress so repair and the fetcher
-    // cannot drift apart on it. This case is the only thing carrying it out of repair.
     @Test("The download phase shows the download's own wording")
     func downloadPhaseDelegatesItsLabel() {
         #expect(RepairPhase.downloading(.reusing).label

@@ -48,7 +48,6 @@ private func posixWrite(_ data: Data, to fd: Int32) throws {
     }
 }
 
-// Reads to a newline, or to the end when the peer closed the connection.
 private func posixReadLine(_ fd: Int32) throws -> Data {
     var reply = Data()
     var chunk = [UInt8](repeating: 0, count: 1 << 16)
@@ -87,8 +86,6 @@ private struct PingHandler: MCPHandling {
     }
 }
 
-// The peer check tests inject: this process's own executable as the kernel
-// reports it, the same way the app admits the bundled helper's path.
 private func ownExecutable() -> String {
     MCPSocketServer.executablePath(of: getpid()) ?? ""
 }
@@ -164,7 +161,6 @@ struct MCPSocketTests {
 
         try posixWrite(Data(#"{"jsonrpc":"2.0","id":1,"method":"ping"}"#.utf8 + [0x0A]),
                        to: pair.client)
-        // The refused connection is closed: the read sees EOF, not a reply.
         let reply = try await Task.detached { try posixReadLine(pair.client) }.value
         #expect(reply.isEmpty)
         #expect(seen.value == ownExecutable())
@@ -236,9 +232,6 @@ struct MCPSocketTests {
 
         try posixWrite(Data(#"{"jsonrpc":"2.0","id":1,"method":"ping"}"#.utf8 + [0x0A]),
                        to: pair.client)
-        // Read the whole 1 MB reply. Once it all arrived the server's pump
-        // ran to the end and suspended the write source; the drop in stop()
-        // must resume it before cancel — a suspended source traps on release.
         let reply = try await Task.detached { try posixReadLine(pair.client) }.value
         #expect(reply.count == 1 << 20)
         server.stop()
@@ -287,7 +280,6 @@ struct MCPSocketTests {
         #expect(parsed["id"] == .number(1))
         #expect(parsed["result"] != nil)
 
-        // A notification does not wait for a reply: send returns at once.
         let notification = try await client.send(
             Data(#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#.utf8))
         #expect(notification.isEmpty)

@@ -1,7 +1,4 @@
-// Builds the Steam part of the library. The full list of owned games comes from the
-// export the running Steam client writes to steam-library.json; Steam's own files
-// give the installed games, play data and collections, and are all there is when no
-// export was ever written.
+// Owned games come from the export the running Steam client writes to steam-library.json; Steam's own files give installed games, play data and collections.
 
 import Foundation
 
@@ -27,7 +24,6 @@ struct SteamExport: Codable, Equatable, Sendable {
     }
 
     let version: Int
-    // Unix time of the export
     let generated: Int
     let steamid: String
     let apps: [App]

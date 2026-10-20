@@ -30,9 +30,8 @@ struct AppInfoToolTests {
         ("icon", "5a08cd17d14ccb07a14f316dfa222b18a20960fd"),
         ("clienticon", "0d652160dff1ab3d1352aa83c9cf14a20146519e"),
     ]
+    // Key data is identical in both formats apart from how a key is named, so the caller decides that.
 
-    // Key data is identical in both formats apart from how a key is named, so the
-    // caller decides that and the section nesting stays shared.
     private static func keyData(_ key: (String) -> [UInt8]) -> [UInt8] {
         var kv = Cache()
         kv.bytes.append(0x00)

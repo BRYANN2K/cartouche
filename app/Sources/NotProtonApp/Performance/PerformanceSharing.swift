@@ -1,6 +1,5 @@
-// Opt-in sharing of a session's frame rate. Off by default in Settings > Privacy.
-// A report carries the Mac (chip, memory, macOS version), the setup, the game's
-// settings and the FPS, and nothing else: no account, no path, no Steam ID.
+// Opt-in sharing of a session's frame rate, off by default. A report carries the Mac (chip, memory, macOS version),
+// the setup, the game's settings and the FPS, and nothing else: no account, no path, no Steam ID.
 
 import Foundation
 
@@ -45,8 +44,7 @@ struct PerformanceReport: Codable, Equatable, Sendable {
         case mac, runner, runnerBuild = "runner_build", translation, backend, settings, fps
     }
 
-    // A setting is shared only when its name is one Cartouche sets and its value cannot
-    // carry a path or a name
+    // A setting is shared only when its name is one Cartouche sets and its value cannot carry a path or a name
     static func shareable(_ settings: [String: String]) -> [String: String] {
         settings.filter { name, value in
             GameSetupResolver.isAllowed(name: name, value: value) && !name.hasSuffix("_PATH") && !name.contains("LOG")
@@ -54,12 +52,10 @@ struct PerformanceReport: Codable, Equatable, Sendable {
         }
     }
 
-    // nil when the session has no measured frame rate
     static func make(_ session: StoredSession, mac: Mac) -> PerformanceReport? {
         guard let average = session.measured.average else { return nil }
         var settings = shareable(session.settings)
         if let w = session.measured.width, let h = session.measured.height { settings["resolution"] = "\(w)x\(h)" }
-        // "CrossOver 26.3 · DXMT" names the backend, which has its own field
         let runner = session.runnerName.components(separatedBy: " · ").first ?? session.runnerName
         return PerformanceReport(
             mac: mac, runner: runner, runnerBuild: session.setup.runnerID,
@@ -72,11 +68,8 @@ struct PerformanceReport: Codable, Equatable, Sendable {
 
 struct PerformanceSharing: Sendable {
 
-    // MacGamingDB publishes no way for an app to send reports, so this build has no
-    // address to send them to and the setting stays unavailable
     static let macGamingDB: (@Sendable (Int) -> URL)? = nil
 
-    // The address for one game's reports; the game is in the address, not the body
     var endpoint: (@Sendable (Int) -> URL)? = PerformanceSharing.macGamingDB
     var send: @Sendable (URLRequest) async throws -> Void = { request in
         let (_, response) = try await URLSession.shared.data(for: request)
@@ -100,8 +93,6 @@ struct PerformanceSharing: Sendable {
         return request
     }
 
-    // Sends one report per measured session, only when the user turned sharing on.
-    // Returns how many were sent.
     @discardableResult
     func share(_ sessions: [StoredSession], enabled: Bool) async -> Int {
         guard enabled else { return 0 }

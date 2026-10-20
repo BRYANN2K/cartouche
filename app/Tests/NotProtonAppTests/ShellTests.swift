@@ -19,8 +19,6 @@ struct ShellTests {
         defer { try? FileManager.default.removeItem(at: root) }
         let file = root.appending(path: "big.txt")
 
-        // Several megabytes against a 64K pipe buffer. A child filling the pipe while the parent
-        // waits for it to exit cannot progress, so this hangs if the two reads stop overlapping.
         let chunk = Data(String(repeating: "cartouche ", count: 1024).utf8)
         var payload = Data()
         for _ in 0..<512 { payload.append(chunk) }

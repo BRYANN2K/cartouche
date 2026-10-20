@@ -4,8 +4,6 @@ import InstallerKit
 import Observation
 import RetroArchKit
 
-// One entry in Settings > Agents' action log: who called what, when, how it
-// ended, and whether the user already undid it.
 struct AgentAction: Identifiable, Equatable {
     let id = UUID()
     let time: Date
@@ -28,8 +26,7 @@ struct AgentAction: Identifiable, Equatable {
     }
 }
 
-// The approval the app shows when a risky tool is called: the tool suspends
-// until Allow, Deny or the timeout, whichever comes first.
+// The tool suspends until Allow, Deny or the timeout, whichever comes first.
 struct AgentApproval: Identifiable {
     let id = UUID()
     let client: String
@@ -46,18 +43,14 @@ final class AgentService {
     let backend: AgentBackend
     private(set) var tools: [String: AgentTool]
     var level: AgentLevel
-    // The model flips this off with the transports; an approval granted just
-    // before "off" must not still run.
+    // An approval granted just before the model flips this off must not still run.
     var enabled = true
-    // How long an approval waits for the user before it answers Denied.
     var approvalTimeout: Duration = .seconds(300)
-    // Posts the "Claude wants to…" notification; injected for tests.
     var notify: @MainActor (AgentApproval) -> Void = { _ in }
 
     private(set) var actions: [AgentAction] = []
     private(set) var pending: [AgentApproval] = []
     private var timeouts: [UUID: Task<Void, Never>] = [:]
-    // Who the MCP client said it was at initialize; the action log records it.
     var clientName = "agent"
     var home: URL
 
@@ -90,8 +83,7 @@ final class AgentService {
             guard await ask(client: client, tool: name, text: text) else {
                 return deny(tool, client: client)
             }
-            // The wait gave the user time to lower the level or switch agents
-            // off; the checks run again before the tool does.
+            // The user may have lowered the level or switched agents off while answering; re-check before running.
             guard enabled, tool.level <= level else {
                 return refuse(tool, "the level was lowered or agents were turned off while you answered",
                               client: client)
@@ -121,7 +113,6 @@ final class AgentService {
 
     // MARK: - Approvals
 
-    // Suspends until the user answers in the app or the timeout denies.
     func ask(client: String, tool: String, text: String) async -> Bool {
         await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
             let approval = AgentApproval(client: client, text: text, tool: tool,
@@ -143,7 +134,6 @@ final class AgentService {
         approval.answer.resume(returning: allow)
     }
 
-    // Switching agents off denies every waiting approval.
     func denyPending() {
         for approval in pending {
             timeouts.removeValue(forKey: approval.id)?.cancel()
@@ -168,8 +158,7 @@ final class AgentService {
         guard let entry = actions.first(where: { $0.id == id }),
               !entry.undone, let undo = entry.undo else { return }
         try await undo()
-        // The entry is found again after the await: the log may have trimmed
-        // or grown while the undo ran.
+        // Re-found after the await: the log may have trimmed or grown while the undo ran.
         guard let index = actions.firstIndex(where: { $0.id == id }),
               !actions[index].undone else { return }
         actions[index].undone = true
@@ -209,7 +198,6 @@ final class AgentService {
 
     // MARK: - resources/read
 
-    // The same scrub a tool result gets: a resource may quote a path.
     func readResource(_ uri: String) throws -> String {
         let text: JSONValue
         switch uri {
@@ -240,8 +228,7 @@ final class AgentService {
 
     // MARK: - Undo snapshots
 
-    // Which tools restore cleanly: config changes, favorites, hidden, the
-    // default runner, console setup. Installs and deletions cannot be undone.
+    // Which tools restore cleanly; installs and deletions cannot be undone.
     private func snapshotUndo(tool: String, args: JSONValue) -> (() async throws -> Void)? {
         let backend = backend
         let gameID = (try? AgentTools.findStrict(backend, args))?.id
@@ -259,7 +246,6 @@ final class AgentService {
             let was = backend.isHidden(gameID)
             return { backend.hide(gameID, on: was) }
         case "set_default_runner":
-            // No earlier default means there is nothing to restore: no Undo.
             guard let was = backend.defaultRunner() else { return nil }
             return { backend.setDefaultRunner(was) }
         case "set_console_setup":

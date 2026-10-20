@@ -2,9 +2,7 @@ import Foundation
 import Network
 import Synchronization
 
-// Games hosted on the local network, found over Bonjour as RetroArch for
-// macOS publishes them. Browsing is a local network use: the app asks for
-// Local Network before it calls this.
+// Games hosted on the local network, found over Bonjour as RetroArch for macOS publishes them. Browsing is a local network use: the app asks for Local Network before it calls this.
 public enum LocalNetplayBrowser {
 
     public static func rooms(within limit: Duration = .seconds(2)) async -> [NetplayRoom] {
@@ -15,7 +13,6 @@ public enum LocalNetplayBrowser {
         try? await Task.sleep(for: limit)
         browser.cancel()
 
-        // Resolving one host can take its timeout: all at once, not in turn
         let results = found.withLock { $0 }
         return await withTaskGroup(of: NetplayRoom?.self) { group in
             for result in results {
@@ -32,9 +29,8 @@ public enum LocalNetplayBrowser {
         }
     }
 
-    // The host's address and port. Network resolves a service only on the way
-    // to connecting, so the connection is dropped as soon as the path names
-    // them; RetroArch sees a peer that left before saying hello.
+    // The host's address and port. Network resolves a service only when connecting, so the connection is dropped as
+    // soon as the path names them; RetroArch sees a peer that left before saying hello.
     static func resolve(_ endpoint: NWEndpoint) async -> (String, UInt16)? {
         let connection = NWConnection(to: endpoint, using: .tcp)
         let answer = Mutex<CheckedContinuation<(String, UInt16)?, Never>?>(nil)
@@ -49,7 +45,6 @@ public enum LocalNetplayBrowser {
                 case .ready:
                     if case .hostPort(let host, let port)? = connection.currentPath?.remoteEndpoint {
                         var address = "\(host)"
-                        // A scoped IPv6 address carries its interface after %
                         if let cut = address.firstIndex(of: "%") { address = String(address[..<cut]) }
                         finish((address, port.rawValue))
                     } else {

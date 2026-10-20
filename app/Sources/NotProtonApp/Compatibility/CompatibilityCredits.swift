@@ -1,5 +1,4 @@
-// Names the sources next to their data, and lists their licenses.
-// Source names and licenses come from the data file and stay as written there.
+// Source names and licenses stay as written in the data file.
 
 import Foundation
 
@@ -12,7 +11,6 @@ enum CompatibilityCredits {
         let attribution: String
     }
 
-    // Read live by the app, so it is not among the data file's sources
     static let macGamingDB = License(
         source: "MacGamingDB",
         license: "No data license published",

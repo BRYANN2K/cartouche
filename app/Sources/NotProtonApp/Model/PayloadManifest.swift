@@ -1,5 +1,3 @@
-// The list of payload files a staged Cartouche build carries
-
 import Foundation
 
 enum PayloadOrigin: String, Sendable, CaseIterable {

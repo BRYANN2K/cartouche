@@ -106,7 +106,6 @@ struct CoexistenceTests {
         return fixture
     }
 
-    // Path and content hash of every file under each URL
     private func digest(_ urls: [URL]) throws -> [String: String] {
         var result: [String: String] = [:]
         let files = FileManager.default

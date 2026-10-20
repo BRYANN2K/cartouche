@@ -1,10 +1,6 @@
 import Foundation
 
-// Coach mode (experimental). An agent may read the game's named values,
-// "Stage" or "Lives", and nothing else of RetroArch: Cartouche's relay below
-// reads them, and refuses any input while hardcore is on, before RetroArch
-// sees the request. The names and addresses come from the game's Rich
-// Presence script on RetroAchievements.
+// An agent may read named Rich Presence values, never input while hardcore is on; names and addresses come from the game's RetroAchievements script.
 
 // One value a Rich Presence script shows: @Stage(0xH0d6c)
 public struct NamedValue: Sendable, Equatable {
@@ -21,7 +17,6 @@ public struct NamedValue: Sendable, Equatable {
             }
         }
 
-        // nil for a constant
         public var address: UInt32?
         public var size: Size
         public var constant: Int
@@ -57,7 +52,6 @@ public struct NamedValue: Sendable, Equatable {
 
     public var name: String
     public var terms: [Term]
-    // What the script shows for some values: 3 = "Brinstar"
     public var lookup: [Int: String]
     public var fallback: String?
 
@@ -66,7 +60,6 @@ public struct NamedValue: Sendable, Equatable {
 
 public enum RichPresence {
 
-    // Every @Name(expression) of the Display section, once per name
     public static func values(in script: String) -> [NamedValue] {
         var lookups: [String: ([Int: String], String?)] = [:]
         var current: String?
@@ -127,8 +120,6 @@ public enum RichPresence {
         }
     }
 
-    // "0xH0010*10_0xH0011", or with flags "A:0xH0010_M:0xH0011"; nil when a
-    // term is one Cartouche does not read (delta, prior, indirect)
     static func terms(_ expression: String) -> [NamedValue.Term]? {
         var terms: [NamedValue.Term] = []
         for part in expression.split(separator: "_") {
@@ -191,9 +182,7 @@ public enum RichPresence {
     }
 }
 
-// RetroAchievements addresses each console's memory from 0; RetroArch's
-// READ_CORE_MEMORY takes the console's own address. Main memory regions from
-// rcheevos' consoleinfo.c; consoles not listed are addressed as they are.
+// RetroAchievements addresses from 0 while READ_CORE_MEMORY takes the console's own address; regions from rcheevos' consoleinfo.c, unlisted consoles addressed as-is.
 public enum AchievementsMemory {
 
     static let regions: [String: [(start: UInt32, end: UInt32, real: UInt32)]] = [
@@ -215,7 +204,6 @@ public enum AchievementsMemory {
     }
 }
 
-// What the relay reaches: the game that runs
 public protocol CoachTarget: Sendable {
     func readMemory(address: Int, bytes: Int) async throws -> [UInt8]
     func press(player: Int, control: String, frames: Int) async throws -> String
@@ -241,8 +229,6 @@ public enum CoachRefusal: Error, Equatable, LocalizedError {
     }
 }
 
-// Cartouche's relay between an agent and the running game: the tools it
-// answers, and the rules it applies first
 public actor CoachRelay {
 
     public struct Tool: Sendable, Equatable {
@@ -290,7 +276,6 @@ public actor CoachRelay {
             guard bytes.count == term.size.bytes else { throw RetroArchSessionError.unexpectedReply("\(bytes.count) bytes") }
             total += Double(term.value(bytes)) * term.multiplier
         }
-        // A malformed multiplier could make total NaN or past Int's range
         let value = total.isFinite
             ? Int(min(max(total.rounded(.down), Double(Int.min)), Double(Int.max)))
             : 0
@@ -305,7 +290,6 @@ public actor CoachRelay {
         return try await target.press(player: player, control: control, frames: frames)
     }
 
-    // One MCP tools/call, answered as MCP results are: text, and isError
     public func call(_ tool: String, _ arguments: [String: JSONValue]) async -> JSONValue {
         func result(_ text: String, error: Bool = false) -> JSONValue {
             .object(["content": .array([.object(["type": "text", "text": .string(text)])]), "isError": .bool(error)])

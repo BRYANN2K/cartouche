@@ -3,7 +3,6 @@ import Testing
 
 @testable import RetroArchKit
 
-// Everything a test writes goes under the temporary folder, never ~/Library
 func scratchFolder(_ label: String) throws -> URL {
     let url = URL.temporaryDirectory.appending(path: "rak-\(label)-\(UUID().uuidString)", directoryHint: .isDirectory)
     try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
@@ -26,7 +25,6 @@ enum Fixtures {
         return (json["tools"]?.array ?? []).compactMap(MCPTool.init)
     }
 
-    // Built beside the test bundle, as a dependency of the test target
     static var fakeRetroArch: URL {
         Bundle(for: Marker.self).bundleURL.deletingLastPathComponent().appending(path: "fake-retroarch")
     }
@@ -50,7 +48,6 @@ enum Rig {
     static var hasRetroArch: Bool { retroarch != nil }
     static var hasRetroArchAndCore: Bool { retroarch != nil && testCore != nil }
 
-    // The video driver for a window, or none on a machine without a display
     static var video: String { ProcessInfo.processInfo.environment["CARTOUCHE_RETROARCH_VIDEO"] ?? "null" }
 
     // A home in the scratch folder: RetroArch makes its default folders, and

@@ -1,5 +1,3 @@
-// Steam app bundle patching component
-
 import CartoucheIdentity
 import Foundation
 
@@ -8,11 +6,9 @@ enum SteamDeployment: Sendable, Equatable {
     case notInstalled
     case installed(version: String?)
     case outdated(deployed: String, bundled: String)
-    // If the user has something else installed, maybe let's not deploy?
     case foreign(insert: String)
 }
 
-// Reading and writing the injection
 enum SteamBundle {
 
     static let insertKey = "DYLD_INSERT_LIBRARIES"
@@ -61,7 +57,6 @@ enum SteamBundle {
     // The other injector named in cartouche_identity.h. Cartouche reports it and never removes it.
     static let otherDylibName = CARTOUCHE_OTHER_DYLIB_NAME
 
-    // Insert entries that are not Cartouche's dylib
     static func foreignInserts(at plist: URL) -> [String] {
         (currentInsert(at: plist) ?? "").split(separator: ":").map(String.init)
             .filter { URL(filePath: $0).lastPathComponent != SupportPaths.dylibName }

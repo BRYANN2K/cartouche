@@ -8,8 +8,6 @@ import Testing
 @Suite("Netplay")
 struct NetplayTests {
 
-    // The lobby's list as lobby.libretro.com/list serves it (fields checked on
-    // 2026-10-19), with made-up players: one through libretro's relay, one direct
     static let lobby = """
     [{"fields": {"id": 1, "username": "player42", "country": "fr", "game_name": "Cartouche Homebrew (World)",
       "game_crc": "1A2B3C4D", "core_name": "Snes9x", "core_version": "1.63 4c8ab51", "subsystem_name": "N/A",
@@ -128,7 +126,6 @@ struct NetplayIntegrationTests {
         return (player, paths)
     }
 
-    // Reads the log until a line has the text, or the time is up
     static func waitFor(_ text: String, in player: ConsolePlayer, within limit: Duration) async throws -> String? {
         let end = ContinuousClock.now + limit
         var next = 0

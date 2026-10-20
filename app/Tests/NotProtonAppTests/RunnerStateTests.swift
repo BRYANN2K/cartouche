@@ -40,8 +40,6 @@ struct RunnerStateTests {
             == .ready(builds: ids.sorted()))
     }
 
-    // The launch path only reads the runner, so a clone the app never finished patching
-    // has to be caught here rather than by a game failing its ownership check.
     @Test("A clone missing a file the app installs is reported as unpatched")
     func reportsUnpatchedClone() throws {
         let fixture = try Fixture()

@@ -256,8 +256,6 @@ struct NtdllPatcherTests {
         }
     }
 
-    // The size check on its own read an address below the cave as extra room rather than as
-    // being outside it, so the detour was written into the code in front of the cave.
     @Test("A detour addressed below its cave is refused")
     func detourBelowItsCaveRefused() throws {
         let base = stubPatch()
@@ -313,8 +311,6 @@ struct NtdllPatcherTests {
         }
     }
 
-    // A build is patched only where it has both a hash and offsets. A patch without a hash
-    // runs against an unverified input, a hash without a patch promises one that never runs.
     @Test("Every build's patches line up with the arches it records hashes for")
     func patchesMatchRecordedArches() {
         for build in SupportedRunners.all {
@@ -464,8 +460,6 @@ struct NtdllPatcherTests {
             let scratch = URL(filePath: NSTemporaryDirectory()).appending(path: "cartouche-stage-\(UUID().uuidString)")
             defer { try? fm.removeItem(at: scratch) }
 
-            // One file per patch the build defines. A build pins the arches its loader can map,
-            // never all of WineArch: an x86_64 loader has no aarch64 guest.
             let first = try NtdllPatcher.stage(build: build, runnerRoot: root, bridge: scratch)
             #expect(first.count == NtdllPatcher.patches(for: build).count)
 
@@ -494,8 +488,6 @@ struct NtdllPatcherTests {
 @Suite("ntdll staging")
 struct NtdllStagingTests {
 
-    // A build whose patched hashes are the files already in the bridge, so staging has nothing
-    // to write and the only thing under test is what it leaves behind.
     private func stagedBridge() throws -> (bridge: URL, build: RunnerBuild) {
         let bridge = FileManager.default.temporaryDirectory
             .appending(path: "np-bridge-\(UUID().uuidString)")

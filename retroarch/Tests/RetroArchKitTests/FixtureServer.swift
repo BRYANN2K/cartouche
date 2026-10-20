@@ -80,7 +80,6 @@ final class FixtureServer: Sendable {
     }
 }
 
-// Zips files the way the buildbot serves them: each at the top of the archive
 func zipFixture(_ files: [String: Data], in folder: URL) throws -> Data {
     let staging = folder.appending(path: "zip-\(UUID().uuidString)", directoryHint: .isDirectory)
     try FileManager.default.createDirectory(at: staging, withIntermediateDirectories: true)

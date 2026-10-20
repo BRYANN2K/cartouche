@@ -6,8 +6,6 @@ import Testing
 @Suite("Runner allow list")
 struct SupportedRunnerTests {
 
-    // The arches a build carries need both hashes: an input with no output leaves the patch
-    // unverified, and an output with no input patches a file nothing had checked.
     @Test("Every row's pin hashes are complete for the arches it claims")
     func rowsAreComplete() {
         #expect(!SupportedRunners.all.isEmpty)
@@ -83,7 +81,6 @@ struct SupportedRunnerTests {
         #expect(rosetta.displayVersion != fex.displayVersion)
     }
 
-    // The installed row has only the clone directory name, which is the id.
     @Test("An installed build is named the same way the picked one is")
     func installedBuildsReadBackTheSame() {
         for build in SupportedRunners.all {

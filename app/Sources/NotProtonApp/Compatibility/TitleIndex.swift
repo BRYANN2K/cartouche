@@ -1,6 +1,3 @@
-// Game titles to the compatibility data's Steam App IDs: the name index is built
-// once per data file, shared by the install sheet and the store sign-in, and a
-// rebuild runs off the main actor.
 
 import Foundation
 import InstallerKit
@@ -10,7 +7,6 @@ final class TitleIndex {
     private var index: GameIndex?
     private var built: Int?
 
-    // The shared index: rebuilt only when the compat data changes.
     func index(for data: CompatData?) async -> GameIndex {
         guard let data else { return GameIndex([]) }
         if let index, built == data.records.count { return index }

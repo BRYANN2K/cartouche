@@ -26,8 +26,6 @@ struct SteamShortcuts: Sendable {
         guard !accounts.isEmpty else { return .noAccount }
 
         let exe = "\"" + launcher.path(percentEncoded: false) + "\""
-        // Parse every account first: a file that will not parse fails before any
-        // account is written.
         var writes: [(file: URL, root: [(String, BinaryVDF)])] = []
         for account in accounts.sorted(by: { $0.path < $1.path }) {
             let file = account.appending(path: "config/shortcuts.vdf")

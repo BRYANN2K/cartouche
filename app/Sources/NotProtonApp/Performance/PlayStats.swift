@@ -1,9 +1,6 @@
-// Frame rates from the counter's samples: which seconds count, a session's
-// average and 1% low, and a game's numbers per setup, weighted by play time.
 
 import Foundation
 
-// One second the frame counter wrote
 struct FrameSample: Equatable, Sendable {
     let time: Int
     let frames: Int
@@ -23,8 +20,6 @@ struct FrameSample: Equatable, Sendable {
     }
 }
 
-// The setup a session ran with. The runner's name is kept beside it, not in it, so a
-// renamed tool is still the same setup.
 struct PlaySetup: Hashable, Sendable {
     var runnerID: String
     var translation: GameSetupChoice.Translation
@@ -38,8 +33,6 @@ enum PlayStats {
     // A second with fewer frames is a loading screen or a stall, not play
     static let loadingBelow = 5
 
-    // A second counts after the warm-up, from the first presented frame, when the game is
-    // frontmost and not loading
     static func counted(_ samples: [FrameSample]) -> [Bool] {
         guard let start = samples.first?.time else { return [] }
         return samples.map { $0.time - start >= warmUpSeconds && $0.frontmost && $0.frames >= loadingBelow }
@@ -48,7 +41,6 @@ enum PlayStats {
     struct Measured: Equatable, Sendable {
         var seconds = 0
         var frames = 0
-        // Counted seconds per frame count, enough to merge sessions and find the 1% low
         var histogram: [Int: Int] = [:]
         var width: Int?
         var height: Int?
@@ -66,7 +58,6 @@ enum PlayStats {
             out.histogram[sample.frames, default: 0] += 1
             if sample.width > 0, sample.height > 0 { sizes[sample.width << 20 | sample.height, default: 0] += 1 }
         }
-        // The size played at most
         if let size = sizes.max(by: { ($0.value, $1.key) < ($1.value, $0.key) })?.key {
             out.width = size >> 20
             out.height = size & 0xFFFFF
@@ -89,8 +80,7 @@ enum PlayStats {
         return Double(sum) / Double(wanted)
     }
 
-    // Each average counts for as long as it was measured, so a short test does not
-    // weigh as much as hours of play
+    // Each average counts for as long as it was measured, so a short test does not weigh as hours of play.
     static func weightedAverage(_ parts: [(average: Double, seconds: Int)]) -> Double? {
         let seconds = parts.reduce(0) { $0 + $1.seconds }
         guard seconds > 0 else { return nil }
@@ -102,10 +92,8 @@ enum PlayStats {
     }
 }
 
-// One setup's numbers for a game
 struct SetupPlay: Equatable, Sendable, Identifiable {
     let setup: PlaySetup
-    // The runner's name as Steam listed it, from the latest session
     let runnerName: String
     let average: Double?
     let low1: Double?
@@ -116,14 +104,11 @@ struct SetupPlay: Equatable, Sendable, Identifiable {
     var id: PlaySetup { setup }
 }
 
-// A game's numbers over every session
 struct GamePlay: Equatable, Sendable {
     let average: Double?
     let low1: Double?
     let played: TimeInterval
-    // Best first, then the most played
     let setups: [SetupPlay]
-    // The latest session's runner would not take the frame counter
     let measurementRefused: Bool
 
     var measuredSetups: [SetupPlay] { setups.filter { $0.average != nil } }

@@ -1,5 +1,3 @@
-// The console glyphs of the mockup, drawn as template images so the sidebar
-// tints them like SF Symbols
 
 import AppKit
 import RetroArchKit

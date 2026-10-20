@@ -1,5 +1,3 @@
-// Strings for the delete/recreate confirmation prompts. Kept out of the view so
-// they can be tested. Dumb development artifact, basically.
 
 import Foundation
 

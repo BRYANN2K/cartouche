@@ -1,6 +1,5 @@
-// A game's setup as Steam sees it: the compatibility tool mapped to the game. Cartouche
-// asks for a tool by leaving a request the dylib applies inside Steam through the same
-// call as Properties > Compatibility, and reads Steam's own choice back from config.vdf.
+// A game's compatibility tool as Steam sees it. Cartouche asks by leaving a request the dylib applies inside Steam through
+// the Properties > Compatibility call, and reads Steam's choice back from config.vdf.
 
 import Foundation
 
@@ -11,9 +10,8 @@ enum SteamCompatChoice {
         table(file)
     }
 
-    // Asks Steam for this tool, or for none with nil. App 0 is the tool every other Windows
-    // game gets, and is never cleared. A later request for the same game replaces an earlier
-    // one the dylib has not applied yet.
+    // Asks Steam for this tool, or none with nil. App 0 is the tool every other Windows game gets and is never cleared;
+    // a later request for the same game replaces an unapplied one.
     static func request(appID: Int, tool: String?, file: URL = SupportPaths.compatRequests, now: Date = Date()) throws {
         guard appID >= 0, appID <= Int(UInt32.max), appID > 0 || tool != nil else { return }
         if let tool, !isCartoucheTool(tool) { return }
@@ -77,7 +75,6 @@ enum SteamCompatChoice {
     }
 }
 
-// What Steam has to be told for one game's setup
 enum GameSetupApplier {
 
     struct Outcome: Equatable, Sendable {
@@ -94,7 +91,6 @@ enum GameSetupApplier {
         return tools.first { $0.build == build && $0.flavor == flavor && $0.backend == backend }
     }
 
-    // Steam's choice read back as a setup, for a game mapped to one of Cartouche's pairs
     static func choice(fromTool name: String, in tools: [BackendTool], runners: [Runner]) -> GameSetupChoice? {
         guard let pair = tools.first(where: { $0.name == name }),
               let runner = runners.first(where: { ($0.build?.id ?? $0.id) == pair.build })
@@ -103,7 +99,6 @@ enum GameSetupApplier {
                                translation: pair.flavor == .fex ? .fex : .rosetta, version: .windows)
     }
 
-    // Writes the request for Steam and the game's variables for the run script
     @discardableResult
     static func apply(
         _ setup: GameSetup, appID: Int, tools: [BackendTool],

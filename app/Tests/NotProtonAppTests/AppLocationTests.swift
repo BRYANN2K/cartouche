@@ -56,7 +56,6 @@ struct AppLocationTests {
         }
     }
 
-    // A small Cartouche.app on a compressed disk image, mounted read-only like a download
     struct MountedImage {
         let work: URL
         let mount: URL

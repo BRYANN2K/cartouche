@@ -107,7 +107,6 @@ struct PlayerIntegrationTests {
 
     static var pictures: Bool { Rig.video != "null" }
 
-    // Where the white bar starts on a picture of the test core's screen
     static func bar(_ png: Data) throws -> Int? {
         let image = try #require(CGImageSourceCreateWithData(png as CFData, nil).flatMap { CGImageSourceCreateImageAtIndex($0, 0, nil) })
         let width = image.width, height = image.height
@@ -142,7 +141,6 @@ struct PlayerIntegrationTests {
         let slot3 = try #require(states.first { $0.slot == 3 })
         if Self.pictures { #expect(slot3.picture != nil, "no picture beside \(slot3.file.lastPathComponent)") }
 
-        // Clicking Slot 3 under Continue From
         var request = scene.request
         request.slot = 3
         try await scene.player.play(request)
@@ -194,7 +192,6 @@ struct PlayerIntegrationTests {
 
         let made = (FileManager.default.enumerator(atPath: standIn.path)?.allObjects as? [String]) ?? []
         #expect(made.isEmpty, "RetroArch wrote in the user's home: \(made)")
-        // What it makes under ~ is in Cartouche's folder instead
         let home = (FileManager.default.enumerator(atPath: paths.home.path)?.allObjects as? [String]) ?? []
         #expect(home.contains("Documents/RetroArch/playlists/builtin"), "\(home)")
         print("evidence: user's home stand-in after a launch and quit: \(made.isEmpty ? "empty" : made.joined(separator: ", ")); Cartouche's RetroArch home holds \(home.filter { $0.split(separator: "/").count <= 3 })")
@@ -220,7 +217,6 @@ struct PlayerIntegrationTests {
         let took = ContinuousClock.now - asked
         let after = try await session.screenshot()
         #expect(took < .seconds(1), "applied after \(took)")
-        // Scanlines: rows of the plain blue picture now differ in brightness
         let spread = try Self.rowSpread(after), plain = try Self.rowSpread(before)
         #expect(spread > plain + 20, "row brightness spread \(plain) before, \(spread) after")
         if let folder = ProcessInfo.processInfo.environment["CARTOUCHE_EVIDENCE_DIR"] {
@@ -232,7 +228,6 @@ struct PlayerIntegrationTests {
         await scene.player.quit()
     }
 
-    // Darkest to brightest row in the left column, away from the bar
     static func rowSpread(_ png: Data) throws -> Int {
         let image = try #require(CGImageSourceCreateWithData(png as CFData, nil).flatMap { CGImageSourceCreateImageAtIndex($0, 0, nil) })
         let width = image.width, height = image.height
@@ -259,7 +254,6 @@ struct PlayerIntegrationTests {
         #expect(await !scene.player.isPlaying)
         print("evidence: Quit -> \(report.stop.way) in \(report.stop.duration), played \(report.played), auto state \(auto.file.lastPathComponent) picture \(auto.picture?.lastPathComponent ?? "none")")
 
-        // Resume loads it: the game goes on from where Quit left it
         var request = scene.request
         request.resume = true
         try await scene.player.play(request)

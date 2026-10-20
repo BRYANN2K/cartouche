@@ -1,7 +1,6 @@
 import Foundation
 import Observation
 
-// A feature as Settings and the game panel show it for the chosen build
 public struct FeatureRow: Sendable, Equatable, Identifiable {
     public var feature: ConsoleFeature
     public var available: Bool
@@ -9,7 +8,6 @@ public struct FeatureRow: Sendable, Equatable, Identifiable {
     public var id: String { feature.id }
     public var title: String { feature.title }
 
-    // Shown beside the feature when the chosen build cannot do it
     public var note: String? { available ? nil : ConsolesSettingsModel.needsIncluded }
 }
 
@@ -30,8 +28,6 @@ public struct ConsoleRow: Sendable, Equatable, Identifiable {
     }
 }
 
-// Settings > Consoles: which RetroArch runs, what it can do, and the consoles
-// the user added. The Settings window that shows it belongs to the app.
 @MainActor
 @Observable
 public final class ConsolesSettingsModel {
@@ -84,8 +80,6 @@ public final class ConsolesSettingsModel {
         ConsoleFeature.allCases.map { FeatureRow(feature: $0, available: $0.available(with: capabilities)) }
     }
 
-    // What the picker offers: the included build, each official release, and
-    // the user's own copy once they chose one
     public var choices: [RetroArchChoice] {
         var choices: [RetroArchChoice] = [.included] + OfficialRelease.versions.map { .official(version: $0) }
         if case .custom = choice { choices.append(choice) }
@@ -112,7 +106,6 @@ public final class ConsolesSettingsModel {
         }
     }
 
-    // The app of the current choice, nil while an official release is not downloaded
     public var app: URL? {
         switch choice {
         case .included: includedApp
@@ -131,7 +124,6 @@ public final class ConsolesSettingsModel {
         return launcher
     }
 
-    // What is shown stays until the new answer is in, so the pane does not flicker
     public func refresh() async {
         if let app, let found = await probe(app) {
             build = .ready(found)

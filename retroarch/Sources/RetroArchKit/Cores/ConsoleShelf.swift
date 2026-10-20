@@ -1,8 +1,6 @@
 import Foundation
 
-// The consoles the user added. Adding one downloads its recommended core;
-// removing one deletes the cores no other added console uses. Game files are
-// never part of either.
+// Removing a console deletes the cores no other added console uses; game files are never part of either.
 public actor ConsoleShelf {
 
     public let paths: RetroArchPaths

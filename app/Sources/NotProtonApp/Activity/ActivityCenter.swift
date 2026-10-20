@@ -1,7 +1,3 @@
-// Owns what the activity slot shows: the running game, the install from
-// InstallCenter, a store client's job, Steam's downloads and the updates.
-// Reads Steam's own files off the main thread, tells Steam to pause or cancel,
-// and announces the end of a download or an install.
 
 import AppKit
 import Foundation
@@ -13,19 +9,14 @@ final class ActivityCenter {
 
     static let shared = ActivityCenter()
 
-    // A game that finished downloading keeps its cover effect this long, for the finish ring
     nonisolated static let finishFlash: Duration = .milliseconds(1100)
 
     private(set) var steamGame: RunningGame?
-    // What the console library plays now, read from ConsoleCenter
     @ObservationIgnored var consoleSource: @MainActor () -> RunningGame? = { nil }
-    // The running store job, from StoreCenter; the app sets both
     @ObservationIgnored var storeSource: @MainActor () -> StoreActivity? = { nil }
     @ObservationIgnored var stopStore: @MainActor (StoreActivity) -> Void = { _ in }
     private(set) var downloads: [DownloadActivity] = []
-    // Downloads that just finished, by app ID, for the reveal's finish ring
     private(set) var finishing: [Int: Date] = [:]
-    // The last thing that went wrong while asking Steam, in words for the user
     private(set) var problem: String?
 
     @ObservationIgnored let installs: InstallCenter
@@ -33,15 +24,11 @@ final class ActivityCenter {
     @ObservationIgnored var control: any SteamDownloadControlling
     @ObservationIgnored var processes: GameProcesses
     @ObservationIgnored var notifier: any ActivityNotifying
-    // Set by the host so the first finished download offers notifications
     @ObservationIgnored var permissionFlow: PermissionFlow?
     // Notifications only go out while Cartouche is in the background
     @ObservationIgnored var isAppActive: @MainActor () -> Bool = { NSApp?.isActive ?? false }
-    // The library reloads Steam's installed games when a download ends
     @ObservationIgnored var onDownloadFinished: @MainActor (Int) -> Void = { _ in }
-    // The performance model ingests the session a game just recorded
     @ObservationIgnored var onGameEnded: @MainActor () -> Void = {}
-    // Quits the console session
     @ObservationIgnored var quitConsole: @MainActor () async -> Void = {}
     @ObservationIgnored var now: () -> Date = { Date() }
     @ObservationIgnored private var watcher: Task<Void, Never>?
@@ -79,7 +66,6 @@ final class ActivityCenter {
         return downloads.first { $0.appID == appID }
     }
 
-    // Where the cover's color has risen to, nil when the game is not downloading
     func reveal(for game: Game) -> CoverReveal.Progress? {
         guard let appID = game.steamAppID, game.source == .steam else { return nil }
         if let started = finishing[appID] { return CoverReveal.Progress(fraction: 1, finishedAt: started) }
@@ -147,7 +133,6 @@ final class ActivityCenter {
         }
     }
 
-    // Drops a pause or resume once Steam's files show it, or after 10 seconds
     private func settle(_ item: DownloadActivity) -> DownloadActivity {
         guard let ask = asked[item.appID] else { return item }
         if item.state == ask.state || now().timeIntervalSince(ask.at) > 10 { asked[item.appID] = nil }
@@ -183,7 +168,6 @@ final class ActivityCenter {
         item.isPaused ? resume(appID) : pause(appID)
     }
 
-    // The download ring's mark: pause every running download, or resume them all
     func toggleAll(_ items: [DownloadActivity]) {
         switch DownloadSummary(downloads: items).mark {
         case .downloading: for item in items where !item.isPaused { pause(item.appID) }
@@ -202,7 +186,6 @@ final class ActivityCenter {
         }
     }
 
-    // Asks Steam again for a failed download
     func retry(_ appID: Int) {
         do {
             try control.retry(appID: appID)

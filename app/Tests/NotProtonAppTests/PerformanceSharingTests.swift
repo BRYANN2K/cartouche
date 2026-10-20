@@ -3,8 +3,6 @@ import Testing
 
 @testable import NotProtonApp
 
-// Every request URLSession.shared starts while it is installed, with its body. Only the
-// test address is answered; anything else is recorded and passed on.
 final class RequestCapture: URLProtocol, @unchecked Sendable {
     struct Seen: Sendable {
         let url: URL?
@@ -64,7 +62,6 @@ struct PerformanceSharingTests {
     nonisolated static let testEndpoint: @Sendable (Int) -> URL = { URL(string: "https://\(RequestCapture.host)/games/\($0)/reports")! }
     nonisolated static let mac = PerformanceReport.Mac(chip: "M4 Pro", memoryGB: 24, macOS: "26.1.0")
 
-    // A session as the run script records it, with settings that name a path and the account
     func endedSession(_ fixture: PerformanceFixture) throws {
         let start = PerformanceFixture.start
         try fixture.launch("1245620-a-1", display: "CrossOver 26.3 · DXMT", ended: start + 400, seconds: 330, fps: 58,

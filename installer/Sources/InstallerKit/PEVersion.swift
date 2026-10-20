@@ -1,5 +1,3 @@
-// Reads ProductName from a Windows exe's version resource, without running it.
-// Only the headers, the resource directory and the version block are read.
 
 import Foundation
 
@@ -29,7 +27,6 @@ public enum PEVersion {
         guard let coff = read(file, at: pe, 24), coff.u32(0) == 0x4550 else { return nil }
         let sections = Int(coff.u16(6)), optionalSize = Int(coff.u16(20))
         guard let optional = read(file, at: pe + 24, optionalSize) else { return nil }
-        // PE32 keeps its data directories at 96, PE32+ at 112; resources are the third.
         let directories = optional.u16(0) == 0x20B ? 112 : 96
         guard optional.count >= directories + 24 else { return nil }
         let resourceRVA = optional.u32(directories + 16)

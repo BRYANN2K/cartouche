@@ -13,8 +13,6 @@ struct RunnerInstallerTests {
         return runners
     }
 
-    // The clone is found afterwards at a fixed name inside the build directory, so the copy has
-    // to land as a child. cp keys that off the destination existing, and first time it does not.
     @Test("The copy lands as a payload directory inside the build directory")
     func copyLandsAsChildOfBuildDirectory() throws {
         let runners = try makeRunners()
@@ -169,8 +167,6 @@ struct RunnerInstallerTests {
         )
     }
 
-    // Replacing an intact clone used to remove it before the copy, so a failed copy took a
-    // working 1.2G tree with it, with nothing in the UI.
     @Test("A failed recopy leaves the working clone intact")
     func keepsWorkingCloneWhenRecopyFails() throws {
         let runners = try makeRunners()

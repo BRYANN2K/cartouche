@@ -1,5 +1,4 @@
-// What each retry changes in the next run's inputs, and the CLS.ini override
-// that carries the memory and thread limits to the decompressors.
+// What each retry changes in the next run's inputs, and the CLS.ini override carrying the limits to the decompressors.
 
 import Foundation
 
@@ -37,7 +36,6 @@ extension InstallInputs {
         return next
     }
 
-    // The last folder's letters and digits, at most 8.
     static func shortName(_ dir: String) -> String {
         let last = dir.split(separator: "\\").last.map(String.init) ?? "Game"
         let letters = last.unicodeScalars.filter { $0.isASCII && CharacterSet.alphanumerics.contains($0) }
@@ -46,9 +44,8 @@ extension InstallInputs {
     }
 }
 
-// The decompressors read their limits from a CLS.ini that the installer unpacks
-// to its temporary folder when it starts. The app rewrites it there, before
-// unpacking begins, when the run asks for less memory or fewer threads.
+//// The decompressors read their limits from a CLS.ini the installer unpacks to its temporary folder when it
+//// starts; the app rewrites it there, before unpacking begins, when the run asks for less memory or fewer threads.
 public enum CLSConfig {
 
     public static func patched(_ text: String, memoryPercent: Int?, threads: Int?) -> String {
@@ -88,7 +85,6 @@ public enum CLSConfig {
         return found
     }
 
-    // Rewrites each CLS.ini once. Returns the files it changed this time.
     @discardableResult
     public static func apply(in prefix: URL, inputs: InstallInputs, done: inout Set<String>) -> [URL] {
         guard inputs.memoryPercent != nil || inputs.threads != nil else { return [] }

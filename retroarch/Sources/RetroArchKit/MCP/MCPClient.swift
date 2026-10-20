@@ -7,7 +7,6 @@ public enum MCPClientError: Error, Equatable, Sendable {
     case rpc(code: Int, message: String)
 }
 
-// One tool as tools/list describes it
 public struct MCPTool: Sendable, Equatable {
     public var name: String
     public var description: String
@@ -70,7 +69,6 @@ public actor MCPClient {
         self.send = send
     }
 
-    // The last lines RetroArch sent as notifications/message, for a failure report
     public var recentLog: [String] { logLines }
 
     public func initialize(client: String, version: String) async throws -> JSONValue {
@@ -107,8 +105,6 @@ public actor MCPClient {
             "jsonrpc": "2.0", "id": .number(Double(id)), "method": .string(method), "params": params,
         ])
         return try await withCheckedThrowingContinuation { continuation in
-            // The timer is cancelled when the reply arrives, so a busy session
-            // does not keep a sleeping task per request
             let timer = Task { [weak self] in
                 try? await Task.sleep(for: timeout)
                 await self?.expire(id, method: method)
@@ -130,7 +126,6 @@ public actor MCPClient {
         try send(Self.encode(["jsonrpc": "2.0", "method": .string(method), "params": params]))
     }
 
-    // Fed by whoever reads the server's output, one line at a time
     public func receive(_ line: Data) {
         guard let message = try? JSONDecoder().decode(JSONValue.self, from: line) else { return }
         guard let id = message["id"]?.int else {
@@ -153,7 +148,6 @@ public actor MCPClient {
         }
     }
 
-    // The server went away: nothing still waiting will be answered
     public func close() {
         isClosed = true
         let waiting = pending

@@ -34,8 +34,6 @@ struct PrefixPromptTests {
         #expect(PrefixPrompt.deleteTitle([]) == "Delete prefix?")
     }
 
-    // Naming one of them and deleting all of them is how the wrong prefix gets thrown
-    // away, so more than one is counted instead.
     @Test("Several prefixes are counted, not named")
     func multipleDeleteCountsThem() {
         let targets = [agent, ikaruga, orphan]
@@ -68,7 +66,6 @@ struct PrefixPromptTests {
         #expect(!message.contains("Continue"))
     }
 
-    // A queued rebuild asks once for the whole selection, so it counts too.
     @Test("A rebuild of several prefixes counts them instead of naming one")
     func rebuildCountsTheSelection() {
         #expect(PrefixPrompt.rebuildTitle([agent, ikaruga]) == "Rebuild 2 prefixes?")

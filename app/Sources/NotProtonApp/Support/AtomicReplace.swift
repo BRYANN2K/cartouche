@@ -1,5 +1,3 @@
-// Simple logic
-
 import Foundation
 
 func atomicReplace(_ destination: URL, from source: URL, step: String) throws {
@@ -26,8 +24,7 @@ func atomicReplace(_ destination: URL, from source: URL, step: String) throws {
     }
 }
 
-// The old folder moves aside before the new one lands, so a failed swap keeps
-// the previous install usable; the leftover is removed once the new one is in
+// The old folder moves aside before the new one lands, so a failed swap keeps the previous install usable; the leftover is removed once the new one is in
 func swapIn(_ new: URL, at target: URL) throws {
     let fm = FileManager.default
     let aside = target.deletingLastPathComponent()

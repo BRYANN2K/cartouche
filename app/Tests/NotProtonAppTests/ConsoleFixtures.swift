@@ -39,7 +39,6 @@ final class StubWeb: URLProtocol, @unchecked Sendable {
         return URLSession(configuration: config)
     }
 
-    // For the fetch closures of CoverStore and the RetroArchKit stores
     var fetch: @Sendable (URL) async throws -> (Data, Int) {
         let session = session
         return { url in
@@ -94,7 +93,6 @@ enum ConsoleFixtures {
         return try Data(contentsOf: archive)
     }
 
-    // A core's .info file as the buildbot's info.zip has it
     static func info(_ core: String, firmware: [(String, String)] = []) -> Data {
         var text = "display_name = \"\(ConsoleCatalog.coreName(core))\"\n"
         text += "firmware_count = \(firmware.count)\n"
@@ -117,7 +115,6 @@ enum ConsoleFixtures {
         return rom
     }
 
-    // RetroArchKit's recorded database rows, written as .rdb files under the paths
     static func installDatabase(in paths: RetroArchPaths) throws {
         let rows = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
             .appending(path: "../../../retroarch/Tests/RetroArchKitTests/Fixtures/database/rows.json").standardized
@@ -149,7 +146,6 @@ enum ConsoleFixtures {
         return cue
     }
 
-    // The four Game Boy cartridges the recorded rows know
     static let gameBoy: [(file: String, title: String, fill: UInt8)] = [
         ("quest.gb", "CARTOUCHE QUEST", 0), ("puzzle.gb", "CARTOUCHE PUZZL", 1),
         ("race.gb", "CARTOUCHE RACE", 2), ("maze.gb", "CARTOUCHE MAZE", 3),
@@ -216,8 +212,8 @@ final class ConsoleScene {
 
     // The scene's own Applications folder, for fake standalone emulator apps
     var applications: URL { work.appending(path: "Applications", directoryHint: .isDirectory) }
-
     // Covers from a cache in the scene, never the network
+
     var covers: CoverStore {
         var covers = CoverStore(steamCache: work.appending(path: "no-steam"), cache: work.appending(path: "covers"),
                                 fetch: { _ in throw URLError(.notConnectedToInternet) })

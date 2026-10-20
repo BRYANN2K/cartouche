@@ -1,7 +1,4 @@
-// DXMT and DXVK, downloaded from their GitHub releases and pinned by size and SHA-256
-// in backends.json. Nothing is unpacked, and so nothing reaches a prefix, before the
-// archive matches its pin. D3DMetal is never downloaded: it comes from the user's
-// Game Porting Toolkit or CrossOver.
+// DXMT and DXVK pinned by size and SHA-256; nothing reaches a prefix before the archive matches its pin. D3DMetal is never downloaded.
 
 import Foundation
 
@@ -13,14 +10,12 @@ struct BackendManifest: PinnedManifest {
 
     struct Pin: Sendable, Equatable, Codable, Identifiable {
         let backend: GraphicsBackend
-        // Product name, not translated
         let name: String
         let version: String
         let license: String
         let url: URL
         let size: Int64
         let sha256: String
-        // What the archive must hold once unpacked, under the folders the run script reads
         let files: [String]
 
         var id: String { backend.rawValue }
@@ -34,7 +29,6 @@ struct BackendManifest: PinnedManifest {
 
     func pin(_ backend: GraphicsBackend) -> Pin? { backends.first { $0.backend == backend } }
 
-    // The only backends Cartouche may download
     static let downloadable: Set<GraphicsBackend> = [.dxmt, .dxvk]
 
     func problems() -> [String] {
@@ -74,7 +68,6 @@ enum BackendInstaller {
 
     // The folders the run script adds to WINEDLLPATH, in backends/<backend>/
     static let folders = ["x86_64-windows", "i386-windows", "x86_64-unix"]
-    // Other names releases use for the same folders
     static let aliases = ["x64": "x86_64-windows", "x32": "i386-windows"]
 
     struct Receipt: Sendable, Equatable, Codable {
@@ -119,7 +112,6 @@ enum BackendInstaller {
         return try unpack(archive, pin: pin, backends: backends, extraHashes: extras)
     }
 
-    // Unpacks beside the backends folder and moves the result in only when it is complete
     static func unpack(
         _ archive: URL, pin: BackendManifest.Pin, backends: URL, extraHashes: Set<String> = []
     ) throws -> Receipt {
@@ -142,7 +134,6 @@ enum BackendInstaller {
         // bsdtar refuses absolute paths and .. in entries unless told otherwise
         try Shell.check("/usr/bin/tar", ["-xf", archive.path(percentEncoded: false), "-C", staging.path(percentEncoded: false)])
 
-        // Releases put the folders at the top or one level down, under either name
         guard let root = layoutRoot(in: staging) else {
             throw StepFailure(step: step, detail: String(localized: "The download of \(pin.title) does not hold the files Cartouche expects."))
         }
@@ -185,7 +176,6 @@ enum BackendInstaller {
         }
     }
 
-    // Folder name in the archive to the name the run script reads
     private static func folderNames(in root: URL) -> [(String, String)] {
         let fm = FileManager.default
         var out: [(String, String)] = []

@@ -1,5 +1,3 @@
-// Where onboarding choices live afterwards, in the Settings window: the whole
-// setup again (General), game folders (Library).
 
 import SwiftUI
 

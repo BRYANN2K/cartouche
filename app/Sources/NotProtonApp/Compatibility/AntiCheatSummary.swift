@@ -1,5 +1,4 @@
-// Anti-cheat as ProtonDB and AreWeAntiCheatYet report it for Linux. Cartouche has no
-// Mac data on anti-cheat, so no line here may claim what happens on a Mac.
+// Anti-cheat as ProtonDB and AreWeAntiCheatYet report it for Linux. Cartouche has no Mac data on anti-cheat, so no line here may claim what happens on a Mac.
 
 import Foundation
 
@@ -16,7 +15,6 @@ struct AntiCheatSummary: Equatable, Sendable {
     let title: String
     let details: [String]
 
-    // Nil when AreWeAntiCheatYet lists no anti-cheat for the game
     init?(record: CompatRecord?) {
         guard let entry = record?.areweanticheatyet else { return nil }
         let pdb = record?.protondb

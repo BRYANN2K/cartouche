@@ -69,7 +69,6 @@ struct RetroArchHomeTests {
         let kept = try #require(await ConsoleLibrary(paths: scene.paths).game(game.id))
         #expect(kept.playSeconds >= 0.8)
         #expect(SaveStates.list(for: kept, in: scene.paths).first?.isAuto == true)
-        // Nothing running: returns at once
         let asked = ContinuousClock.now
         scene.center.endForTermination()
         #expect(ContinuousClock.now - asked < .milliseconds(100))

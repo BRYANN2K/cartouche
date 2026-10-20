@@ -3,9 +3,6 @@ import Foundation
 import InstallerKit
 import RetroArchKit
 
-// What the agent-facing side of the app exposes. The app's own models back the
-// live implementation; tests swap in fixtures. Keeping this a protocol keeps
-// every tool testable without an app bundle, Steam, or RetroArch.
 @MainActor
 protocol AgentBackend {
 
@@ -48,7 +45,6 @@ protocol AgentBackend {
     func startInstall(_ request: InstallRequest, inputs: InstallInputs) -> UUID
     func installJobs() -> [InstallJob]
     func installJob(_ id: UUID) -> InstallJob?
-    // All requested fixes applied at once, then the job queues once.
     func retryInstall(_ job: InstallJob, fixes: [RetryFix]) throws
     func stopInstall(_ job: InstallJob) throws
     func finishInstall(_ job: InstallJob, exe: URL) throws
@@ -87,8 +83,7 @@ protocol AgentBackend {
     func controllers() -> [ControllerInfo]
     func gameControls(_ id: String) -> GameControls
     func setGameControls(_ controls: GameControls, for id: String) async throws
-    // Accessibility, the permission "Play with a controller" needs. The app
-    // asks for it; an agent only reads whether macOS granted it.
+    // Accessibility, the permission "Play with a controller" needs. The app asks for it; an agent only reads whether macOS granted it.
     func controlsAccessibility() -> Bool
 
     // MARK: Diagnostics and system
@@ -109,9 +104,6 @@ struct AgentToolError: LocalizedError {
     init(_ message: String) { self.message = message }
 }
 
-// One MCP tool: its wire shape and which checks stand between a call and the
-// app's own functions. The registry lives in AgentTools.swift; providers add
-// tools through AgentToolProvider.
 struct AgentTool {
     var name: String
     var detail: String
@@ -123,13 +115,10 @@ struct AgentTool {
     var sendsInput = false
     var readOnly = true
     var destructive = false
-    // The "<Game> (<size>)" the approval line shows for this call
     var approvalText: (@MainActor (AgentBackend, JSONValue) async -> String)?
     var run: @MainActor (AgentBackend, JSONValue) async throws -> JSONValue
 }
 
-// A bag of tools a provider adds without touching AgentService; the app's
-// AgentControls provider ships the controller tools.
 protocol AgentToolProvider {
     func tools() -> [AgentTool]
 }

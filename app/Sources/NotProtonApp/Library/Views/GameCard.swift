@@ -1,6 +1,5 @@
 import SwiftUI
 
-// The game menu as SwiftUI menu content, for the context menu, the Game menu and More
 struct GameMenuContent: View {
     let items: [GameMenuItem]
     let perform: (GameAction) -> Void
@@ -53,7 +52,6 @@ struct GameCard: View {
     @State private var tilt: CGSize = .zero
     @State private var hovering = false
 
-    // Not installed is black and white, until selected
     var inColor: Bool { game.installed || isSelected }
 
     var body: some View {
@@ -81,7 +79,6 @@ struct GameCard: View {
         let motion = Motion(reduceMotion: reduceMotion)
         return CoverView(game: game, override: override, gray: !inColor)
             .overlay {
-                // A download brings the color back from the bottom up
                 if !isSelected, let reveal = activity.reveal(for: game) {
                     RevealCover(game: game, override: override, progress: reveal)
                 }
@@ -105,7 +102,6 @@ struct GameCard: View {
                 case .active(let point):
                     hovering = true
                     guard motion.tilts else { return }
-                    // Leans toward the pointer, at most 6 degrees
                     withAnimation(.interactiveSpring) {
                         tilt = CGSize(width: (point.x / 160 - 0.5) * 12, height: -(point.y / 240 - 0.5) * 12)
                     }

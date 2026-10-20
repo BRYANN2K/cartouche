@@ -15,7 +15,6 @@ struct BIOSTests {
 
     private func md5(_ data: Data) -> String { Insecure.MD5.hash(data: data).map { String(format: "%02x", $0) }.joined() }
 
-    // A Cartouche folder holding the core's .info file and a BIOS folder
     private func setup(_ core: String, info: String? = nil) throws -> RetroArchPaths {
         let paths = RetroArchPaths(root: try scratchFolder("bios"))
         try paths.create()
@@ -95,7 +94,6 @@ struct BIOSTests {
         #expect(status.files.allSatisfy { !$0.needed })
     }
 
-    // The maintainer's own dump, when they point the test at it
     @Test(.enabled(if: ProcessInfo.processInfo.environment["CARTOUCHE_PS1_BIOS"] != nil, "set CARTOUCHE_PS1_BIOS to your own scph5501.bin"))
     func aRealDumpIsFound() throws {
         let paths = try setup("swanstation")
@@ -104,7 +102,6 @@ struct BIOSTests {
         #expect(BIOSChecker(paths: paths).status(for: playStation).summary == .found)
     }
 
-    // No BIOS link, anywhere: not in a status, not in a UI string, not in the code
     @Test func noDownloadLinkForABIOS() throws {
         let paths = try setup("swanstation")
         try Data("x".utf8).write(to: paths.bios.appending(path: "scph5500.bin"))

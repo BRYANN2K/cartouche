@@ -1,5 +1,3 @@
-// Downloads needed components from Valve
-
 import Foundation
 
 enum ValveFetcher {

@@ -1,13 +1,9 @@
-// What is going on right now: a running game, an install, a store client's job
-// and Steam downloads. The sidebar shows the most important one; the status
-// menu lists them all.
 
 import Foundation
 
 struct RunningGame: Equatable, Sendable {
     enum Target: Equatable, Sendable {
         case steam(appID: Int)
-        // A console session from RetroArch, which quits through its own session
         case console
     }
 
@@ -15,7 +11,6 @@ struct RunningGame: Equatable, Sendable {
     let id: String
     let name: String
     let target: Target
-    // RetroArch is still starting the game; Quit waits
     var starting = false
     // The standalone emulator a console game plays in; nil for RetroArch
     var emulator: String?
@@ -53,7 +48,6 @@ struct DownloadActivity: Identifiable, Equatable, Sendable {
 
     var isPaused: Bool { state == .paused }
 
-    // The word for the state: "Downloading", "Paused", "Waiting to download", "Download failed"
     var title: String {
         switch state {
         case .failed: String(localized: "Download failed")
@@ -63,7 +57,6 @@ struct DownloadActivity: Identifiable, Equatable, Sendable {
         }
     }
 
-    // Under the cover: "Downloading, 34%", "Paused, 34%", "Download failed"
     var cardStatus: String {
         switch state {
         case .failed: return title
@@ -77,11 +70,9 @@ struct DownloadActivity: Identifiable, Equatable, Sendable {
 enum ActivitySlot: Equatable, Sendable {
     case playing(RunningGame)
     case installing(InstallActivity)
-    // A download, update, verify or import from a store client
     case store(StoreActivity)
     case downloads([DownloadActivity])
 
-    // Playing beats installing beats a store job beats downloads; nil hides the slot
     static func pick(playing: RunningGame?, install: InstallActivity?, store: StoreActivity?,
                      downloads: [DownloadActivity]) -> ActivitySlot? {
         if let playing { return .playing(playing) }
@@ -92,14 +83,10 @@ enum ActivitySlot: Equatable, Sendable {
     }
 }
 
-// The downloads as one ring: the average progress, and the worst state wins
 struct DownloadSummary: Equatable, Sendable {
     enum Mark: Equatable, Sendable {
-        // The stop square
         case downloading
-        // Two bars
         case paused
-        // An exclamation mark
         case failed
     }
 
@@ -132,7 +119,6 @@ struct DownloadSummary: Equatable, Sendable {
         ListFormatter.localizedString(byJoining: downloads.map(\.name))
     }
 
-    // "34% of 47.3 GB" for one game, "34%" for several
     var detail: String {
         if downloads.count == 1, let only = downloads.first, only.bytesTotal > 0 {
             return String(localized: "\(percent)% of \(Self.size(only.bytesTotal))")
@@ -145,13 +131,11 @@ struct DownloadSummary: Equatable, Sendable {
     }
 }
 
-// Every ongoing activity, for the status item's menu
 struct ActivityMenuSection: Equatable, Sendable {
     enum Kind: Equatable, Sendable { case playing, installing, store, downloads }
 
     struct Line: Equatable, Sendable {
         let title: String
-        // Shown after the title, "34%"
         var detail: String?
     }
 

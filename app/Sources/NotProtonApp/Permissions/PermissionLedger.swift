@@ -1,5 +1,3 @@
-// What Cartouche remembers about each permission: whether it asked, what the
-// last real attempt showed, and whether the user went to System Settings to change it.
 
 import Foundation
 
@@ -32,8 +30,7 @@ struct PermissionLedger: @unchecked Sendable {
         defaults.set(state.rawValue, forKey: key(permission, "last"))
     }
 
-    // Set by Open System Settings. Only then does Cartouche check again with a
-    // real read or write, because that check cannot prompt any more.
+    // Set by Open System Settings. Only then does Cartouche check again with a real read or write, because that check cannot prompt any more.
     func wantsRecheck(_ permission: Permission) -> Bool {
         defaults.bool(forKey: key(permission, "recheck"))
     }
@@ -42,7 +39,6 @@ struct PermissionLedger: @unchecked Sendable {
         defaults.set(wanted, forKey: key(permission, "recheck"))
     }
 
-    // The external disk folder Removable Volumes was last asked for
     func target(_ permission: Permission) -> URL? {
         defaults.string(forKey: key(permission, "target")).map { URL(filePath: $0) }
     }
@@ -51,7 +47,6 @@ struct PermissionLedger: @unchecked Sendable {
         defaults.set(url?.path(percentEncoded: false), forKey: key(permission, "target"))
     }
 
-    // Whether Cartouche already offered the permission once; the offer never repeats
     func offered(_ permission: Permission) -> Bool {
         defaults.bool(forKey: key(permission, "offered"))
     }

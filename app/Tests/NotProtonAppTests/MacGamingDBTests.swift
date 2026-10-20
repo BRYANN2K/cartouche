@@ -6,7 +6,6 @@ import Testing
 @Suite("MacGamingDB read live")
 struct MacGamingDBTests {
 
-    // Answers from a script, counting requests and how many run at once
     private final class Server: @unchecked Sendable {
         private let lock = NSLock()
         private var answer: @Sendable (URL) throws -> (Data, Int)

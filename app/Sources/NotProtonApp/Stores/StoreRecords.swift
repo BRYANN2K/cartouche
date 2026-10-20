@@ -1,10 +1,6 @@
-// What Cartouche keeps about store games, under stores/ in its data folder:
-//   stores/<store>/client      the client's own config and caches (tokens only while it runs)
-//   stores/<store>/home        the HOME the client runs with
-//   stores/<store>/library.json the account's games, so the library shows them offline
-//   stores/<store>/games/<id>.json an installed game
-//   stores/<store>/<slug>/pfx  its Wine prefix; game/ holds files Cartouche downloaded
-// Nothing here is a token.
+// stores/ layout: client = the client's config and caches (tokens only while it runs); home = the HOME it runs with;
+// library.json = the account's games, for the offline library; games/<id>.json = an installed game; <slug>/pfx = its Wine
+// prefix, game/ holding files Cartouche downloaded. Nothing here is a token.
 
 import Foundation
 
@@ -13,12 +9,9 @@ struct StoreInstalledGame: Codable, Sendable, Equatable {
     var id: String
     var title: String
     var install: StoreInstall
-    // stores/<store>/<slug>
     var folder: URL
-    // The store's markers of the last cloud save sync, per save location
     var saveStamps: [String: String] = [:]
     var installedAt: Date
-    // Installed by another launcher and imported through the client
     var imported = false
 
     var source: GameSource? { GameSource(id: store) }
@@ -42,13 +35,11 @@ struct StoreFolders: Sendable {
         store(source).appending(path: "\(GameFolder.slug(title))-\(Self.safe(id))", directoryHint: .isDirectory)
     }
 
-    // Store IDs are letters, digits and dashes; anything else becomes a dash
     static func safe(_ id: String) -> String {
         String(id.map { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-" || $0 == "_") ? $0 : "-" })
     }
 
-    // Where the clients keep their tokens: legendary and nile in their config, gogdl
-    // and comet in a heroic folder under their HOME
+    // Where the clients keep their tokens: legendary and nile in their config, gogdl and comet in a heroic folder under their HOME
     func tokenFolder(_ source: GameSource) -> URL { source == .gog ? home(source) : client(source) }
 
     static let tokenPatterns: [GameSource: [String]] = [
@@ -82,7 +73,6 @@ struct StoreFolders: Sendable {
         try atomicReplace(library(source), with: try RecordCoding.encoder.encode(games), step: String(localized: "Save the library"))
     }
 
-    // Games whose art lookup found nothing, with when — retried after a month
     func loadArtMisses(_ source: GameSource) -> [String: Date] {
         (try? Data(contentsOf: artMisses(source))).flatMap { try? RecordCoding.decoder.decode([String: Date].self, from: $0) } ?? [:]
     }

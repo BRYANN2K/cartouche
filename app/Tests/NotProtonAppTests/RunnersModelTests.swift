@@ -169,7 +169,6 @@ final class RunnersModelTests {
         #expect(missing.action == .repair)
         #expect(offered(model).isEmpty)
 
-        // Repair copies the toolkit from a folder the user picks
         let otherApps = try toolkitApp()
         model.chooseToolkitFolder = { otherApps.appending(path: "Game Porting Toolkit.app") }
         await model.perform(.repair, on: "gptk-3.0")
@@ -242,7 +241,6 @@ final class RunnersModelTests {
     func mountedToolkit() async throws {
         let image = volumes()
         let apps = try toolkitApp(in: image)
-        // Everything under the volumes root is treated as ejectable
         let search = PortingToolkitSource.Search(volumes: image, applications: [apps])
         let model = model(builds: [], toolkits: { PortingToolkitSource.discover(search) })
 
@@ -293,7 +291,6 @@ final class RunnersModelTests {
         let model = RunnersModel(
             runnersFolder: runners, downloads: work.appending(path: "downloads"),
             scan: {
-                // The first scan is slow: a refresh started later finishes first
                 let n = calls.next()
                 if n == 1 { Thread.sleep(forTimeInterval: 0.4) }
                 return FreeRunnerScan(manifest: RunnerManifest(

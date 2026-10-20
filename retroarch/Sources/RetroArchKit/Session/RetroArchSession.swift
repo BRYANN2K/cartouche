@@ -10,16 +10,12 @@ public enum RetroArchSessionError: Error, Equatable, Sendable {
     case unexpectedReply(String)
 }
 
-// How to start one RetroArch
 public struct RetroArchLaunch: Sendable {
 
     // The retroarch.cfg RetroArch loads before cartouche.cfg
     public enum BaseConfig: Sendable, Equatable {
-        // Cartouche's own, beside cartouche.cfg, so the user's is not touched.
-        // RetroArch still writes its own file at times, e.g. after it unpacks
-        // its assets, whatever config_save_on_exit says.
+        // RetroArch still writes its own file at times (e.g. after unpacking assets), whatever config_save_on_exit says.
         case cartouche
-        // Whatever RetroArch finds by itself: the user's own file
         case retroarchDefault
         case file(URL)
     }
@@ -41,7 +37,6 @@ public struct RetroArchLaunch: Sendable {
         self.mcp = mcp
     }
 
-    // RetroArch.app or the binary inside it
     public static func binary(_ url: URL) -> URL {
         url.pathExtension == "app" ? url.appending(path: "Contents/MacOS/RetroArch") : url
     }
@@ -54,8 +49,7 @@ public struct RetroArchLaunch: Sendable {
         }
     }
 
-    // RetroArch skips --appendconfig too when the -c file is not there, so
-    // Cartouche's own one is made first
+    // RetroArch skips --appendconfig too when the -c file is not there, so Cartouche's own one is made first.
     func prepare() throws {
         try config.write()
         if baseConfig == .cartouche,
@@ -102,8 +96,7 @@ public struct StopReport: Sendable, Equatable {
     }
 }
 
-// One running RetroArch, driven over its MCP pipe. Cartouche starts it with
-// its own appended configuration and stops it; nothing else talks to it.
+// One running RetroArch, driven over its MCP pipe; nothing else talks to it.
 public actor RetroArchSession {
 
     public let launch: RetroArchLaunch
@@ -123,7 +116,6 @@ public actor RetroArchSession {
 
     public var stderrLog: URL { launch.config.paths.logs.appending(path: "retroarch.log") }
 
-    // Starts RetroArch with --mcp-stdio and reads what it offers
     public func start(timeout: Duration = .seconds(15)) async throws {
         guard launch.mcp else { throw RetroArchSessionError.needsMCP }
         guard child == nil else { throw RetroArchSessionError.alreadyRunning }
@@ -154,8 +146,7 @@ public actor RetroArchSession {
         }
     }
 
-    // For a build without the MCP server: the game is on the command line,
-    // and the UDP commands, when on, are the way to ask and to quit
+    // Without MCP: the game goes on the command line; UDP commands, when on, are the way to ask and to quit.
     public func start(core: URL, content: URL) throws {
         guard child == nil else { throw RetroArchSessionError.alreadyRunning }
         try launch.prepare()
@@ -164,7 +155,6 @@ public actor RetroArchSession {
             environment: launch.environment, stderr: stderrLog, pipes: false, onLine: { _ in })
     }
 
-    // Answers once the content runs, with its path
     @discardableResult
     public func load(core: URL?, content: URL, paused: Bool = false) async throws -> String {
         var arguments: [String: JSONValue] = ["content": .string(content.path(percentEncoded: false))]
@@ -177,7 +167,6 @@ public actor RetroArchSession {
     public func status() async throws -> GameStatus {
         if !launch.mcp, launch.config.networkCommands {
             guard isRunning else { throw RetroArchSessionError.notRunning }
-            // recv blocks for up to the wait: off the cooperative pool
             let port = launch.config.networkCommandPort
             let reply = await Task.detached {
                 NetworkCommands.send("GET_STATUS", port: port, wait: .seconds(2))
@@ -198,14 +187,13 @@ public actor RetroArchSession {
         try await call(.state, ["action": "load", "slot": .number(Double(slot))])
     }
 
-    // The PNG RetroArch sends with the reply
     public func screenshot() async throws -> Data {
         let result = try await call(.screenshot)
         guard let png = result.images.first else { throw RetroArchSessionError.unexpectedReply(result.text) }
         return png
     }
 
-    // Answers once the preset is applied; nil turns the shader off
+    // nil turns the shader off.
     public func setShader(_ preset: URL?) async throws {
         try await call(.setShader, ["preset": .string(preset?.path(percentEncoded: false) ?? "")])
     }
@@ -225,7 +213,6 @@ public actor RetroArchSession {
         return nil
     }
 
-    // The lines RetroArch logged since a line number, and where to go on from
     public func log(since: Int) async throws -> (lines: [String], next: Int) {
         let result = try await call(.log, ["since": .number(Double(since))])
         var lines: [String] = []
@@ -247,8 +234,7 @@ public actor RetroArchSession {
                                 "frames": .number(Double(frames))]).text
     }
 
-    // A hotkey that is not an MCP tool, AI_SERVICE among them, over the UDP
-    // commands on this Mac; they are on when the launch asked for them
+    // Hotkeys that are not MCP tools (AI_SERVICE among them) go over the UDP commands, on only when the launch asked.
     public func command(_ name: String) throws {
         guard isRunning else { throw RetroArchSessionError.notRunning }
         guard launch.config.networkCommands else { throw RetroArchSessionError.toolUnavailable(name) }
@@ -261,23 +247,17 @@ public actor RetroArchSession {
         try await call(.disk, ["action": .string(action.rawValue)])
     }
 
-    // The bytes at a system address, as RetroArch's reply lists them
     public func readMemory(address: Int, bytes: Int) async throws -> [UInt8] {
         let reply = try await call(.readMemory, ["address": .string(String(address, radix: 16)), "bytes": .number(Double(bytes))]).text
-        // "READ_CORE_MEMORY 0 1c 02 00 00"
-        // The reply ends with a line break, which must not cost the last byte
+        // "READ_CORE_MEMORY 0 1c 02 00 00"; the reply's trailing line break must not cost the last byte.
         return reply.split(whereSeparator: \.isWhitespace).dropFirst(2).compactMap { UInt8($0, radix: 16) }
     }
 
-    // Resolves when RetroArch's process ends
     public func waitUntilExit() async {
         if let child { _ = await child.exited() }
     }
 
-    // RetroArch quits when its stdin closes, or on the UDP QUIT, through the
-    // same path as its menu's Quit, so the auto save state is written. A build
-    // that does not go in time gets SIGTERM, then SIGKILL; macOS RetroArch
-    // writes nothing on SIGTERM.
+    // stdin close or UDP QUIT takes the menu-Quit path so the auto save state is written; macOS RetroArch writes nothing on SIGTERM, so a slow build gets SIGTERM then SIGKILL.
     public func stop(within limit: Duration = .seconds(3)) async -> StopReport {
         guard let child else { return StopReport(way: .notRunning, duration: .zero) }
         let started = ContinuousClock.now

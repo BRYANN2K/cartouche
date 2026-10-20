@@ -187,7 +187,6 @@ struct QAEnvironmentTests {
         StubServer.serve("/" + QAEnvironment.pinsFile, body: Data(#"["\#(sha)"]"#.utf8))
         StubServer.serve("/package.tar", body: body)
 
-        // The pin is deliberately wrong: only __pins.json may let this through
         let got = try await withEnv("http://mock.qa") {
             try await PinnedDownload.obtain(
                 file: "package.tar", sha256: String(repeating: "0", count: 64),
@@ -222,8 +221,6 @@ struct QAEnvironmentTests {
         }
     }
 
-    // A backend install end to end: the pin's URL is re-pointed, the archive's
-    // own hash (not the pin) is in __pins.json, and unpack accepts it too.
     @Test("A backend install accepts a QA-pinned archive end to end")
     func backendInstallUsesQA() async throws {
         let work = try scratchDirectory("qa")
@@ -289,9 +286,6 @@ struct QAEnvironmentTests {
         "retroarch/Sources/RetroArchKit/Cores/CoreManager.swift": ["https://buildbot.libretro.com/"],
     ]
 
-    // New https endpoints must route through QAEnvironment.url(...): the check
-    // reads the sources, so a new literal fails this test until it is routed or
-    // added to allowedLiterals above with the reason it is not fetched.
     @Test("No hard-coded https endpoint bypasses QAEnvironment.url")
     func noLiteralBypassesHelper() throws {
         let repo = URL(filePath: #filePath)
@@ -335,7 +329,6 @@ struct QAEnvironmentTests {
         return violations
     }
 
-    // https:// up to a quote, bracket, space or interpolation boundary
     private static func literals(in line: String) -> [String] {
         var found: [String] = []
         var rest = line[...]

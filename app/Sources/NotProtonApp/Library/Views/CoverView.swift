@@ -13,11 +13,8 @@ extension EnvironmentValues {
     }
 }
 
-// Resolves a cover's file and decodes its images off the main actor, so a view's
-// body never touches the filesystem or the decoder. Both cover views use it.
 enum CoverLoader {
 
-    // Everything a cover view needs to draw: the art plus its decoded images
     struct Loaded: @unchecked Sendable {
         var art: CoverArt
         var color: NSImage?
@@ -39,10 +36,7 @@ enum CoverLoader {
     }
 }
 
-// Decoded covers by file, bounded in memory. Reads and the gray filter run
-// wherever the loader asks; NSCache and CIContext are safe across threads.
 enum CoverImages {
-    // NSCache and CIContext are safe across threads
     nonisolated(unsafe) private static let cache: NSCache<NSString, NSImage> = {
         let cache = NSCache<NSString, NSImage>()
         cache.totalCostLimit = 256 * 1024 * 1024
@@ -51,7 +45,6 @@ enum CoverImages {
 
     private static let context = CIContext()
 
-    // The black and white copy is made once per cover, so the grid never filters live
     static func image(_ url: URL, gray: Bool = false) -> NSImage? {
         let key = "\(gray ? "gray:" : "")\(url.path(percentEncoded: false))" as NSString
         if let hit = cache.object(forKey: key) { return hit }
@@ -76,7 +69,6 @@ struct CoverView: View {
     let game: Game
     var override: URL?
     var kind: ArtKind = .cover
-    // Not installed and not selected
     var gray = false
 
     @Environment(\.covers) private var covers
@@ -84,7 +76,6 @@ struct CoverView: View {
 
     var body: some View {
         ZStack {
-            // A console box, landscape or portrait, sits whole in its square
             if game.coverShape == .square && kind == .cover {
                 Rectangle().fill(Color.primary.opacity(0.06))
             }
@@ -110,7 +101,6 @@ struct CoverView: View {
     }
 }
 
-// The game's name and its executable's icon on a plain background
 struct DrawnCover: View {
     let game: Game
     var compact = false

@@ -1,4 +1,3 @@
-// The game panel's Your Play section and its Compare Setups sheet
 
 import SwiftUI
 
@@ -13,7 +12,6 @@ enum YourPlayText {
         return Duration.seconds(seconds.rounded()).formatted(.units(allowed: units, width: .abbreviated))
     }
 
-    // "DXMT, Rosetta"
     static func detail(_ setup: PlaySetup) -> String {
         "\(setup.backend?.label ?? String(localized: "Default Graphics")), \(setup.translation.label)"
     }
@@ -23,7 +21,6 @@ enum YourPlayText {
         play.runnerName.components(separatedBy: " · ").first ?? play.runnerName
     }
 
-    // "DXMT", or the runner too when two setups share a backend
     static func best(_ best: SetupPlay, among setups: [SetupPlay]) -> String {
         let label = best.setup.backend?.label ?? String(localized: "Default Graphics")
         let shared = setups.filter { $0.setup.backend == best.setup.backend }.count > 1
@@ -54,7 +51,6 @@ struct YourPlayRows: View {
         }
     }
 
-    // Why a number is missing, when one is
     static func note(_ play: GamePlay) -> String? {
         if play.measurementRefused { return String(localized: "FPS can't be measured with this runner") }
         if play.average == nil { return String(localized: "No FPS measured yet") }

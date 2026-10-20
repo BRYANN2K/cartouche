@@ -1,4 +1,3 @@
-// Finds CrossOver installs on disk and checks for support
 
 import Foundation
 
@@ -13,7 +12,6 @@ struct CrossOverInstall: Sendable, Identifiable {
     let releaseVersion: String?
     let support: CrossOverSupport
 
-    // Selected by the user rather than found on disk by tool.
     var isManual = false
 
     var id: String { bundle.path(percentEncoded: false) }
@@ -36,7 +34,6 @@ enum CrossOverSource {
     ]
 
     private static let manualKey = "manualCrossOverPaths"
-    // 1.0/1.0.1 kept a single chosen copy under this key.
     private static let legacyManualKey = "manualCrossOverPath"
 
     static func manualBundles(_ defaults: UserDefaults = .standard) -> [URL] {
@@ -69,7 +66,6 @@ enum CrossOverSource {
         a.standardizedFileURL.path(percentEncoded: false) == b.standardizedFileURL.path(percentEncoded: false)
     }
 
-    // A CrossOver bundle without this directory is bad!
     static func looksLikeCrossOver(_ bundle: URL) -> Bool {
         let root = SupportPaths.crossOverRoot(inBundle: bundle)
         return FileManager.default.fileExists(
@@ -136,8 +132,7 @@ enum CrossOverSource {
         )
     }
 
-    // CrossOver puts the build date here and the version number in
-    // CFBundleVersion, so this is the string its download page shows.
+    // CrossOver puts the build date here and the version number in CFBundleVersion, so this is the string its download page shows.
     static func releaseVersion(of bundle: URL) -> String? {
         let plist = bundle.appending(path: "Contents/Info.plist")
         guard let data = try? Data(contentsOf: plist),
@@ -175,13 +170,11 @@ enum CrossOverSource {
     }
 }
 
-// CrossOver on the runner model
 extension CrossOverSource {
 
     static let missingWine = String(localized: "The clone has no Wine loader at \("lib/wine").")
 
-    // One runner per CrossOver build, in the order the Status pane lists them: copies
-    // found on disk, then clones whose copy is gone, then clones no longer pinned.
+    // One runner per CrossOver build, in the order the Status pane lists them: copies found on disk, then clones whose copy is gone, then clones no longer pinned.
     static func runners(
         installs: [CrossOverInstall], installed: [RunnerBuild], damaged: [String], orphaned: [String],
         problems: [String: [String]], pins: [RunnerBuild] = SupportedRunners.all,

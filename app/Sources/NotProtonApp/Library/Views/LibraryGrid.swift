@@ -38,10 +38,8 @@ struct LibraryGrid: View {
                 }
             }
             .padding(20)
-            // Games come and go with a spring, or with no animation under Reduce Motion
             .animation(motion.grid, value: sections)
         }
-        // Couch mode moves up and down by a row
         .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { controls?.couch.gridWidth = $0 }
         .confirmationDialog(
             Text("Use this image as the cover of \(droppedCover?.game.name ?? "")?"),

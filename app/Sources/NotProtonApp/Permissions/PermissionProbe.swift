@@ -7,8 +7,7 @@ import ServiceManagement
 import UserNotifications
 
 protocol PermissionProbe: Sendable {
-    // `deep` allows a real read or write, which only runs once the user already
-    // decided (Cartouche asked before), so it cannot prompt.
+    // `deep` allows a real read or write, which only runs once the user already decided (Cartouche asked before), so it cannot prompt.
     func answer(for permission: Permission, deep: Bool, target: URL?) async -> SystemAnswer
 }
 
@@ -54,12 +53,10 @@ struct LivePermissionProbe: PermissionProbe {
         }
     }
 
-    // App Management refuses any new file inside another developer's app
     static func writeCheck(inside app: URL) -> SystemAnswer {
         let contents = app.appending(path: "Contents")
         let path = contents.path(percentEncoded: false)
         guard FileManager.default.fileExists(atPath: path) else { return .unreadable }
-        // Folder ownership is a different problem, with its own message
         if let owner = Remedy.owner(of: path), owner != getuid() { return .unreadable }
         let probe = contents.appending(path: ".cartouche-access-check").path(percentEncoded: false)
         let fd = open(probe, O_CREAT | O_WRONLY | O_EXCL, 0o600)

@@ -1,6 +1,3 @@
-// A Windows game's setup: runner, graphics backend, CPU translation, extra variables,
-// and for a Steam game with a macOS build, which version runs. The choice is kept in
-// library.json (LibraryStore); this resolves it against what this Mac can run.
 
 import Foundation
 
@@ -17,7 +14,6 @@ enum GameVersion: String, Codable, Sendable, CaseIterable, Identifiable {
     }
 }
 
-// What a game gets when it has no choice of its own, from Settings > Compatibility
 struct SetupDefaults: Equatable, Sendable {
     var runnerID: String?
     var graphics: GraphicsBackend?
@@ -42,18 +38,14 @@ struct SetupDefaults: Equatable, Sendable {
     }
 }
 
-// Which backends this Mac can give each runner
 struct BackendAvailability: Equatable, Sendable {
-    // Runners whose own files carry D3DMetal: a CrossOver with lib64/apple_gptk, or the
-    // user's Game Porting Toolkit copy
+    // Runners whose own files carry D3DMetal: a CrossOver with lib64/apple_gptk, or the user's Game Porting Toolkit copy.
     var d3dMetalRunners: Set<String> = []
-    // DXMT and DXVK installed from Cartouche's pinned downloads
     var installed: Set<GraphicsBackend> = []
-    // Wine builds made from CodeWeavers' sources, which DXMT needs (its winemetal
-    // unix library calls into CrossOver's winemac.drv)
+    // Wine builds from CodeWeavers' sources, which DXMT needs (its winemetal unix library calls into CrossOver's winemac.drv).
     var crossOverWine: Set<String> = []
 
-    // Read from the registry and the backends folder, never from a runner source directly
+    // Never read from a runner source directly.
     static func current(
         registry: RunnerRegistry, runners: URL = SupportPaths.runners, backends: URL = BackendInstaller.folder,
         manifest: RunnerManifest = .current()
@@ -77,7 +69,6 @@ struct BackendAvailability: Equatable, Sendable {
 
 enum BackendSupport {
 
-    // The order the Graphics menu lists them in, and the order a fallback is picked in
     static let preference: [GraphicsBackend] = [.d3dmetal, .dxmt, .dxvk, .wined3d]
 
     static func translations(for runner: Runner) -> [GameSetupChoice.Translation] {
@@ -85,8 +76,7 @@ enum BackendSupport {
         runner.flavors.map { $0 == .fex ? .fex : .rosetta }
     }
 
-    // CrossOver ships DXMT, DXVK and wined3d; D3DMetal only where its copy has it, and
-    // never on arm64 Wine (the run script drops it there)
+    // CrossOver ships DXMT, DXVK and wined3d; D3DMetal only where its copy has it, never on arm64 Wine (the run script drops it).
     static func crossOver(translation: GameSetupChoice.Translation, d3dMetal: Bool) -> [GraphicsBackend] {
         preference.filter { $0 != .d3dmetal || (d3dMetal && translation == .rosetta) }
     }
@@ -113,7 +103,6 @@ enum BackendSupport {
     }
 }
 
-// The choice as it applies on this Mac
 struct GameSetup: Equatable, Sendable {
     var version: GameVersion
     var runner: Runner?
@@ -126,10 +115,8 @@ struct GameSetup: Equatable, Sendable {
 enum GameSetupResolver {
 
     enum Problem: Hashable, Sendable {
-        // The chosen runner is gone or not offered; another one is used
         case runnerUnavailable(String)
         case translationUnavailable(GameSetupChoice.Translation)
-        // An invalid runner and backend pair; the first valid backend is used
         case backendUnavailable(GraphicsBackend)
         case variableRefused(String)
     }
@@ -139,7 +126,6 @@ enum GameSetupResolver {
         var problems: [Problem]
     }
 
-    // Only variables the run script forwards to the game, and the backend is the tool's
     static let allowedPrefixes = ["D3DM_", "DXMT_", "DXVK_", "MTL_", "ROSETTA_"]
 
     static func isAllowed(name: String, value: String) -> Bool {
@@ -155,7 +141,6 @@ enum GameSetupResolver {
         availability: BackendAvailability, hasMacBuild: Bool = false, offered: [Runner]? = nil
     ) -> Resolution {
         var problems: [Problem] = []
-        // The runners the game may use; installer games get their own eligible pool
         let offered = offered ?? runners.filter(\.isOffered)
 
         let wanted = choice.runnerID ?? defaults.runnerID

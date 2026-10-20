@@ -1,4 +1,3 @@
-// What Cartouche may send to other services, set in Settings > Privacy
 
 import Foundation
 import Observation
@@ -12,7 +11,6 @@ final class PrivacyChoices {
 
     @ObservationIgnored let defaults: UserDefaults
 
-    // On by default. Off, nothing is sent to MacGamingDB and no estimate is shown.
     var fetchMacReports: Bool {
         didSet { defaults.set(fetchMacReports, forKey: Self.macReportsKey) }
     }

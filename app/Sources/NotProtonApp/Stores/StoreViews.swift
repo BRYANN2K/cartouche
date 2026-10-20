@@ -1,13 +1,8 @@
-// The store screens: a store's page before it is connected and its row in
-// Settings > Accounts. A store's download shows in the shared activity slot
-// (ActivityViews.swift's StoreInstallCard).
-// Cartouche never draws a password field: the user signs in on the store's own
-// page, in the sign-in window (StoreSignInWindow.swift).
+// Cartouche never draws a password field: the user signs in on the store's own page, in the sign-in window (StoreSignInWindow.swift).
 
 import AppKit
 import SwiftUI
 
-// A store that is not connected yet: what signing in does, and what works
 struct StorePage: View {
     let source: GameSource
     let center: StoreCenter?
@@ -112,7 +107,6 @@ struct StorePage: View {
     }
 }
 
-// One store in Settings > Accounts
 struct StoreAccountRow: View {
     let source: GameSource
     let center: StoreCenter?

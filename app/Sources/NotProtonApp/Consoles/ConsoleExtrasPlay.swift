@@ -1,7 +1,6 @@
 import Foundation
 import RetroArchKit
 
-// What the panel shows of the running session
 struct ExtrasSession: Equatable {
     var gameID: String?
     // RetroArch's own answer to GET_OPTION cheevos_hardcore
@@ -9,7 +8,6 @@ struct ExtrasSession: Equatable {
     var netplay: NetplayRole?
 }
 
-// The rooms Join… offers: games the user also has, and how many others
 struct NetplayRooms: Equatable {
     struct Entry: Equatable, Identifiable {
         let room: NetplayRoom
@@ -28,7 +26,6 @@ extension ConsoleCenter {
 
     // MARK: Play Together
 
-    // Hosts the game; with the lobby on, friends find it there under the nickname
     func host(_ id: String, reduceMotion: Bool = false) async {
         _ = await askLocalNetwork()
         await play(id, reduceMotion: reduceMotion, netplay: .host(port: NetplayRole.defaultPort, announce: true))
@@ -38,8 +35,6 @@ extension ConsoleCenter {
         await play(entry.gameID, reduceMotion: reduceMotion, netplay: .join(entry.room.target), core: entry.core)
     }
 
-    // The lobby's rooms, and the local network's once Local Network is allowed,
-    // for the games of the library
     func netplayRooms(lobby: NetplayLobby = NetplayLobby(),
                       local: @Sendable () async -> [NetplayRoom] = { await LocalNetplayBrowser.rooms() }) async -> NetplayRooms {
         var found: [NetplayRoom] = []
@@ -74,14 +69,12 @@ extension ConsoleCenter {
         if let crc = game.crc { cache[game.id] = crc }
         if cache[game.id] == nil {
             let file = game.fileURL
-            // A full file read: off the main thread, once per game
             cache[game.id] = await Task.detached { (try? CRC32.checksum(of: file)) ?? 0 }.value
         }
         return room.matches(game, console: console, crc: cache[game.id])
     }
 
-    // Local Network, asked once with Cartouche's explanation first. Netplay
-    // over the internet works without it.
+    // Local Network, asked once with Cartouche's explanation first. Netplay over the internet works without it.
     func askLocalNetwork() async -> Bool {
         guard let flow = netplayFlow else { return false }
         return await withCheckedContinuation { continuation in
@@ -99,8 +92,7 @@ extension ConsoleCenter {
         if extras.coaches(game) { Task { await startCoach(game, hardcore: hardcore) } }
         watchExtras?.cancel()
         guard let runner, extras.login != nil || hardcore else { return }
-        // RetroArch logs which game RetroAchievements recognized, and whether
-        // hardcore is active, a few seconds after the game starts
+        // RetroArch logs which game RetroAchievements recognized, and whether hardcore is active, a few seconds after the game starts
         watchExtras = Task { [weak self] in
             var next = 0
             for _ in 0..<60 {
@@ -122,7 +114,6 @@ extension ConsoleCenter {
         await coach?.setTarget(nil)
         coach = nil
         session = ExtrasSession()
-        // The session may have unlocked some
         if let game = game(id) { await extras.refresh(game) }
     }
 

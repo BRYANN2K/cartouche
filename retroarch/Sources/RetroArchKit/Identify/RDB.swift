@@ -1,8 +1,6 @@
 import Foundation
 
-// One game of the libretro database, as its .rdb file holds it
 public struct DatabaseEntry: Sendable, Equatable {
-    // No-Intro or Redump name: "Super Metroid (Japan, USA) (En,Ja)"
     public var name: String
     public var romName: String?
     public var crc: UInt32?
@@ -27,8 +25,7 @@ public struct DatabaseEntry: Sendable, Equatable {
     var isFlagged: Bool { name.contains("[") }
 }
 
-// RetroArch's libretro-db file: "RARCHDB", the metadata offset, then one
-// MessagePack map per game up to a nil
+// RetroArch's libretro-db file: "RARCHDB", the metadata offset, then one MessagePack map per game up to a nil
 public enum RDB {
 
     public enum Problem: Error, Equatable {
@@ -75,11 +72,9 @@ public enum RDB {
         case array([Value]), map([(String, Value)])
     }
 
-    // The MessagePack that libretro-db writes, read without copying the file
     struct Reader {
         let bytes: UnsafeRawBufferPointer
         var at: Int
-        // A damaged file could nest arrays in arrays without end
         var depth = 0
 
         mutating func byte() throws -> UInt8 {
@@ -157,7 +152,6 @@ public enum RDB {
         }
     }
 
-    // Writes entries the way libretro-db does, for test fixtures and tools
     public static func write(_ entries: [DatabaseEntry]) -> Data {
         var out = Data("RARCHDB".utf8) + Data([0])
         out += Data(repeating: 0, count: 8)

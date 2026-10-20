@@ -116,8 +116,6 @@ struct PrefixToolsTests {
         #expect(environment["WINEPREFIX"] == prefix.pfx.path(percentEncoded: false))
         #expect(environment["WINEPREFIX"]?.hasSuffix("/compatdata/1574480/pfx") == true)
         #expect(environment["WINEMSYNC"] == PrefixTools.syncBackend(prefix: prefix))
-        // Derived rather than spelled out, because the support directory hangs off the
-        // running account's home and a literal here would only ever pass on one machine.
         let runnerBin = runner.appending(path: "bin")
             .path(percentEncoded: false)
         #expect(environment["PATH"]?.hasPrefix(runnerBin + ":") == true)
@@ -278,8 +276,6 @@ struct PrefixToolsTests {
         }
     }
 
-    // The same rule is read once in shell and once here, so a word that drifted on one side
-    // leaves the pane calling a prefix fine that the launcher will not start, or the reverse.
     @Test("The launcher and the pane read the prefix arch the same way")
     func archRuleMatchesRunScript() throws {
         let source = try Self.compatSource()
@@ -299,8 +295,6 @@ struct PrefixToolsTests {
         #expect(source.contains(#"drive_c/windows/system32/ntdll.dll"#))
     }
 
-    // Both names come off the same machine words the arch rule uses, so a wrong word or the
-    // two swapped tells the player to keep the build they have and rebuild for the other.
     @Test("The dialog names the build that made the prefix and the one installed now")
     func dialogNamesBothBuilds() throws {
         let source = try Self.compatSource()
@@ -313,7 +307,6 @@ struct PrefixToolsTests {
             return String(match[1].substring ?? "")
         }
 
-        // The machine word each loader wants, taken from the rule rather than restated.
         func wanted(_ pattern: String) throws -> String {
             let match = try #require(source.firstMatch(of: try Regex(pattern)))
             return String(match[1].substring ?? "")
@@ -322,7 +315,6 @@ struct PrefixToolsTests {
         #expect(try name(of: wanted(#"aarch64-unix\) want=(\w+)"#)).contains("FEX"))
         #expect(try name(of: wanted(#"\*\) want=(\w+)"#)).contains("Rosetta"))
 
-        // A prefix that reads as 32 bit is neither build, so it gets no build name.
         let fallback = try #require(source.firstMatch(of: /\*\) printf '([^']+)'/))
         let vague = String(fallback.1)
         #expect(!vague.contains("FEX") && !vague.contains("Rosetta"))
@@ -419,8 +411,6 @@ struct PrefixToolsTests {
         return runner
     }
 
-    // A prefix as a game leaves it: saves under the profile, a link out to the home folder,
-    // and files the game's own installer put in windows and Program Files.
     private func usedPrefixAndRunner() throws -> (dir: URL, runner: URL, prefix: WinePrefix) {
         let dir = FileManager.default.temporaryDirectory.appending(path: "np-profile-\(UUID().uuidString)")
         let home = dir.appending(path: "home")
@@ -469,8 +459,6 @@ struct PrefixToolsTests {
         #expect(!PrefixStore.isInUse(prefix, root: dir.appending(path: "sockets")))
     }
 
-    // Why a rebuild is offered instead of a delete: the arch specific half only arrives with
-    // the template, while the profile has nothing arch specific and is what a player misses.
     @Test("A rebuild keeps the Windows user profile and replaces everything else")
     func rebuildKeepsTheProfile() throws {
         let fm = FileManager.default
@@ -746,8 +734,6 @@ struct PrefixToolsTests {
         }
         #expect(try target("crossover") == "steamuser")
 
-        // The save came over, and the folder holding it is in the prefix rather than the
-        // dangling place the old profile pointed Documents at.
         let profile = users.appending(path: "steamuser")
         let save = profile.appending(path: "AppData/Roaming/game/save.dat")
         #expect(try String(contentsOf: save, encoding: .utf8) == "save")
@@ -759,8 +745,6 @@ struct PrefixToolsTests {
         }
     }
 
-    // Only folders were carried, so a game that keeps its settings in a file beside them
-    // lost the file while its save folder came through.
     @Test("A rebuild keeps a file sitting loose in a profile")
     func rebuildKeepsALooseProfileFile() throws {
         let (dir, runner, prefix) = try usedPrefixAndRunner()
@@ -773,8 +757,6 @@ struct PrefixToolsTests {
         #expect(try Data(contentsOf: loose) == Data("windowed=1".utf8))
     }
 
-    // Every directory the merge lands is revisited for its links once all the real
-    // directories are in place, and a link inside a save directory is only reached that way.
     @Test("A rebuild keeps a link sitting inside a save directory")
     func rebuildKeepsALinkInsideAProfile() throws {
         let (dir, runner, prefix) = try usedPrefixAndRunner()
@@ -792,8 +774,6 @@ struct PrefixToolsTests {
             atPath: carried.path(percentEncoded: false)) == "save.dat")
     }
 
-    // A link carried across early holds the name a later profile has a real save directory on,
-    // and a landing link is what makes the merge give up on a name.
     @Test("A link from one profile does not take the name another profile's saves land on")
     func linksWaitForEveryRealDirectory() throws {
         let (dir, runner, prefix) = try usedPrefixAndRunner()
@@ -817,8 +797,6 @@ struct PrefixToolsTests {
         #expect(try Data(contentsOf: landed.appending(path: "theirs.dat")) == Data("theirs".utf8))
     }
 
-    // A game installed by hand lives where the player put it, which the template knows
-    // nothing about, so the rebuild took it away along with the tree it sat beside.
     @Test("A rebuild keeps what the template does not make")
     func rebuildKeepsStrayTopLevelNames() throws {
         let (dir, runner, prefix) = try usedPrefixAndRunner()
@@ -861,8 +839,6 @@ struct PrefixToolsTests {
         #expect(!fm.fileExists(atPath: prefix.root.appending(path: "pfx.rebuild").path(percentEncoded: false)))
     }
 
-    // Every copy out of the old prefix was a try?, so a save that would not read left the fresh
-    // prefix short, the old one deleted anyway, and the client synced the gap over the cloud.
     @Test("A save that cannot be copied stops the rebuild")
     func rebuildRefusesWhenASaveCannotBeCarried() throws {
         let fm = FileManager.default
@@ -918,8 +894,6 @@ struct PrefixToolsTests {
         #expect(PrefixStore.backups(of: prefix).count == 1)
     }
 
-    // The rebuild used to delete pfx.previous on sight. A half finished swap leaves the saves
-    // there, the client lays a bare prefix down, and the entry looks ordinary: last copy gone.
     @Test("A prefix left from an unfinished rebuild is not deleted")
     func rebuildRefusesToDeleteAStrandedPrefix() throws {
         let fm = FileManager.default
@@ -970,8 +944,6 @@ struct PrefixToolsTests {
             encoding: .utf8) == "save")
     }
 
-    // The rename is the one call where the prefix is neither the old nor the new one. Failing
-    // there left nothing under pfx and the saves in pfx.previous, a name the list ignores.
     @Test("A rebuild that cannot be swapped in puts the old prefix back")
     func failedSwapRestoresTheOldPrefix() throws {
         let fm = FileManager.default
@@ -1185,8 +1157,6 @@ struct PrefixToolsTests {
         }
     }
 
-    // Once the client syncs a cloud rule without the alias, its download sits under the
-    // pre-Vista name while the game reads the modern one. A rebuild has to bring them together.
     @Test("A cloud save left under the old name lands where the game reads")
     func rebuildCarriesACloudSaveOntoTheModernName() throws {
         let fm = FileManager.default
@@ -1222,8 +1192,6 @@ struct PrefixToolsTests {
         }
     }
 
-    // The client can drop cloud files under an old name between launches, so the aliases cannot
-    // be left to prefix creation. lay_out_proton_profile is what runs them every launch.
     @Test("The aliases are made from inside the profile layout, not off on their own")
     func migrationRunsEveryLaunch() throws {
         let source = try Self.compatSource()
@@ -1289,15 +1257,12 @@ struct PrefixToolsTests {
             let landed = profile.appending(path: "\(modern)/Ghost/save.dat")
             #expect((try? String(contentsOf: landed, encoding: .utf8)) == "game",
                     "\(modern) did not keep the game's copy")
-            // One directory under two names, so the alias has to read back the same file.
             let alias = profile.appending(path: "\(legacy)/Ghost/save.dat")
             #expect((try? String(contentsOf: alias, encoding: .utf8)) == "game",
                     "\(legacy) disagrees with \(modern)")
         }
     }
 
-    // A dangling link from the first profile holds the name the next profile's real folder lands
-    // on. The name tests free through it while mkdir and copy refuse, so saves went quietly.
     @Test("A save survives a landing held by a link to nothing")
     func rebuildReplacesABrokenLandingLink() throws {
         let fm = FileManager.default
@@ -1387,8 +1352,6 @@ struct PrefixToolsTests {
         #expect(refusal.lowerBound < rename.lowerBound)
     }
 
-    // The three shapes a landing can take that no tree merges into. Each used to return,
-    // dropping everything under it, and nothing recorded as lost let the swap delete the prefix.
     private func rebuild(
         _ label: String, freshProfile: String, oldPath: String, contents: String
     ) throws -> URL {

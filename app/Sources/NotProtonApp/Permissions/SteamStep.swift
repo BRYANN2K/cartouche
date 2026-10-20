@@ -1,5 +1,3 @@
-// Onboarding's "Steam Play in Steam" row. It reads write refusals with
-// WriteRefused and Remedy, and never holds the rest of onboarding back.
 
 import Foundation
 import Observation
@@ -13,7 +11,6 @@ final class SteamStep {
         case idle
         case working
         case blocked(Remedy)
-        // App Management looks allowed, yet the write is still refused
         case notApplied
         case failed(String)
         case done
@@ -38,7 +35,6 @@ final class SteamStep {
 
     private var center: PermissionCenter { flow.center }
 
-    // Consoles and folders come next whatever happens here
     var canContinue: Bool { phase != .working }
 
     var detail: String {

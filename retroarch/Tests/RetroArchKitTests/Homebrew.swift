@@ -23,13 +23,11 @@ enum Homebrew {
         return rom
     }
 
-    // The four Game Boy cartridges rows.json knows
     static let gameBoy: [(file: String, title: String, fill: UInt8)] = [
         ("quest.gb", "CARTOUCHE QUEST", 0), ("puzzle.gb", "CARTOUCHE PUZZL", 1),
         ("race.gb", "CARTOUCHE RACE", 2), ("maze.gb", "CARTOUCHE MAZE", 3),
     ]
 
-    // A PlayStation data track whose system file boots the given serial
     static func psTrack(serial: String) -> Data {
         var track = Data(repeating: 0, count: 2352 * 26)
         let boot = Data("BOOT = cdrom:\\\(serial);1\r\nTCB = 4\r\n".utf8)
@@ -50,7 +48,6 @@ enum Homebrew {
     }
 }
 
-// The recorded rows as .rdb files, written as libretro-db writes them
 enum FixtureDatabase {
     static func rows() throws -> [String: [DatabaseEntry]] {
         let json = try JSONSerialization.jsonObject(with: Data(contentsOf: Fixtures.url("database/rows.json"))) as? [String: Any] ?? [:]
@@ -67,7 +64,6 @@ enum FixtureDatabase {
         return out
     }
 
-    // Every recorded system written under the paths' database folder
     static func install(in paths: RetroArchPaths) throws {
         try FileManager.default.createDirectory(at: paths.database, withIntermediateDirectories: true)
         for (system, entries) in try rows() {
@@ -75,7 +71,6 @@ enum FixtureDatabase {
         }
     }
 
-    // A database that never goes online: only what install() wrote
     static func offline(_ paths: RetroArchPaths) -> ContentDatabase {
         ContentDatabase(paths: paths, fetch: { _ in throw URLError(.notConnectedToInternet) })
     }

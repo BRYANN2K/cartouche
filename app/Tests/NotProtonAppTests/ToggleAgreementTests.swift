@@ -15,7 +15,6 @@ struct ToggleAgreementTests {
         return try String(contentsOf: repo.appending(path: path), encoding: .utf8)
     }
 
-    // The three shapes a setting name appears in: read, toggle, and write.
     static func toggleNames(in webpatch: String) throws -> Set<String> {
         var names: Set<String> = []
         for pattern in [

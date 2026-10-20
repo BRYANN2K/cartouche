@@ -1,9 +1,5 @@
-// The Wine environment a resolved setup produces, shared by every game Cartouche
-// starts itself: store games (StorePlay) and games installed from a Windows
-// installer (GameLauncher). The backend is applied as the Steam run script does
-// (compat_run.sh): CrossOver gets CX_GRAPHICS_BACKEND and uses its own copy;
-// another Wine gets Cartouche's pinned DXMT or DXVK first in WINEDLLPATH, as
-// builtin DLLs. The prefix is never copied: one game, one prefix, every setup.
+// The backend is applied as the Steam run script does (compat_run.sh): CrossOver gets CX_GRAPHICS_BACKEND and uses
+// its own copy; another Wine gets Cartouche's pinned DXMT or DXVK first in WINEDLLPATH. The prefix is never copied.
 
 import Foundation
 import InstallerKit
@@ -18,7 +14,6 @@ enum SetupEnvironment {
         "LANG": "en_US.UTF-8",
     ]
 
-    // Wine's own variables plus the backend and the game's extra variables.
     // Only the names GameSetupResolver forwards are kept.
     static func make(
         wine: WineRunner, prefix: URL, backend: GraphicsBackend?,
@@ -34,8 +29,7 @@ enum SetupEnvironment {
         return env
     }
 
-    // The backend part: CX_GRAPHICS_BACKEND always, and for a non-CrossOver Wine
-    // the user's libd3dshared or the pinned DXMT or DXVK DLLs ahead of WINEDLLPATH.
+    // The backend part: CX_GRAPHICS_BACKEND always, and for a non-CrossOver Wine the user's libd3dshared or the pinned DXMT or DXVK DLLs ahead of WINEDLLPATH.
     static func applyBackend(
         _ env: inout [String: String], backend: GraphicsBackend?, wine: WineRunner,
         backends: URL, runners: URL = SupportPaths.runners

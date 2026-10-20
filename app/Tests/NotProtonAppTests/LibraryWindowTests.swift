@@ -69,9 +69,8 @@ struct LibraryWindowTests {
         #expect(scene.model.subtitle == "8 games. Signed in as player42")
         await scene.render("library-steam-selected-gray", modes: [.liquid])
     }
+    // The sidebar is vibrant, which an offscreen capture cannot draw, so it is also rendered on its own.
 
-    // The window's sidebar is vibrant, which an offscreen capture cannot draw, so the
-    // same sidebar view is also rendered on its own
     @Test("Sidebar structure renders: Library, PC and an empty Consoles section with its + button")
     func sidebarAlone() async throws {
         let scene = try await Scene("sidebar")
@@ -107,9 +106,9 @@ struct LibraryWindowTests {
         let scene = try await Scene("offline")
         defer { scene.fixture.remove() }
         await scene.model.load()
+        // Install needs the network
         scene.model.isOffline = true
         scene.model.select("steam:1172470")
-        // Install needs the network
         let apex = try #require(scene.model.game("steam:1172470"))
         #expect(GameMenu.items(for: apex, in: scene.model).first?.disabled == true)
         await scene.render("state-offline")

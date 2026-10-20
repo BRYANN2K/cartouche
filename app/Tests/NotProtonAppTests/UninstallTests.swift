@@ -8,7 +8,6 @@ import Testing
 @Suite("Uninstall")
 struct UninstallTests {
 
-    // The report closure is Sendable, so what it records has to be too.
     private final class PhaseLog: @unchecked Sendable {
         private let lock = NSLock()
         private var seen: [UninstallPhase] = []
@@ -133,8 +132,6 @@ struct UninstallTests {
         #expect(!files.fileExists(atPath: layout.dylib.path(percentEncoded: false)))
         #expect(unpinnedWithoutLosingTheRest(layout.updateBlock))
 
-        // LC_ALL is stock and has to survive, or the detach has swapped one difference
-        // from Valve's bundle for another.
         let environment = SteamBundle.readInfoPlist(at: layout.outerPlist)?[
             SteamBundle.environmentKey
         ] as? [String: Any]
@@ -431,8 +428,6 @@ struct UninstallTests {
         #expect(!FileManager.default.fileExists(atPath: caches.path(percentEncoded: false)))
     }
 
-    // Restoring forwards whatever phase repair reached. Carrying the phase rather than its
-    // rendering lets this assert on the phase and keeps the wording in one place.
     @Test("A removal reports the repair's own phases while it restores")
     func reportsTheRepairPhases() async throws {
         let layout = try layout()
@@ -463,8 +458,6 @@ struct UninstallTests {
         #expect(restoring.contains { if case .checking = $0 { true } else { false } })
         #expect(restoring.contains { if case .replacing = $0 { true } else { false } })
 
-        // Read from the outer phase, which is what the window shows: the wording has to come
-        // from RepairPhase rather than being restated here.
         let labels = log.all.map(\.label)
         #expect(labels.contains(RepairPhase.checking.label))
         #expect(labels.contains(RepairPhase.replacing.label))

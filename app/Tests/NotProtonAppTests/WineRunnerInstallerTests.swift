@@ -83,7 +83,7 @@ final class WineRunnerInstallerTests {
         #expect(runner.state == .ready)
         #expect(runner.isInstalled)
         #expect(runner.flavors == [.rosetta])
-        // Not offered to Steam until its ntdll is pinned and P3 lists its tools
+        // Not offered to Steam until its ntdll is pinned and it lists its tools
         #expect(!runner.isOffered)
         let wine = WineRunnerInstaller.folder(for: id, runners: runners).appending(path: "bin/wine")
         #expect(try Shell.check(wine.path(percentEncoded: false), ["--version"]) == "wine-11.0 (fixture)\n")

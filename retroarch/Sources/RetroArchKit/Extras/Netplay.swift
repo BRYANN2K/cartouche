@@ -1,8 +1,6 @@
 import Foundation
 
-// Play Together. RetroArch does the netplay: Cartouche starts it with --host
-// or --connect and lists the games a friend hosts, from libretro's lobby and
-// from the local network. There is no Cartouche server and no room code.
+// RetroArch does the netplay; there is no Cartouche server and no room code.
 
 public enum NetplayRole: Sendable, Equatable {
     // Hosts on the port; with announce, the game is listed in libretro's lobby
@@ -12,7 +10,6 @@ public enum NetplayRole: Sendable, Equatable {
     public static let defaultPort: UInt16 = 55435
 }
 
-// Where a joining RetroArch connects
 public struct NetplayTarget: Sendable, Equatable, Hashable {
     public var address: String
     public var port: UInt16
@@ -26,7 +23,6 @@ public struct NetplayTarget: Sendable, Equatable, Hashable {
     }
 }
 
-// A game someone hosts, as the lobby or the local network lists it
 public struct NetplayRoom: Sendable, Equatable, Identifiable {
     public enum Origin: String, Sendable { case lobby, localNetwork }
 
@@ -55,13 +51,11 @@ public struct NetplayRoom: Sendable, Equatable, Identifiable {
 
     public var id: String { "\(origin.rawValue):\(target.address):\(target.port):\(target.session ?? "")" }
 
-    // The catalog core this room plays with, when the console has it
     public func core(for console: Console) -> String? {
         console.cores.first { ConsoleCatalog.coreName($0).caseInsensitiveCompare(coreName) == .orderedSame }
     }
 
-    // A game of the library is this room's when the console's cores include
-    // the room's, and the file is the same: by name, or by checksum
+    // A library game is this room's when the console's cores include the room's and the file matches by name or checksum.
     public func matches(_ game: ConsoleGame, console: Console, crc: UInt32? = nil) -> Bool {
         guard console.id == game.console, core(for: console) != nil else { return false }
         if let gameCRC, let crc, gameCRC != 0 { return gameCRC == crc }
@@ -70,8 +64,7 @@ public struct NetplayRoom: Sendable, Equatable, Identifiable {
     }
 }
 
-// libretro's lobby, which RetroArch announces hosted games to. Its list is
-// served over plain HTTP only.
+// The lobby list is served over plain HTTP only.
 public struct NetplayLobby: Sendable {
 
     public static let libretro = URL(string: "http://lobby.libretro.com/")!
@@ -106,8 +99,7 @@ public struct NetplayLobby: Sendable {
             guard let fields = entry["fields"] as? [String: Any] else { return nil }
             func string(_ key: String) -> String { fields[key] as? String ?? "" }
             func int(_ key: String) -> Int { (fields[key] as? NSNumber)?.intValue ?? Int(string(key)) ?? 0 }
-            // host_method 3: the host plays through libretro's relay, which
-            // anyone can reach; otherwise its own address and port
+            // host_method 3: the host plays through libretro's relay, which anyone can reach; otherwise its own address and port.
             let relayed = int("host_method") == 3 && !string("mitm_ip").isEmpty && int("mitm_port") > 0
             let target = relayed
                 ? NetplayTarget(address: string("mitm_ip"), port: UInt16(clamping: int("mitm_port")),
@@ -123,8 +115,7 @@ public struct NetplayLobby: Sendable {
     }
 }
 
-// RetroArch for macOS publishes a hosted game on Bonjour as _ra_netplay._tcp,
-// with what the lobby says in its TXT record
+// RetroArch publishes a hosted game on Bonjour as _ra_netplay._tcp, with the lobby fields in its TXT record.
 public enum LocalNetplay {
 
     public static let serviceType = "_ra_netplay._tcp"

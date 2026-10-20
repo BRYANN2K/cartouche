@@ -1,6 +1,5 @@
 import Foundation
 
-// Which RetroArch Cartouche runs, as chosen in Settings > Consoles
 public enum RetroArchChoice: Codable, Sendable, Equatable, Hashable {
     // Built from vendor/RetroArch, in Cartouche.app/Contents/Helpers
     case included
@@ -10,7 +9,6 @@ public enum RetroArchChoice: Codable, Sendable, Equatable, Hashable {
     case custom(path: String)
 }
 
-// What a build can do, read from its own --help and --version
 public struct RetroArchCapabilities: Sendable, Equatable {
     public var mcp: Bool
     public var version: String?
@@ -21,7 +19,6 @@ public struct RetroArchCapabilities: Sendable, Equatable {
     }
 }
 
-// Features that drive RetroArch over MCP, and so need a build that has it
 public enum ConsoleFeature: String, CaseIterable, Sendable, Identifiable {
     case continueFrom
     case coachMode
@@ -44,8 +41,6 @@ public enum ConsoleFeature: String, CaseIterable, Sendable, Identifiable {
 
 public enum BuildProbe {
 
-    // Runs the build twice, for --version and --help; nil if it is not RetroArch.
-    // With a home, RetroArch runs in it, as ConsoleLauncher runs it.
     public static func capabilities(of app: URL, home: URL? = nil) async -> RetroArchCapabilities? {
         let executable = RetroArchLaunch.binary(app)
         guard FileManager.default.isExecutableFile(atPath: executable.path(percentEncoded: false)) else { return nil }

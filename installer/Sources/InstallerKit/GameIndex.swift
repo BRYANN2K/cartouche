@@ -1,6 +1,3 @@
-// Finds which game an installer is, by name, in a list of (Steam App ID, name)
-// such as the records of the compatibility data. The app builds the list; this
-// file only compares names.
 
 import Foundation
 
@@ -44,7 +41,6 @@ public struct GameIndex: Sendable {
         return out
     }
 
-    // Words an installer folder or title adds to the game's own name.
     static let noise: Set<String> = [
         "goty", "game", "of", "the", "year", "edition", "complete", "definitive", "deluxe", "ultimate",
         "enhanced", "remastered", "digital", "gold", "premium", "collectors", "directors", "anniversary",
@@ -55,8 +51,7 @@ public struct GameIndex: Sendable {
         noise.contains(token) || (try? /^(v|multi)\d+[a-z]?$/.wholeMatch(in: token)) != nil
     }
 
-    // An exact name, or the longest known name the query starts with when the
-    // rest is only edition words. Bare numbers are not noise: "Portal 2" is not "Portal".
+    // Exact name, or longest known prefix when the rest is only edition words; bare numbers are not noise ("Portal 2" is not "Portal").
     public func match(_ query: String) -> Entry? {
         let tokens = Self.tokens(query)
         guard !tokens.isEmpty else { return nil }
@@ -68,7 +63,6 @@ public struct GameIndex: Sendable {
         return nil
     }
 
-    // For the review step's search field: every word typed starts a word of the name.
     public func search(_ text: String, limit: Int = 20) -> [Entry] {
         let query = Self.tokens(text)
         guard !query.isEmpty else { return [] }
@@ -91,7 +85,6 @@ public struct GameIndex: Sendable {
 public struct GOGInfo: Sendable, Equatable {
     public let id: String
     public let name: String?
-    // The primary play task, relative to the folder holding the file.
     public let primaryExe: String?
     public let arguments: [String]
     public let workingDir: String?
@@ -117,8 +110,6 @@ public struct GOGInfo: Sendable, Equatable {
         )
     }
 
-    // DLC info files sit next to the game's: the one whose gameId is the others'
-    // rootGameId is the game's.
     public static func primary(in folder: URL) -> (url: URL, info: GOGInfo)? {
         let files = ((try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? [])
             .filter { isInfoName($0.lastPathComponent) }
@@ -129,7 +120,6 @@ public struct GOGInfo: Sendable, Equatable {
         return infos.first
     }
 
-    // The folder itself and one level down.
     public static func find(in folder: URL) -> (url: URL, info: GOGInfo)? {
         let fm = FileManager.default
         let top = (try? fm.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.isDirectoryKey])) ?? []
@@ -143,7 +133,6 @@ public struct GOGInfo: Sendable, Equatable {
         return nil
     }
 
-    // The ID alone, from a name in the installer's file list.
     public static func id(inFileList files: [String]) -> String? {
         for file in files {
             let name = (file as NSString).lastPathComponent
@@ -169,9 +158,7 @@ public struct GameIdentification: Sendable, Equatable {
         self.name = name; self.source = source; self.match = match; self.gogID = gogID
     }
 
-    // In order: the GOG info file, the installer title, the exe's product name,
-    // the cleaned folder name. The first that matches wins; with no match the
-    // first name found is kept for the name-and-icon cover.
+    // First match wins in order: GOG info, installer title, exe product name, cleaned folder name; with none the first name is kept.
     public static func identify(
         gog: GOGInfo? = nil, gogID: String? = nil, installerTitle: String? = nil, productName: String? = nil,
         folderName: String, index: GameIndex
@@ -191,7 +178,6 @@ public struct GameIdentification: Sendable, Equatable {
         return GameIdentification(name: first.1, source: id != nil ? .gog : first.0, match: nil, gogID: id)
     }
 
-    // The user picked another game in the review step.
     public func corrected(to entry: GameIndex.Entry) -> GameIdentification {
         GameIdentification(name: entry.name, source: .user, match: entry, gogID: gogID)
     }

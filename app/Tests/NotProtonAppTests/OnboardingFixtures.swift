@@ -124,7 +124,6 @@ final class OnboardingScene {
             steamStep: try steamStep(blocked: steamBlocked), folders: folders, privacy: privacy, library: library)
     }
 
-    // Everything that may not change when the user skips
     var untouched: Bool {
         counts.runnerInstalls.isEmpty && counts.consoleAdds.isEmpty && counts.steamInstalls == 0
             && tcc.requests.isEmpty && folders.paths.isEmpty && privacy.fetchMacReports
@@ -184,7 +183,6 @@ final class StubBuildbot: URLProtocol, @unchecked Sendable {
             StubBuildbot.files.withLock { $0["\(host)/cores/\(core)_libretro.dylib.zip"] = data }
         }
 
-        // info.zip with a .info file per core, as the buildbot's has
         func serveInfo(_ cores: [String], work: URL) throws {
             let folder = work.appending(path: "info")
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)

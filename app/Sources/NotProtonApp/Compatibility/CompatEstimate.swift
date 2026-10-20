@@ -1,4 +1,3 @@
-// What a game is likely to give on this Mac, from MacGamingDB reports on comparable Macs
 
 import Foundation
 
@@ -24,12 +23,10 @@ struct CompatEstimate: Equatable, Sendable {
     static func compute(
         reports: [MacReport], method: PlayMethod, chip: String?, gpu: [String: Double]
     ) -> Result {
-        // A missing or zero strength would put the report at distance infinity, or NaN on log(0)
         let rows = reports.filter { $0.method == method && gpu[$0.chip].map { $0 > 0 } == true }
         guard !rows.isEmpty else { return .noReports }
         guard let chip, let mine = gpu[chip] else { return .unknownMac }
 
-        // Distance on a log scale, so 1.4 times stronger and 1.4 times weaker count the same
         func distance(_ r: MacReport) -> Double { abs(log(gpu[r.chip]! / mine)) }
         var near = rows.filter { distance($0) <= log(reach) }
         let usedFallback = near.count < fewest
@@ -39,7 +36,6 @@ struct CompatEstimate: Equatable, Sendable {
                 .prefix(fallback).map(\.element))
         }
 
-        // Upper median: 13 ratings give the 7th
         let ratings = near.map(\.rating).sorted()
         let rating = CompatRating(score: ratings[ratings.count / 2]) ?? .unplayable
         let fpsValues = near.compactMap(\.fps).sorted()
@@ -51,7 +47,6 @@ struct CompatEstimate: Equatable, Sendable {
             if counts[s] == nil { order.append(s) }
             counts[s, default: 0] += 1
         }
-        // max keeps the first of equal elements, so a tie goes to the setting reported first
         let settings = order.max { counts[$0]! < counts[$1]! }
 
         return .estimate(CompatEstimate(

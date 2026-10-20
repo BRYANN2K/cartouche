@@ -1,6 +1,4 @@
-// Which Steam games have a macOS build next to the Windows one, from Steam's binary
-// appinfo.vdf cache (common/oslist). The parser is AppInfoVDF, shared with the
-// appinfo helper the run script uses.
+// macOS builds from Steam's binary appinfo.vdf cache (common/oslist); the parser is AppInfoVDF.
 
 import Foundation
 
@@ -12,7 +10,6 @@ enum SteamAppInfo {
         var mac: Set<Int> = []
         var windows: Set<Int> = []
 
-        // A choice between the Mac and the Windows version exists for these
         var both: Set<Int> { mac.intersection(windows) }
     }
 

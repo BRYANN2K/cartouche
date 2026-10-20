@@ -1,7 +1,5 @@
 import SwiftUI
 
-// Settings > Consoles: the standalone emulators found, with their version
-// and the consoles each plays
 struct StandaloneEmulatorsSection: View {
     let emulators: EmulatorShelf
 
@@ -28,7 +26,6 @@ struct StandaloneEmulatorsSection: View {
     }
 }
 
-// Under a console in Settings > Consoles: where its games play, when there is a choice
 struct ConsoleEmulatorPicker: View {
     let console: Console
     let emulators: EmulatorShelf

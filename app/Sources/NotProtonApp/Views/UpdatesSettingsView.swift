@@ -1,6 +1,5 @@
 import SwiftUI
 
-// Settings > General hosts this section
 struct UpdatesSection: View {
 
     @AppStorage(UpdateChannel.betaDefaultsKey) private var receiveBetas = false

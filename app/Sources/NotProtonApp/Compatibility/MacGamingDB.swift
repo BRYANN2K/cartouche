@@ -1,5 +1,4 @@
-// MacGamingDB publishes no data license, so Cartouche never redistributes its reports.
-// The app asks for one game when that game's panel needs it, and keeps the answer on this Mac.
+// MacGamingDB publishes no data license, so Cartouche never redistributes its reports. The app asks for one game when that game's panel needs it, and keeps the answer on this Mac.
 
 import Foundation
 
@@ -50,7 +49,6 @@ struct MacGamingDBEntry: Codable, Sendable, Equatable {
         let rows = answer.reviews.compactMap(row)
         var counts: [TranslationLayer: Int] = [:]
         for layer in rows.compactMap(\.layer) { counts[layer, default: 0] += 1 }
-        // Ties go to the first layer in this order
         let order: [TranslationLayer] = [.d3dmetal, .dxmt, .dxvk]
         let top = order.filter { counts[$0] != nil }.max { counts[$0]! < counts[$1]! }
         let rating = answer.game.aggregatedPerformance.flatMap(ratings.firstIndex(of:)).flatMap(CompatRating.init(score:))
@@ -96,8 +94,6 @@ struct MacReport: Codable, Sendable, Equatable {
     let date: String
 }
 
-// Fetches on demand only, never the whole library: one request per game per day,
-// at most two at a time
 actor MacGamingDBClient {
 
     static var api: URL { QAEnvironment.url(URL(string: "https://macgamingdb.app/api/rest/games/")!) }
@@ -138,8 +134,6 @@ actor MacGamingDBClient {
         return try? decoder.decode(Cached.self, from: data)
     }
 
-    // The cached copy when it is less than a day old, otherwise a fresh answer.
-    // When MacGamingDB cannot answer, the last good copy is used.
     func reports(appID: Int, now: Date) async -> MacGamingDBEntry? {
         let saved = load(appID)
         if let saved, now >= saved.fetched, now.timeIntervalSince(saved.fetched) < 24 * 3600 {
@@ -195,7 +189,6 @@ actor MacGamingDBClient {
         await withCheckedContinuation { waiting.append($0) }
     }
 
-    // A waiting request takes over the slot, so running stays the same
     private func release() {
         if waiting.isEmpty {
             running -= 1

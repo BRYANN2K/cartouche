@@ -1,6 +1,3 @@
-// A downloading or installing cover: black and white above, color below, the
-// line between them rising with progress. The Metal effect runs while motion is
-// allowed; with Reduce Motion, or without Metal, it is a still split.
 
 import AppKit
 import MetalKit
@@ -9,19 +6,15 @@ import SwiftUI
 enum CoverReveal {
     struct Progress: Equatable, Sendable {
         var fraction: Double
-        // When the download completed, for the finish ring
         var finishedAt: Date?
-        // The shader runs only while the download moves or the finish ring shows
         var animating = true
     }
 
-    // The still split for Reduce Motion: no moving edge, no embers
     static func usesShader(reduceMotion: Bool) -> Bool {
         !reduceMotion && RevealRenderer.shared != nil
     }
 }
 
-// The cover of a game in the library, revealed by its download
 struct RevealCover: View {
     let game: Game
     var override: URL?
@@ -68,7 +61,6 @@ struct RevealImage: View {
     }
 }
 
-// Gray on top, color from the bottom up to the fraction, a straight still edge
 struct StaticReveal: View {
     let color: NSImage
     let gray: NSImage
@@ -89,8 +81,6 @@ struct StaticReveal: View {
     }
 }
 
-// One small MTKView per revealing cover, drawn at 30 fps on the main thread and
-// paused outright while the download is still
 struct MetalReveal: NSViewRepresentable {
     let image: CGImage
     let progress: CoverReveal.Progress
@@ -135,9 +125,7 @@ final class RevealDrawer: NSObject, MTKViewDelegate {
     private var shown: Double?
     private let start = CACurrentMediaTime()
     private var lastDraw = CACurrentMediaTime()
-    // Frames drawn, for the FPS measurement
     private(set) var frames = 0
-    // The benchmark's window counts as covered, since a test process is not a foreground app
     var drawsWhenOccluded = false
 
     func update(image: CGImage, progress: CoverReveal.Progress) {
@@ -149,7 +137,6 @@ final class RevealDrawer: NSObject, MTKViewDelegate {
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
 
     func draw(in view: MTKView) {
-        // Nothing to draw for a hidden or covered window
         if !drawsWhenOccluded, let window = view.window, !window.occlusionState.contains(.visible) { return }
         guard let renderer = RevealRenderer.shared, let image, let texture = renderer.texture(for: image),
               let pass = view.currentRenderPassDescriptor, let drawable = view.currentDrawable,

@@ -1,12 +1,9 @@
-// The first launch: five skippable steps, from what Cartouche found on this Mac
-// to a game ready to play. Only the PC games step may ask macOS for anything
-// (App Management, through the Steam step), and only when the user sets Steam up.
+// Only the PC games step may ask macOS for anything (App Management, via the Steam step), only when the user sets Steam up.
 
 import Foundation
 import Observation
 import RetroArchKit
 
-// The free runner the PC games step offers
 struct RunnerOffer: Sendable {
     var build: @Sendable () -> RunnerManifest.Build?
     var isInstalled: @Sendable (String) -> Bool
@@ -19,13 +16,11 @@ struct RunnerOffer: Sendable {
             install: { _ = try await WineRunnerInstaller.install($0) })
     }
 
-    // Cartouche's own build of CrossOver's Wine when the manifest has one
     static func recommended(_ manifest: RunnerManifest) -> RunnerManifest.Build? {
         manifest.builds.first { $0.origin == .cartouche } ?? manifest.builds.first
     }
 }
 
-// What the Consoles step adds through RetroArchKit
 struct ConsoleSetup: Sendable {
     var added: @Sendable () async -> [String]
     var add: @Sendable (String) async throws -> Void
@@ -55,13 +50,11 @@ final class OnboardingModel {
     }
 
     private(set) var state: OnboardingState
-    // Reopened midway: shows "Welcome back" and Start Over
     private(set) var resumed = false
     var isPresented = false
     private(set) var findings: MacFindings?
     private(set) var runner: RunnerManifest.Build?
     private(set) var runnerPhase: RunnerPhase = .none
-    // Consoles already on the shelf, from Settings or an earlier onboarding
     private(set) var shelf: [String] = []
     private(set) var addingConsoles = false
     private(set) var consoleProblem: String?
@@ -99,17 +92,14 @@ final class OnboardingModel {
 
     var step: OnboardingStep { state.step }
 
-    // Never finished nor skipped
     var isDue: Bool { !state.finished }
 
-    // At launch: the first launch, or the step where the last one stopped
     func presentIfDue() {
         guard isDue else { return }
         resumed = state.step != .welcome
         isPresented = true
     }
 
-    // After a relaunch the relaunch service asked for, on the step it saved
     func reopen(on route: ScreenRoute) {
         guard route.screen == "onboarding", let step = route.detail.flatMap(OnboardingStep.init(rawValue:)) else { return }
         state.finished = false
@@ -119,7 +109,6 @@ final class OnboardingModel {
         isPresented = true
     }
 
-    // Settings > General
     func runAgain() {
         startOver()
         isPresented = true
@@ -134,7 +123,6 @@ final class OnboardingModel {
         Task { await prepare() }
     }
 
-    // Reads what the steps show. Changes nothing on disk.
     func prepare() async {
         if findings == nil { findings = await scan.run() }
         prepareRunner()
@@ -155,13 +143,11 @@ final class OnboardingModel {
         if let previous = state.step.previous { go(to: previous) }
     }
 
-    // Leaves the step as it is: nothing it offers is done
     func skip() {
         guard let next = state.step.next else { return finish() }
         go(to: next)
     }
 
-    // Skip Setup, on Welcome: the library opens and nothing was changed
     func skipAll() {
         finish()
     }
@@ -193,7 +179,6 @@ final class OnboardingModel {
         }
     }
 
-    // The recommended build and whether it is in the runners folder already
     func prepareRunner() {
         let build = runners.build()
         runner = build
@@ -234,12 +219,10 @@ final class OnboardingModel {
         save()
     }
 
-    // Picked and not on the shelf yet: what the primary button downloads
     var consolesToAdd: [Console] {
         ConsoleCatalog.all.filter { picked.contains($0.id) && !isAdded($0) }
     }
 
-    // BIOS status of the picked consoles that need one
     var biosNotes: [BIOSStatus] {
         ConsoleCatalog.all
             .filter { isPicked($0) && $0.bios != .none }
@@ -248,7 +231,6 @@ final class OnboardingModel {
 
     func foundGames(_ console: Console) -> Int { findings?.consoleGames[console.id] ?? 0 }
 
-    // Downloads the cores of the picked consoles, one each, then moves on
     func addConsoles() async {
         guard !addingConsoles else { return }
         addingConsoles = true
@@ -268,7 +250,6 @@ final class OnboardingModel {
         if consoleProblem == nil { next() }
     }
 
-    // Consoles with games in a found folder start picked, until the user picks
     private func pickFoundConsoles() {
         guard !state.consolesChosen, state.consoles.isEmpty, let found = findings?.consoleGames, !found.isEmpty else { return }
         state.consoles = ConsoleCatalog.all.map(\.id).filter { found[$0] != nil }
@@ -279,12 +260,10 @@ final class OnboardingModel {
 
     struct FolderRow: Identifiable, Equatable {
         let url: URL
-        // Nil for a folder the user added, which was not looked into
         let found: FoundFolder?
         var id: String { url.plainPath }
     }
 
-    // Found folders first, then the ones the user added
     var folderRows: [FolderRow] {
         let found = findings?.folders ?? []
         let added = state.folders.keys.sorted().filter { path in !found.contains { $0.id == path } }
@@ -304,7 +283,6 @@ final class OnboardingModel {
         save()
     }
 
-    // Found folders are kept unless the user turns them off
     private func offerFoundFolders() {
         var changed = false
         for folder in findings?.folders ?? [] where state.folders[folder.id] == nil {
@@ -314,7 +292,6 @@ final class OnboardingModel {
         if changed { save() }
     }
 
-    // Only Continue keeps them; Skip leaves Settings as it was
     private func applyFolders() {
         for (path, keep) in state.folders.sorted(by: { $0.key < $1.key }) where keep {
             folders.add(URL(filePath: path, directoryHint: .isDirectory))
@@ -323,7 +300,6 @@ final class OnboardingModel {
 
     // MARK: Ready
 
-    // The installed game played last, else the first installed one
     var readyGame: Game? {
         let installed = library.allGames.filter { $0.installed && !library.isHidden($0.id) }
         let played = installed.filter { $0.lastPlayed != nil }.max { $0.lastPlayed! < $1.lastPlayed! }
@@ -350,8 +326,6 @@ final class OnboardingModel {
     }
 }
 
-// The Steam step's install: the Setup window's own, with App Management's
-// refusal passed on as the write refusal the step reads
 enum OnboardingSteam {
     struct Failed: LocalizedError {
         let errorDescription: String?

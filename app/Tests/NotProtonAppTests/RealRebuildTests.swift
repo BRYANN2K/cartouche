@@ -92,7 +92,6 @@ struct RealRebuildTests {
             let before = inventory(prefix.pfx)
             let registry = try Data(contentsOf: prefix.pfx.appending(path: "user.reg"))
 
-            // No prefix here has one, so a game installed by hand is planted to be found.
             let stray = prefix.pfx.appending(path: "drive_c/Games/Quake/quake.exe")
             try FileManager.default.createDirectory(
                 at: stray.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -102,8 +101,6 @@ struct RealRebuildTests {
             try PrefixTools.recreate(prefix, as: tool)
             let after = inventory(prefix.pfx)
 
-            // Both profile names fold to one directory after a rebuild, as do the documents names
-            // and BACKUP, which parks shared saves. That also hides a BACKUP the player made.
             func normalised(_ paths: [String]) -> Set<String> {
                 Set(paths.map { path in
                     var parts = path.split(separator: "/").map(String.init)
@@ -131,7 +128,6 @@ struct RealRebuildTests {
             #expect((try? steamuser.resourceValues(forKeys: [.isSymbolicLinkKey]))?
                 .isSymbolicLink != true)
 
-            // Whichever name holds the files, a game asking for the other one has to arrive.
             let documents = steamuser.appending(path: "Documents")
             let preVista = steamuser.appending(path: "My Documents")
             for name in [documents, preVista] {

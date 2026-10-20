@@ -5,7 +5,7 @@ import Testing
 
 @testable import NotProtonApp
 
-// P14 in the console panel: Play Together, achievements, Hardcore, Translate
+// In the console panel: Play Together, achievements, Hardcore, Translate
 // the screen and Coach mode. RetroAchievements and the lobby are stood in for
 // by recorded answers; the keychain by memory.
 @Suite("Console extras in the panel", .serialized)
@@ -113,7 +113,6 @@ struct ConsoleExtrasPanelTests {
         #expect(scene.center.session.netplay == .host(port: 55435, announce: true))
         await scene.center.quit()
 
-        // The lobby lists the friend's game, by its file name, and one this library lacks
         let lobby = NetplayLobby(base: URL(string: "http://lobby.test/")!) { _ in
             (Data("""
             [{"fields": {"username": "friend", "game_name": "Cartouche Homebrew", "game_crc": "00000000", "core_name": "Snes9x",

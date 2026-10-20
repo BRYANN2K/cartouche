@@ -1,5 +1,3 @@
-// What the user decides about the library, kept in library.json in the data folder:
-// favorites, hidden games, covers they chose, and each game's setup.
 
 import Foundation
 
@@ -8,9 +6,7 @@ struct GameSetupChoice: Codable, Equatable, Sendable {
     var graphics: GraphicsBackend?
     var translation: Translation?
     var metalHUD: Bool?
-    // For a Steam game that also has a macOS build
     var version: GameVersion?
-    // Extra variables for the game, checked by GameSetupResolver
     var environment: [String: String]?
 
     enum Translation: String, Codable, Sendable, CaseIterable {
@@ -30,7 +26,6 @@ enum GraphicsBackend: String, Codable, Sendable, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    // Product names, not translated
     var label: String {
         switch self {
         case .d3dmetal: "D3DMetal"
@@ -52,7 +47,6 @@ enum GraphicsBackend: String, Codable, Sendable, CaseIterable, Identifiable {
 struct LibraryChoices: Codable, Equatable, Sendable {
     var favorites: Set<String> = []
     var hidden: Set<String> = []
-    // Game ID to a file name under covers/
     var covers: [String: String] = [:]
     var setups: [String: GameSetupChoice] = [:]
 }
@@ -78,7 +72,6 @@ struct LibraryStore: Sendable {
         try atomicReplace(file, with: try encoder.encode(choices), step: "library")
     }
 
-    // Copies the dropped image, so moving or deleting the original keeps the cover
     func keepCover(_ image: URL, for gameID: String) throws -> String {
         try FileManager.default.createDirectory(at: coverFolder, withIntermediateDirectories: true)
         let safe = gameID.map { $0.isLetter || $0.isNumber ? String($0) : "-" }.joined()

@@ -1,4 +1,3 @@
-// The compatibility part of a game's panel, ready to show
 
 import Foundation
 
@@ -9,7 +8,6 @@ struct CompatibilityPanel: Sendable {
     let wiki: AppleGamingWikiEntry?
     let estimate: CompatEstimate.Result
     let antiCheat: AntiCheatSummary?
-    // Every source, named on every panel and Details sheet that shows community data
     let credits: [String]
     let sourcesLine: String?
     let ageNotice: String?

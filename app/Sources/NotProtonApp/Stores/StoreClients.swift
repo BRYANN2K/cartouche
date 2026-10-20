@@ -1,7 +1,4 @@
-// The open-source clients Cartouche drives for Epic Games, GOG and Amazon Games:
-// legendary, gogdl with comet, and nile. Each is pinned by version, size and
-// SHA-256 in store-clients.json and downloaded from its own GitHub release the
-// first time a store needs it. Nothing runs before the file matches its pin.
+// legendary, gogdl+comet and nile, pinned by SHA-256 in store-clients.json; nothing runs before a match.
 
 import Foundation
 
@@ -18,7 +15,6 @@ struct StoreClientManifest: Codable, Sendable, Equatable {
     struct Pin: Codable, Sendable, Equatable {
         let client: StoreClient
         let version: String
-        // SPDX identifier, from the repository's license file
         let license: String
         let source: URL
         let url: URL
@@ -78,9 +74,7 @@ struct StoreClientManifest: Codable, Sendable, Equatable {
     }
 }
 
-// Where each client lives once downloaded, and the download itself
-// The (size, mtime, inode) of a client file whose SHA-256 already matched its
-// pin, so each call doesn't hash tens of MB again.
+// Memoizes files whose SHA-256 matched their pin, keyed by (size, mtime, inode).
 final class PinChecks: @unchecked Sendable {
     struct Stamp: Equatable {
         var size: Int64
@@ -102,11 +96,9 @@ final class PinChecks: @unchecked Sendable {
 
 struct StoreClientFiles: Sendable {
 
-    // stores/clients/<client>-<version>/<client>
     var root: URL
     var downloads: URL
     var manifest: StoreClientManifest?
-    // Tests point a client at a stand-in executable
     var overrides: [StoreClient: URL] = [:]
     var session: URLSession = PinnedDownload.session
     let checks = PinChecks()
@@ -124,8 +116,7 @@ struct StoreClientFiles: Sendable {
             .appending(path: client.rawValue)
     }
 
-    // The pinned file, checked by size and SHA-256 each time: a changed file is
-    // deleted and fetched again
+    // Pinned file re-checked by size and SHA-256 each run; a changed file is fetched again.
     func isReady(_ client: StoreClient) -> Bool {
         if let override = overrides[client] { return FileManager.default.isExecutableFile(atPath: override.path(percentEncoded: false)) }
         guard let pin = manifest?.pin(client), let file = location(client) else { return false }
@@ -166,7 +157,6 @@ struct StoreClientFiles: Sendable {
     }
 }
 
-// One run of a client: its arguments and the environment it gets, never the app's own
 struct ClientCommand: Sendable, Equatable {
     var executable: URL
     var arguments: [String]
@@ -182,8 +172,6 @@ struct ClientOutput: Sendable, Equatable {
     var succeeded: Bool { status == 0 }
 }
 
-// Runs a client and hands each line it writes to stderr to onLine, where the
-// clients print their progress. Cancelling the task ends the client.
 enum ClientProcess {
 
     static func run(_ command: ClientCommand, onLine: @escaping @Sendable (String) -> Void = { _ in }) async throws -> ClientOutput {
@@ -201,7 +189,6 @@ enum ClientProcess {
         process.terminationHandler = { exited.continuation.yield($0.terminationStatus); exited.continuation.finish() }
         try process.run()
 
-        // Both pipes are read to their end, so nothing written just before the exit is lost
         return try await withTaskCancellationHandler {
             async let stdout = Self.drain(out.fileHandleForReading)
             async let stderr = Self.lines(err.fileHandleForReading, onLine: onLine)
@@ -213,8 +200,7 @@ enum ClientProcess {
         }
     }
 
-    // A blocking read on a Dispatch thread, not the cooperative pool. Not handle.bytes:
-    // its reads are serialized with stderr's, so progress lines would wait for stdout's end.
+    // Blocking read on a Dispatch thread: handle.bytes reads are serialized with stderr's.
     private static func drain(_ handle: FileHandle) async throws -> String {
         try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .utility).async {
@@ -223,7 +209,6 @@ enum ClientProcess {
         }
     }
 
-    // A carriage return also ends a line, as progress bars use it
     private static func lines(_ handle: FileHandle, onLine: @escaping @Sendable (String) -> Void) async throws -> String {
         try await Task.detached {
             var all: [String] = []
@@ -237,7 +222,6 @@ enum ClientProcess {
 }
 
 enum ClientLog {
-    // The clients log "[cli] ERROR: Game is out of date"; this reads "Game is out of date"
     static func lastError(_ log: String) -> String? {
         let markers = ["ERROR: ", "CRITICAL: ", "FATAL: "]
         for line in log.split(whereSeparator: \.isNewline).reversed() {

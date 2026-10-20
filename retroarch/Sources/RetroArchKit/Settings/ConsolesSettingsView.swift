@@ -6,15 +6,11 @@ public enum RetroArchSource {
     public static let repository = URL(string: "https://github.com/libretro/RetroArch")!
 }
 
-// The Consoles pane of Settings. The app's Settings window hosts it.
 public struct ConsolesSettingsView: View {
 
     @Bindable var model: ConsolesSettingsModel
-    // Achievements, iCloud Drive, translation and netplay name
     var extras: ConsoleExtras?
-    // The standalone emulators found and each console's choice
     var emulators: EmulatorShelf?
-    // Picks a RetroArch.app; the app may hand in its own panel
     var chooseApp: @MainActor () -> URL?
 
     public init(model: ConsolesSettingsModel, extras: ConsoleExtras? = nil, emulators: EmulatorShelf? = nil,
@@ -47,7 +43,6 @@ public struct ConsolesSettingsView: View {
                     }
                     .disabled(model.working)
                 }
-                // Only what a build that answered cannot do is listed
                 if model.capabilities != nil {
                     ForEach(model.features.filter { !$0.available }) { row in
                         LabeledContent(row.title, value: row.note ?? "")

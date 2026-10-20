@@ -16,8 +16,6 @@ enum CompatFixture {
     static func json() throws -> String { String(decoding: try Gzip.decompress(packed()), as: UTF8.self) }
     static func data() throws -> CompatData { try CompatData.read(packed(), schema: .bundled()) }
 
-    // MacGamingDB's recorded answer for Elden Ring. The app reads MacGamingDB live; this
-    // answer is never published.
     static let eldenRingAnswer = repo.appending(path: "tools/compat/fixtures/2026-10-19/macgamingdb/games/1245620.json")
     static func eldenRingMac() throws -> MacGamingDBEntry { try MacGamingDBEntry.parse(Data(contentsOf: eldenRingAnswer)) }
 }
@@ -25,7 +23,6 @@ enum CompatFixture {
 @Suite("Compatibility data client")
 struct CompatibilityClientTests {
 
-    // Answers the client's requests from a script and counts them
     private final class Server: @unchecked Sendable {
         private let lock = NSLock()
         private var answers: [Result<(Data, Int), Error>]

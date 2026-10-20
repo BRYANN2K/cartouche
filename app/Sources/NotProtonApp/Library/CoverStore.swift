@@ -1,20 +1,16 @@
-// Where a game's cover comes from. The user's own image wins; then Steam's library
-// art for the App ID, from Steam's own cache first, then Cartouche's copy of Steam's
-// CDN art; then the store's art; and last a cover drawn from the name.
+// Cover order: the user's own image, Steam's library art (its cache first, then Cartouche's copy of the CDN art),
+// the store's art, then a cover drawn from the name.
 
 import Foundation
 import RetroArchKit
 
 enum CoverArt: Equatable, Sendable {
     case image(URL)
-    // Drawn from the game's name and its executable icon
     case drawn
 }
 
 enum ArtKind: String, Sendable {
-    // 600 by 900, the grid
     case cover = "library_600x900"
-    // The wide picture at the top of the panel
     case hero = "library_hero"
 }
 
@@ -34,7 +30,6 @@ struct CoverStore: Sendable {
         return chosen
     }
 
-    // Box art in the grid; a screenshot, else the title screen, else the box at the top of the panel
     static func thumbnailKinds(_ kind: ArtKind) -> [ThumbnailKind] {
         kind == .cover ? [.boxart] : [.snap, .title, .boxart]
     }
@@ -49,7 +44,6 @@ struct CoverStore: Sendable {
         QAEnvironment.url(URL(string: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/\(appID)/\(kind.rawValue).jpg")!)
     }
 
-    // What is on disk now, without the network
     func local(for game: Game, kind: ArtKind, override: URL?) -> CoverArt? {
         if kind == .cover, let override, exists(override) { return .image(override) }
         if let appID = game.steamAppID {
@@ -59,7 +53,6 @@ struct CoverStore: Sendable {
         }
         if let store = storeFile(game), exists(store) { return .image(store) }
         if let (system, name) = consoleName(game) {
-            // A picture not tried yet comes before a fallback already here
             for art in Self.thumbnailKinds(kind) {
                 if let found = consoleThumbnails.local(system: system, kind: art, name: name) { return .image(found) }
                 if !consoleThumbnails.isMissing(system: system, kind: art, name: name) { return nil }
@@ -68,8 +61,7 @@ struct CoverStore: Sendable {
         return nil
     }
 
-    // The local art, or Steam's CDN copied into Cartouche's cache, or the drawn cover.
-    // Offline, the CDN step fails and the next source is used.
+    // The local art, or Steam's CDN copied into Cartouche's cache, or the drawn cover. Offline, the CDN step fails and the next source is used.
     func art(for game: Game, kind: ArtKind, override: URL?) async -> CoverArt {
         if let found = local(for: game, kind: kind, override: override) { return found }
         if let appID = game.steamAppID, let saved = await download(appID, kind) { return .image(saved) }
@@ -82,8 +74,7 @@ struct CoverStore: Sendable {
         return .drawn
     }
 
-    // Steam keeps library art as <appid>_library_600x900.jpg in older clients, and in
-    // a folder per app, sometimes one level deeper, in newer ones
+    // Steam keeps library art as <appid>_library_600x900.jpg in older clients, and in a folder per app, sometimes one level deeper, in newer ones
     func steamFile(_ appID: Int, _ kind: ArtKind) -> URL? {
         let names = kind == .cover ? ["library_600x900.jpg", "library_capsule.jpg"] : ["library_hero.jpg"]
         let flat = steamCache.appending(path: "\(appID)_\(kind.rawValue).jpg")
@@ -102,7 +93,6 @@ struct CoverStore: Sendable {
         cache.appending(path: "\(appID)/\(kind.rawValue).jpg")
     }
 
-    // A store game's art, one file for the grid and the panel
     func storeFile(_ game: Game) -> URL? {
         guard game.source.isStore, game.artwork != nil else { return nil }
         return cache.appending(path: "store/\(game.source.id)/\(StoreFolders.safe(game.id)).img")
@@ -113,8 +103,7 @@ struct CoverStore: Sendable {
     }
 
     private func download(_ url: URL, to file: URL) async -> URL? {
-        // A recent failure is remembered: without it every redraw retries the
-        // CDN for a cover that is not there
+        // A recent failure is remembered: without it every redraw retries the CDN for a cover that is not there
         let mark = file.appendingPathExtension("missing")
         if let date = (try? FileManager.default.attributesOfItem(
             atPath: mark.path(percentEncoded: false)))?[.modificationDate] as? Date,
@@ -135,7 +124,6 @@ struct CoverStore: Sendable {
 
     static let missingTTL: TimeInterval = 3600
 
-    // JPEG or PNG, so an error page is never shown as a cover
     static func looksLikeImage(_ data: Data) -> Bool {
         data.starts(with: [0xFF, 0xD8, 0xFF]) || data.starts(with: [0x89, 0x50, 0x4E, 0x47])
     }

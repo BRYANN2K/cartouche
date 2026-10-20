@@ -52,7 +52,6 @@ struct CrossOverSourceTests {
     @Test("An unreadable Preview does not shadow a usable stable")
     func fallsBackToUsableStable() {
         let build = SupportedRunners.build(id: "27.0.0.40921")!
-        // Preview is present but nothing in it can be read, so it is not usable.
         let preview = install("CrossOver Preview", .unreadable)
         let stable = install("CrossOver", .supported(build))
 
@@ -74,8 +73,6 @@ struct CrossOverSourceTests {
         let system = install("CrossOver Preview", .supported(build))
         let home = install("CrossOver Preview", .supported(build), root: "/Users/someone/Applications")
 
-        // Every key but the path matches here, and sorted(by:) is unstable, so before the
-        // path tie-break the clone source could differ between two runs on one machine.
         let system_path = "/Applications/CrossOver Preview.app"
         #expect(picked([system, home])?.bundle.path(percentEncoded: false) == system_path)
         #expect(picked([home, system])?.bundle.path(percentEncoded: false) == system_path)

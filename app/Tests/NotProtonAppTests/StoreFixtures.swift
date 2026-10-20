@@ -384,7 +384,6 @@ final class StoreScene {
         if on { FileManager.default.createFile(atPath: url.path, contents: Data()) } else { try? FileManager.default.removeItem(at: url) }
     }
 
-    // Every file under the stores folder whose content holds one of these tokens
     func filesHolding(_ tokens: [String]) -> [String] {
         let enumerator = FileManager.default.enumerator(at: folders.root, includingPropertiesForKeys: nil)
         var found: [String] = []

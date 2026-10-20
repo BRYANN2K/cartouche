@@ -1,7 +1,6 @@
 import Foundation
 
-// Where each console's database file comes from: libretro-database, one .rdb
-// per system. It names games and holds checksums; it holds no game.
+// Where each console's database file comes from: libretro-database, one .rdb per system. It names games and holds checksums; it holds no game.
 public struct DatabaseSource: Sendable, Equatable {
     public var base: URL
 
@@ -15,16 +14,14 @@ public struct DatabaseSource: Sendable, Equatable {
     }
 }
 
-// What a game is called in the library, from its database name:
-// "Legend of Zelda, The - A Link to the Past (USA)" reads
-// "The Legend of Zelda: A Link to the Past"
+//// What a game is called in the library, from its database name: "Legend of Zelda, The - A Link to the Past (USA)"
+//// reads "The Legend of Zelda: A Link to the Past"
 public enum GameTitle {
     public static func display(_ databaseName: String) -> String {
         var name = databaseName
         // Region, languages, revision, disc and dump flags
         name = name.replacing(/\s*[\(\[][^\)\]]*[\)\]]/, with: "")
         name = name.trimmingCharacters(in: .whitespaces)
-        // No-Intro moves a leading article to the end of the first part
         if let match = name.firstMatch(of: /^(.+?), (The|A|An)( - |$)/) {
             name = "\(match.2) \(match.1)\(match.3)" + name[match.range.upperBound...]
         }
@@ -34,14 +31,12 @@ public enum GameTitle {
         return name
     }
 
-    // A file name as the user gave it, for a game the database does not know
     public static func fromFile(_ url: URL) -> String {
         url.deletingPathExtension().lastPathComponent
     }
 }
 
-// The libretro database of each console, downloaded the first time a game of
-// that console is identified, kept under Cartouche's RetroArch folder
+// The libretro database of each console, downloaded the first time a game of that console is identified, kept under Cartouche's RetroArch folder
 public actor ContentDatabase {
 
     public typealias Fetch = @Sendable (URL) async throws -> (Data, Int)
@@ -79,8 +74,6 @@ public actor ContentDatabase {
         FileManager.default.fileExists(atPath: file(for: console).path(percentEncoded: false))
     }
 
-    // Downloads the console's database unless it is here; false when it
-    // cannot be had, offline for instance
     @discardableResult
     public func prepare(_ console: Console) async -> Bool {
         if indexes[console.id] != nil { return true }
@@ -102,8 +95,7 @@ public actor ContentDatabase {
         return Self.best(indexes[console.id]?.byCRC[crc])
     }
 
-    // RetroArch reads PS1 serials as SLUS-00594; the database also lists
-    // them with a disc suffix, SLUS-00594-0
+    // RetroArch reads PS1 serials as SLUS-00594; the database also lists them with a disc suffix, SLUS-00594-0
     public func match(serial: String, in console: Console) async -> DatabaseEntry? {
         guard await prepare(console), let index = indexes[console.id] else { return nil }
         let key = serial.uppercased()

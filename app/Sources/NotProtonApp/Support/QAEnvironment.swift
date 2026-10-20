@@ -1,12 +1,4 @@
-// QA mode for the harness in qa/. When CARTOUCHE_QA_BASE_URL names a server,
-// every remote base address the app fetches is re-pointed there with its path
-// kept, and downloads verified against a pinned hash also accept the sha256s
-// the server lists in <base>/__pins.json. Without the variable nothing
-// changes: url(_:) returns its argument and extraHashes is empty.
-//
-// QA mode exists in debug builds only (the qa-app Makefile target); a release
-// build ignores the variable entirely — isSupported is false, the environment
-// is never read, and url(_:)/extraHashes behave exactly as when it is unset.
+// QA mode (debug builds only): CARTOUCHE_QA_BASE_URL re-points remote fetches and accepts extra sha256s from <base>/__pins.json; a release build ignores it entirely.
 
 import Foundation
 import RetroArchKit
@@ -20,16 +12,14 @@ enum QAEnvironment {
     #if DEBUG
     static let isSupported = true
 
-    // The QA server address, or nil in a normal run. Only http(s) with a host
-    // counts; anything else in the variable is ignored.
+    // The QA server address, or nil in a normal run. Only http(s) with a host counts; anything else in the variable is ignored.
     static var base: URL? {
         base(from: env(envKey))
     }
 
     static var isActive: Bool { base != nil }
 
-    // supported: is the release configuration, split out so tests can run the
-    // release code path in a debug build.
+    // supported: is the release configuration, split out so tests can run the release code path in a debug build.
     static func base(from raw: String?, supported: Bool = isSupported) -> URL? {
         guard supported,
               let raw,
@@ -40,10 +30,7 @@ enum QAEnvironment {
         return url
     }
 
-    // The same address on the QA server: scheme, host and port (plus a base path
-    // prefix when it has one) come from the base; path, query and fragment stay.
-    // Only http and https are re-pointed — file, steam and other schemes are
-    // returned as given, and so is everything without the variable.
+    // scheme, host, port and a base path prefix come from the base; path, query and fragment stay. Only http(s) re-points; everything else returns as given.
     static func url(_ url: URL) -> URL {
         Self.url(url, base: base)
     }
@@ -75,9 +62,8 @@ enum QAEnvironment {
         return URLSession(configuration: config)
     }()
 
-    // The sha256s the QA server may legitimately serve, from <base>/__pins.json —
-    // synthetic fixtures cannot match the pins real releases carry. Empty outside
-    // QA mode and whenever the server does not publish the file.
+    // sha256s the QA server may serve, from <base>/__pins.json - synthetic fixtures cannot match real release pins.
+    // Empty outside QA mode and when the server publishes none.
     static func extraHashes(session: URLSession = QAEnvironment.session) async -> Set<String> {
         guard let base else { return [] }
         guard let (data, response) = try? await session.data(from: base.appending(path: pinsFile)),
@@ -86,8 +72,7 @@ enum QAEnvironment {
         return hashes(in: data)
     }
 
-    // Every lowercase sha256 in the JSON, whatever its shape: a bare list of
-    // hashes or a file name -> hash map both work
+    // Every lowercase sha256 in the JSON, whatever its shape: a bare list of hashes or a file name -> hash map both work
     static func hashes(in data: Data) -> Set<String> {
         guard let json = try? JSONSerialization.jsonObject(with: data) else { return [] }
         var found = Set<String>()
@@ -134,11 +119,9 @@ enum QAEnvironment {
     #endif
 }
 
-// RetroArchKit is a separate package and cannot see QAEnvironment, so the app
-// hands it these sources in place of the shipped defaults.
+// RetroArchKit is a separate package and cannot see QAEnvironment, so the app hands it these sources.
 
 extension CoreSource {
-    // The libretro buildbot for cores and info.zip, re-pointed in QA mode
     static var qa: CoreSource {
         CoreSource(cores: QAEnvironment.url(CoreSource.buildbot.cores),
                    info: QAEnvironment.url(CoreSource.buildbot.info))
@@ -146,7 +129,6 @@ extension CoreSource {
 }
 
 extension DatabaseSource {
-    // The libretro game database, re-pointed in QA mode
     static var qa: DatabaseSource {
         DatabaseSource(base: QAEnvironment.url(DatabaseSource.libretro.base))
     }

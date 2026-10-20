@@ -1,15 +1,12 @@
 import Foundation
 
-// The sidebar and Add Consoles glyph: what the console's games come on
 public enum ConsoleGlyph: String, Sendable, CaseIterable {
     case cartridge, disc, handheld
 }
 
-// Who made it, the groups of the Add Consoles sheet
 public enum ConsoleMaker: String, Sendable, CaseIterable {
     case nintendo, sega, sony, others
 
-    // Company names; "Others" is the one word to translate
     public var title: String {
         switch self {
         case .nintendo: "Nintendo"
@@ -20,10 +17,8 @@ public enum ConsoleMaker: String, Sendable, CaseIterable {
     }
 }
 
-// A console Cartouche can add, and the libretro core it plays with
 public struct Console: Sendable, Identifiable, Equatable, Hashable {
     public let id: String
-    // Product names, shown as they are in every language
     public let name: String
     public let core: String
     public let bios: BIOSRule
@@ -34,7 +29,6 @@ public struct Console: Sendable, Identifiable, Equatable, Hashable {
     public let maker: ConsoleMaker
     // Lowercased, without the dot; a disc console lists its sheet formats
     public let extensions: [String]
-    // Cores that also play it, recommended first
     public let cores: [String]
 
     public init(
@@ -56,24 +50,19 @@ public struct Console: Sendable, Identifiable, Equatable, Hashable {
 
     public var coreFile: String { "\(core)_libretro.dylib" }
 
-    // False for a console only a standalone emulator plays
     public var hasCore: Bool { !core.isEmpty }
 
     public var isDisc: Bool { glyph == .disc }
 }
 
-// Which BIOS files a console needs before its games start. The core's .info
-// file gives their MD5; it lists every file it can use, and marks none as
-// needed even where the console cannot start without one.
+// The core's .info lists every usable file's MD5 and marks none as needed, even where the console cannot start without one.
 public enum BIOSRule: Sendable, Equatable, Hashable {
     case none
-    // Any one of these; the first is the one named when all are missing
     case oneOf([String])
 }
 
 public enum ConsoleCatalog {
-    // The recommended core per console: GPL or permissive where one plays
-    // well, from docs/research/bonus-emulators.md
+    // Recommended core is GPL or permissive where one plays well (docs/research/bonus-emulators.md).
     public static let all: [Console] = [
         Console(id: "nes", name: "Nintendo Entertainment System", core: "nestopia",
                 system: "Nintendo - Nintendo Entertainment System", coreName: "Nestopia",
@@ -117,8 +106,7 @@ public enum ConsoleCatalog {
         Console(id: "atari2600", name: "Atari 2600", core: "stella",
                 system: "Atari - 2600", coreName: "Stella",
                 maker: .others, extensions: ["a26", "bin"], cores: ["stella"]),
-        // Consoles a standalone emulator plays best (EmulatorCatalog). The
-        // core is the buildbot's for Apple silicon, where there is one.
+        // Consoles a standalone emulator plays best (EmulatorCatalog); the core is the buildbot's for Apple silicon, where there is one.
         Console(id: "gamecube", name: "GameCube", core: "dolphin",
                 system: "Nintendo - GameCube", coreName: "Dolphin", glyph: .disc, maker: .nintendo,
                 extensions: ["iso", "gcm", "rvz", "gcz", "ciso", "wia", "tgc", "dol"]),
@@ -145,19 +133,15 @@ public enum ConsoleCatalog {
 
     public static func console(_ id: String) -> Console? { all.first { $0.id == id } }
 
-    // Every console whose games can come in a file with this extension
     public static func consoles(forExtension ext: String) -> [Console] {
         let ext = ext.lowercased()
         return all.filter { $0.extensions.contains(ext) }
     }
 
-    // Every extension a console game file can have, for the folder scan
     public static var extensions: Set<String> { Set(all.flatMap(\.extensions)) }
 
-    // The consoles of one maker, in catalog order
     public static func made(by maker: ConsoleMaker) -> [Console] { all.filter { $0.maker == maker } }
 
-    // Display names of the other cores; a core not listed shows its file name
     public static func coreName(_ core: String) -> String {
         if let console = all.first(where: { $0.core == core }) { return console.coreName }
         return otherCoreNames[core] ?? core

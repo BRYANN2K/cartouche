@@ -1,6 +1,5 @@
 import Foundation
 
-// Any JSON, for the JSON-RPC messages whose shape the tool decides
 public enum JSONValue: Sendable, Equatable, Codable {
     case null
     case bool(Bool)

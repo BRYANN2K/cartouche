@@ -1,21 +1,16 @@
 import Foundation
 import Observation
 
-// What a console game may do beyond playing: achievements, translation,
-// saves in iCloud Drive, the coach, and the name shown in netplay. Kept in
-// extras.json beside the library, with no secret in it: the RetroAchievements
-// token is in the keychain.
+// extras.json holds no secret: the RetroAchievements token is in the keychain.
 public struct ExtrasSettings: Codable, Sendable, Equatable {
     public var username: String?
     public var translationService: String?
     public var netplayNickname: String?
     public var cloudSaves = false
-    // Each game's Translate the screen and Coach mode, both off until turned on
     public var translate: Set<String> = []
     public var coach: Set<String> = []
     // The RetroAchievements game of each library game, once known
     public var gameIDs: [String: Int] = [:]
-    // The last counts read, shown offline too
     public var progress: [String: AchievementProgress] = [:]
 
     public init() {}
@@ -54,8 +49,7 @@ public final class ConsoleExtras {
     @ObservationIgnored public var cloud: CloudSaves
     // Read once from the keychain, so it is not asked at every launch
     @ObservationIgnored private var token: String?
-    // The app sets this; turning cloud saves on or off moves the folders
-    // RetroArch is reading, so it is refused while a game plays
+    // Toggling cloud saves moves the folders RetroArch reads, so it is refused while a game plays.
     @ObservationIgnored public var isPlaying: @Sendable () -> Bool = { false }
 
     public init(paths: RetroArchPaths, client: AchievementsClient = AchievementsClient(),
@@ -112,8 +106,7 @@ public final class ConsoleExtras {
 
     public func knownGameID(_ game: ConsoleGame) -> Int? { settings.gameIDs[game.id] }
 
-    // Reads the counts of the game, finding its RetroAchievements game first:
-    // by the cartridge's hash, or as RetroArch's log named it
+    // The RetroAchievements game is found by the cartridge's hash, or as RetroArch's log named it.
     public func refresh(_ game: ConsoleGame) async {
         guard let login, let console = AchievementsConsole.id(game.console) else { return }
         do {
@@ -124,7 +117,6 @@ public final class ConsoleExtras {
             }
             guard let id else { return }
             let all = try await client.progress(console: console, login: login)
-            // A game never played is not in the list: none unlocked yet
             let progress = all[id] ?? AchievementProgress(unlocked: 0, unlockedHardcore: 0, total: settings.progress[game.id]?.total ?? 0)
             change { $0.progress[game.id] = progress }
         } catch AchievementsError.refused(let reason) {
@@ -157,7 +149,6 @@ public final class ConsoleExtras {
         translationService != nil && settings.translate.contains(game.id)
     }
 
-    // Without a service the option does nothing: it says what is missing
     public func setTranslate(_ on: Bool, for game: ConsoleGame) {
         guard translationService != nil else { return }
         change { if on { $0.translate.insert(game.id) } else { $0.translate.remove(game.id) } }
@@ -169,8 +160,7 @@ public final class ConsoleExtras {
         change { if on { $0.coach.insert(game.id) } else { $0.coach.remove(game.id) } }
     }
 
-    // The name in the lobby: the one chosen, else the RetroAchievements name,
-    // else RetroArch's own default. Never the Mac's account name.
+    // The chosen name, else the RetroAchievements name, else RetroArch's default. Never the Mac's account name.
     public var netplayNickname: String? {
         settings.netplayNickname ?? settings.username
     }

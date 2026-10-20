@@ -62,7 +62,6 @@ struct KeyboardPlayTests {
         })
         #expect(released == [49, 13, 2])
         #expect(up.contains(.mouseButton(.left, down: false)))
-        // A stick barely off center moves nothing
         var drift = PadState()
         drift.rightStick = CGPoint(x: 0.05, y: 0.05)
         drift.leftStick = CGPoint(x: 0.3, y: 0)

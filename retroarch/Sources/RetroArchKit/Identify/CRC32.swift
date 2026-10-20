@@ -1,9 +1,7 @@
 import Foundation
 
-// The zlib CRC-32 the libretro database keys cartridges by. Slicing by 8, so a
-// 4 MiB cartridge takes milliseconds.
+// The zlib CRC-32 the libretro database keys cartridges by. Slicing by 8, so a 4 MiB cartridge takes milliseconds.
 public struct CRC32: Sendable {
-    // Eight 256-entry tables, one after the other
     private static let table: [UInt32] = {
         var table = [UInt32](repeating: 0, count: 8 * 256)
         for i in 0..<256 {

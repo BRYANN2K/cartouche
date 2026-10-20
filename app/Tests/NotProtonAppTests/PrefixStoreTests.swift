@@ -574,8 +574,6 @@ struct PrefixStoreTests {
         #expect(PrefixStore.isInUse(prefix, root: root))
     }
 
-    // Every one of these used to answer that the prefix was free, which is the answer that
-    // deletes a prefix out from under a running game.
     @Test("lsof failing to answer is not read as the prefix being free")
     func anUnusableLsofIsNotReadAsFree() throws {
         let (prefix, root, dir) = try prefixWithServerDirectory()
@@ -597,8 +595,6 @@ struct PrefixStoreTests {
             drainTimeout: .milliseconds(200)))
     }
 
-    // The other half of the same decision: a real lsof reporting nothing has to stay a no, or
-    // no prefix could ever be rebuilt.
     @Test("An idle socket directory is still reported as free")
     func anIdleSocketDirectoryIsFree() throws {
         let (prefix, root, dir) = try prefixWithServerDirectory()

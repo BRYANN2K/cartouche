@@ -5,7 +5,6 @@ extension ConsoleCenter {
 
     var folderPaths: [String] { folderList?.paths ?? [] }
 
-    // Reads the choices, watches the folders, and follows the list as it changes
     func startWatching() async {
         folderChoices = WatchedFolders.load(paths)
         watch()
@@ -47,7 +46,6 @@ extension ConsoleCenter {
         }
     }
 
-    // Onboarding and Settings > Library change the list; the watch follows
     private func followList() {
         guard let list = folderList else { return }
         withObservationTracking {
@@ -71,13 +69,11 @@ extension ConsoleCenter {
         watcher?.watch(folderPaths.map { URL(filePath: $0, directoryHint: .isDirectory) })
     }
 
-    // The agent's rescan: the same single-scanner path, awaited to the end
     func rescanFolders() async {
         folderChanged()
         await scan?.value
     }
 
-    // Every trigger funnels here so only one scan runs at a time
     func folderChanged() {
         if scan != nil {
             scanAgain = true
@@ -89,7 +85,6 @@ extension ConsoleCenter {
         }
     }
 
-    // The walk and the file stamps, off the main thread
     private struct FoundFile: Sendable {
         var url: URL
         var stamp: String
@@ -100,7 +95,6 @@ extension ConsoleCenter {
         Identifier.files(in: roots).map { file in
             let values = try? file.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey])
             let modified = values?.contentModificationDate ?? .distantPast
-            // A date in the future is not a file still being written
             let busy = abs(Date().timeIntervalSince(modified)) < 1
             return FoundFile(url: file, stamp: "\(values?.fileSize ?? 0)|\(modified.timeIntervalSince1970)", busy: busy)
         }
@@ -118,8 +112,7 @@ extension ConsoleCenter {
         }
     }
 
-    // One pass over every folder. A file still being copied is left for the
-    // next pass, a second later — 60 passes at most, the events keep coming.
+    // One pass over every folder. A file still being copied is left for the next pass, a second later — 60 passes at most, the events keep coming.
     @discardableResult
     private func scanPass() async -> Bool {
         let roots = folderPaths.map { URL(filePath: $0, directoryHint: .isDirectory) }
@@ -140,7 +133,6 @@ extension ConsoleCenter {
                 found = await identifier.identify(file.url)
                 seen[path] = (file.stamp, found)
             }
-            // Recognized, or a file type only one console plays
             guard let console = found.isRecognized ? found.console
                     : (found.candidates.count == 1 ? found.candidates.first : nil) else { continue }
             if let root = roots.first(where: { path.hasPrefix($0.path(percentEncoded: false)) }) {
@@ -166,7 +158,6 @@ extension ConsoleCenter {
     }
 }
 
-// How Settings > Library describes a watched folder
 enum WatchedFolderState {
     static func text(_ path: String, count: Int) -> String {
         guard FileManager.default.fileExists(atPath: path) else {

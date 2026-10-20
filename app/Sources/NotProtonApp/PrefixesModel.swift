@@ -1,5 +1,3 @@
-// Prefix logic that drives the prefix view itself.
-
 import AppKit
 import Foundation
 import Observation
@@ -16,8 +14,7 @@ final class PrefixesModel {
 
     private(set) var stale: Set<String> = []
 
-    // True when no installed compatibility tool matches the version of CrossOver that last
-    // booted the prefix.
+    // True when no installed compatibility tool matches the version of CrossOver that last booted the prefix.
     func isStale(_ prefix: WinePrefix) -> Bool {
         stale.contains(prefix.id)
     }

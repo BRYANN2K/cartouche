@@ -1,5 +1,3 @@
-// Logic behind Status view
-
 import AppKit
 import Foundation
 import Observation
@@ -65,8 +63,6 @@ final class SystemStatus {
     private(set) var failureRemedy: Remedy?
 
     private var runInFlight = false
-    // Tests replace the refresh so a run does not modify the real Steam/support folders
-    // if run on an actual user's machine.
     @ObservationIgnored var refreshAfterRun: @MainActor (SystemStatus) async -> Void = { await $0.refresh() }
     private var checkingLicense = false
 
@@ -414,7 +410,6 @@ final class SystemStatus {
         }
 
         await perform(from: RunnerSetup.Phase.cloning.label) { progress in
-            // The refresh after the run reads the outcome back from disk.
             if case .supported(let build) = install.support,
                let index = snapshot?.runners.firstIndex(where: { $0.id == build.id }) {
                 snapshot?.runners[index].apply(.install)
@@ -491,17 +486,13 @@ final class SystemStatus {
 
             if let install, state.license?.licensed == true, state.runner == .none {
                 progress(String(localized: "Setting up compatibility tool"))
-                // A tool that came up is the expected case and goes unsaid. Failure
-                // throws, and an unactivated CrossOver is reported below.
                 _ = try await Task.detached(priority: .userInitiated) {
                     try RunnerSetup.run(from: install) { progress($0.label) }
                 }.value
             } else if install != nil, state.license?.licensed == false, state.runner == .none {
-                // Not a failure, Cartouche was installed but without a compatibility tool
                 parts.append(Self.toolNotActivated)
             }
 
-            // Fetch binaries from Valve
             let valve = try ValvePackageManifest.bundled()
             let needsValve = await Task.detached(priority: .utility) {
                 valve.files.contains { Digest.sha256IfPresent(SupportPaths.bridge.appending(path: $0.bridgePath)) != $0.sha256 }

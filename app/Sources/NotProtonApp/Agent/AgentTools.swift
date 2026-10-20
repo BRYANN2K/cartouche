@@ -2,9 +2,7 @@ import Foundation
 import InstallerKit
 import RetroArchKit
 
-// The tool registry, grouped like mockup/MCP.md. A tool's handler calls the
-// same backend functions the app's own UI uses; AgentService wraps every call
-// in the level, approval and scan checks, so handlers stay plain.
+// Handlers call the same backend functions the app's own UI uses; AgentService wraps every call in the level, approval and scan checks, so handlers stay plain.
 @MainActor
 enum AgentTools {
 
@@ -56,8 +54,7 @@ enum AgentTools {
         return game
     }
 
-    // Write tools get a stricter lookup: the exact id or the only name match —
-    // a bare "a" must not pick an arbitrary game for a change the user sees.
+    // Write tools get a stricter lookup: the exact id or the only name match — a bare "a" must not pick an arbitrary game for a change the user sees.
     static func findStrict(_ backend: AgentBackend, _ args: JSONValue) throws -> Game {
         let id = try args.require("game")
         if let game = backend.game(id) { return game }
@@ -138,8 +135,7 @@ enum AgentTools {
     }
 }
 
-// One JSON object per line: the action and report logs, where a hand-quoted
-// "\n" in a field would forge extra entries.
+// One JSON object per line: the action and report logs, where a hand-quoted "\n" in a field would forge extra entries.
 enum JSONLines {
     static func append(_ value: some Encodable, to file: URL) throws {
         try FileManager.default.createDirectory(

@@ -1,13 +1,9 @@
-// Epic Games, GOG and Amazon Games in the library: who is signed in, the games
-// each account owns, the downloads, and playing. The library window, Settings >
-// Accounts and the sign-in window all read and drive this one object.
 
 import AppKit
 import Foundation
 import InstallerKit
 import Observation
 
-// A download, update, verify or import, one at a time
 @MainActor
 @Observable
 final class StoreJob: Identifiable {
@@ -53,7 +49,6 @@ struct StoreActivity: Equatable, Sendable {
     let waiting: Int
 }
 
-// The sign-in window's state
 struct SignInSession: Equatable, Sendable {
     enum State: Equatable, Sendable {
         case preparing
@@ -85,25 +80,19 @@ final class StoreCenter {
     @ObservationIgnored let secrets: StoreSecrets
     @ObservationIgnored private(set) var adapters: [GameSource: any StoreAdapter] = [:]
     @ObservationIgnored weak var library: LibraryModel?
-    // Opens the sign-in window; the app sets it, tests leave it
     @ObservationIgnored var showSignIn: @MainActor () -> Void = {}
-    // What Cartouche does once a game starts, from Settings > General
     @ObservationIgnored var afterLaunch: @MainActor () -> Void = {}
-    // The connections before a sign-in put them on .waiting, restored on cancel
-    // or failure so a cancelled sign-in is not a sign-out.
+    // Pre-sign-in connections go to .waiting and are restored on cancel or failure, so a cancelled sign-in is not a sign-out.
     @ObservationIgnored private var priorConnections: [GameSource: StoreConnection] = [:]
-    // The running game and its companion processes, for Stop
     @ObservationIgnored private var processes: [String: [StoreProcess]] = [:]
-    // Games whose art lookup found nothing, persisted per store
     @ObservationIgnored private var noArt: [GameSource: [String: Date]] = [:]
     @ObservationIgnored var runners: URL = SupportPaths.runners
     @ObservationIgnored var backends: URL = BackendInstaller.folder
     // The variables a game gets besides Wine's own, never the app's environment
     @ObservationIgnored var gameEnvironment: [String: String] = SetupEnvironment.base
     @ObservationIgnored var now: () -> Date = { Date() }
-    // The compatibility data's Steam App ID for a title, for the estimate; set by the app
     @ObservationIgnored var matchAppID: @MainActor (String) -> Int? = { _ in nil }
-    // When the last sign-in finished and when its games were listed, for the 15 second promise
+    // Sign-in finish and library-list times, for the 15 second promise.
     @ObservationIgnored private(set) var lastSignIn: (finished: Date, listed: Date?)?
 
     convenience init(folders: StoreFolders, vault: any TokenVault, files: StoreClientFiles, library: LibraryModel?) {
@@ -168,8 +157,7 @@ final class StoreCenter {
         publish()
         showSignIn()
         do {
-            // The sign-in runs the client with an empty folder (fresh:); the
-            // saved tokens stay in the vault until the new session lands.
+            // Sign-in runs on an empty folder; saved tokens stay in the vault until the new session lands.
             let page = try await adapter.signInPage()
             if signIn?.store == store { signIn?.state = .waiting(page) }
         } catch {
@@ -177,8 +165,6 @@ final class StoreCenter {
         }
     }
 
-    // Called by the sign-in window for every address it reaches. True once the
-    // store handed over its code, and the window can close.
     @discardableResult
     func reached(_ url: URL, pageText: String? = nil) -> Bool {
         guard let session = signIn, case .waiting = session.state, let adapter = adapters[session.store],
@@ -234,7 +220,6 @@ final class StoreCenter {
         defer { refreshing.remove(store) }
         do {
             var list = try await adapter.library()
-            // Art already found stays; the rest is looked up in the background
             let known = Dictionary((games[store] ?? []).map { ($0.id, $0.art) }, uniquingKeysWith: { a, _ in a })
             for i in list.indices where list[i].art == nil { list[i].art = known[list[i].id] ?? nil }
             games[store] = list
@@ -303,7 +288,6 @@ final class StoreCenter {
         publish()
     }
 
-    // The library's games for the stores, each installed or not
     func libraryGames() -> [Game] {
         var out: [Game] = []
         for store in Self.stores {
@@ -313,7 +297,6 @@ final class StoreCenter {
                 seen.insert(id)
                 out.append(Self.game(store, game, installed: installed[id], appID: matchAppID(game.title)))
             }
-            // Installed games stay even when the store's list is not at hand
             for record in installed.values where record.store == store.id && !seen.contains(record.gameID) {
                 out.append(Self.game(store, StoreGame(id: record.id, title: record.title), installed: record, appID: matchAppID(record.title)))
             }
@@ -417,7 +400,6 @@ final class StoreCenter {
         }
     }
 
-    // A game folder another launcher installed
     func importFolder(_ folder: URL, into store: GameSource) {
         guard let adapter = adapters[store] else { return }
         let library = games[store] ?? []
@@ -471,8 +453,7 @@ final class StoreCenter {
 
     // MARK: Playing
 
-    // The runner, backend and translation the game's setup resolves to. Store games run
-    // under Rosetta, as Windows installs do.
+    // Store games run under Rosetta, as Windows installs do.
     func setup(for game: Game) -> GameSetup? {
         library?.resolution(for: game).setup
     }
@@ -532,10 +513,8 @@ final class StoreCenter {
         }
         var env = SetupEnvironment.make(wine: wine, prefix: record.prefix, backend: setup.backend,
                                         environment: setup.environment, backends: backends, base: gameEnvironment)
-        // The store's own variables last; only the names the resolver forwards —
-        // legendary's JSON must not set DYLD_* or HOME on the native loader.
+        // Only allowlisted store variables: legendary JSON must not set DYLD_* or HOME on the native loader.
         env.merge(launch.environment.filter { GameSetupResolver.isAllowed(name: $0.key, value: $0.value) }) { $1 }
-        // arch -x86_64 <wine> <exe> <arguments>, as Windows installs run under Rosetta
         let command = ClientCommand(executable: URL(filePath: WineInstall.rosetta[0]),
                                     arguments: Array(WineInstall.rosetta.dropFirst()) + [wine.loader.path(percentEncoded: false),
                                                                                         launch.executable.path(percentEncoded: false)] + launch.arguments,
@@ -571,22 +550,19 @@ final class StoreCenter {
                 AppLog.note("store: saves of \(record.gameID) not uploaded: \(error.localizedDescription)")
             }
         }
-        // Only the save stamps the session produced change; an update meanwhile
-        // keeps its own record (install.path, version).
+        // Only this session's save stamps change; a concurrent update keeps its own record.
         if var live = installed[record.gameID] {
             live.saveStamps = record.saveStamps
             keep(live)
         }
     }
 
-    // wineserver -w returns once every process of the prefix has exited; a stuck
-    // launcher or crash handler gets five minutes, then wineserver -k ends it.
+    // wineserver -w returns once every prefix process has exited; a stuck one is killed after five minutes.
     nonisolated static func waitForWine(_ wine: WineRunner, environment: [String: String]) async {
         await WineServer.wait(server: wine.server, env: environment, timeout: 300)
     }
 
-    // Stop game: ends the game process, then wineserver -k whatever stayed in the
-    // prefix, so the session and its token files close.
+    // wineserver -k whatever stayed in the prefix, so the session and its token files close.
     func stopPlaying(_ game: Game) {
         guard playing.contains(game.id) else { return }
         for process in processes[game.id] ?? [] { process.stop() }
@@ -598,7 +574,6 @@ final class StoreCenter {
 }
 
 extension StoreConnection {
-    // Connected or expired: the account is known, and its games are listed
     var isSignedIn: Bool {
         switch self {
         case .connected, .expired: true

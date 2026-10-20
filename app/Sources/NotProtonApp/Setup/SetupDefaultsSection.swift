@@ -1,6 +1,5 @@
 import SwiftUI
 
-// Settings > Compatibility: the setup a Windows game starts from until it gets its own
 struct SetupDefaultsSection: View {
     let model: LibraryModel
     @State private var defaults = SetupDefaults()
@@ -83,7 +82,6 @@ struct BackendDownloadsSection: View {
 
     private func refresh() {
         installed = Dictionary(BackendInstaller.installed(in: folder).map { ($0.backend, $0) }, uniquingKeysWith: { a, _ in a })
-        // The Graphics menus offer a new download right away
         model?.backendAvailability.installed = Set(installed.keys)
     }
 

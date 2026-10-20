@@ -1,5 +1,3 @@
-// Install function needs to shell out, this handles it
-
 import Foundation
 
 struct CommandResult: Sendable {
@@ -107,7 +105,6 @@ enum Shell {
         return result.stdout
     }
 
-    // For the wine tools
     static func detach(
         _ executable: String,
         _ arguments: [String],

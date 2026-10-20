@@ -1,6 +1,4 @@
-// What Steam keeps on disk about the signed-in account: who it is, which games are
-// installed, when they were played, and the user's collections. Read when Steam is
-// closed, and to fill in what the last import lacks.
+// Steam's on-disk account data: who it is, installed games, play times, collections; read when Steam is closed.
 
 import Foundation
 
@@ -9,7 +7,6 @@ struct SteamAccount: Equatable, Sendable {
     let accountName: String
     let personaName: String?
 
-    // userdata/ folders are named by the 32-bit account ID
     var accountID: String? {
         guard let id = UInt64(steamID), id > Self.base else { return nil }
         return String(id - Self.base)
@@ -35,7 +32,6 @@ struct SteamCollection: Equatable, Sendable {
     let apps: [Int]
 }
 
-// One appmanifest_*.acf: what the activity poll and the installed list need
 struct SteamManifest: Sendable {
     let appID: Int
     let name: String
@@ -75,9 +71,7 @@ struct SteamLocalFiles: Sendable {
         }
     }
 
-    // Every manifest in every library. Activity polling calls this every
-    // second while Steam barely rewrites the files, so each is parsed once and
-    // re-read only when its modification date moves.
+    // Every manifest in every library. Activity polling calls this every second while Steam barely rewrites the files, so each is parsed once and re-read only when its modification date moves.
     func manifests() -> [SteamManifest] {
         var out: [SteamManifest] = []
         var paths: Set<String> = []
@@ -132,8 +126,7 @@ struct SteamLocalFiles: Sendable {
         return apps.values.sorted { $0.appID < $1.appID }
     }
 
-    // steamapps/common/<installdir> of an installed app; an empty or escaping
-    // installdir never yields a folder
+    // steamapps/common/<installdir> of an installed app; an empty or escaping installdir never yields a folder
     func installFolder(appID: Int) -> URL? {
         for library in libraries() {
             let steamapps = library.appending(path: "steamapps")
@@ -173,8 +166,7 @@ struct SteamLocalFiles: Sendable {
         return out
     }
 
-    // The user's own collections, from Steam's cloud storage file. Favorites and
-    // hidden are Steam's built-in collections; dynamic ones have no fixed list.
+    // The user's own collections, from Steam's cloud storage file. Favorites and hidden are Steam's built-in collections; dynamic ones have no fixed list.
     func collections(_ account: SteamAccount) -> [SteamCollection] {
         guard let folder = userFolder(account),
               let data = try? Data(contentsOf: folder.appending(path: "config/cloudstorage/cloud-storage-namespace-1.json")),

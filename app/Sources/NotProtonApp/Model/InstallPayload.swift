@@ -1,4 +1,3 @@
-// Deploys core Cartouche components into the copy of CrossOver that Cartouche deploys to the Steam location
 
 import Foundation
 
@@ -12,7 +11,6 @@ enum InstallPayload {
         let appinfo: URL
         let run: URL
         let builtAt: Int64
-        // Optional: a payload staged before the frame counter existed has none, and games then run unmeasured
         let fpsCounter: URL?
 
         let signatures: [URL]

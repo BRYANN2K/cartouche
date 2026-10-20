@@ -32,7 +32,6 @@ struct ConsoleImportTests {
         let host = UIHost(sheet(scene), size: CGSize(width: 560, height: 420))
         defer { host.close() }
         await host.settle()
-        // What a drop on the sheet, or Choose…, hands over
         let asked = ContinuousClock.now
         scene.center.importFlow.start([files[0]])
         #expect(try await host.wait(for: "1 game identified", within: .seconds(2)))

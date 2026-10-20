@@ -1,5 +1,3 @@
-// Every macOS permission Cartouche or the programs it starts can run into,
-// with the feature that needs it and what happens without it.
 
 import Foundation
 
@@ -22,7 +20,6 @@ enum Permission: String, CaseIterable, Identifiable, Codable, Sendable {
         case cartouche, steam, games
     }
 
-    // Whose grant it is. Cartouche reads and asks only for its own.
     var holder: Holder {
         switch self {
         case .steamInput: .steam
@@ -58,7 +55,6 @@ enum Permission: String, CaseIterable, Identifiable, Codable, Sendable {
     // macOS applies Input Monitoring to a running app only after it restarts
     var needsRelaunch: Bool { self == .inputMonitoring }
 
-    // Onboarding asks only these, and none of them needs a relaunch
     var askedInOnboarding: Bool { self == .appManagement || self == .downloads }
 
     // Cartouche shows its own macOS prompt for these. App Management has none:
@@ -103,7 +99,6 @@ enum Permission: String, CaseIterable, Identifiable, Codable, Sendable {
     }
 }
 
-// What Settings > Privacy shows
 enum PermissionState: String, Codable, Sendable {
     case allowed
     case denied
@@ -121,7 +116,6 @@ enum PermissionState: String, Codable, Sendable {
     }
 }
 
-// What macOS says, before Cartouche adds what it remembers
 enum SystemAnswer: Sendable, Equatable {
     case granted
     case denied
@@ -133,8 +127,6 @@ enum SystemAnswer: Sendable, Equatable {
 }
 
 extension Permission {
-    // `asked` and `last` come from the ledger: what Cartouche asked, and what
-    // the last real attempt showed.
     func state(answer: SystemAnswer, asked: Bool, last: PermissionState?) -> PermissionState {
         if self == .keychain { return .allowed }
         switch answer {

@@ -1,7 +1,5 @@
-// Epic Games through legendary. The user signs in on Epic's own page, which
-// ends on a JSON page holding a one-time authorization code; legendary trades
-// it for tokens in user.json, which the vault keeps. Commands and flags are
-// those of legendary 0.21.1 (legendary/cli.py).
+// Epic Games through legendary: the user signs in on Epic's page, which ends on a JSON page holding a one-time code
+// legendary trades for tokens in user.json, kept by the vault. Commands and flags are those of legendary 0.21.1.
 
 import Foundation
 
@@ -43,7 +41,6 @@ struct EpicAdapter: StoreAdapter {
         return (StoreJSON.object(status.stdout)?["account"] as? String) ?? ""
     }
 
-    // 'Successfully logged in as "player42"'
     static func signedInName(_ log: String) -> String? {
         guard let range = log.range(of: "Successfully logged in as \"") else { return nil }
         let rest = log[range.upperBound...]
@@ -213,7 +210,6 @@ struct EpicAdapter: StoreAdapter {
         }
     }
 
-    // A refused login is an expired session; any other failure keeps legendary's last error line
     private func checked(_ arguments: [String], progress: (@Sendable (Double) -> Void)? = nil) async throws -> ClientOutput {
         let output = try await legendary(arguments, progress: progress)
         if Self.loginRefused(output) { throw StoreError.sessionExpired }

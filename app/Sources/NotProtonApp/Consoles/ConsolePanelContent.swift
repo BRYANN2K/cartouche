@@ -25,17 +25,13 @@ struct ConsolePanelContent {
     let states: [SaveState]
     let bios: BIOSStatus?
     let playing: Playing?
-    // RetroAchievements: the account, and this game's counts once read
     var signedIn = false
     var progress: AchievementProgress?
-    // RetroArch, or the standalone emulator the console plays in
     var route: ConsoleRoute = .retroArch
 
     var biosMissing: Bool { bios.map { !$0.isReady } ?? false }
 
-    // The BIOS warning comes right under Play, Continue From once a state exists
     var sections: [Section] {
-        // States and the BIOS folder are RetroArch's; an emulator keeps its own
         guard route == .retroArch else { return [.play, .stats, .setup, .controls, .more] }
         var out: [Section] = [.play]
         if biosMissing { out.append(.bios) }
@@ -64,12 +60,10 @@ struct ConsolePanelContent {
         return playing == nil && !biosMissing && game.exists
     }
 
-    // Under Play: "Dolphin is not installed", or the emulator that starts the game
     var playNote: String? {
         route.missingText ?? route.emulator.map { String(localized: "Plays in \($0.title)") }
     }
 
-    // "Super Nintendo. Played yesterday."
     func subtitle(now: Date = Date()) -> String {
         let state = game.lastPlayed.map { String(localized: "Played \(GameDates.relative($0, now: now))") }
             ?? String(localized: "Never played")
@@ -84,7 +78,6 @@ struct ConsolePanelContent {
         return String(localized: "\(hours.formatted(.number.precision(.fractionLength(0...1)))) hours")
     }
 
-    // "12 of 64", as retroachievements.org counts them for the account
     var achievements: String {
         guard signedIn else { return String(localized: "Not signed in") }
         guard let progress else { return String(localized: "Not known yet") }
@@ -92,7 +85,6 @@ struct ConsolePanelContent {
         return String(localized: "\(progress.unlocked) of \(progress.total)")
     }
 
-    // "scph5501.bin is missing", and what to do about it
     var biosWarning: (title: String, detail: String)? {
         guard biosMissing, let bios else { return nil }
         return (bios.message, String(localized: "Dump it from your own console, then put it in the BIOS folder."))
@@ -102,7 +94,6 @@ struct ConsolePanelContent {
 
     var core: String { game.setup.core ?? console.core }
 
-    // "2 days ago" under each picture
     static func when(_ state: SaveState, now: Date = Date()) -> String {
         GameDates.relative(state.date, now: now)
     }

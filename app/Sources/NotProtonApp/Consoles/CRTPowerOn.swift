@@ -2,9 +2,7 @@ import AppKit
 import RetroArchKit
 import SwiftUI
 
-// The CRT power-on over the window when a console game starts: a thin bright
-// line opens into the game's picture, then RetroArch takes the screen. Not
-// shown with Reduce Motion.
+// The CRT power-on over the window when a console game starts; not shown with Reduce Motion.
 struct CRTPowerOn: View {
     let powerOn: PowerOn
     let done: () -> Void

@@ -1,6 +1,3 @@
-// Play with a controller: for a game that only takes a keyboard and mouse,
-// Cartouche reads the controller and posts key and mouse events. Posting needs
-// Accessibility, and happens only while that game is the frontmost app.
 
 import AppKit
 import CoreGraphics
@@ -13,7 +10,6 @@ enum InputEvent: Equatable, Sendable {
     case mouseMove(dx: Double, dy: Double)
 }
 
-// The fixed layout: left stick to WASD, right stick to the mouse, buttons to keys
 enum KeyboardPlay {
 
     // macOS virtual key codes (HIToolbox Events.h)
@@ -32,7 +28,6 @@ enum KeyboardPlay {
     ]
     static let mouse: [PadButton: CGMouseButton] = [.rightTrigger: .left, .leftTrigger: .right]
 
-    // W, A, S, D for the left stick past this point
     static let stickThreshold = 0.5
     static let deadZone = 0.15
     // Pointer points per poll at full tilt
@@ -51,7 +46,6 @@ enum KeyboardPlay {
         Set(state.pressed.compactMap { keys[$0] }).union(wasd(state.leftStick))
     }
 
-    // What to post to go from what the game was last told to what the controller holds
     static func events(from old: PadState, to new: PadState) -> [InputEvent] {
         var out: [InputEvent] = []
         let before = heldKeys(old), after = heldKeys(new)
@@ -75,7 +69,6 @@ protocol InputPoster: AnyObject {
     func post(_ events: [InputEvent])
 }
 
-// Posts into the session as if the keyboard and mouse were used
 @MainActor
 final class LiveInputPoster: InputPoster {
     private let source = CGEventSource(stateID: .hidSystemState)
@@ -108,14 +101,12 @@ final class LiveInputPoster: InputPoster {
     private var location: CGPoint { CGEvent(source: nil)?.location ?? .zero }
 }
 
-// Whether a game is the frontmost app
 @MainActor
 protocol GameFocus: AnyObject {
     func isFrontmost(_ game: Game) -> Bool
 }
 
-// A Wine game's process says which game it is in its environment: WINEPREFIX for a
-// game Cartouche installed, SteamAppId for a Steam game
+// Wine game processes identify their game in the environment: WINEPREFIX for a Cartouche install, SteamAppId for a Steam game.
 @MainActor
 final class LiveGameFocus: GameFocus {
     var installs: URL = GameFolder.installs
@@ -138,8 +129,6 @@ final class LiveGameFocus: GameFocus {
         return URL(filePath: prefix).standardizedFileURL.path == folder.standardizedFileURL.path
     }
 
-    // KERN_PROCARGS2: argc, the executable path, argv, then the environment, all
-    // NUL-separated. Only a process of the same user can be read.
     static func environment(of pid: pid_t) -> [String: String]? {
         var mib: [Int32] = [CTL_KERN, KERN_PROCARGS2, pid]
         var size = 0
@@ -153,8 +142,7 @@ final class LiveGameFocus: GameFocus {
             defer { i = nul + 1 }
             return String(decoding: buffer[i..<nul], as: UTF8.self)
         }
-        // The executable path, NUL padding, argc arguments (empty ones count),
-        // padding, then the environment
+        // exe path, NUL padding, argc arguments (empty ones count), padding, then the environment.
         guard nulTerminated() != nil else { return nil }
         while i < size, buffer[i] == 0 { i += 1 }
         for _ in 0..<argc {
@@ -170,14 +158,12 @@ final class LiveGameFocus: GameFocus {
     }
 }
 
-// Runs the fixed layout for one game at a time, only while that game is in front
 @MainActor
 final class KeyboardPlayBridge {
 
     let reader: any PadReader
     let poster: any InputPoster
     let focus: any GameFocus
-    // What the game holds as far as it was told
     private(set) var posted = PadState.idle
 
     init(reader: any PadReader, poster: any InputPoster, focus: any GameFocus) {
@@ -186,8 +172,6 @@ final class KeyboardPlayBridge {
         self.focus = focus
     }
 
-    // One poll. Away from the game nothing is posted; back in front, what the
-    // controller holds is pressed again.
     func tick(_ game: Game) {
         guard focus.isFrontmost(game) else {
             release()
@@ -201,8 +185,7 @@ final class KeyboardPlayBridge {
 
     func reset() { release() }
 
-    // Clearing `posted` alone would leave the .hidSystemState source holding
-    // keys and mouse buttons down: tell the game they are up first
+    // Clearing `posted` alone would leave the .hidSystemState source holding keys down: tell the game they are up first.
     private func release() {
         let events = KeyboardPlay.events(from: posted, to: .idle)
         posted = .idle

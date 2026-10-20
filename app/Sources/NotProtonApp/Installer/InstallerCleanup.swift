@@ -1,6 +1,5 @@
-// Delete the installer files: only when the user asks and confirms, and only
-// to the Trash. The files are trashed one by one, so an installer dropped
-// straight into Downloads never takes the rest of Downloads with it.
+//// Delete the installer files: only when the user asks and confirms, and only to the Trash.
+//// Files are trashed one by one, so an installer dropped into Downloads never takes the rest of Downloads with it.
 
 import Foundation
 
@@ -9,8 +8,7 @@ struct InstallerCleanup: Sendable {
     var trash: @Sendable (URL) throws -> Void = { try FileManager.default.trashItem(at: $0, resultingItemURL: nil) }
     var home: URL = SupportPaths.home
 
-    // setup.exe, its parts and the checksum manifest. The folder goes too when
-    // nothing else is left in it and it is not one of the user's own folders.
+    // setup.exe, its parts and the checksum manifest. The folder goes too when nothing else is left in it and it is not one of the user's own folders.
     func run(files: [URL], folder: URL) throws {
         let fm = FileManager.default
         for file in files where fm.fileExists(atPath: file.path(percentEncoded: false)) {

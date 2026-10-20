@@ -1,5 +1,4 @@
-// Liquid Glass on macOS 26, standard materials on macOS 15, and an opaque fill when
-// Reduce Transparency is on. Motion follows Reduce Motion.
+// Liquid Glass on macOS 26, standard materials on macOS 15, and an opaque fill when Reduce Transparency is on. Motion follows Reduce Motion.
 
 import SwiftUI
 
@@ -73,7 +72,6 @@ private struct ProminentButton: ViewModifier {
 }
 
 extension View {
-    // A grouped block of the panel: glass on 26, material on 15
     func groupBackground(radius: CGFloat = 12) -> some View { modifier(GroupBackground(radius: radius)) }
 
     func prominentButton() -> some View { modifier(ProminentButton()) }

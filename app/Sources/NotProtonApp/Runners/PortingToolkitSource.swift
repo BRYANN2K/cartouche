@@ -1,7 +1,4 @@
-// Finds a Game Porting Toolkit the user installed from Apple's disk image. The
-// user picks once per toolkit: Copy into runners/gptk-<version>, or Use in Place,
-// which records the folder and reads it there. Cartouche never ships or downloads
-// any of its files: Apple's license does not allow redistribution.
+// Cartouche never ships or downloads toolkit files: Apple's license does not allow redistribution.
 
 import Foundation
 
@@ -10,7 +7,6 @@ struct PortingToolkitInstall: Sendable, Equatable, Identifiable {
     let lib: URL
     // D3DMetal.framework's CFBundleShortVersionString, for example 4.0b3
     let version: String
-    // What the user installed: the mounted image, an app or a folder they picked
     let origin: URL
     // The origin is a mounted image, which goes away on eject: Copy is the only safe answer
     var mountedImage = false
@@ -42,8 +38,7 @@ enum PortingToolkitSource {
     }
 
     struct Receipt: Sendable, Equatable, Codable {
-        // Size and mtime pin a copied file without hashing it; receipts before this
-        // field carried only the hash and still verify by hashing
+        // Size and mtime pin a copied file without hashing it; receipts before this field carried only the hash and still verify by hashing
         struct File: Sendable, Equatable, Codable {
             let sha256: String
             let size: Int64
@@ -72,7 +67,6 @@ enum PortingToolkitSource {
         let version: String
         let origin: String
         let files: [String: File]
-        // Use in Place: the lib folder the runner reads instead of a copy
         var inPlace: String? = nil
     }
 
@@ -90,7 +84,6 @@ enum PortingToolkitSource {
         if !paths.contains(path) { defaults.set(paths + [path], forKey: manualKey) }
     }
 
-    // The Copy / Use in Place question is asked once per toolkit version
     static func isAsked(version: String, _ defaults: UserDefaults = .standard) -> Bool {
         (defaults.stringArray(forKey: askedKey) ?? []).contains(version)
     }
@@ -112,7 +105,6 @@ enum PortingToolkitSource {
         lib.appending(path: "external/D3DMetal.framework")
     }
 
-    // The lib folder inside whatever the user points at
     static func lib(in candidate: URL) -> URL? {
         let fm = FileManager.default
         for lib in [candidate, candidate.appending(path: "lib"), candidate.appending(path: "redist/lib"),
@@ -154,7 +146,6 @@ enum PortingToolkitSource {
         var versions: Set<String> = []
         for candidate in candidates {
             guard let lib = lib(in: candidate), let version = version(ofLib: lib) else { continue }
-            // The first place a version is found is where it is copied from
             guard versions.insert(version).inserted else { continue }
             var path = candidate.resolvingSymlinksInPath().path(percentEncoded: false)
             while path.hasSuffix("/") { path.removeLast() }
@@ -208,7 +199,6 @@ enum PortingToolkitSource {
         }
     }
 
-    // Records the install's own folder as the runner's lib; nothing is copied
     @discardableResult
     static func useInPlace(_ install: PortingToolkitInstall, runners: URL = SupportPaths.runners) throws -> Receipt {
         let fm = FileManager.default
@@ -227,7 +217,6 @@ enum PortingToolkitSource {
         return receipt
     }
 
-    // The lib folder a set-up toolkit reads: its copy, or what Use in Place recorded
     static func libFolder(version: String, runners: URL = SupportPaths.runners) -> URL {
         if let path = receipt(version: version, runners: runners)?.inPlace {
             return URL(filePath: path, directoryHint: .isDirectory)
@@ -235,7 +224,6 @@ enum PortingToolkitSource {
         return folder(version: version, runners: runners).appending(path: "lib")
     }
 
-    // The libd3dshared a ready install serves, newest version first
     static func libd3dshared(runners: URL = SupportPaths.runners) -> URL? {
         for version in copiedVersions(in: runners).reversed() {
             let shared = libFolder(version: version, runners: runners)
@@ -245,7 +233,6 @@ enum PortingToolkitSource {
         return nil
     }
 
-    // What a Copy answer needs room for: the lib folder's size on disk
     static func copySize(of lib: URL) -> Int64 {
         guard let walker = FileManager.default.enumerator(
             at: lib, includingPropertiesForKeys: [.totalFileAllocatedSizeKey, .fileAllocatedSizeKey])
@@ -258,7 +245,6 @@ enum PortingToolkitSource {
         return total
     }
 
-    // Every regular file under lib/, by path relative to the runner folder
     static func pins(in root: URL) -> [String: Receipt.File] {
         let lib = root.appending(path: "lib")
         guard let walker = FileManager.default.enumerator(
@@ -281,8 +267,7 @@ enum PortingToolkitSource {
         return files
     }
 
-    // A copied file counts as intact while its size and stamp match the receipt; deep
-    // falls back to hashing, and old receipts without the stamps always hash
+    // Size+stamp match counts as intact; deep or old receipts without stamps hash.
     static func verify(version: String, runners: URL = SupportPaths.runners, deep: Bool = false) -> [String] {
         guard let receipt = receipt(version: version, runners: runners) else { return [] }
         // A folder used in place is not hashed — Apple's own updates may change it — but it must be there
@@ -309,13 +294,12 @@ enum PortingToolkitSource {
         }
     }
 
-    // One runner per version set up or found; none at all when the user has no toolkit
     static func runners(found: [PortingToolkitInstall], runners: URL) -> [Runner] {
         var listed: [Runner] = []
         let copied = copiedVersions(in: runners)
         for version in copied {
             let problems = verify(version: version, runners: runners)
-            // A Use in Place runner points at the folder it recorded, even after it is gone
+            // Use in Place points at its recorded folder, even after it is gone.
             let source = receipt(version: version, runners: runners)?.inPlace
                 .map { URL(filePath: $0, directoryHint: .isDirectory) }
                 ?? found.first { $0.version == version }?.origin

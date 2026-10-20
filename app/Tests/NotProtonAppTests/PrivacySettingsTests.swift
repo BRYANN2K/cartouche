@@ -7,7 +7,6 @@ import Testing
 @MainActor
 struct PrivacySettingsTests {
 
-    // A fixed mix of answers, so the rows below are the snapshot of the list
     func center(_ scratch: ScratchDefaults, opened: @escaping @MainActor (URL) -> Bool = { _ in true }) -> (PermissionCenter, FakeTCC) {
         scratch.ledger.note(.denied, for: .appManagement)
         let tcc = FakeTCC([

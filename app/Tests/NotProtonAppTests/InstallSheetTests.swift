@@ -121,8 +121,6 @@ struct InstallSheetTests {
         #expect(!center.sheet.canInstall)
     }
 
-    // Renders each step in light and dark. With CARTOUCHE_SNAPSHOTS set to a
-    // folder, the PNGs are written there for the evidence.
     @Test("The sheet renders every step in light and dark")
     func snapshots() async throws {
         _ = NSApplication.shared

@@ -1,5 +1,3 @@
-// The first launch, as a sheet over the library: Welcome, PC games, Consoles,
-// Folders and privacy, Ready. Every step can be skipped.
 
 import AppKit
 import RetroArchKit
@@ -131,7 +129,6 @@ struct OnboardingFooter: View {
     }
 }
 
-// A title and its line, as each step opens
 private struct StepHeader: View {
     let title: Text
     let message: Text
@@ -146,7 +143,6 @@ private struct StepHeader: View {
     }
 }
 
-// One row of a grouped list: what it is, one line about it, and its state or action
 private struct FoundRow<Trailing: View>: View {
     let title: Text
     var detail: Text?
@@ -267,7 +263,6 @@ struct FoundList: View {
     }
 
     nonisolated static func folderLine(_ folder: FoundFolder) -> String {
-        // In the language the rest of the line is in
         let list = ListFormatter()
         list.locale = Locale(identifier: Bundle.module.preferredLocalizations.first ?? "en")
         let names = list.string(from: folder.consoleNames) ?? folder.consoleNames.joined(separator: ", ")
@@ -346,7 +341,6 @@ private struct ConsolesStep: View {
         ("Sony", ["ps1"]),
     ]
 
-    // Product names of the recommended cores
     static let coreNames: [String: String] = [
         "nestopia": "Nestopia", "snes9x": "Snes9x", "mupen64plus_next": "Mupen64Plus-Next", "sameboy": "SameBoy",
         "mgba": "mGBA", "melonds": "melonDS", "genesis_plus_gx": "Genesis Plus GX",
@@ -428,7 +422,6 @@ private struct ConsoleTile: View {
     @ViewBuilder
     private var note: some View {
         let found = model.foundGames(console)
-        // Picked, a console that cannot start without its BIOS names the missing file
         let bios = console.bios != .none && model.isPicked(console) ? model.consoles.bios(console) : nil
         if let bios, !bios.isReady {
             Text(bios.message).foregroundStyle(.orange)

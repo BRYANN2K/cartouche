@@ -1,9 +1,6 @@
 import CoreServices
 import Foundation
 
-// What Cartouche does with the user's game folders, in folders.json in its
-// RetroArch folder. The folder list itself is the app's (Settings > Library,
-// onboarding). Cartouche reads those folders and never writes into them.
 public struct WatchedFolders: Codable, Sendable, Equatable {
     public var addAutomatically = true
 
@@ -23,9 +20,7 @@ public struct WatchedFolders: Codable, Sendable, Equatable {
     }
 }
 
-// Calls back when anything changes under the watched folders, through
-// FSEvents, at most once per latency. A folder on a disk that is not
-// connected is watched from when it appears.
+// FSEvents, at most once per latency; a folder on a disconnected disk is watched from when it appears.
 public final class FolderWatcher: @unchecked Sendable {
 
     private let lock = NSLock()

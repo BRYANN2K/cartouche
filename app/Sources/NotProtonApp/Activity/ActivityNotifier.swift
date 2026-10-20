@@ -1,12 +1,9 @@
-// macOS notifications for the end of a download or an install, each with one
-// action. They go out only when notifications are already allowed: the prompt
-// itself comes from NotificationOffer, after Cartouche's explanation.
+// They go out only when notifications are already allowed; the prompt comes from NotificationOffer.
 
 import AppKit
 import Foundation
 import UserNotifications
 
-// One button under a banner
 struct NotificationButton: Equatable, Sendable {
     let id: String
     let title: String
@@ -14,17 +11,14 @@ struct NotificationButton: Equatable, Sendable {
     var requiresUnlock = false
 }
 
-// One notification, as Cartouche builds it
 struct NotificationSpec: Equatable, Sendable {
     let identifier: String
     let title: String
     let body: String
     let category: String
-    // The buttons under the banner, in order
     let actions: [NotificationButton]
     let userInfo: [String: String]
 
-    // The first button, for the one-button notifications
     var action: String { actions.first?.id ?? "" }
     var actionTitle: String { actions.first?.title ?? "" }
 
@@ -50,8 +44,7 @@ protocol NotificationPosting: AnyObject {
     func post(_ spec: NotificationSpec)
 }
 
-// UNUserNotificationCenter has a single delegate, so every notification of the app
-// goes through this one and its action reaches the handler of its category.
+// UNUserNotificationCenter has a single delegate, so every notification of the app goes through this one and its action reaches the handler of its category.
 @MainActor
 final class NotificationRouter: NSObject, NotificationPosting, @preconcurrency UNUserNotificationCenterDelegate {
 
@@ -65,7 +58,6 @@ final class NotificationRouter: NSObject, NotificationPosting, @preconcurrency U
         Bundle.main.bundleIdentifier == nil ? nil : UNUserNotificationCenter.current()
     }
 
-    // Called once at launch so responses arriving before the first post still route
     func install() {
         center?.delegate = self
     }

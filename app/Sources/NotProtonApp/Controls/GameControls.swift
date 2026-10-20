@@ -9,8 +9,7 @@ struct KeyboardOptions: Codable, Equatable, Sendable {
     var keepMouseInside = true
     var preciseScrolling = true
 
-    // Registry values for HKCU\Software\Wine\Mac Driver, always all of them, so
-    // turning one back off undoes what an earlier launch imported
+    // Always all of them, so turning one back off undoes what an earlier launch imported.
     var registryValues: [(name: String, on: Bool)] {
         [("LeftCommandIsCtrl", commandAsControl), ("RightCommandIsCtrl", commandAsControl),
          ("LeftOptionIsAlt", optionAsAlt), ("RightOptionIsAlt", optionAsAlt),
@@ -31,20 +30,15 @@ struct KeyboardOptions: Codable, Equatable, Sendable {
 struct GameControls: Codable, Equatable, Sendable {
     var layout = ControllerLayout()
     var keyboard = KeyboardOptions()
-    // Set once the user changed a keyboard option, from then on written at each change
     var keyboardSet = false
     var remapKeys = false
     var keyRemaps: [KeyRemap] = []
     var playWithController = false
 }
 
-// Which part of Cartouche handles a game's layout
 enum ControlsHandler: Equatable, Sendable {
-    // Steam games: Steam Input, configured in Steam
     case steamInput
-    // Windows games Cartouche starts: an SDL mapping in the launch environment
     case cartouche
-    // Console games: a RetroArch remap file
     case retroArch
 
     init(_ game: Game) {
@@ -102,9 +96,7 @@ actor ControlsStore {
     }
 }
 
-// The files a launch reads
 struct ControlsFiles: Sendable {
-    // Where Windows installer games live, one folder each
     var installs: URL = GameFolder.installs
     // setups/<appid>.keyboard for Steam games, beside the .env the run script reads
     var setups: URL = SupportPaths.setups
@@ -155,8 +147,7 @@ extension GameLauncher {
 
     static let controlsMarker = "# Controls from Cartouche"
 
-    // The launcher's lines that read the Controls files. A layout goes in the
-    // environment; changed keyboard options are imported once, before the game.
+    // A layout goes in the environment; changed keyboard options are imported once, before the game.
     static func controlsBlock(folder: GameFolder) -> [String] {
         let sdl = quote(folder.controllerMapping.path(percentEncoded: false))
         let reg = quote(folder.keyboardSettings.path(percentEncoded: false))

@@ -1,5 +1,4 @@
-// Names the likely cause of a failed install from the exit code and the log
-// Inno Setup writes with /LOG, and says which retries may help.
+// Names the likely cause of a failed install from the exit code and the log Inno Setup writes with /LOG, and says which retries may help.
 
 import Foundation
 
@@ -17,11 +16,9 @@ public struct InstallDiagnosis: Sendable, Equatable {
     }
 
     public let kind: Kind
-    // Most likely first.
     public let causes: [Cause]
     public let fixes: [RetryFix]
     public let exitCode: Int32
-    // The log line that decided it, without its time stamp.
     public let detail: String?
 
     public var succeeded: Bool { kind == .success }
@@ -47,12 +44,10 @@ public enum InstallLog {
             lines.first { (try? pattern.firstMatch(in: $0)) != nil }
         }
 
-        // Space first: unarc also reports a full disk, and then memory is not the cause.
         if let line = first(/(?i)not enough (free )?(disk )?space|disk is full|there is not enough space|no space left/) {
             return InstallDiagnosis(kind: .diskSpace, causes: [.diskSpace], fixes: [], exitCode: exitCode, detail: line)
         }
-        // The decompressors' errors, even when the installer then exits 0 after rolling back.
-        // A success log also names unarc.dll, when it is unpacked to {tmp}, so only error wording counts.
+        // The decompressors' errors, even when the installer then exits 0 after rolling back. A success log also names unarc.dll, when it is unpacked to {tmp}, so only error wording counts.
         if let line = first(/(?i)returned an error code|archive data corrupted|decompression fails|not found any file specified for isarcextract|(unarc|isdone)\.dll.*\b(error|failed)\b|\b(error|failed)\b.*(unarc|isdone)\.dll/) {
             return InstallDiagnosis(
                 kind: .decompression, causes: [.memory, .path, .damagedFile],
@@ -71,7 +66,6 @@ public enum InstallLog {
         return InstallDiagnosis(kind: .setupFailed, causes: [.runner, .path], fixes: [.otherRunner, .shortPath], exitCode: exitCode, detail: line)
     }
 
-    // "2026-10-19 21:04:11.102   Message" → "Message"
     static func stripStamp(_ line: String) -> String {
         line.replacing(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d+)?\s+/, with: "").trimmingCharacters(in: .whitespaces)
     }

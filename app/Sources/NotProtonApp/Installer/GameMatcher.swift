@@ -1,5 +1,3 @@
-// The name index the installer matches games against: every record of the
-// compatibility data, by Steam App ID and name.
 
 import Foundation
 import InstallerKit

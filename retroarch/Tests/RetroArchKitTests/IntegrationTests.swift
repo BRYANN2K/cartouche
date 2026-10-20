@@ -105,8 +105,6 @@ struct IntegrationTests {
         #expect(game.stateFile("Test Cart.state.auto") != nil, "no auto save state under \(game.paths.states.path)")
     }
 
-    // A build without MCP gets the game on its command line, and answers on
-    // the UDP command port instead of the pipe
     @Test func withoutMCPTheGameStartsFromTheCommandLine() async throws {
         let game = try Game("dashl")
         var config = AppendConfig(paths: game.paths)

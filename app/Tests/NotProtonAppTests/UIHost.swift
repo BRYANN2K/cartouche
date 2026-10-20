@@ -47,7 +47,6 @@ final class UIHost {
         return sent
     }
 
-    // The window's content as drawn, for reading pixels
     func bitmap() throws -> NSBitmapImageRep {
         let frame = window.contentView!
         let rep = try #require(frame.bitmapImageRepForCachingDisplay(in: frame.bounds))
@@ -55,7 +54,6 @@ final class UIHost {
         return rep
     }
 
-    // What a person reads in the window now
     func texts(named name: String? = nil) throws -> [String] {
         let frame = window.contentView?.superview ?? window.contentView!
         let rep = try #require(frame.bitmapImageRepForCachingDisplay(in: frame.bounds))
@@ -84,8 +82,6 @@ final class UIHost {
         return false
     }
 
-    // Tears the views down first: a spinner left animating in a closed window
-    // keeps a dispatch thread blocked for the rest of the run
     func close() {
         window.contentViewController = nil
         window.orderOut(nil)

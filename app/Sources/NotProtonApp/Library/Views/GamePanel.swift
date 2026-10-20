@@ -58,7 +58,6 @@ struct GamePanel: View {
         .id(game.id)
         .transition(Motion(reduceMotion: reduceMotion).entrance)
         .task(id: game.id) {
-            // Asks MacGamingDB for this game only, when its panel opens
             if let appID = game.steamAppID ?? game.compatAppID { await compat.openGame(appID: appID) }
             await performance?.refresh()
         }
@@ -74,7 +73,6 @@ struct GamePanel: View {
     private func block(_ section: GamePanelContent.Section, _ content: GamePanelContent) -> some View {
         switch section {
         case .play:
-            // While Steam downloads the game, its progress and controls take Play's place
             if let download = activity.download(for: game) {
                 DownloadBlock(download: download, center: activity)
             } else {
@@ -194,7 +192,6 @@ struct LayerRow: View {
                 .foregroundStyle(.secondary)
                 .frame(width: 70, alignment: .trailing)
         }
-        // Fewer than 5 reports say little, so they are dimmed
         .opacity(layer.count < 5 ? 0.6 : 1)
     }
 }
@@ -207,9 +204,7 @@ struct SetupRows: View {
     var body: some View {
         let setup = model.setup(for: game.id)
         let resolved = model.resolution(for: game).setup
-        // Installer games pick from the install runners: ready free Wine builds included
         let runners = game.source == .installer ? model.installRunners : model.runners.filter(\.isOffered)
-        // A game with a Mac build runs it unless the Windows version is picked
         if model.hasMacBuild(game) {
             Picker("Run", selection: Binding(
                 get: { resolved.version },

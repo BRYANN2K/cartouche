@@ -1,6 +1,4 @@
-// Runs the installer and watches it: progress is the size of the install
-// folder against the estimate, CPU is summed over the installer's processes, and
-// a folder that stops growing while the CPU idles means the installer is stuck.
+// Progress is install-folder size vs the estimate; a folder that stops growing while the CPU idles means the installer is stuck.
 
 import Darwin
 import Foundation
@@ -8,7 +6,6 @@ import Foundation
 public struct InstallProgress: Sendable, Equatable {
     public var bytes: Int64 = 0
     public var expected: Int64 = 0
-    // Below 1 until the installer exits: the estimate is only an estimate.
     public var fraction: Double = 0
     public var bytesPerSecond: Double = 0
     public var secondsLeft: Double?
@@ -80,17 +77,14 @@ public enum FolderSize {
     }
 }
 
-// The installer's processes: the one we started, its descendants, and any
-// process running in the same Wine prefix (wineserver and the decompressors
-// may not be descendants).
+// The installer's processes: the one started, its descendants, and any process in the same Wine prefix (wineserver may not be a descendant).
 public struct ProcessGroup: Sendable {
     public let root: pid_t
     public let prefix: String?
 
     public init(root: pid_t, prefix: String?) { self.root = root; self.prefix = prefix }
 
-    // With `environments` false the KERN_PROCARGS2 scans are skipped: only the
-    // root's own descendants are found (wine re-parents can lag a scan or two).
+    // With `environments` false the KERN_PROCARGS2 scans are skipped: only the root's own descendants are found (wine re-parents can lag a scan).
     public func members(environments: Bool = true) -> [pid_t] {
         // Root 0/1 would make launchd's whole tree "the installer's processes".
         guard root > 1 else { return [] }
@@ -119,7 +113,6 @@ public struct ProcessGroup: Sendable {
         return found.filter { $0 > 1 && kill($0, 0) == 0 }.sorted()
     }
 
-    // Total CPU time of the processes, in seconds.
     public static func cpuSeconds(_ pids: [pid_t]) -> Double {
         var timebase = mach_timebase_info_data_t()
         mach_timebase_info(&timebase)
@@ -144,7 +137,6 @@ public struct ProcessGroup: Sendable {
         return Array(pids.prefix(Int(max(filled, 0)))).filter { $0 > 0 }
     }
 
-    // KERN_PROCARGS2: argc, the exec path, the arguments, then the environment.
     static func environment(of pid: pid_t) -> [String] {
         var mib: [Int32] = [CTL_KERN, KERN_PROCARGS2, pid]
         var size = 0
@@ -154,7 +146,6 @@ public struct ProcessGroup: Sendable {
         let argc = Int(buffer.withUnsafeBytes { $0.load(as: Int32.self) })
         let strings = buffer[4..<size].split(separator: 0, omittingEmptySubsequences: true)
             .map { String(decoding: $0, as: UTF8.self) }
-        // First the exec path, then argc arguments; the rest is the environment.
         return Array(strings.dropFirst(1 + argc))
     }
 }
@@ -206,7 +197,6 @@ public final class InstallRun: @unchecked Sendable {
 
     public func start() throws { try process.run() }
 
-    // Samples every interval until the process exits, then returns its status.
     public func monitor(
         folder: URL, expected: Int64, policy: Policy = Policy(),
         onTick: @Sendable () -> Void = {}, onProgress: @Sendable (InstallProgress) -> Void
@@ -251,9 +241,7 @@ public final class InstallRun: @unchecked Sendable {
         for waiter in pending { waiter.resume(returning: code) }
     }
 
-    // SIGTERM to every process of the installer, SIGKILL to what is left after 3 s.
-    // Refuses to signal anything before the process started or after it exited: pid 0
-    // is the caller's own process group, and an exited pid may have been reused.
+    // Refuses to signal before start or after exit: pid 0 is the caller's own process group, an exited pid may have been reused.
     public func stop() {
         lock.withLock { stopped = true }
         guard pid > 1, lock.withLock({ status == nil }) else { return }

@@ -3,7 +3,7 @@ import Testing
 
 @testable import RetroArchKit
 
-// P16: where each console's games play, the choice kept per console, and
+// Where each console's games play, the choice kept per console, and
 // starting a game in a fake emulator app made in a scratch folder
 @Suite("Standalone emulator launch", .serialized)
 struct StandaloneLaunchTests {
@@ -18,7 +18,7 @@ struct StandaloneLaunchTests {
         #expect(ConsoleRoute.resolve(gamecube, choice: nil, installed: [dolphin()], coreReady: true) == .standalone(dolphin()))
         #expect(ConsoleRoute.resolve(ConsoleCatalog.console("wii")!, choice: nil, installed: [dolphin()], coreReady: true)
                 == .standalone(dolphin()))
-        // No emulator found: RetroArch, as P13 plays it
+        // No emulator found: RetroArch plays it
         #expect(ConsoleRoute.resolve(gamecube, choice: nil, installed: [], coreReady: false) == .retroArch)
         // SNES has no standalone emulator here
         #expect(ConsoleRoute.resolve(ConsoleCatalog.console("snes")!, choice: "dolphin", installed: [dolphin()], coreReady: true)
@@ -42,7 +42,6 @@ struct StandaloneLaunchTests {
         #expect(route == .missing(EmulatorCatalog.emulator("dolphin")!))
         #expect(route.missingText == "Dolphin is not installed")
 
-        // Xbox and Switch have no core on the buildbot for Apple silicon
         let xbox = ConsoleCatalog.console("xbox")!
         #expect(!xbox.hasCore && !ConsoleCatalog.console("switch")!.hasCore)
         #expect(ConsoleRoute.resolve(xbox, choice: "xemu", installed: [], coreReady: true).missingText == "xemu is not installed")
@@ -160,8 +159,6 @@ struct StandaloneLaunchTests {
         #expect(await !player.isPlaying)
     }
 
-    // Exit 0 in the startup window means a single-instance emulator handed the
-    // game to a copy already open: the session is over before it started
     @Test func anEmulatorThatHandsOffIsNotPlaying() async throws {
         let work = try scratchFolder("handoff")
         defer { try? FileManager.default.removeItem(at: work) }

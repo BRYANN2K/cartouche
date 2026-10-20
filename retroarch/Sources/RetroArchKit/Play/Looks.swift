@@ -1,9 +1,6 @@
 import Foundation
 
-// Cartouche's own shader presets for Look: a CRT with scanlines and a soft
-// vignette, an LCD with its pixel grid. Each comes as slang, which the Metal
-// and Vulkan drivers run, and as GLSL for the OpenGL driver. Written under
-// Cartouche's RetroArch folder; Original turns the shader off.
+// Each Look comes as slang (Metal/Vulkan drivers) and GLSL (OpenGL), written under Cartouche's RetroArch folder; Original turns the shader off.
 public enum Looks {
 
     public enum Language: String, Sendable, CaseIterable {
@@ -17,7 +14,6 @@ public enum Looks {
         return paths.shaders.appending(path: "\(look.rawValue).\(language.presetExtension)")
     }
 
-    // Written before each launch, so an update of Cartouche brings its shaders
     public static func install(in paths: RetroArchPaths) throws {
         try FileManager.default.createDirectory(at: paths.shaders, withIntermediateDirectories: true)
         for (name, body) in [("crt", crtBody), ("lcd", lcdBody)] {
@@ -42,8 +38,7 @@ public enum Looks {
         """ + "\n"
     }
 
-    // The colour change, the same in both languages: colour, coordinate in the
-    // picture (0 to 1) and the source size in pixels come in
+    // The colour change, the same in both languages: colour, coordinate in the picture (0 to 1) and the source size in pixels come in
     static let crtBody = """
         float line = fract(coord.y * size.y);
         float scan = 0.55 + 0.45 * sin(line * 3.14159265);
@@ -61,7 +56,6 @@ public enum Looks {
     static func slang(_ body: String) -> String {
         """
         #version 450
-        // Written by Cartouche for its Look choice
 
         layout(push_constant) uniform Push
         {
@@ -103,7 +97,6 @@ public enum Looks {
 
     static func glsl(_ body: String) -> String {
         """
-        // Written by Cartouche for its Look choice
         #if defined(VERTEX)
         #if __VERSION__ >= 130
         #define COMPAT_VARYING out

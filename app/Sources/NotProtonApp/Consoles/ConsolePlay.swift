@@ -1,7 +1,6 @@
 import Foundation
 import RetroArchKit
 
-// What plays the games: RetroArchKit's ConsolePlayer, or a stand-in in tests
 protocol ConsoleRunning: Sendable {
     func play(_ request: PlayRequest) async throws
     func setLook(_ look: ConsoleLook) async throws
@@ -9,11 +8,8 @@ protocol ConsoleRunning: Sendable {
     func setHardcore(_ on: Bool) async throws
     func setDisc(_ disc: Int) async throws
     func quit() async -> PlayReport
-    // RetroArch quit by itself: what was played
     func ended() async -> PlayReport?
-    // Resolves once the game's process ends
     func waitForExit() async
-    // Cartouche is quitting
     func leaveForTermination() async -> PlayReport
     var processIdentifier: Int32? { get async }
 }
@@ -38,8 +34,6 @@ extension ConsolePlayer: ConsoleRunning {
     }
 }
 
-// What the extras ask of the running game. A stand-in that has none of
-// them answers as a build without the MCP server would.
 protocol ConsoleExtrasRunning {
     func log(since: Int) async throws -> (lines: [String], next: Int)
     func hardcoreActive() async throws -> Bool
@@ -81,7 +75,6 @@ struct Playing: Equatable {
     var emulator: String?
 }
 
-// The CRT power-on over the window: the game's screenshot, if Cartouche has one
 struct PowerOn: Equatable {
     let gameID: String
     let picture: URL?
@@ -93,7 +86,6 @@ extension ConsoleCenter {
 
     func console(of game: ConsoleGame) -> Console? { ConsoleCatalog.console(game.console) }
 
-    // Answered once per statesChanged bump; a miss is read off the main thread
     func states(for game: ConsoleGame) async -> [SaveState] {
         if let cached = statesCache[game.id], cached.stamp == statesChanged { return cached.states }
         let stamp = statesChanged
@@ -103,8 +95,6 @@ extension ConsoleCenter {
         return states
     }
 
-    // Same for the BIOS: the folder's size and mtime stamp invalidates, and
-    // the MD5s run off the main thread
     func bios(for game: ConsoleGame) async -> BIOSStatus? {
         guard let console = console(of: game) else { return nil }
         let paths = paths
@@ -128,7 +118,6 @@ extension ConsoleCenter {
 
     // MARK: Setup
 
-    // Kept for the game; applied at once when it is the one playing
     func setSetup(_ id: String, _ change: @escaping @Sendable (inout ConsoleGameSetup) -> Void) async {
         guard let before = game(id)?.setup else { return }
         do {
@@ -150,12 +139,10 @@ extension ConsoleCenter {
 
     // MARK: Play and quit
 
-    // Play, Resume (the auto state) or one slot under Continue From
     func play(_ id: String, slot: Int? = nil, resume: Bool = false, reduceMotion: Bool = false,
               netplay: NetplayRole? = nil, core: String? = nil) async {
         guard let game = game(id), let console = console(of: game), playing == nil else { return }
         problem = nil
-        // Claimed before the emulators are looked for, so a second Play waits
         playing = Playing(gameID: id, phase: .starting)
         let route = await routeForPlay(console)
         if let missing = route.missingText {
@@ -182,11 +169,9 @@ extension ConsoleCenter {
             if let resolveCore {
                 coreURL = try await resolveCore(core)
             } else {
-                // A core picked in Setup is downloaded the first time it plays
                 try await cores.install(core)
                 coreURL = try await cores.ready(core)
             }
-            // A fresh player each play: the Settings > Consoles build applies at once
             if settings.capabilities == nil { await settings.refresh() }
             runner = makeRunner(settings)
             if !playerExtra.isEmpty, let player = runner as? ConsolePlayer { await player.setExtra(playerExtra) }
@@ -220,7 +205,6 @@ extension ConsoleCenter {
         }
     }
 
-    // Quit in the activity slot: RetroArch writes its auto state and goes
     func quit() async {
         guard let runner, playing != nil else { return }
         watchPlay?.cancel()
@@ -228,9 +212,7 @@ extension ConsoleCenter {
         await finish(report)
     }
 
-    // Cartouche is quitting: RetroArch quits first, writing its auto state, and
-    // the session's play time is kept. The work runs off the main thread, as
-    // the app is in its last turn there; it waits at most the limit.
+    // RetroArch quits first, writing its auto state; off the main thread, as the app is in its last turn there.
     func endForTermination(limit: TimeInterval = 4) {
         guard let id = playing?.gameID, let runner else { return }
         watchPlay?.cancel()
@@ -247,8 +229,6 @@ extension ConsoleCenter {
         if finished.wait(timeout: .now() + limit) == .success {
             endRecord()
         } else {
-            // RetroArch outlasted the wait: keep the record so the next launch
-            // counts this session, its heartbeat stamped for now
             heartbeat?.cancel()
             heartbeat = nil
             sessions.heartbeat()
@@ -266,7 +246,6 @@ extension ConsoleCenter {
             game.lastPlayed = date
         }
         endRecord()
-        // A standalone emulator's and a picked-up session's runner are one-offs
         if playing?.emulator != nil || runner is OrphanedRunner { runner = nil }
         playing = nil
         powerOn = nil
@@ -277,10 +256,7 @@ extension ConsoleCenter {
 
     // MARK: The session record
 
-    // Written when the game starts; a heartbeat lands every minute while
-    // Cartouche lives, so a killed Cartouche can pick the session back up
-    // or count it. Without the process's own start there is nothing to check
-    // a pid against, and no record is kept.
+    // A heartbeat each minute lets a killed Cartouche pick the session back up; without the process start there is nothing to check a pid against.
     func beginRecord(gameID: String, emulator: String?) async {
         guard let runner, let pid = await runner.processIdentifier,
               let start = sessions.processStart(pid) else { return }
@@ -308,10 +284,7 @@ extension ConsoleCenter {
         sessions.clear()
     }
 
-    // At launch: a session record left over means the last Cartouche was
-    // killed mid-game. A process still there — same pid AND same start — is
-    // picked up again and counted when it ends; gone, its time is counted to
-    // the last heartbeat. Whoever holds the pid now is never signaled.
+    // A leftover record means Cartouche was killed mid-game: same pid AND same start is picked up, gone is counted to the last heartbeat; the current pid holder is never signaled.
     func reattachOrphaned() async {
         guard playing == nil else { return }
         // A killed Cartouche may have left the RetroAchievements token on disk
@@ -337,7 +310,6 @@ extension ConsoleCenter {
         }
     }
 
-    // A RetroArch closed from its own menu or window ends the session too
     func watchForEnd() {
         watchPlay?.cancel()
         watchPlay = Task { [weak self] in
@@ -349,7 +321,6 @@ extension ConsoleCenter {
                     await self.finish(report)
                     return
                 }
-                // A quit already under way: its finish() clears `playing`
                 try? await Task.sleep(for: .seconds(1))
             }
         }

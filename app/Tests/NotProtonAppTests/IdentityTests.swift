@@ -32,7 +32,6 @@ struct IdentityTests {
         #expect(plist["CFBundleExecutable"] as? String == "Cartouche")
     }
 
-    // The repository is renamed later, the owner is already the fork's.
     @Test("Updates come from the Cartouche feed, signed with the Cartouche key")
     func updateFeedAndKey() throws {
         let plist = try Self.infoPlist()
@@ -57,7 +56,6 @@ struct IdentityTests {
         #expect(!catalog.localizedCaseInsensitiveContains("NotProton"))
     }
 
-    // The module is still called NotProtonApp, so only text inside string literals counts.
     @Test("Only the About attribution names NotProton in app text")
     func onlyAttributionNamesNotProton() throws {
         let literal = try Regex(#""[^"\n]*NotProton[^"\n]*""#)
@@ -101,7 +99,6 @@ struct IdentityTests {
             contentsOf: repoRoot.appending(path: "app/Sources/CartoucheIdentity/include/cartouche_identity.h"),
             encoding: .utf8)
         let line = try #require(header.split(separator: "\n").first { $0.hasPrefix("#define \(name) ") })
-        // Joins the C string pieces, reading CARTOUCHE_DIR_NAME where it is named
         var value = ""
         for piece in line.dropFirst("#define \(name) ".count).matches(of: /"([^"]*)"|CARTOUCHE_DIR_NAME/) {
             value += try piece.output.1.map(String.init) ?? headerDefine("CARTOUCHE_DIR_NAME")

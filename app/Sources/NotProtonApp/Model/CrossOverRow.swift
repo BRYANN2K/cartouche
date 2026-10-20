@@ -1,4 +1,3 @@
-// One row per CrossOver build on the Status pane
 
 import Foundation
 
@@ -83,8 +82,7 @@ struct CrossOverRow: Identifiable, Equatable {
         return rows
     }
 
-    // The row a picked copy already shows up under. Supported copies match by build, since
-    // the app at a listed path can be swapped for another build.
+    // Supported copies match by build, since the app at a listed path can be swapped for another build.
     static func listing(_ install: CrossOverInstall, in rows: [CrossOverRow]) -> CrossOverRow? {
         if case .supported(let build) = install.support {
             return rows.first { $0.buildID == build.id && $0.install != nil }

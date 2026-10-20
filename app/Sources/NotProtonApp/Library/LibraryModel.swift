@@ -1,5 +1,3 @@
-// The library window's state: which games there are, what the sidebar selects,
-// what the grid shows, and every screen state the window can be in.
 
 import Foundation
 import Observation
@@ -23,7 +21,6 @@ enum SidebarItem: Hashable, Sendable {
     case source(GameSource)
 }
 
-// A store's sign-in, as the sidebar and Settings > Accounts show it
 enum StoreConnection: Equatable, Sendable {
     case notConnected
     case waiting
@@ -33,7 +30,6 @@ enum StoreConnection: Equatable, Sendable {
 
 struct LibrarySection: Identifiable, Equatable {
     let id: String
-    // Only All Games names its sections
     let title: String?
     let shape: CoverShape
     let games: [Game]
@@ -41,7 +37,6 @@ struct LibrarySection: Identifiable, Equatable {
 
 enum LibraryScreen: Equatable {
     case loading
-    // Nothing connected and nothing added yet
     case welcome
     case steamInstall
     case signIn(GameSource)
@@ -66,20 +61,15 @@ final class LibraryModel {
     private(set) var steam = SteamImport(presence: .closed, account: nil, games: [], exported: nil) {
         didSet { rebuildGames() }
     }
-    // Windows installers and console games are added here by their phases
     var otherGames: [Game] = [] { didSet { rebuildGames() } }
-    // Console catalog ids, and their games, which ConsoleCenter keeps here
     var consoles: [String] = []
     var consoleGames: [Game] = [] { didSet { rebuildGames() } }
     var stores: [GameSource: StoreConnection] = [:]
     var runners: [Runner] = []
-    // From the registry and Steam's appinfo cache, set by the app
     var backendAvailability = BackendAvailability()
     var backendTools: [BackendTool] = []
     var macBuilds: Set<Int> = [] { didSet { rebuildGames() } }
 
-    // allGames recomputes only when one of its inputs changes, and game(_:)
-    // answers from an index instead of scanning the whole list
     private(set) var allGames: [Game] = []
     @ObservationIgnored private var gamesByID: [String: Game] = [:]
 
@@ -87,7 +77,6 @@ final class LibraryModel {
         didSet { if selection != oldValue { keepSelectionVisible() } }
     }
     var selectedGameID: String?
-    // Window state the menus reach as well
     var showPanel = true
     var addGames: AddGamesKind?
     var showAddConsoles = false
@@ -102,11 +91,8 @@ final class LibraryModel {
         didSet { if choices.setups != oldValue.setups { rebuildGames() } }
     }
     var problem: String?
-    // A non-blocking setup note per game, for example switching an installer
-    // game to an older Wine than the one that last ran its prefix
     var setupNotices: [String: String] = [:]
 
-    // Folders the setup and launch paths read; tests point them at scratch dirs
     @ObservationIgnored var installsFolder: URL = GameFolder.installs
     @ObservationIgnored var runnersFolder: URL = SupportPaths.runners
     @ObservationIgnored var backendsFolder: URL = BackendInstaller.folder
@@ -143,11 +129,10 @@ final class LibraryModel {
         if selectedGameID == nil || game(selectedGameID) == nil { keepSelectionVisible() }
     }
 
-    // Reloads when a new export lands or Steam starts or quits, checked every 2 seconds
     func watch(every interval: Duration = .seconds(2)) {
         watcher?.cancel()
         let importer = importer
-        // Read now, so a change between this call and the task's start is not missed
+        // Read now so a change between this call and the task's start is not missed.
         var stamp = importer.exportStamp()
         var running = importer.isRunning()
         watcher = Task { [weak self] in
@@ -161,8 +146,7 @@ final class LibraryModel {
         }
     }
 
-    // One watcher pass. Whether Steam runs is asked every fifth tick, as it
-    // spawns ps; the file reads stay off the main thread.
+    // Steam's running state is asked every fifth tick (it spawns ps); file reads stay off the main thread.
     func watchTick(tick: Int, stamp: inout Date?, running: inout Bool) async {
         let importer = importer
         let was = running, askRunning = tick % 5 == 0
@@ -211,7 +195,6 @@ final class LibraryModel {
         }
     }
 
-    // Shown anywhere in the grid: from a connected source, not hidden, installed unless the user wants all
     func isVisible(_ game: Game) -> Bool {
         isConnected(game.source) && !isHidden(game.id) && (showNotInstalled || game.installed)
     }
@@ -281,7 +264,6 @@ final class LibraryModel {
         return LibrarySection(id: id, title: titled ? source?.name : nil, shape: games.first?.coverShape ?? .portrait, games: games)
     }
 
-    // An expired store session shows a banner over that store's games
     var expiredStore: GameSource? {
         guard case .source(let source) = selection, case .expired = stores[source] ?? .notConnected else { return nil }
         return source
@@ -336,7 +318,6 @@ final class LibraryModel {
         }
     }
 
-    // What the sidebar shows after a source's name
     func badge(_ item: SidebarItem) -> String? {
         switch item {
         case .all, .favorites:
@@ -416,12 +397,10 @@ final class LibraryModel {
         }
     }
 
-    // Several setups at once, saved once, as Steam already has them
     func adoptSetups(_ updates: [String: GameSetupChoice]) {
         guard !updates.isEmpty else { return }
         choices.setups.merge(updates) { _, new in new }
         persist()
-        // An installer game's own launcher follows the adopted choice
         for (id, setup) in updates where game(id)?.source == .installer {
             applyInstallerSetup(setup, for: game(id)!)
         }
@@ -435,7 +414,6 @@ final class LibraryModel {
         }
     }
 
-    // After the sidebar changes, the panel shows a game that is in view
     private func keepSelectionVisible() {
         let list: [Game]
         switch screen {
@@ -446,7 +424,6 @@ final class LibraryModel {
         selectedGameID = list.first?.id
     }
 
-    // The three most recently played, for the status item
     var recentlyPlayed: [Game] {
         Array(allGames.filter { $0.lastPlayed != nil && isVisible($0) }
             .sorted { $0.lastPlayed! > $1.lastPlayed! }.prefix(3))

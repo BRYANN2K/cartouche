@@ -28,7 +28,6 @@ struct InstallerSetupTests {
             .appending(path: "x86_64-windows/winemetal.dll"))
     }
 
-    // A backend already "downloaded": receipt plus its DLL folders
     static func backend(_ kind: GraphicsBackend, in backends: URL) throws {
         let root = BackendInstaller.folder(for: kind, in: backends)
         try FileManager.default.createDirectory(at: root.appending(path: "x86_64-windows"), withIntermediateDirectories: true)
@@ -76,7 +75,6 @@ struct InstallerSetupTests {
         (try? Data(contentsOf: folder.record)).flatMap { try? RecordCoding.decoder.decode(InstalledGame.self, from: $0) }
     }
 
-    // Relative path -> file contents, to prove the prefix is never copied or rebuilt
     static func snapshot(_ root: URL) throws -> [String: String] {
         var out: [String: String] = [:]
         for rel in try FileManager.default.subpathsOfDirectory(atPath: root.path(percentEncoded: false)) {
@@ -117,7 +115,6 @@ struct InstallerSetupTests {
         #expect(cx["WINEDLLPATH"] == "x:y")
         #expect(cx["WINEDLLOVERRIDES"] == "winemenubuilder.exe=d")
 
-        // wined3d only names the backend, no DLL overrides
         let plain = SetupEnvironment.make(wine: wine, prefix: prefix, backend: .wined3d, backends: backends, base: [:])
         #expect(plain["CX_GRAPHICS_BACKEND"] == "wined3d")
         #expect(plain["WINEDLLOVERRIDES"] == "winemenubuilder.exe=d")
@@ -256,13 +253,11 @@ struct InstallerSetupTests {
         // winemetal.dll landed in the same prefix
         #expect(FileManager.default.fileExists(
             atPath: folder.prefix.appending(path: "drive_c/windows/system32/winemetal.dll").path(percentEncoded: false)))
-        // The record keeps what runs the prefix now
         let record = try #require(Self.record(in: folder))
         #expect(record.runnerID == "wine-12.0")
         #expect(record.graphics == "dxmt")
         #expect(record.wineVersion == "12.0")
         #expect(record.wineRunnerKind == "wineBuild")
-        // Same prefix, same files: nothing was copied or rebuilt
         var after = try Self.snapshot(folder.prefix)
         after["drive_c/windows/system32/winemetal.dll"] = nil
         #expect(after == before)

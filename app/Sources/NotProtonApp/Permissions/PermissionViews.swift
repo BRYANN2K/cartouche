@@ -1,4 +1,3 @@
-// The explanation sheet that comes before every macOS permission prompt.
 
 import SwiftUI
 

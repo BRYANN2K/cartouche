@@ -1,8 +1,7 @@
 import Foundation
 import RetroArchKit
 
-// The MCP wire protocol Cartouche speaks, same line-delimited JSON-RPC as the
-// RetroArchKit client. Versioned to what the client side already uses.
+// The MCP wire protocol Cartouche speaks, same line-delimited JSON-RPC as the RetroArchKit client. Versioned to what the client side already uses.
 public enum MCP {
     public static let protocolVersion = "2025-06-18"
     public static let serverName = "cartouche"
@@ -47,17 +46,12 @@ public enum MCPError: LocalizedError {
     }
 }
 
-// What the app offers over MCP: the tools, and who answers them. The tool
-// implementations live in the app; the helper and the HTTP server only carry
-// the bytes.
+// What the app offers over MCP: the tools, and who answers them. The tool implementations live in the app; the helper and the HTTP server only carry the bytes.
 public protocol MCPHandling: Sendable {
     var serverVersion: String { get }
-    // The client name from the last initialize, for the action log.
     var clientName: String { get }
     func initialize(client: String) async
     func tools(client: String) async -> [MCPToolInfo]
-    // The whole tools/call result payload (content, structuredContent, isError)
-    // or a thrown MCPError for a JSON-RPC error.
     func callTool(_ name: String, arguments: JSONValue, client: String) async throws -> JSONValue
     func resources(client: String) async -> [JSONValue]
     func readResource(_ uri: String, client: String) async throws -> String
@@ -70,8 +64,7 @@ public extension MCPHandling {
     }
 }
 
-// Turns one JSON-RPC message into its reply. Nil means the message was a
-// notification and gets no reply, per JSON-RPC.
+// Turns one JSON-RPC message into its reply. Nil means the message was a notification and gets no reply, per JSON-RPC.
 public struct MCPServer: Sendable {
 
     public let handler: any MCPHandling
@@ -145,16 +138,13 @@ public struct MCPServer: Sendable {
         }
     }
 
-    // The transport-level entry: JSON-RPC bytes in, reply bytes out; a
-    // notification (or undecodable line) answers empty.
     public func handle(data: Data) async -> Data {
         guard let message = try? JSONDecoder().decode(JSONValue.self, from: data),
               let reply = await handle(message) else { return Data() }
         return (try? JSONEncoder().encode(reply)) ?? Data()
     }
 
-    // One tool result: structured content plus its JSON as the text block
-    // clients without structured support read.
+    // structuredContent plus its JSON as the text block clients without structured support read.
     public static func content(_ result: JSONValue) -> JSONValue {
         let text = (try? String(decoding: JSONEncoder().encode(result), as: UTF8.self)) ?? "null"
         return [

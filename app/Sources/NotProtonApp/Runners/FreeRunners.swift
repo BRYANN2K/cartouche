@@ -1,11 +1,8 @@
-// Free runners on the runner model: Wine builds from the manifest and the user's
-// own Game Porting Toolkit. RunnerRegistry.refresh adds them when asked to.
 
 import Foundation
 
 struct FreeRunnerScan: Sendable {
     var manifest: RunnerManifest
-    // Game Porting Toolkit copies found on this Mac
     var toolkits: [PortingToolkitInstall] = []
 
     static var standard: FreeRunnerScan {
@@ -31,7 +28,6 @@ enum WineRunnerSource {
                 state: state, build: nil, source: nil, isInstalled: installed
             )
         }
-        // A build the manifest no longer pins stays on disk but is not used
         let pinned = Set(manifest.builds.map(\.id))
         for id in installedIDs(in: runners) where !pinned.contains(id) {
             listed.append(Runner(

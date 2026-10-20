@@ -1,11 +1,6 @@
-// One adapter per store, over its client: sign in on the store's own page, list
-// the games the account owns, install, update, verify, launch, uninstall, import
-// and cloud saves. Adapters only read the clients' output and the files the
-// games carry; the library, the runner and the prefix are StoreCenter's.
 
 import Foundation
 
-// What a store page says works, from what the pinned client can do
 struct StoreCapabilities: Equatable, Sendable {
 
     enum Online: Equatable, Sendable {
@@ -30,7 +25,6 @@ struct StoreCapabilities: Equatable, Sendable {
     }
 }
 
-// The store's own page, and what the sign-in window watches for once the user is done
 struct SignInPage: Sendable, Equatable {
     let url: URL
     // Epic shows the code as the text of this one page; GOG and Amazon put it in the address
@@ -38,29 +32,24 @@ struct SignInPage: Sendable, Equatable {
 
     var codeInPage: Bool { codePage != nil }
 
-    // The only page whose text the sign-in window reads
     func isCodePage(_ url: URL) -> Bool {
         guard let codePage else { return false }
         return url.scheme == "https" && url.host() == codePage.host() && url.path() == codePage.path()
     }
 }
 
-// A game the account owns, as the store lists it
 struct StoreGame: Codable, Sendable, Equatable, Identifiable {
     let id: String
     var title: String
     var art: URL?
-    // Cloud saves for this game, when the store says
     var cloudSaves: Bool = false
 }
 
-// Where an installed game's files are, as the client reports them
 struct StoreInstall: Codable, Sendable, Equatable {
     var path: URL
     var version: String?
 }
 
-// What starts the game, inside Wine: the exe, its arguments and folder
 struct StoreLaunch: Sendable, Equatable {
     var executable: URL
     var arguments: [String]
@@ -68,14 +57,12 @@ struct StoreLaunch: Sendable, Equatable {
     var environment: [String: String] = [:]
 }
 
-// A cloud save folder of a game, and the name the store keeps it under
 struct SaveLocation: Codable, Sendable, Equatable {
     var name: String
     var path: URL
 }
 
 enum StoreError: LocalizedError, Equatable {
-    // The store no longer accepts the saved token
     case sessionExpired
     case notSignedIn
     case failed(String)
@@ -96,12 +83,9 @@ protocol StoreAdapter: Sendable {
     var capabilities: StoreCapabilities { get }
 
     func signInPage() async throws -> SignInPage
-    // The code the page handed over, from the address the window reached or the page's text
     func code(at url: URL, pageText: String?) -> String?
-    // Exchanges the code for tokens, through the client; returns the account name
     func finishSignIn(code: String) async throws -> String
     func signOut() async throws
-    // Whether the saved tokens are already past their end, without asking the store
     func isExpired(_ secret: StoreSecret, now: Date) -> Bool
 
     func library() async throws -> [StoreGame]
@@ -111,17 +95,14 @@ protocol StoreAdapter: Sendable {
     func uninstall(_ id: String, install: StoreInstall) async throws
     // Drops an imported game from the client's list; its files are the user's and stay
     func forget(_ id: String) async throws
-    // A folder another launcher installed: the game it holds, registered with the client
     func importGame(at folder: URL, library: [StoreGame]) async throws -> (StoreGame, StoreInstall)
 
     // offline: the session expired or the Mac is offline; games that allow it still start
     func launch(_ id: String, install: StoreInstall, prefix: URL, offline: Bool) async throws -> StoreLaunch
     func saveLocations(_ id: String, install: StoreInstall, prefix: URL) async throws -> [SaveLocation]
-    // direction: .download before the game starts, .upload after it quits. stamps are
-    // the store's own markers of the last sync, per location, returned updated.
+    // direction: .download before the game starts, .upload after it quits; stamps are the store's last-sync markers, returned updated.
     func syncSaves(_ id: String, locations: [SaveLocation], direction: SaveDirection, stamps: [String: String]) async throws -> [String: String]
 
-    // Box art, when the library list does not carry it
     func artURL(_ game: StoreGame) async -> URL?
     // A program that runs beside the game, as comet does for GOG's online features
     func companion(_ id: String) async throws -> ClientCommand?
@@ -135,12 +116,10 @@ extension StoreAdapter {
 
 enum SaveDirection: Sendable { case download, upload }
 
-// The client of a store, run with its own folder for config and tokens, a
-// private HOME and temporary folder, and no other variable from the app
+// Client runs with its own folder for config and tokens, a private HOME and temporary folder, and no other variable from the app.
 struct ClientContext: Sendable {
     let files: StoreClientFiles
     let secrets: StoreSecrets
-    // stores/<store>/client: the client's config, library cache and tokens
     let folder: URL
     let home: URL
     let temporary: URL
@@ -192,14 +171,12 @@ enum StoreJSON {
 }
 
 extension URL {
-    // A folder as the clients take it: no trailing slash, which they would double
     var clientPath: String {
         let path = path(percentEncoded: false)
         return path.count > 1 && path.hasSuffix("/") ? String(path.dropLast()) : path
     }
 }
 
-// Windows paths a game names, inside its prefix
 enum PrefixPaths {
     static let user = "crossover"
 

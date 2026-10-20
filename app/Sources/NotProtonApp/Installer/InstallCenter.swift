@@ -1,7 +1,5 @@
-// Owns every install, one running at a time (decompression takes the whole
-// CPU), and the sheet that shows them. The library window hosts the sheet with
-// .installSheet(library:) (InstallSheetHost.swift); dropped folders or setup.exe
-// files go to open(urls), and the activity card reads activity.
+//// Owns every install, one running at a time (decompression takes the whole CPU), and the sheet that shows them.
+//// Dropped folders or setup.exe files go to open(urls); the activity card reads activity.
 
 import Foundation
 import InstallerKit
@@ -21,20 +19,15 @@ final class InstallCenter {
     static let shared = InstallCenter()
 
     var isSheetPresented = false
-    // Console Games in the first step's picker: the library's Add Games sheet
     @ObservationIgnored var showConsoleGames: (@MainActor () -> Void)?
     private(set) var jobs: [InstallJob] = []
     let sheet: InstallSheetModel
 
     @ObservationIgnored var engine: InstallEngine
     @ObservationIgnored var notifier: any InstallNotifying
-    // Set by the host so the first finished install offers notifications.
     @ObservationIgnored var permissionFlow: PermissionFlow?
-    // Called when a finished install is in the library record, for the library to show it.
     @ObservationIgnored var onGameReady: @MainActor (InstalledGame) -> Void = { _ in }
-    // One compat-name index for every analysis, shared with the store sign-in.
     @ObservationIgnored let titles = TitleIndex()
-    // Where game matches come from; the host can pass its CompatibilityModel's data.
     @ObservationIgnored var compat: @MainActor () async -> CompatData?
     @MainActor private static var compatModel: CompatibilityModel?
 
@@ -62,8 +55,6 @@ final class InstallCenter {
                                waiting: jobs.filter { $0.phase == .waiting }.count)
     }
 
-    // Opens the sheet: on the running install if there is one, else on the drop step,
-    // or straight to the analysis of what was dropped.
     func open(_ urls: [URL] = []) {
         if let url = urls.first {
             sheet.reset()
@@ -95,9 +86,8 @@ final class InstallCenter {
         retry(job, fixes: [fix])
     }
 
-    // All the fixes of one retry applied to the inputs first, then the job queues
-    // once. A job that is waiting or running is left alone: retrying it again
-    // would start a second engine run on the same job.
+    // All fixes of one retry applied to the inputs first, then the job queues once; a waiting or running job is left
+    // alone: retrying it would start a second engine run on the same job.
     func retry(_ job: InstallJob, fixes: [RetryFix]) {
         guard job.phase == .failed || job.phase == .stopped else { return }
         for fix in fixes {
@@ -109,7 +99,6 @@ final class InstallCenter {
         pump()
     }
 
-    // A retry that changed the inputs by hand (the agent's single_thread).
     func requeue(_ job: InstallJob) {
         guard job.phase == .failed || job.phase == .stopped else { return }
         job.phase = .waiting

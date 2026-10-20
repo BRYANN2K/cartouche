@@ -1,6 +1,5 @@
-// Where innoextract comes from, and how InstallerKit runs tools.
-// Cartouche.app carries its own copy in Contents/Helpers (built by
-// installer/innoextract/build.sh); a Homebrew copy is only a fallback for development.
+//// Cartouche.app carries its own innoextract copy in Contents/Helpers (built by installer/innoextract/build.sh);
+//// a Homebrew copy is only a fallback for development.
 
 import Foundation
 
@@ -26,7 +25,6 @@ public enum Innoextract {
         return candidates.first { fm.isExecutableFile(atPath: $0) }
     }
 
-    // Contents/Helpers of the running app, and next to the running binary for the CLI.
     public static func bundledCandidates(main: Bundle = .main) -> [URL] {
         var urls = [main.bundleURL.appending(path: "Contents/Helpers/innoextract")]
         if let exe = main.executableURL?.resolvingSymlinksInPath().deletingLastPathComponent() {
@@ -37,7 +35,6 @@ public enum Innoextract {
     }
 }
 
-// Runs a helper tool and returns what it printed. Tests swap it to see every call.
 public protocol ToolRunning: Sendable {
     func run(_ tool: String, _ arguments: [String]) throws -> String
 }

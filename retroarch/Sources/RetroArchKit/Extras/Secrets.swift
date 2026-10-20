@@ -2,8 +2,7 @@ import Foundation
 import Security
 import Synchronization
 
-// Where a token is kept. The app keeps it in the login keychain; tests keep
-// it in memory, so they never add an item to the user's keychain.
+// Where a token is kept. The app keeps it in the login keychain; tests keep it in memory, so they never add an item to the user's keychain.
 public protocol SecretStore: Sendable {
     func read(_ account: String) -> String?
     func write(_ secret: String, for account: String) throws
@@ -14,7 +13,6 @@ public enum SecretStoreError: Error, Equatable {
     case keychain(OSStatus)
 }
 
-// The one SecItem dance both vaults share: read one item, update or add, delete
 public enum Keychain {
     public static func read(_ query: [String: Any]) throws -> Data? {
         var query = query
@@ -27,7 +25,6 @@ public enum Keychain {
         return item as? Data
     }
 
-    // Updates in place so a rewrite never leaves the item missing
     public static func write(_ data: Data, matching query: [String: Any], attributes: [String: Any]) throws {
         var attributes = attributes
         attributes[kSecValueData as String] = data

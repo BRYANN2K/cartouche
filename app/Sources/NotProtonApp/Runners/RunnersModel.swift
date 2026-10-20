@@ -1,5 +1,3 @@
-// What the Runners screen shows and does. The screen itself belongs to the library
-// app; this is its model, reading runners only through RunnerRegistry.
 
 import CryptoKit
 import Foundation
@@ -12,11 +10,8 @@ final class RunnersModel {
     struct Row: Identifiable, Equatable, Sendable {
         enum Action: Equatable, Sendable {
             case download
-            // Copy or Use in Place, for a toolkit that was never set up
             case setUp
-            // Download or copy again, for a damaged runner
             case repair
-            // Delete the runner folder, for a runner that cannot be downloaded again
             case remove
             case none
         }
@@ -33,12 +28,10 @@ final class RunnersModel {
         let status: String
         let state: Runner.State?
         let action: Action
-        // A damaged free runner can also be deleted outright
         var removable = false
         var link: Link?
     }
 
-    // What the one-time question asks when a Game Porting Toolkit is found
     enum ToolkitPlacement: Sendable, Equatable {
         case copy
         case inPlace
@@ -46,7 +39,6 @@ final class RunnersModel {
 
     struct ToolkitQuestion: Equatable, Sendable, Identifiable {
         let install: PortingToolkitInstall
-        // What a copy needs on disk, so the question can show the size
         let copySize: Int64
         var id: String { install.id }
     }
@@ -55,9 +47,7 @@ final class RunnersModel {
     private(set) var registry = RunnerRegistry()
     private(set) var manifest = RunnerManifest(format: RunnerManifest.format, revision: 0, builds: [])
     private(set) var toolkits: [PortingToolkitInstall] = []
-    // A toolkit that waits on its Copy / Use in Place answer
     private(set) var toolkitQuestion: ToolkitQuestion?
-    // The last failure, in words for the user
     private(set) var message: String?
     private(set) var busy: Set<String> = []
 
@@ -66,16 +56,13 @@ final class RunnersModel {
     @ObservationIgnored let session: URLSession
     @ObservationIgnored let scan: @Sendable () -> FreeRunnerScan
     @ObservationIgnored let crossOver: @Sendable (URL, FreeRunnerScan) -> RunnerRegistry
-    // Where a newer runner manifest is published; nil checks nothing
     @ObservationIgnored let manifestFeed: URL?
     @ObservationIgnored let manifestCache: URL
     // The key a remote manifest must be signed with (the Sparkle public key)
     @ObservationIgnored let manifestKey: Curve25519.Signing.PublicKey?
     @ObservationIgnored let fetch: CompatibilityClient.Fetch
     @ObservationIgnored let defaults: UserDefaults
-    // How a view offers to copy a toolkit from a new location; nil shows nothing
     @ObservationIgnored var chooseToolkitFolder: @MainActor () -> URL? = { nil }
-    // Bumped at every scan start: a slower scan that finishes late drops its result
     @ObservationIgnored private var refreshGeneration = 0
 
     static let manifestCheckKey = "runnerManifestLastCheck"
@@ -85,7 +72,6 @@ final class RunnersModel {
         downloads: URL = WineRunnerInstaller.downloads,
         session: URLSession = WineRunnerInstaller.session,
         scan: @escaping @Sendable () -> FreeRunnerScan = { .standard },
-        // Tests replace this so no real CrossOver or Steam folder is read
         registry: @escaping @Sendable (URL, FreeRunnerScan) -> RunnerRegistry = { RunnerRegistry.refresh(runners: $0, free: $1) },
         manifestFeed: URL? = CompatibilityClient.feed.map(RunnerManifest.feed(fromCompatibilityFeed:)),
         manifestCache: URL = RunnerManifest.cacheFile,
@@ -108,7 +94,6 @@ final class RunnersModel {
 
     var portingToolkitMissing: Bool { !registry.runners.contains { $0.kind == .portingToolkit } }
 
-    // Lists what is on disk now; a newer manifest, when due, refreshes the list again
     func refresh() async {
         refreshGeneration += 1
         let generation = refreshGeneration
@@ -142,7 +127,6 @@ final class RunnersModel {
             && !PortingToolkitSource.isAsked(version: install.version, defaults)
     }
 
-    // Answers the question a found toolkit waits on; the answer sticks
     func answerToolkit(_ placement: ToolkitPlacement) async {
         guard let question = toolkitQuestion else { return }
         toolkitQuestion = nil
@@ -157,7 +141,6 @@ final class RunnersModel {
         PortingToolkitSource.markAsked(version: question.install.version, defaults)
     }
 
-    // Shows the question again for a toolkit that was never set up
     func askToolkit(_ id: String) async {
         guard let install = toolkits.first(where: { $0.id == id }) else { return }
         let lib = install.lib
@@ -167,7 +150,6 @@ final class RunnersModel {
         toolkitQuestion = ToolkitQuestion(install: install, copySize: size)
     }
 
-    // At most once a day, like the compatibility data
     @discardableResult
     func refreshManifestIfDue(now: Date = .now) async -> RunnerManifest.RefreshOutcome {
         guard let feed = manifestFeed, DailyChecks.enabled(defaults) else { return .unavailable }
@@ -209,7 +191,6 @@ final class RunnersModel {
         await refresh()
     }
 
-    // Deletes a free runner folder; CrossOver and unpinned supported builds never reach here
     func remove(_ id: String) async {
         guard !busy.contains(id), let runner = registry.runner(id: id), runner.kind != .crossOver else { return }
         message = nil
@@ -233,7 +214,6 @@ final class RunnersModel {
         await refresh()
     }
 
-    // Copies a toolkit — the discovered one, or a folder the user picks as a new location
     private func copy(_ id: String) async {
         let install = toolkits.first(where: { $0.id == id }) ?? pickedToolkit()
         guard let install else {
@@ -243,8 +223,6 @@ final class RunnersModel {
         await setUp(install, placement: .copy)
     }
 
-    // The damaged row's Choose… and a toolkit Cartouche never found: copy from a
-    // folder the user picks. A cancelled pick is silent; a wrong folder says so.
     func copyPickedToolkit() async {
         guard let picked = chooseToolkitFolder() else { return }
         guard let install = toolkitInstall(at: picked) else {
@@ -277,7 +255,6 @@ final class RunnersModel {
         let folder = runnersFolder
         do {
             _ = try await Task.detached {
-                // A mounted image is never used in place: ejecting it would strand the runner
                 switch install.mountedImage ? .copy : placement {
                 case .copy: return try PortingToolkitSource.copy(install, runners: folder)
                 case .inPlace: return try PortingToolkitSource.useInPlace(install, runners: folder)
@@ -319,7 +296,6 @@ final class RunnersModel {
             }
         case .portingToolkit:
             title = "\(Runner.Kind.portingToolkit.name) \(runner.displayVersion)"
-            // An app is named by its folder, as in "Found in /Applications"
             detail = runner.source.map { source in
                 let shown = source.pathExtension == "app" ? source.deletingLastPathComponent() : source
                 var path = shown.standardizedFileURL.path(percentEncoded: false)
@@ -349,7 +325,6 @@ final class RunnersModel {
         case .damaged:
             status = String(localized: "Damaged")
             if runner.kind != .crossOver { action = .repair; removable = true }
-            // A toolkit folder that is gone says so here, next to the repair offer
             if runner.kind == .portingToolkit, let reason = runner.reason { shown = reason }
         case .unsupported:
             status = String(localized: "Not supported")

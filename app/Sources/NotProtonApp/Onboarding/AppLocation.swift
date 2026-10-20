@@ -1,6 +1,5 @@
-// Before onboarding: Cartouche opened from the disk image, from Downloads or
-// from a translocated copy offers to move itself to /Applications and relaunch
-// from there, since permissions and updates are tied to that location.
+//// Before onboarding: Cartouche opened from the disk image, Downloads or a translocated copy offers to move itself
+//// to /Applications and relaunch, since permissions and updates are tied to that location.
 
 import AppKit
 import Foundation
@@ -11,7 +10,6 @@ enum AppLocation: Equatable, Sendable {
     case translocated
     case diskImage
     case downloads
-    // Anywhere else, such as a build folder or ~/Applications: left alone
     case elsewhere
 
     var offersMove: Bool {
@@ -21,8 +19,6 @@ enum AppLocation: Equatable, Sendable {
         }
     }
 
-    // `volume` is the root of the volume the bundle is on. A disk image mounts read-only;
-    // another disk the user keeps apps on does not.
     static func of(bundle: URL, volume: URL?, readOnly: Bool, home: URL = SupportPaths.home) -> AppLocation {
         let path = bundle.standardizedFileURL.path(percentEncoded: false)
         if path.contains("/AppTranslocation/") { return .translocated }
@@ -54,7 +50,6 @@ struct AppMover {
         let errorDescription: String?
     }
 
-    // Copies the bundle into place, keeping a copy that is already there until the new one is in
     func move(_ bundle: URL) throws {
         let fm = FileManager.default
         let folder = destination.deletingLastPathComponent()
@@ -89,7 +84,6 @@ struct AppMover {
     }
 }
 
-// The alert, shown before anything else at launch
 @MainActor
 enum MoveToApplications {
     enum Choice: Equatable {
@@ -121,7 +115,6 @@ enum MoveToApplications {
         alert(location).runModal() == .alertFirstButtonReturn ? .move : .quit
     }
 
-    // True when Cartouche goes on starting here
     static func check(location: AppLocation = .current, mover: AppMover = AppMover(),
                       ask: @MainActor (AppLocation) -> Choice = ask, quit: @MainActor () -> Void = { NSApp.terminate(nil) },
                       bundle: URL = Bundle.main.bundleURL) -> Bool {

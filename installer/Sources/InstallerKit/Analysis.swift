@@ -1,13 +1,10 @@
-// What the analysis step shows before anything runs: the parts, which are
-// missing and whether that blocks the install, the checksums, the Inno data
-// and the space needed. Reads files and runs only innoextract.
+// Reads files and runs only innoextract.
 
 import Foundation
 
 public struct MissingPart: Sendable, Equatable {
     public let file: String
-    // The manifest says some parts are optional downloads, so this one may be.
-    // Shown in orange and not blocking; otherwise red and blocking.
+    // Optional per the manifest; shown non-blocking, otherwise blocking.
     public let mayBeOptional: Bool
 }
 
@@ -47,13 +44,11 @@ public struct InstallerAnalysis: Sendable {
 
 public enum Analyzer {
 
-    // A dropped setup.exe stands for its folder.
     public static func folder(for dropped: URL) -> URL {
         let isDirectory = (try? dropped.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
         return isDirectory ? dropped : dropped.deletingLastPathComponent()
     }
 
-    // Gaps in the numbering, plus manifest entries that are not on disk.
     public static func missingParts(
         scan: PartScan, manifest: ChecksumManifest?, checksums: [URL: ChecksumResult] = [:]
     ) -> [MissingPart] {
@@ -67,7 +62,6 @@ public enum Analyzer {
         return names.sorted().map { MissingPart(file: $0, mayBeOptional: optional) }
     }
 
-    // Everything but the checksums, which take longest and report progress apart.
     public static func inspect(
         _ dropped: URL, tool: String? = Innoextract.path(), runner: any ToolRunning = ProcessToolRunner()
     ) throws -> InstallerAnalysis {

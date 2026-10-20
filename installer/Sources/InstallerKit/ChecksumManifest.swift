@@ -1,5 +1,4 @@
-// Reads .md5 manifests shipped with installers and checks the parts natively,
-// instead of running the Windows checker they come with.
+// Reads .md5 manifests shipped with installers and checks the parts natively, not the Windows checker.
 
 import CryptoKit
 import Foundation
@@ -28,7 +27,6 @@ public enum ChecksumResult: Sendable, Equatable {
 
 public enum Checksums {
 
-    // Looks in the folder and one level down (MD5/, Verify/).
     public static func findManifest(in folder: URL) -> URL? {
         let fm = FileManager.default
         let top = (try? fm.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.isDirectoryKey])) ?? []
@@ -39,8 +37,7 @@ public enum Checksums {
         return candidates.first { $0.pathExtension.lowercased() == "md5" }
     }
 
-    // Lines look like `d8396f99… *..\data-01.bin`. Paths are Windows-style and
-    // relative to the manifest, comments start with ';' or '#'.
+    // Lines look like `d8396f99… *..\data-01.bin`. Paths are Windows-style and relative to the manifest, comments start with ';' or '#'.
     public static func parse(_ manifest: URL) throws -> ChecksumManifest {
         let text = try String(contentsOf: manifest, encoding: .utf8)
         let base = manifest.deletingLastPathComponent()
@@ -71,7 +68,6 @@ public enum Checksums {
         return hasher.finalize().map { String(format: "%02x", $0) }.joined()
     }
 
-    // Checksum mismatches by file name.
     public static func damaged(_ results: [URL: ChecksumResult]) -> [String] {
         results.compactMap { url, result in
             if case .mismatch = result { return url.lastPathComponent }
@@ -79,11 +75,9 @@ public enum Checksums {
         }.sorted()
     }
 
-    // One file per task: a single MD5 stream can't be split, but parts can run side by side.
-    // progress gets the bytes hashed since its last call, from any part.
-    // Entries are hashed only inside root: the folder the manifest was found in,
-    // since files like MD5/checksums.md5 refer to it as "..\". An entry that
-    // escapes it is skipped.
+    // Parts run side by side; progress gets the bytes hashed since its last call. Entries are hashed only inside
+    // root: the folder the manifest was found in, since files like MD5/checksums.md5 refer to it as "..\". An entry
+    // that escapes it is skipped.
     public static func verify(
         _ manifest: ChecksumManifest, root: URL? = nil,
         progress: (@Sendable (Int64) -> Void)? = nil

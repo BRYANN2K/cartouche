@@ -1,16 +1,13 @@
-// The Microsoft runtimes games carry in _Redist or _CommonRedist folders. They
-// are never run: their winetricks equivalents are installed instead.
+// The Microsoft runtimes games carry in _Redist or _CommonRedist folders. They are never run: their winetricks equivalents are installed instead.
 
 import Foundation
 
 public struct Redistributable: Sendable, Equatable, Hashable {
     public enum Family: String, Sendable { case visualCpp, directX, dotNet, xna, physX, openAL }
 
-    // Relative to the install folder.
     public let file: String
     public let family: Family
     public let verb: String
-    // Product names, so not translated: "Visual C++ 2015–2022", "DirectX 9".
     public let label: String
 }
 
@@ -24,7 +21,6 @@ public enum Redistributables {
         ("2022", "vcrun2022", "Visual C++ 2015–2022"),
     ]
 
-    // Nil for anything that is not a known runtime installer.
     public static func identify(_ path: String) -> Redistributable? {
         let lower = path.lowercased().replacingOccurrences(of: "\\", with: "/")
         let name = (lower as NSString).lastPathComponent
@@ -34,7 +30,6 @@ public enum Redistributables {
         }
 
         if name.hasPrefix("vc_redist") || name.hasPrefix("vcredist") || lower.contains("/vcredist/") {
-            // The year is in the name or in a parent folder; vc_redist without one is 2015 or later.
             if let year = vcYears.first(where: { lower.contains($0.year) }) { return item(.visualCpp, year.verb, year.label) }
             return name.hasPrefix("vc_redist") ? item(.visualCpp, "vcrun2022", "Visual C++ 2015–2022") : nil
         }
@@ -69,7 +64,6 @@ public enum Redistributables {
         return found.sorted { $0.file < $1.file }
     }
 
-    // Each verb once, in the order found.
     public static func verbs(_ items: [Redistributable]) -> [String] {
         var seen: Set<String> = []
         return items.map(\.verb).filter { seen.insert($0).inserted }

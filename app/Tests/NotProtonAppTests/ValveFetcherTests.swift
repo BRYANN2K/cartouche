@@ -6,8 +6,6 @@ import Testing
 // Real packages and real pins into a throwaway bridge. A fixture would only prove the test
 // agrees with itself, so this pays for Valve's 97M once per machine and caches it.
 
-// Swift 6 refuses a captured var mutated inside the report closure, so a box is written by
-// one closure and read after run returns, as Shell does for pipe buffers.
 private final class PhaseLog: @unchecked Sendable {
     var labels: [String] = []
 }
@@ -46,8 +44,6 @@ struct ValveFetcherTests {
         #expect(phases.filter { $0 == "Extracting" }.count == manifest.packages.count)
     }
 
-    // The wording is defined once on PinnedDownload.Progress so the fetcher and repair
-    // cannot drift apart on it. This case is the only thing carrying it out of the fetcher.
     @Test("The download phase shows the download's own wording")
     func downloadPhaseDelegatesItsLabel() {
         #expect(ValveFetcher.Phase.downloading(.reusing).label
@@ -78,8 +74,6 @@ struct ValveFetcherTests {
         let manifest = try ValvePackageManifest.bundled()
         _ = try await ValveFetcher.run(manifest: manifest, bridge: bridge)
 
-        // One deleted and one corrupted, including a file the bridge stages twice from a single
-        // archive entry, which is where a shared inner path could go wrong.
         let deleted = "tier0_s64.dll"
         let corrupted = "legacycompat/steamclient64.dll"
         try FileManager.default.removeItem(at: bridge.appending(path: deleted))
@@ -173,8 +167,6 @@ struct ValveFetcherTests {
             try ValveFetcher.install(manifest, from: extracted, into: bridge)
         }
 
-        // The first file proves the loop reached the copies, so the check below cannot pass
-        // on a run that gave up before touching the bridge.
         let first = try? String(contentsOf: bridge.appending(path: "first.dll"), encoding: .utf8)
         #expect(first == "new first", "the loop never got as far as the first copy")
 

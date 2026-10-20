@@ -2,7 +2,6 @@ import Foundation
 import Testing
 @testable import InstallerKit
 
-// Records each call instead of starting a process.
 final class RecordingRunner: ToolRunning, @unchecked Sendable {
     private let lock = NSLock()
     private(set) var calls: [(tool: String, arguments: [String])] = []

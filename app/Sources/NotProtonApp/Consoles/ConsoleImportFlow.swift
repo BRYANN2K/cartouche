@@ -18,7 +18,6 @@ final class ConsoleImport {
     private(set) var step: Step = .drop
     private(set) var rows: [Row] = []
     private(set) var checking = false
-    // The console the user picked for each file the database does not know
     var chosen: [String: String] = [:]
 
     @ObservationIgnored private let identifier: Identifier
@@ -28,7 +27,6 @@ final class ConsoleImport {
         self.identifier = identifier
     }
 
-    // Lists the files at once, then names them one by one
     func start(_ urls: [URL]) {
         work?.cancel()
         rows = []
@@ -50,10 +48,8 @@ final class ConsoleImport {
         }
     }
 
-    // Waits for every file to be named, for tests and for Add
     func finish() async { await work?.value }
 
-    // Back to the first step, with nothing left running
     func reset() {
         work?.cancel()
         work = nil
@@ -67,7 +63,6 @@ final class ConsoleImport {
 
     var recognized: [Identification] { rows.compactMap(\.found).filter(\.isRecognized) }
 
-    // Recognized files, and the others once a console is picked for them
     var games: [ConsoleGame] {
         rows.compactMap(\.found).compactMap { found in
             found.isRecognized ? found.game() : chosen[found.id].flatMap { found.game(console: $0) }
@@ -85,7 +80,6 @@ final class ConsoleImport {
         return n == 1 ? String(localized: "Add 1 Game") : String(localized: "Add \(n) Games")
     }
 
-    // "Super Nintendo, checksum match"
     static func line(_ found: Identification) -> String {
         guard found.isRecognized, let id = found.console, let by = found.identifiedBy else {
             return String(localized: "Not recognized")
@@ -99,7 +93,6 @@ final class ConsoleImport {
         }
     }
 
-    // Consoles the games need that the user has not added yet
     func newConsoles(added: [Console]) -> [Console] {
         let ids = games.map(\.console).reduce(into: [String]()) { if !$0.contains($1) { $0.append($1) } }
         return ids.filter { id in !added.contains { $0.id == id } }.compactMap(ConsoleCatalog.console)
@@ -109,7 +102,6 @@ final class ConsoleImport {
 struct ConsoleImportFlow: View {
     let center: ConsoleCenter
     @Binding var kind: AddGamesKind
-    // The center's, so it outlives a switch to Windows Game; tests may hand in their own
     let flow: ConsoleImport
     @State private var targeted = false
     @Environment(\.dismiss) private var dismiss
@@ -129,11 +121,9 @@ struct ConsoleImportFlow: View {
         }
         .padding(22)
         .frame(width: 560)
-        // Switching to Windows Game and back starts again from the drop
         .onDisappear { flow.reset() }
     }
 
-    // Windows Game is the install sheet: this sheet closes and that one opens
     private var kindPicker: some View {
         Picker("Kind", selection: Binding(get: { kind }, set: { new in
             guard new == .windows, let library = center.library else {
@@ -235,7 +225,6 @@ struct ConsoleImportFlow: View {
         }
     }
 
-    // "Also adds Game Boy to your consoles, with SameBoy."
     static func alsoAdds(_ consoles: [Console]) -> String {
         let names = ListFormatter.localizedString(byJoining: consoles.map(\.name))
         let cores = ListFormatter.localizedString(byJoining: consoles.map(\.coreName).reduce(into: [String]()) {
@@ -244,7 +233,6 @@ struct ConsoleImportFlow: View {
         return String(localized: "Also adds \(names) to your consoles, with \(cores).")
     }
 
-    // The open panel; tests hand in their files instead
     static var chooser: @MainActor () -> [URL]? = ConsoleImportFlow.openPanel
 
     static func openPanel() -> [URL]? {
@@ -293,7 +281,6 @@ private struct ImportRow: View {
         .padding(.vertical, 8)
     }
 
-    // The consoles that play this file type first, then the rest
     static func order(_ candidates: [String]) -> [Console] {
         candidates.compactMap(ConsoleCatalog.console) + ConsoleCatalog.all.filter { !candidates.contains($0.id) }
     }

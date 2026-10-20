@@ -27,7 +27,6 @@ struct SignatureDatabaseSelectionTests {
 
     @Test("Numbers are compared as numbers, not as text")
     func comparesNumerically() throws {
-        // Lexically "9" sorts above "10", so a string comparison would pick the older one.
         let dir = try directory(["9.json", "10.json"])
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -68,7 +67,6 @@ struct SignatureDatabaseSelectionTests {
 
     @Test("Trailing text after the number is not a database either")
     func refusesTrailingText() throws {
-        // What duplicating the file in Finder produces.
         let dir = try directory(["1788400362 copy.json"])
         defer { try? FileManager.default.removeItem(at: dir) }
 

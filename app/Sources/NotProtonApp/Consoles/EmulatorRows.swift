@@ -1,8 +1,6 @@
 import RetroArchKit
 import SwiftUI
 
-// The panel's Setup for a console a standalone emulator plays: which emulator
-// starts its games, for every game of the console, as in Settings > Consoles
 struct EmulatorRows: View {
     let console: Console
     let route: ConsoleRoute

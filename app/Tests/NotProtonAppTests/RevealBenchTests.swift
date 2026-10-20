@@ -24,7 +24,6 @@ struct RevealBenchTests {
 
     func measure(covers: Int, seconds: Double = 5) async throws -> (fps: Double, cpu: Double, idle: Double) {
         let image = revealFixtureCover(width: 600, height: 900)
-        // The grid's cover size: about 180 by 270 points on a Retina screen
         let size = CGSize(width: 180, height: 270)
         let window = NSWindow(contentRect: CGRect(x: 80, y: 80, width: size.width * CGFloat(covers) + 20, height: size.height + 20),
                               styleMask: [.borderless], backing: .buffered, defer: false)

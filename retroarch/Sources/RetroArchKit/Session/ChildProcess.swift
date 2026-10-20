@@ -1,9 +1,7 @@
 import Foundation
 import Synchronization
 
-// A started RetroArch: its pipes, and a wait for its exit that can give up.
-// Process is only asked for its identifier once running, which is safe from
-// any thread.
+// A started RetroArch: its pipes, and a wait for its exit that can give up. Process is only asked for its identifier once running, which is safe from any thread.
 final class ChildProcess: @unchecked Sendable {
 
     let process: Process
@@ -15,7 +13,6 @@ final class ChildProcess: @unchecked Sendable {
         var waiting: [CheckedContinuation<Int32, Never>] = []
     }
 
-    // stdout arrives here split into lines; nil marks its end
     init(
         executable: URL, arguments: [String], environment: [String: String]?,
         stderr: URL?, pipes: Bool, onLine: @escaping @Sendable (Data?) -> Void
@@ -28,8 +25,7 @@ final class ChildProcess: @unchecked Sendable {
         if pipes {
             let input = Pipe()
             let output = Pipe()
-            // RetroArch can die between an isRunning check and the write: fail
-            // with EPIPE instead of SIGPIPE ending the app
+            // RetroArch can die between an isRunning check and the write: fail with EPIPE instead of SIGPIPE ending the app
             _ = fcntl(input.fileHandleForWriting.fileDescriptor, F_SETNOSIGPIPE, 1)
             process.standardInput = input
             process.standardOutput = output
@@ -84,7 +80,6 @@ final class ChildProcess: @unchecked Sendable {
         try? stdinPipe?.fileHandleForWriting.close()
     }
 
-    // The exit status, once the process ends
     func exited() async -> Int32 {
         await withCheckedContinuation { continuation in
             let status = exit.withLock { state -> Int32? in
@@ -96,8 +91,6 @@ final class ChildProcess: @unchecked Sendable {
         }
     }
 
-    // True when it exited within the time. Polled, so a wait that gives up
-    // leaves nothing behind.
     func waitForExit(within limit: Duration) async -> Bool {
         let deadline = ContinuousClock.now + limit
         while exitStatus == nil {

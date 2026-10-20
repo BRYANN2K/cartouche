@@ -1,5 +1,5 @@
-// Where a game installed from a Windows installer lives, and which runner
-// installs it. Every game gets its own folder and its own fresh prefix:
+//// Where a game installed from a Windows installer lives, and which runner installs it. Every game gets its own
+//// folder and its own fresh prefix:
 //   installs/<slug>/pfx        the Wine prefix, game files in drive_c/Games/<Name>
 //   installs/<slug>/game.json  the library record, written when the install is done
 
@@ -13,7 +13,6 @@ struct GameFolder: Sendable, Equatable {
     var record: URL { root.appending(path: "game.json") }
     var launcher: URL { root.appending(path: "launch") }
     var wineOutput: URL { root.appending(path: "wine-output.log") }
-    // Marks a folder Cartouche made for an install that is not finished yet.
     var attempt: URL { root.appending(path: ".install-attempt") }
 
     var isFinished: Bool { FileManager.default.fileExists(atPath: record.path(percentEncoded: false)) }
@@ -26,8 +25,7 @@ struct GameFolder: Sendable, Equatable {
         return words.isEmpty ? "game" : words.joined(separator: "-")
     }
 
-    // A finished game is never reused; an unfinished attempt of the same game
-    // is cleared so the retry starts from a fresh prefix.
+    // A finished game is never reused; an unfinished attempt of the same game is cleared so the retry starts from a fresh prefix.
     static func fresh(for name: String, in installs: URL = installs) throws -> GameFolder {
         let fm = FileManager.default
         try fm.createDirectory(at: installs, withIntermediateDirectories: true)
@@ -52,8 +50,7 @@ struct GameFolder: Sendable, Equatable {
 
 enum InstallRunners {
 
-    // Runners that can install: set up, serving Rosetta, and either offered to
-    // Steam (CrossOver) or a ready free Wine build.
+    // Runners that can install: set up, serving Rosetta, and either offered to Steam (CrossOver) or a ready free Wine build.
     static func choices(_ registry: RunnerRegistry) -> [Runner] {
         registry.runners.filter { runner in
             guard runner.flavors.contains(.rosetta) else { return false }

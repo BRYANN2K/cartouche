@@ -12,7 +12,6 @@ extension EnvironmentValues {
 }
 
 extension View {
-    // The activity slot at the bottom of the sidebar
     func activitySlot(_ center: ActivityCenter, library: LibraryModel) -> some View {
         safeAreaInset(edge: .bottom, spacing: 0) {
             ActivitySlotView(center: center, library: library)
@@ -20,7 +19,6 @@ extension View {
     }
 }
 
-// What is going on now, at the bottom of the sidebar. Hidden when nothing is.
 struct ActivitySlotView: View {
     let center: ActivityCenter
     let library: LibraryModel
@@ -131,9 +129,7 @@ struct InstallingCard: View {
     }
 }
 
-// A store client's running job: the percent ring, the game, and Stop. Store
-// clients cannot pause a download, so the ring only reads; Stop ends the job.
-// The card taps through to the game in the library.
+// Store clients cannot pause a download: the ring only reads; Stop ends the job.
 struct StoreInstallCard: View {
     let activity: StoreActivity
     let stop: () -> Void
@@ -185,8 +181,7 @@ struct DownloadsCard: View {
     }
 }
 
-// A thin progress bar, as the mockup draws it. NSProgressIndicator animates every
-// change on a thread of its own, which the slot's once-a-second updates do not need.
+// A thin progress bar, as the mockup draws it. NSProgressIndicator animates every change on a thread of its own, which the slot's once-a-second updates do not need.
 struct ActivityBar: View {
     let fraction: Double
     var color: Color = .accentColor
@@ -205,9 +200,6 @@ struct ActivityBar: View {
     }
 }
 
-// The App Store's download ring: the track, the progress arc, and a mark in the
-// middle for the state. Clicking pauses a download, or resumes a paused one.
-// With no mark it only reads, like a store job's ring.
 struct DownloadRing: View {
     let fraction: Double
     var mark: DownloadSummary.Mark? = nil
@@ -294,7 +286,6 @@ struct DownloadRing: View {
     }
 }
 
-// The panel's download block, in place of Play while Steam downloads the game
 struct DownloadBlock: View {
     let download: DownloadActivity
     let center: ActivityCenter
@@ -341,7 +332,6 @@ struct DownloadBlock: View {
 }
 
 extension LibraryModel {
-    // Shows a game from the activity slot: its source in the sidebar, selected, with its panel
     func reveal(gameID: String) {
         guard let game = game(gameID) else { return }
         if !games(in: selection).contains(where: { $0.id == gameID }) { selection = .source(game.source) }
@@ -350,7 +340,6 @@ extension LibraryModel {
     }
 }
 
-// The status item's activity sections: playing, installing, every download
 struct ActivityMenuContent: View {
     let center: ActivityCenter
 

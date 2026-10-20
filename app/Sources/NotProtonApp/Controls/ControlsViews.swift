@@ -1,6 +1,5 @@
 import SwiftUI
 
-// The game panel's Controls group: the controller, who handles the layout, Customize…
 struct ControlsRow: View {
     let game: Game
     let center: ControlsCenter
@@ -46,7 +45,6 @@ extension View {
         }
     }
 
-    // Couch mode's ring around what A would act on
     func couchRing(_ on: Bool, radius: CGFloat = 8) -> some View {
         overlay {
             if on {
@@ -70,7 +68,6 @@ struct ControlsSheet: View {
     init(center: ControlsCenter, session: ControlsSession) {
         self.center = center
         self.session = session
-        // Back from a relaunch, or waiting for one: the tab with the option it was for
         _tab = State(initialValue: session.opensOnKeyboard || session.remap.phase == .waitingForRelaunch ? .keyboard : .controller)
     }
 
@@ -258,7 +255,6 @@ struct ControlsSheet: View {
     }
 }
 
-// Settings > Controllers
 struct ControllersSettingsView: View {
     let center: ControlsCenter
 

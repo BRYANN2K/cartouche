@@ -1,19 +1,13 @@
-// Steam's downloads and its running game, read from Steam's own files:
-// appmanifest_*.acf for the state flags and byte counts, logs/content_log.txt for
-// pauses and failures the manifest does not carry yet, and gameprocess_log.txt,
-// registry.vdf or the manifest's running bit for what runs. Sources: docs/research/p7-steam-downloads.md.
+// Steam's downloads and running game, read from Steam's own files: appmanifest_*.acf, logs/content_log.txt, gameprocess_log.txt, registry.vdf. Sources: docs/research/p7-steam-downloads.md.
 
 import Foundation
 
 struct SteamActivitySnapshot: Equatable, Sendable {
     var downloads: [DownloadActivity] = []
-    // Fully installed with nothing left to download
     var installed: Set<Int> = []
     var runningAppID: Int?
-    // The processes Steam tracks for the running game, each with the time Steam
-    // logged it, still alive and still tracing back to the game
+    // The processes Steam tracks for the running game, each with the time Steam logged it, still alive and still tracing back to the game
     var trackedPIDs: [pid_t: Date] = [:]
-    // Every app Steam has a manifest for, to name the running game
     var names: [Int: String] = [:]
 }
 
@@ -68,7 +62,6 @@ struct SteamActivityReader: Sendable {
         return snapshot
     }
 
-    // A manifest that is being downloaded, queued or paused, or nil
     static func download(appID: Int, name: String, state: VDF, log: LogState?) -> DownloadActivity? {
         let flags = state["StateFlags"]?.int ?? 0
         let toDownload = Int64(state["BytesToDownload"]?.string ?? "") ?? 0
@@ -100,7 +93,6 @@ struct SteamActivityReader: Sendable {
         return item
     }
 
-    // EAppUpdateError, the ones a player can act on
     static func updateError(_ code: Int) -> String? {
         switch code {
         case 6: String(localized: "No internet connection")
@@ -120,8 +112,7 @@ struct SteamActivityReader: Sendable {
         case failed(String)
     }
 
-    // The last thing the log says about each app. Lines look like
-    // [2026-10-19 21:04:11] AppID 1593500 update canceled : Suspended
+    // The last thing the log says about each app. Lines look like [2026-10-19 21:04:11] AppID 1593500 update canceled : Suspended
     static func logStates(_ text: String) -> [Int: LogState] {
         var out: [Int: LogState] = [:]
         for line in text.split(separator: "\n") {

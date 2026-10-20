@@ -33,7 +33,6 @@ struct FakeInstall {
         let trapScript = "#!/bin/sh\ntouch '\(trap.path)'\n"
         var names = ["setup.exe", "data-01.bin", "data-02.bin"]
         if withManifest {
-            // Sparse: verifying 400 MB gives a window long enough to stop in.
             let big = source.appending(path: "data-03.bin")
             fm.createFile(atPath: big.path, contents: nil)
             try FileHandle(forWritingTo: big).truncateFile(atOffset: 400 << 20)

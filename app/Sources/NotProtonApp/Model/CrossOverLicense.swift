@@ -1,7 +1,4 @@
-// Checks whether the user's CrossOver install is licensed.
-// CodeWeavers, I hope this doesn't bother you. You don't validate
-// license when the Wine binary itself is invoked, so I wanted to
-// do something to prevent skids from doing really trivial piracy.
+// CodeWeavers, I hope this doesn't bother you. You don't validate license when the Wine binary itself is invoked, so I wanted to do something to prevent skids from doing really trivial piracy.
 
 import Foundation
 
@@ -10,7 +7,6 @@ enum CrossOverLicense {
     struct Status: Sendable {
         let licensed: Bool
         let detail: String
-        // The real reason, for the log.
         let diagnostic: String
     }
 

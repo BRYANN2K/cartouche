@@ -54,8 +54,6 @@ struct ValvePackageManifestTests {
         #expect(manifest.bundle == nil)
     }
 
-    // Both manifests are written by hand and read by different consumers, so only a test stops
-    // them drifting. No row means unfetchable, and no entry means a file nothing consumes.
     @Test("Every valve payload entry has exactly one package row, and the reverse")
     func agreesWithThePayloadManifest() throws {
         let payload = try PayloadManifest.bundled()
@@ -72,8 +70,6 @@ struct ValvePackageManifestTests {
     func innerPathsAreDeduplicated() throws {
         let manifest = try ValvePackageManifest.bundled()
 
-        // Six of the ten come from the Linux package under legacycompat, and two are also staged
-        // at the bridge root, so eight bridge paths resolve to six entries in that archive.
         let linux = manifest.files.filter { $0.package == "linux" }
         #expect(linux.count == 8)
         #expect(manifest.innerPaths(package: "linux").count == 6)
@@ -163,8 +159,6 @@ struct ValvePackageManifestTests {
             try parse(good + "\npackage  linux  bins_misc_ubuntu12.zip.bb  \(hash)")
         }
 
-        // Two bridge paths sharing one archive entry but disagreeing on its hash. This
-        // is allowed to share, and not allowed to contradict.
         let shared = good + "\nfile     copy.dll  win64  tier0_s64.dll  \(String(repeating: "b", count: 64))"
         #expect(throws: StepFailure.self) { try parse(shared) }
         #expect(throws: Never.self) {

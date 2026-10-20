@@ -62,7 +62,6 @@ struct ContinueFromTests {
         #expect(await runner.requests.last?.content == game.fileURL)
         await scene.center.quit()
 
-        // Quit wrote the auto state; Auto now leads Continue From
         let states = await scene.center.states(for: game)
         #expect(states.map(\.title) == ["Auto", "Slot 3"])
         await scene.center.play(game.id, slot: nil, resume: true, reduceMotion: true)
@@ -97,7 +96,6 @@ struct ContinueFromTests {
         let pictures = LiveRetroArch.video != "null"
         if pictures { #expect(states.allSatisfy { $0.picture != nil }) }
 
-        // The panel shows them; Slot 3 is clicked
         let texts = try await renderedTexts(
             GamePanel(game: try #require(scene.library.game(game.id)), model: scene.library,
                       compat: try await fixtureCompat(scene.work, defaults: scene.scratch),
@@ -120,7 +118,6 @@ struct ContinueFromTests {
         await scene.center.quit()
     }
 
-    // Darkest to brightest row in the left column, away from the bar: scanlines widen it
     static func rowSpread(_ png: Data) throws -> Int {
         let image = try #require(CGImageSourceCreateWithData(png as CFData, nil).flatMap { CGImageSourceCreateImageAtIndex($0, 0, nil) })
         let width = image.width, height = image.height
@@ -132,7 +129,6 @@ struct ContinueFromTests {
         return (levels.max() ?? 0) - (levels.min() ?? 0)
     }
 
-    // Where the white bar of the test core's screen starts, in its 160 columns
     static func bar(_ png: Data) throws -> Int? {
         let image = try #require(CGImageSourceCreateWithData(png as CFData, nil).flatMap { CGImageSourceCreateImageAtIndex($0, 0, nil) })
         let width = image.width, height = image.height

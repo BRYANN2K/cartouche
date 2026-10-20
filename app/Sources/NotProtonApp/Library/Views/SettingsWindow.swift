@@ -57,14 +57,11 @@ struct SettingsWindow: View {
     let model: LibraryModel
     let permissions: PermissionCenter
     let consoles: ConsolesSettingsModel
-    // The choices CompatibilityModel reads, so the toggles reach it
     let choices: PrivacyChoices
 
     @State private var tab: SettingsTab = .general
     @Environment(ControlsCenter.self) private var controls: ControlsCenter?
-    // Achievements, iCloud Drive and translation in Settings > Consoles; emulators
     @Environment(ConsoleCenter.self) private var consoleCenter: ConsoleCenter?
-    // Level, transports, pending approvals and the action log
     @Environment(AgentControlModel.self) private var agents: AgentControlModel?
 
     var body: some View {
@@ -92,7 +89,6 @@ struct SettingsWindow: View {
         }
     }
 
-    // Cartouche's own RetroArch folder, never the user's
     static let retroArchPaths = RetroArchPaths(root: SupportPaths.support.appending(path: "retroarch", directoryHint: .isDirectory))
 
     @MainActor
@@ -141,8 +137,6 @@ struct LibrarySettingsView: View {
                             .lineLimit(1).truncationMode(.middle)
                         Button("Locate Steam…") {
                             guard let app = SteamInstallView.chooseSteam() else { return }
-                            // The throwaway model carries the "not Steam" text
-                            // in its stage; show it instead of dropping it
                             let setup = SteamSetup()
                             if setup.locate(app) {
                                 steamPath = app.path(percentEncoded: false)
@@ -216,7 +210,6 @@ struct AccountsSettingsView: View {
 struct CompatibilitySettingsView: View {
     let model: LibraryModel
     @Environment(\.openWindow) private var openWindow
-    // Free runners and the Game Porting Toolkit; absent in standalone test fixtures
     @Environment(RunnersModel.self) private var runners: RunnersModel?
 
     var body: some View {

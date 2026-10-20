@@ -1,28 +1,22 @@
 import CryptoKit
 import Foundation
 
-// What one dropped or found file turned out to be
 public struct Identification: Sendable, Identifiable, Equatable {
     // What RetroArch loads: the cartridge, the .cue, or the .m3u of a set
     public var file: URL
-    // Each disc of an .m3u set, in order
     public var discs: [URL] = []
     public var console: String?
     public var databaseName: String?
     public var name: String
-    // nil: not recognized, the user picks the console
     public var identifiedBy: IdentifiedBy?
-    // Consoles whose files have this extension, offered first in the picker
     public var candidates: [String] = []
-    // The whole file's CRC32, when identification already read it; netplay
-    // room matching reuses it instead of reading the file again
+    // The file's CRC32 when identification already read it; netplay room matching reuses it.
     public var crc: UInt32?
 
     public var id: String { file.path(percentEncoded: false) }
 
     public var isRecognized: Bool { identifiedBy != nil && console != nil }
 
-    // The library entry, with the console the database gave or the user chose
     public func game(console chosen: String? = nil) -> ConsoleGame? {
         guard let console = isRecognized ? console : chosen else { return nil }
         var game = ConsoleGame(console: console, name: name, databaseName: isRecognized ? databaseName : nil,
@@ -32,9 +26,7 @@ public struct Identification: Sendable, Identifiable, Equatable {
     }
 }
 
-// Tells console game files apart against the libretro database: the CRC32 of a
-// cartridge, the serial a PlayStation disc carries, then the SHA-1 of its data
-// track, then the file name. It reads files and writes none.
+// Libretro database match order: cartridge CRC32, PS disc serial, data-track SHA-1, then file name. Reads files, writes none.
 public struct Identifier: Sendable {
 
     public let database: ContentDatabase
@@ -45,8 +37,7 @@ public struct Identifier: Sendable {
         self.consoles = consoles
     }
 
-    // The files a drop or a folder holds that can be games: a disc's tracks
-    // and the discs an .m3u lists go with their sheet, not on their own
+    // A disc's tracks and the discs an .m3u lists go with their sheet, not on their own.
     public static func files(in urls: [URL]) -> [URL] {
         let wanted = ConsoleCatalog.extensions.union(["zip"])
         var found: [URL] = []
@@ -212,7 +203,6 @@ public struct Identifier: Sendable {
     }
 }
 
-// The files a .cue or an .m3u names, next to it
 public enum Playlist {
     public static func cue(_ url: URL) -> [URL] {
         guard let text = (try? String(contentsOf: url, encoding: .utf8)) ?? (try? String(contentsOf: url, encoding: .isoLatin1))
@@ -248,8 +238,7 @@ public enum Playlist {
     }
 }
 
-// The product code a PlayStation disc carries in its first sectors, read as
-// RetroArch's scanner reads it: SLUS_005.94 is SLUS-00594
+// PS disc product code, read as RetroArch's scanner reads it: SLUS_005.94 is SLUS-00594.
 public enum DiscSerial {
     static let prefixes = ["SCUS", "SLUS", "SLES", "SCED", "SLPS", "SLPM", "SCPS", "SLED", "SIPS", "ESPM", "SCES", "SLKA", "SCAJ"]
 

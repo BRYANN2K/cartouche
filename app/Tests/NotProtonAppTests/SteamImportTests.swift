@@ -99,7 +99,6 @@ struct SteamImportTests {
     func steamClosed() async throws {
         let fixture = try SteamFixture("closed")
         defer { fixture.remove() }
-        // The last export, written while God of War was installed and Hollow Knight was not
         var exported = Set(SteamFixture.apps.filter(\.installed).map(\.id))
         exported.insert(1_593_500)
         exported.remove(367_520)

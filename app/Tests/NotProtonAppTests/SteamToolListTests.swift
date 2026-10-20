@@ -3,7 +3,7 @@ import Testing
 
 @testable import NotProtonApp
 
-// Pins the CrossOver tools Steam is offered, as captured on the P0 baseline. Moving
+// Pins the CrossOver tools Steam is offered, as captured on the baseline. Moving
 // CrossOver onto the runner model must leave these names and their order as they are.
 @Suite("Steam tool list baseline")
 struct SteamToolListTests {

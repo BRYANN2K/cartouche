@@ -2,7 +2,6 @@ import Foundation
 import Testing
 @testable import InstallerKit
 
-// A slice of what the compatibility data's records hold: App ID and name.
 let sampleIndex = GameIndex([
     .init(appID: 1_465_360, name: "CarX Street"),
     .init(appID: 292_030, name: "The Witcher 3: Wild Hunt"),
@@ -107,7 +106,6 @@ struct GameIndexTests {
     }
 }
 
-// A minimal PE32 with one .rsrc section holding an RT_VERSION block.
 func samplePE(productName: String) -> Data {
     func le16(_ v: Int) -> [UInt8] { [UInt8(v & 0xFF), UInt8(v >> 8 & 0xFF)] }
     func le32(_ v: Int) -> [UInt8] { le16(v & 0xFFFF) + le16(v >> 16 & 0xFFFF) }

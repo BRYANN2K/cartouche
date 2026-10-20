@@ -73,7 +73,6 @@ struct StandaloneSettingsTests {
         return hosting
     }
 
-    // What the pane draws, read back with text recognition, as a person sees it
     private func renderedTexts(_ view: some View) async throws -> [String] {
         try await Task.sleep(for: .milliseconds(150))
         let png = try snapshot(view, scheme: .light)

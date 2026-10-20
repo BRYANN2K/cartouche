@@ -45,7 +45,6 @@ struct LibraryModelTests {
         #expect(model.games(in: .favorites).map(\.name) == ["Red Dead Redemption 2"])
         #expect(model.badge(.favorites) == "1")
 
-        // A new app session reads the same file
         let relaunched = libraryModel(fixture, defaults: scratch)
         await relaunched.load()
         #expect(relaunched.isFavorite("steam:1174180"))

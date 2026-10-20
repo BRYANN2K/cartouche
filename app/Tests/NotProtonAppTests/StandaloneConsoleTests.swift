@@ -64,7 +64,6 @@ struct StandaloneConsoleTests {
             .frame(width: 360, height: 980)
     }
 
-    // The sidebar with P7's activity slot following this scene's console center
     private func sidebar(_ scene: ConsoleScene) -> some View {
         let activity = ActivityCenter(installs: InstallCenter(notifier: RecordingNotifier()), control: RecordingControl(),
                                       notifier: RecordingActivityNotifier())

@@ -42,7 +42,6 @@ struct ConsolePanelTests {
         #expect(content.states.map(\.title) == ["Auto", "Slot 3"])
         #expect(content.cores.map(\.name) == ["Snes9x", "bsnes", "Mesen-S"])
 
-        // A PlayStation game without its BIOS: the warning comes under Play
         let disc = try await scene.addGame(console: "ps1", name: "Saga", discs: 2)
         let ps1 = try #require(scene.center.console(of: disc))
         let warned = ConsolePanelContent(game: disc, console: ps1, states: [], bios: await scene.center.bios(for: disc), playing: nil)

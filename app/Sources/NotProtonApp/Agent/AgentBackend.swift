@@ -3,10 +3,6 @@ import Foundation
 import InstallerKit
 import RetroArchKit
 
-// The app itself as an agent backend: every tool lands on the same models the
-// window uses — LibraryModel for the library and setup, ConsoleCenter for
-// console play, InstallCenter for installs. Nothing is duplicated here; the
-// backend only adapts calls and roots.
 @MainActor
 final class AgentLiveBackend: AgentBackend {
 
@@ -19,9 +15,8 @@ final class AgentLiveBackend: AgentBackend {
     let performance: PerformanceStore
     let cleaner = InstallerCleanup()
 
-    // The folders an agent may read beyond Cartouche's own: watched game
-    // folders, every installed game's folder, Steam prefix roots. Computed
-    // per call so a game or folder added after launch is granted at once.
+    // Folders an agent may read beyond Cartouche's own: watched game folders, every installed game's folder, Steam
+    // prefix roots. Computed per call so a folder added after launch is granted at once.
     var roots: AgentRoots {
         var roots = AgentRoots(
             support: SupportPaths.support, logs: SupportPaths.logs,
@@ -33,7 +28,6 @@ final class AgentLiveBackend: AgentBackend {
         return roots
     }
 
-    // Indirection for tests: opening URLs, runner installs, folder copy.
     var open: @MainActor (URL) -> Void = { NSWorkspace.shared.open($0) }
     var installRunnerBody: (@MainActor (String) async throws -> Void)?
 
@@ -222,8 +216,6 @@ final class AgentLiveBackend: AgentBackend {
 
     // MARK: Prefix tools
 
-    // The prefix and the Wine to use: a Steam game's compatdata prefix, an
-    // installer game's own pfx.
     private func winePrefix(for game: Game) throws -> (prefix: URL, env: [String: String], wine: WineRunner?) {
         if let installed = installedGame(for: game) {
             let prefix = URL(filePath: installed.prefix)
@@ -263,8 +255,6 @@ final class AgentLiveBackend: AgentBackend {
         return try await PrefixTools.winetricks(verbs, in: prefix)
     }
 
-    // The prefix a tool may look at — drive_c and all. nil when the game has
-    // no usable prefix yet.
     func prefixFolder(_ game: Game) -> URL? {
         try? winePrefix(for: game).prefix
     }
@@ -412,8 +402,6 @@ final class AgentLiveBackend: AgentBackend {
         case "console": return consoleCenter.paths.logs.appending(path: "retroarch.log")
         case "installer":
             guard let game else { return nil }
-            // A finished job links back to the installed game; a running one
-            // is matched by title.
             let slug = String(game.id.dropFirst("installer:".count))
             if let job = installs.jobs.last(where: { $0.game?.id == slug || $0.title == game.name }) {
                 return installLogFile(job)

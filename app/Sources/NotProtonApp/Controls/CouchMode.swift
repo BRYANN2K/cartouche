@@ -10,8 +10,6 @@ enum CouchCommand: Equatable, Sendable {
     enum Direction: Sendable { case up, down, left, right }
 }
 
-// Turns what the controller holds into commands: a press acts once, a held
-// direction repeats after a pause, as a held arrow key does
 struct CouchInput: Sendable {
     var initialDelay: Double = 0.4
     var repeatInterval: Double = 0.12
@@ -25,7 +23,6 @@ struct CouchInput: Sendable {
         self.repeatInterval = repeatInterval
     }
 
-    // The left stick counts as the D-pad
     static func buttons(_ state: PadState) -> Set<PadButton> {
         var out = state.pressed
         let stick = state.leftStick
@@ -82,7 +79,6 @@ final class CouchNavigator {
 
     enum Focus: Equatable, Sendable {
         case grid
-        // The Play button of the game panel
         case play
     }
 
@@ -93,11 +89,9 @@ final class CouchNavigator {
         }
     }
     private(set) var focus: Focus = .grid
-    // The library grid's width, which sets how many cards a row holds
     var gridWidth: CGFloat = 0
 
     @ObservationIgnored weak var library: LibraryModel?
-    // Play (or Install) on the focused game: the same action as the panel's button
     @ObservationIgnored var play: @MainActor (Game) -> Void = { _ in }
     @ObservationIgnored let defaults: UserDefaults
     @ObservationIgnored private var input = CouchInput()
@@ -109,11 +103,9 @@ final class CouchNavigator {
         isOn = defaults.bool(forKey: Self.key)
     }
 
-    // Rings show only while couch mode is on
     var ringsGame: Bool { isOn && focus == .grid }
     var ringsPlay: Bool { isOn && focus == .play }
 
-    // One poll while Cartouche is in front
     func tick(_ state: PadState?, at time: Double) {
         guard isOn, let state else {
             input.reset()
@@ -150,13 +142,11 @@ final class CouchNavigator {
         }
     }
 
-    // Gives the ring a game to sit on as soon as couch mode is used
     func start() {
         guard isOn, let library, library.selectedGameID == nil else { return }
         library.select(Self.games(library).first?.id)
     }
 
-    // The sidebar's lists in order, the empty ones left out
     static func lists(_ library: LibraryModel) -> [SidebarItem] {
         let fixed: [SidebarItem] = [.all, .favorites] + GameSource.pc.map { .source($0) }
         let consoles = library.consoles.map { SidebarItem.source(.console($0)) }

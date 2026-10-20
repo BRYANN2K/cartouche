@@ -1,8 +1,7 @@
 import Foundation
 
-// Translate the screen: RetroArch's AI service sends a picture of the game to
-// a translation service and draws the answer over it. Cartouche names no
-// service and runs none; the user sets the address of one they choose.
+//// Translate the screen: RetroArch's AI service sends a picture of the game to a translation service and draws the
+//// answer over it. Cartouche names no service and runs none; the user sets the address of one they choose.
 public struct TranslationSetup: Sendable, Equatable {
     public var service: URL
     // RetroArch's number for the language to translate into
@@ -22,8 +21,7 @@ public struct TranslationSetup: Sendable, Equatable {
         return url
     }
 
-    // RetroArch's translation_lang numbers (translation_defines.h), for the
-    // Mac's own language; English when RetroArch has no number for it
+    // RetroArch's translation_lang numbers (translation_defines.h), for the Mac's own language; English when RetroArch has no number for it
     public static func language(_ locale: Locale = .current) -> Int {
         let code = locale.language.languageCode?.identifier ?? "en"
         if code == "zh" {

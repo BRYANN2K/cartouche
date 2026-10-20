@@ -1,6 +1,3 @@
-// Simple logic to block updates in the Steam client, if
-// a user wants to.
-
 import Foundation
 
 enum UpdateBlock {
@@ -33,7 +30,6 @@ enum UpdateBlock {
         Data(text.unicodeScalars.map { UInt8($0.value) })
     }
 
-    // Split on the scalar: "\r\n" is one Character, so a CRLF file would read as one line.
     private static func lines(of text: String) -> [String] {
         text.unicodeScalars.split(separator: "\n", omittingEmptySubsequences: false)
             .map { String(String.UnicodeScalarView($0)) }

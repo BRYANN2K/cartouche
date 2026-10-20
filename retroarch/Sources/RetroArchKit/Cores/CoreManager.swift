@@ -17,8 +17,7 @@ public struct CoreSource: Sendable, Equatable {
     )
 }
 
-// A core as it was when Cartouche downloaded it. The buildbot signs nothing,
-// so what was seen the first time is what every launch checks against.
+// A core as it was when Cartouche downloaded it. The buildbot signs nothing, so what was seen the first time is what every launch checks against.
 public struct CoreRecord: Codable, Sendable, Equatable {
     public var core: String
     public var file: String
@@ -55,8 +54,7 @@ public enum CoreError: Error, Equatable, LocalizedError {
     }
 }
 
-// Downloads, checks, updates and deletes cores in the cores folder. Nothing
-// else is written there, and nothing outside it is deleted.
+// Downloads, checks, updates and deletes cores in the cores folder. Nothing else is written there, and nothing outside it is deleted.
 public actor CoreManager {
 
     public let paths: RetroArchPaths
@@ -90,7 +88,6 @@ public actor CoreManager {
         return .verified
     }
 
-    // Before each launch: the core as recorded, or an error saying what is wrong
     public func ready(_ core: String) throws -> URL {
         switch check(core) {
         case .verified: return url(core)
@@ -99,7 +96,6 @@ public actor CoreManager {
         }
     }
 
-    // Downloads the core unless it is here as recorded
     @discardableResult
     public func install(_ core: String) async throws -> CoreRecord {
         if check(core) == .verified, let record = record(core) {
@@ -109,7 +105,6 @@ public actor CoreManager {
         return try await download(core)
     }
 
-    // Downloads it again and records what came
     @discardableResult
     public func update(_ core: String) async throws -> CoreRecord {
         try await download(core, refreshInfo: true)
@@ -148,7 +143,6 @@ public actor CoreManager {
         return record
     }
 
-    // The core's .info file, for its extensions and BIOS list
     private func installInfo(_ core: String, refresh: Bool) async throws {
         let target = paths.coreInfo.appending(path: "\(core)_libretro.info")
         if !refresh, FileManager.default.fileExists(atPath: target.path(percentEncoded: false)) { return }
@@ -185,7 +179,6 @@ public actor CoreManager {
 
     static func file(_ core: String) -> String { "\(core)_libretro.dylib" }
 
-    // Swapped in one step where there is something to replace
     static func place(_ fresh: URL, at target: URL) throws {
         if FileManager.default.fileExists(atPath: target.path(percentEncoded: false)) {
             _ = try FileManager.default.replaceItemAt(target, withItemAt: fresh)

@@ -1,9 +1,5 @@
-// Amazon Games through nile. nile prepares the sign-in (a device serial and a
-// code verifier) and prints Amazon's own page; once the user signs in there,
-// Amazon sends the browser to amazon.com with a one-time code, which nile
-// registers as a device. Its tokens live in nile/<hash>.enc and
-// current_user.json, which the vault keeps. Flags are those of nile 1.2.0
-// (nile/arguments.py). nile 1.2.0 has no cloud save command.
+// Amazon Games through nile: it prepares the sign-in, prints Amazon's page and registers a device from the one-time code
+// Amazon sends back; tokens live in nile/<hash>.enc and current_user.json. Flags are those of nile 1.2.0.
 
 import Foundation
 
@@ -19,7 +15,6 @@ struct AmazonAdapter: StoreAdapter {
         StoreCapabilities(client: "nile", cloudSaves: false, online: .notSupported)
     }
 
-    // The sign-in nile prepared, kept in memory until Amazon hands over the code
     private let pending = Pending()
 
     final class Pending: @unchecked Sendable {
@@ -105,8 +100,7 @@ struct AmazonAdapter: StoreAdapter {
         _ = try await checked(["uninstall", id])
     }
 
-    // An Amazon game folder carries fuel.json but not its product ID: the folder
-    // name is matched to a title of the library
+    // An Amazon game folder carries fuel.json but not its product ID: the folder name is matched to a title of the library
     func importGame(at folder: URL, library: [StoreGame]) async throws -> (StoreGame, StoreInstall) {
         guard FileManager.default.fileExists(atPath: folder.appending(path: "fuel.json").path(percentEncoded: false)),
               let game = Self.match(folder.lastPathComponent, in: library) else {

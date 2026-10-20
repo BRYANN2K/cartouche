@@ -104,7 +104,6 @@ struct KeyRemap: Codable, Equatable, Hashable, Sendable {
     var from: MacKey
     var to: MacKey
 
-    // Key code to key code, for the keys the list changes
     static func table(_ remaps: [KeyRemap]) -> [CGKeyCode: CGKeyCode] {
         var table: [CGKeyCode: CGKeyCode] = [:]
         for remap in remaps where remap.from != remap.to && !remap.from.isModifier && !remap.to.isModifier {

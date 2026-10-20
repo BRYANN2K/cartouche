@@ -1,16 +1,12 @@
 import CartoucheMCP
 import Foundation
 
-// cartouche-mcp is the stdio face of Cartouche's MCP server. Claude Desktop and
-// Claude Code start it from Contents/Helpers inside the app bundle; it carries
-// each JSON-RPC line to the app over the local socket at
-// ~/Library/Application Support/Cartouche/agent/mcp.sock, so every check and
-// approval stays in the app itself.
-//
-//   claude mcp add cartouche -- cartouche-mcp
-//
-// When Cartouche is not running the first send fails; the helper then asks
-// LaunchServices to open the app and retries until the socket answers.
+//// cartouche-mcp is the stdio face of Cartouche's MCP server: it carries each JSON-RPC line to the app over the local
+//// socket at ~/Library/Application Support/Cartouche/agent/mcp.sock, so every check and approval stays in the app itself.
+////
+//// claude mcp add cartouche -- cartouche-mcp
+////
+//// When Cartouche is not running the first send fails; the helper asks LaunchServices to open it and retries.
 
 enum HelperError: LocalizedError {
     case appNotAnswering
@@ -22,8 +18,7 @@ enum HelperError: LocalizedError {
     }
 }
 
-// CARTOUCHE_APP points `swift run` debugging at a built bundle to open;
-// normally the app is opened by its bundle identifier.
+// CARTOUCHE_APP points `swift run` debugging at a built bundle to open; normally the app is opened by its bundle identifier.
 func appOverride() -> URL? {
     guard let given = ProcessInfo.processInfo.environment["CARTOUCHE_APP"], !given.isEmpty else {
         return nil
@@ -31,8 +26,6 @@ func appOverride() -> URL? {
     return URL(filePath: given)
 }
 
-// Starts Cartouche once, then waits for its socket to answer. Returns a
-// channel that wraps send with that launch-and-retry.
 struct LaunchingChannel: MCPRequestChannel {
 
     let client: MCPSocketClient
@@ -56,8 +49,7 @@ struct LaunchingChannel: MCPRequestChannel {
         throw HelperError.appNotAnswering
     }
 
-    // Only "the app is not there" may re-send: once connect() succeeded the
-    // request went out and replaying it could run the tool twice.
+    // Only "the app is not there" may re-send: once connect() succeeded the request went out and replaying it could run the tool twice.
     private static func unreachable(_ error: Error) -> Bool {
         guard let error = error as? MCPChannelError else { return false }
         if case .unreachable = error { return true }

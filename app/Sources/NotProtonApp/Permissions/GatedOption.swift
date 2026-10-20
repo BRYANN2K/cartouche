@@ -1,12 +1,9 @@
-// An option that needs a permission. When the permission is denied the option
-// turns back off and says why, where the user is, and how to fix it.
 
 import Foundation
 import Observation
 import SwiftUI
 
 extension Permission {
-    // Names the permission and the fix
     var deniedMessage: String {
         switch self {
         case .appManagement: String(localized: "macOS blocked the change. Allow Cartouche in App Management, then try again.")
@@ -23,7 +20,6 @@ extension Permission {
         }
     }
 
-    // What keeps working without the permission
     var stillWorks: String? {
         switch self {
         case .appManagement: String(localized: "Console games and the rest of Cartouche still work.")
@@ -53,7 +49,6 @@ final class GatedOption {
     @ObservationIgnored let flow: PermissionFlow
     @ObservationIgnored let context: PermissionFlow.Context
     @ObservationIgnored var target: URL?
-    // Told when the permission waits for Cartouche to relaunch
     @ObservationIgnored var onWaitingForRelaunch: (@MainActor (Permission) -> Void)?
     private var chosen: Phase
 
@@ -64,12 +59,10 @@ final class GatedOption {
         chosen = isOn ? .on : .off
     }
 
-    // A refusal made in System Settings while Cartouche waited shows up here too
     var phase: Phase {
         let state = flow.center.state(permission)
         switch chosen {
         case .off: return .off
-        // Fixed in System Settings: the message goes, and the user turns the option on again
         case .denied: return state == .allowed ? .off : .denied
         case .on, .waitingForRelaunch: return state == .denied ? .denied : chosen
         }
@@ -95,12 +88,10 @@ final class GatedOption {
         }
     }
 
-    // After a relaunch, the permission is there and the option turns on without asking
     func finishAfterRelaunch() {
         if flow.center.state(permission) == .allowed { chosen = .on }
     }
 
-    // The feature found out by itself, as a failed Downloads read does
     func reportDenied() {
         flow.center.record(.denied, for: permission, target: target)
         chosen = .denied

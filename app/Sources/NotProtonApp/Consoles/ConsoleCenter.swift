@@ -13,52 +13,39 @@ final class ConsoleCenter {
     private(set) var added: [Console] = []
     private(set) var games: [ConsoleGame] = []
     private(set) var downloading: Set<String> = []
-    // Game files in the watched folders for consoles not added yet, by console
     var found: [String: Int] = [:]
     var problem: String?
-    // Whether games found in the folders join on their own, and how many each folder holds
     var folderChoices = WatchedFolders()
     var folderCounts: [String: Int] = [:]
     var folderList: GameFolders?
     var playing: Playing?
-    // The picture shown for the CRT power-on while a game starts
     var powerOn: PowerOn?
-    // Bumped when RetroArch may have written states, so Continue From reads them again
     var statesChanged = 0
     var extras: ConsoleExtras
-    // What RetroArch said of the session: hardcore on, the netplay seat
     var session = ExtrasSession()
 
     @ObservationIgnored let cores: CoreManager
     @ObservationIgnored let shelf: ConsoleShelf
     @ObservationIgnored let store: ConsoleLibrary
     @ObservationIgnored let database: ContentDatabase
-    // The Console Games step of the + sheet
     @ObservationIgnored let importFlow: ConsoleImport
     @ObservationIgnored weak var library: LibraryModel?
     @ObservationIgnored var watcher: FolderWatcher?
     @ObservationIgnored var scan: Task<Void, Never>?
     @ObservationIgnored var scanAgain = false
-    // What each file in the folders turned out to be, by path, size and date
     @ObservationIgnored var seen: [String: (stamp: String, found: Identification)] = [:]
-    // Panel facts computed off the main thread, kept per game and stamped
     @ObservationIgnored var statesCache: [String: (stamp: Int, states: [SaveState])] = [:]
     @ObservationIgnored var biosCache: [String: (stamp: String, status: BIOSStatus)] = [:]
-    // Plays the games; the RetroArch Settings > Consoles chose, or a stand-in in tests
     @ObservationIgnored var makeRunner: @MainActor (ConsolesSettingsModel) -> (any ConsoleRunning)? = { settings in
         settings.launcher.map { ConsolePlayer(launcher: $0) }
     }
-    // For tests and diagnostics: RetroArch settings added to every launch
     @ObservationIgnored var playerExtra: [String: String] = [:]
     @ObservationIgnored var runner: (any ConsoleRunning)?
     @ObservationIgnored var watchPlay: Task<Void, Never>?
     @ObservationIgnored var now: () -> Date = { Date() }
     @ObservationIgnored var covers = CoverStore()
-    // The core file a game plays with; tests hand in their own core
     @ObservationIgnored var resolveCore: (@MainActor (String) async throws -> URL)?
-    // Plays a game in a standalone emulator; tests hand in their own environment
     @ObservationIgnored var standaloneEnvironment: [String: String]?
-    // The record of the running session, so a killed Cartouche counts its time
     @ObservationIgnored var sessions = SessionRecords(file: SupportPaths.consoleSession)
     @ObservationIgnored var heartbeatEvery: Duration = .seconds(60)
     @ObservationIgnored var heartbeat: Task<Void, Never>?
@@ -66,7 +53,6 @@ final class ConsoleCenter {
     // Asks for Local Network before netplay on the local network
     @ObservationIgnored var netplayFlow: PermissionFlow?
     @ObservationIgnored var watchExtras: Task<Void, Never>?
-    // Cartouche's relay for Coach mode, while a coached game runs
     @ObservationIgnored var coach: CoachRelay?
 
     init(settings: ConsolesSettingsModel, cores: CoreManager, library: LibraryModel? = nil,
@@ -92,15 +78,12 @@ final class ConsoleCenter {
     func reload() async {
         added = await shelf.added()
         let consoles = Set(added.map(\.id))
-        // A removed console's games stay in library.json, out of sight, so
-        // adding it again brings back their play time
         games = await store.games().filter { consoles.contains($0.console) }
         publish()
     }
 
     func isAdded(_ id: String) -> Bool { added.contains { $0.id == id } }
 
-    // Downloads each console's core, then shows it in the sidebar
     func add(_ ids: [String]) async {
         problem = nil
         let new = ids.filter { !isAdded($0) }
@@ -115,14 +98,12 @@ final class ConsoleCenter {
             await reload()
         }
         await settings.refresh()
-        // Games the folders already hold for these consoles come in now
         if !new.isEmpty, !folderPaths.isEmpty {
             folderChanged()
             await scan?.value
         }
     }
 
-    // Deletes the core no other added console uses. Game files are never touched.
     func remove(_ id: String) async {
         problem = nil
         if let playing, game(playing.gameID)?.console == id {
@@ -141,8 +122,6 @@ final class ConsoleCenter {
 
     func games(of console: String) -> [ConsoleGame] { games.filter { $0.console == console } }
 
-    // Adds the games, and first the consoles they need that are not added yet.
-    // The files stay where they are.
     @discardableResult
     func addGames(_ new: [ConsoleGame]) async -> [ConsoleGame] {
         let consoles = new.map(\.console).reduce(into: [String]()) { if !$0.contains($1) { $0.append($1) } }

@@ -1,10 +1,7 @@
 import Foundation
 
-// Saves and save states in iCloud Drive. Cartouche's saves and states folders
-// become links to Cartouche/Saves and Cartouche/States in iCloud Drive, so
-// RetroArch, Continue From and every Mac signed in to the same account use
-// the same files. Cartouche has no iCloud container of its own: it uses the
-// user's iCloud Drive folder, as any app may.
+// Saves and save states in iCloud Drive: Cartouche's folders become links into the user's iCloud Drive folder
+// — Cartouche has no iCloud container of its own — so RetroArch and every signed-in Mac share the files.
 public struct CloudSaves: Sendable {
 
     public static var iCloudDrive: URL {
@@ -12,7 +9,6 @@ public struct CloudSaves: Sendable {
     }
 
     public let paths: RetroArchPaths
-    // Cartouche's folder in iCloud Drive; tests give a scratch folder
     public let cloud: URL
 
     public init(paths: RetroArchPaths, drive: URL = CloudSaves.iCloudDrive) {
@@ -20,7 +16,6 @@ public struct CloudSaves: Sendable {
         cloud = drive.appending(path: "Cartouche", directoryHint: .isDirectory)
     }
 
-    // iCloud Drive is on for this account
     public var isAvailable: Bool {
         var folder: ObjCBool = false
         return FileManager.default.fileExists(atPath: cloud.deletingLastPathComponent().path(percentEncoded: false), isDirectory: &folder)
@@ -34,7 +29,6 @@ public struct CloudSaves: Sendable {
 
     static func path(_ url: URL) -> String { url.path(percentEncoded: false).trimmingSuffix("/") }
 
-    // Where a folder link points, for the iCloud-Linked Saves and States folders
     static func link(at url: URL) -> String? {
         try? FileManager.default.destinationOfSymbolicLink(atPath: path(url))
     }
@@ -43,8 +37,7 @@ public struct CloudSaves: Sendable {
         pairs.allSatisfy { Self.link(at: $0.local) == Self.path($0.cloud) }
     }
 
-    // Moves what this Mac has into iCloud Drive, the newer copy winning, and
-    // links the folders there
+    // Moves what this Mac has into iCloud Drive, the newer copy winning, and links the folders there.
     public func turnOn() throws {
         let files = FileManager.default
         for (local, remote) in pairs {
@@ -59,8 +52,7 @@ public struct CloudSaves: Sendable {
         }
     }
 
-    // Folders of this Mac again, with a copy of what iCloud Drive holds. The
-    // copy is staged and swapped in, so a failed one leaves the link in place.
+    // Folders of this Mac again, with a copy of what iCloud Drive holds. The copy is staged and swapped in, so a failed one leaves the link in place.
     public func turnOff() throws {
         let files = FileManager.default
         for (local, remote) in pairs where Self.link(at: local) != nil {
@@ -79,8 +71,7 @@ public struct CloudSaves: Sendable {
         }
     }
 
-    // Before a launch: iCloud Drive may have lost the folders, and RetroArch
-    // cannot write through a link to nothing
+    // Before a launch: iCloud Drive may have lost the folders, and RetroArch cannot write through a link to nothing
     public func ensure() throws {
         guard isOn else { return }
         for (_, remote) in pairs { try FileManager.default.createDirectory(at: remote, withIntermediateDirectories: true) }
@@ -89,7 +80,6 @@ public struct CloudSaves: Sendable {
     static func merge(from source: URL, into target: URL, move: Bool) throws {
         let files = FileManager.default
         let base = link(at: source) ?? path(source)
-        // Paths relative to the folder, whatever links lead to it
         guard let walker = files.enumerator(atPath: base) else { return }
         while let relative = walker.nextObject() as? String {
             // iCloud Drive's dataless stubs, named .name.icloud, are not saves

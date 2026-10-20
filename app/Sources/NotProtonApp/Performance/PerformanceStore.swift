@@ -1,15 +1,10 @@
-// The local store of play sessions: the run script leaves one folder per launch in
-// performance/incoming, the frame counter writes its samples there, and this reads each
-// finished folder into an SQLite file beside it, then deletes the folder.
 
 import Foundation
 import SQLite3
 
 struct StoredSession: Equatable, Sendable, Identifiable {
     enum Measurement: String, Sendable {
-        // The counter ran in the game
         case on
-        // The runner's loader would not take the counter, so the game ran without it
         case refused
     }
 
@@ -27,12 +22,9 @@ struct StoredSession: Equatable, Sendable, Identifiable {
     var duration: TimeInterval { max(0, ended.timeIntervalSince(started)) }
 }
 
-// A launch folder as the run script and the counter left it
 enum PerformanceIncoming {
     static let folderName = "incoming"
     static let sessionFile = "session"
-    // A folder without an end time whose files have not changed for this long belongs
-    // to a run script that was killed, so it is read as ended
     static let abandonedAfter: TimeInterval = 15 * 60
 
     struct Folder: Equatable, Sendable {
@@ -42,9 +34,7 @@ enum PerformanceIncoming {
 
     enum Reading: Equatable, Sendable {
         case ready(Folder)
-        // The game still runs
         case running
-        // Not a launch folder the run script wrote
         case invalid
     }
 
@@ -68,7 +58,6 @@ enum PerformanceIncoming {
               let started = keys["started"].flatMap(TimeInterval.init),
               let runner = keys["runner"], !runner.isEmpty else { return .invalid }
 
-        // The game's process presented the most frames; helpers present few or none
         let sampleFiles = ((try? files.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? [])
             .filter { $0.lastPathComponent.hasPrefix("samples-") }
         let samples = sampleFiles
@@ -97,7 +86,6 @@ enum PerformanceIncoming {
         return .ready(Folder(session: session, samples: samples))
     }
 
-    // Since the newest change to the folder or a file in it
     private static func age(of folder: URL, now: Date) -> TimeInterval {
         let files = FileManager.default
         let entries = [folder] + ((try? files.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? [])
@@ -156,8 +144,6 @@ struct PerformanceStore: Sendable {
         PRAGMA user_version = 1;
         """
 
-    // Reads every finished launch folder into the database and deletes it. Returns the
-    // sessions added.
     @discardableResult
     func ingest(now: Date = Date()) throws -> [StoredSession] {
         let files = FileManager.default
@@ -190,7 +176,6 @@ struct PerformanceStore: Sendable {
         return added
     }
 
-    // Anything waiting in incoming/, cheap enough to ask on every panel open
     var hasIncomingSessions: Bool {
         ((try? FileManager.default.contentsOfDirectory(atPath: incoming.path(percentEncoded: false))) ?? [])
             .contains { !$0.hasPrefix(".") && $0 != "failed" }
@@ -233,7 +218,6 @@ struct PerformanceStore: Sendable {
         }
     }
 
-    // Every stored session, oldest first
     func sessions(appID: Int? = nil) throws -> [StoredSession] {
         guard FileManager.default.fileExists(atPath: database.path(percentEncoded: false)) else { return [] }
         let db = try Database(database)
@@ -269,7 +253,6 @@ struct PerformanceStore: Sendable {
         }
     }
 
-    // The per-second samples of one session, for checks and later tools
     func samples(session: Int64) throws -> [(sample: FrameSample, counted: Bool)] {
         let db = try Database(database)
         return try db.query("SELECT time, frames, frontmost, counted FROM samples WHERE session = ? ORDER BY time",
@@ -280,7 +263,6 @@ struct PerformanceStore: Sendable {
         }
     }
 
-    // Only the sessions table, for tests that build a history without samples
     func add(_ session: StoredSession, folder name: String) throws {
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let db = try Database(database)
@@ -296,8 +278,6 @@ private extension JSONEncoder {
     }
 }
 
-// A thin SQLite connection, opened per operation: the store is read when a panel opens
-// and written when a game ends, so nothing is kept open
 final class Database {
 
     enum Value: Equatable {
@@ -337,7 +317,7 @@ final class Database {
     private func prepare(_ sql: String, _ values: [Value]) throws -> OpaquePointer? {
         var statement: OpaquePointer?
         guard sqlite3_prepare_v2(handle, sql, -1, &statement, nil) == SQLITE_OK else { throw error }
-        // SQLite copies each text before the call returns
+        // SQLITE_TRANSIENT: SQLite copies each text before the call returns.
         let transient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
         for (index, value) in values.enumerated() {
             let slot = Int32(index + 1)
@@ -351,7 +331,6 @@ final class Database {
         return statement
     }
 
-    // Returns the number of rows changed
     @discardableResult
     func run(_ sql: String, _ values: [Value] = []) throws -> Int {
         let statement = try prepare(sql, values)

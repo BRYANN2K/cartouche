@@ -1,13 +1,9 @@
 import Foundation
 import RetroArchKit
 
-// The helper's half of the pipe: one JSON-RPC message per stdin line, replies
-// on stdout. Everything else (logging, diagnostics) stays off stdout, which is
-// the MCP channel itself.
+// The helper's half of the pipe: one JSON-RPC message per stdin line, replies on stdout. Everything else (logging, diagnostics) stays off stdout, which is the MCP channel itself.
 public enum MCPStdio {
 
-    // Serves stdin until EOF. Each line goes to the app through the channel;
-    // a line that is not JSON gets a parse error back when it carries an id.
     public static func serve(
         input: FileHandle = .standardInput,
         output: FileHandle = .standardOutput,
@@ -27,7 +23,6 @@ public enum MCPStdio {
                 write(reply, to: output)
             }
         } catch {
-            // stdin died; the helper exits quietly.
         }
     }
 

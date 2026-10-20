@@ -35,7 +35,6 @@ struct IdentifierTests {
         // Computed with Python's zlib.crc32, in rows.json
         #expect(CRC32.checksum(Homebrew.snes()) == 0x3FA8_62E9)
         #expect(CRC32.checksum(Homebrew.gb("CARTOUCHE QUEST")) == 0xD610_6F3A)
-        // Fed in pieces, the same
         var pieces = CRC32()
         let data = Homebrew.snes()
         pieces.update(data.prefix(1000))
@@ -184,7 +183,6 @@ struct IdentifierTests {
         #expect(found.candidates == ["gb"])
     }
 
-    // The whole libretro Super Nintendo database, as Cartouche downloads it
     @Test(.enabled(if: Rig.network, "set CARTOUCHE_NETWORK_TESTS=1"))
     func withTheRealDatabaseACartridgeIsNamedWithinTwoSeconds() async throws {
         let work = try scratchFolder("db-real")

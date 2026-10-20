@@ -195,8 +195,6 @@ extension AgentTools {
                         case "other_runner": fixes.append(.otherRunner)
                         case "single_thread": job.inputs.threads = 1
                         case "copy_to_internal_disk":
-                            // The folder moves next to Cartouche's own installs;
-                            // the job runs against the copy.
                             if !copied {
                                 copied = true
                                 job.moveSource(to: try await backend.copyInstallerToInternal(job.request.source))
@@ -254,8 +252,6 @@ extension AgentTools {
                     let exe = try args.require("exe")
                     let candidate = job.candidates.first { $0.path == exe }
                     let url = candidate.map { URL(filePath: $0.path) } ?? URL(filePath: exe)
-                    // A path the candidates do not name must resolve inside
-                    // the job's install folder — symlinks and .. included.
                     if candidate == nil {
                         guard let folder = job.installFolder,
                               AgentScan.contains(url, in: [folder]) else {
@@ -872,8 +868,7 @@ extension AgentTools {
                 run: { backend, args in
                     let game = try findStrict(backend, args)
                     let verbs = args["verbs"]?.array?.compactMap(\.string) ?? []
-                    // Installer-game prefixes bypass PrefixTools' own filter;
-                    // the check runs here so both paths refuse the same verbs.
+                    // Installer-game prefixes bypass PrefixTools' own filter; the check runs here so both paths refuse the same verbs.
                     if let refused = PrefixTools.refusedVerb(verbs) {
                         throw AgentToolError("the verb \(refused) is refused")
                     }

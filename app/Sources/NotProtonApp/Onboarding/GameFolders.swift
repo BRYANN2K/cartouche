@@ -1,5 +1,3 @@
-// The folders the user keeps console games in, chosen during onboarding or in
-// Settings > Library
 
 import AppKit
 import Observation
@@ -49,7 +47,6 @@ final class GameFolders {
 }
 
 extension URL {
-    // The standardized path without a trailing slash, as folders are stored
     var plainPath: String {
         var path = standardizedFileURL.path(percentEncoded: false)
         while path.count > 1 && path.hasSuffix("/") { path.removeLast() }
@@ -57,10 +54,8 @@ extension URL {
     }
 }
 
-// Settings > Library
 struct GameFoldersSection: View {
     @Bindable var folders: GameFolders
-    // What the console library found in each folder
     @Environment(ConsoleCenter.self) private var consoles: ConsoleCenter?
 
     var body: some View {

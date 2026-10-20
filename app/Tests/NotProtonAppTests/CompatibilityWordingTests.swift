@@ -17,7 +17,6 @@ struct CompatibilityWordingTests {
                       onlineTried: tried, onlinePlayed: played, verdict: verdict)
     }
 
-    // Every combination the data can give
     private var everySummary: [AntiCheatSummary] {
         let protondb: [ProtonDBEntry?] = [
             nil, pdb(456, 402, 26, 26, .runs), pdb(100, 90, 10, 3, .runs), pdb(100, 90, 0, 0, .runs),

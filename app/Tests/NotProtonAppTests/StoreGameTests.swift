@@ -43,7 +43,6 @@ struct StoreGameTests {
         let installed = try #require(scene.model.game("epic:Fennec"))
         #expect(installed.installed && installed.status() == "Installed")
 
-        // What the panel's Setup shows is what starts the game
         let setup = scene.model.resolution(for: installed).setup
         #expect(setup.runner?.id == scene.runner.id && setup.translation == .rosetta)
         let backend = try #require(setup.backend)
@@ -60,11 +59,9 @@ struct StoreGameTests {
         #expect(wine.contains("DXVK_LOG_LEVEL=none"))
         #expect(!wine.contains("HOME=/tmp/legendary-home"))
         print("evidence: Epic game started with runner \(scene.runner.displayVersion) and \(backend.label): \(wine.split(separator: "\n").first { $0.hasPrefix("args:") } ?? "")")
-        // Cloud saves before and after
         let saves = scene.text("legendary.saves")
         #expect(saves.contains("--skip-upload") && saves.contains("--skip-download"))
 
-        // Another backend picked in the setup is the one the next start gets
         var choice = scene.model.setup(for: installed.id)
         choice.graphics = .dxvk
         choice.environment = ["DXVK_HUD": "fps"]
@@ -198,7 +195,6 @@ struct StoreGameTests {
         defer { scene.remove() }
         await scene.signIn(.epic, code: "epic-good-code")
         scene.flag("slow")
-        // The app's wiring in startStores: the center feeds the slot, Stop goes back to it
         let activity = ActivityCenter(installs: InstallCenter(notifier: RecordingNotifier()), control: RecordingControl(),
                                       notifier: RecordingActivityNotifier())
         activity.storeSource = { [scene] in scene.center.activity }

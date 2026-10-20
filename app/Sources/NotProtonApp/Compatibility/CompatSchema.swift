@@ -1,5 +1,4 @@
-// Checks a compat.json against docs/schema/compat.schema.json before the app trusts it.
-// Knows only the keywords that schema uses, like tools/compat/compatdata/schema.py.
+// Checks a compat.json against docs/schema/compat.schema.json; knows only the keywords that schema uses.
 
 import Foundation
 
@@ -48,7 +47,6 @@ enum SchemaValue: Decodable, Equatable, Sendable {
 struct CompatSchema: Sendable {
 
     let root: SchemaValue
-    // Every "pattern" in the schema, compiled once instead of per checked string
     private let patterns: [String: NSRegularExpression]
 
     static let annotations: Set<String> = ["$schema", "$id", "$comment", "title", "description", "$defs"]
@@ -73,7 +71,6 @@ struct CompatSchema: Sendable {
         }
     }
 
-    // The copy bundled with the app, kept equal to docs/schema by a test
     static func bundled() throws -> CompatSchema {
         guard let url = Bundle.module.url(forResource: "compat.schema", withExtension: "json") else {
             throw Unsupported(description: "compat.schema.json is not in the app bundle")

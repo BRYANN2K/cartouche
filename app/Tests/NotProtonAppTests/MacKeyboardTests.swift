@@ -83,7 +83,6 @@ struct MacKeyboardTests {
         #expect(everything.sorted() == ["setups", "setups/1145360.keyboard"])
     }
 
-    // The run script's own check: the lines it adds to the prefix import
     @Test("settingscheck: the run script imports the game's keyboard options and nothing else from the file")
     func runScript() throws {
         let repo = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()

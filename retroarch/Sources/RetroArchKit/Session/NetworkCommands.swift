@@ -1,11 +1,9 @@
 import Darwin
 import Foundation
 
-// RetroArch's UDP command interface on 127.0.0.1, the fallback for builds
-// without the MCP server: QUIT to stop, GET_STATUS to ask what runs
+// RetroArch's UDP command interface on 127.0.0.1, the fallback for builds without the MCP server: QUIT to stop, GET_STATUS to ask what runs
 enum NetworkCommands {
 
-    // Sends one command; with a wait, returns the first reply that comes
     static func send(_ command: String, port: UInt16, wait: Duration? = nil) -> String? {
         let fd = socket(AF_INET, SOCK_DGRAM, 0)
         guard fd >= 0 else { return nil }

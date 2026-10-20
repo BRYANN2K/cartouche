@@ -61,7 +61,6 @@ struct ConsoleSidebarTests {
         #expect(seen(texts, "Game Boy"))
         #expect(!seen(texts, "PlayStation"))
 
-        // Added ones show as added in the sheet and cannot be picked again
         let again = try await renderedTexts(AddConsolesSheet(center: scene.center), size: CGSize(width: 660, height: 560))
         #expect(again.filter { $0 == "Added" }.count == 2)
     }
@@ -74,7 +73,6 @@ struct ConsoleSidebarTests {
         await scene.center.add(["ps1", "snes"])
         #expect(scene.coresFolder == ["snes9x_libretro.dylib", "swanstation_libretro.dylib"])
 
-        // Two PlayStation games the user owns, outside Cartouche's folder
         let games = scene.work.appending(path: "My Games", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: games, withIntermediateDirectories: true)
         var files: [URL] = []

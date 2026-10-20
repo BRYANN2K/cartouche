@@ -1,5 +1,3 @@
-// One HTTP GET helper: body and status. Each use picks its timeout and
-// User-Agent; tests inject their own closure of the same shape.
 
 import Foundation
 

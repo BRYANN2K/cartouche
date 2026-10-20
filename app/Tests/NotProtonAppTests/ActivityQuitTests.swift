@@ -9,7 +9,6 @@ import Testing
 @MainActor
 struct ActivityQuitTests {
 
-    // The sidebar with P7's activity slot following this scene's console center
     private func sidebar(_ scene: ConsoleScene) -> some View {
         let activity = ActivityCenter(installs: InstallCenter(notifier: RecordingNotifier()), control: RecordingControl(),
                                       notifier: RecordingActivityNotifier())
@@ -35,7 +34,6 @@ struct ActivityQuitTests {
         #expect(scene.center.playing == Playing(gameID: game.id, phase: .playing))
         #expect(scene.center.powerOn == PowerOn(gameID: game.id, picture: snap))
 
-        // The power-on draws the game's picture, then clears itself
         var cleared = false
         let crt = UIHost(CRTPowerOn(powerOn: try #require(scene.center.powerOn)) { cleared = true }.frame(width: 640, height: 400),
                          size: CGSize(width: 640, height: 400))

@@ -27,10 +27,8 @@ struct ActivitySnapshotTests {
         let activity = center(downloads: [godOfWar])
         let gow = Game.steam(1_593_500, name: "God of War", installed: false)
         #expect(activity.reveal(for: gow)?.fraction == godOfWar.fraction)
+        // Each offscreen-rendered window leaves an animation thread behind; at 64 stuck threads, DispatchQueue.global() runs nothing.
         guard case .downloads = activity.slot else { Issue.record("no download slot"); return }
-        // The window's parts, and as few windows as possible: each window with AppKit controls
-        // rendered offscreen leaves an animation thread behind in a test process, and once 64
-        // are stuck, DispatchQueue.global() runs nothing more
         let actions = GameActionRunner(model: scene.model, open: { _ in })
         guard case .grid(let sections) = scene.model.screen else { Issue.record("no grid"); return }
         // The grid with the sidebar, then God of War's panel in a window of the inspector's width
@@ -85,7 +83,6 @@ struct ActivitySnapshotTests {
             }
         }
 
-        // The sidebar with the slot at the bottom, and without anything going on
         let scene = try await LibraryWindowTests.Scene("activity-sidebar")
         defer { scene.fixture.remove() }
         await scene.model.load()

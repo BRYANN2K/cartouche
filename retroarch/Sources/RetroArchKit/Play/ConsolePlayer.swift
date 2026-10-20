@@ -1,19 +1,14 @@
 import Foundation
 
-// One game to start, with the choices of its panel
 public struct PlayRequest: Sendable, Equatable {
     public var core: URL
     public var content: URL
-    // Load this slot once the game runs
     public var slot: Int?
-    // Load the auto state the last Quit wrote
     public var resume = false
     public var look: ConsoleLook = .original
     public var lowerInputLag = false
     public var hardcore = false
-    // The disc of a multi-disc set to start from, from 0
     public var disc = 0
-    // Play Together, achievements and translation, from ConsoleExtras
     public var netplay: NetplayRole?
     public var netplayNickname: String?
     public var achievements: AchievementsLogin?
@@ -27,7 +22,6 @@ public struct PlayRequest: Sendable, Equatable {
 
 public struct PlayReport: Sendable, Equatable {
     public var stop: StopReport
-    // From the game starting to RetroArch gone
     public var played: Duration
 
     public init(stop: StopReport, played: Duration) {
@@ -36,13 +30,9 @@ public struct PlayReport: Sendable, Equatable {
     }
 }
 
-// Plays one console game at a time on the chosen RetroArch: starts it with the
-// panel's choices, changes the look and disc while it runs, and quits it so
-// that RetroArch writes its auto state.
 public actor ConsolePlayer {
 
     public let launcher: ConsoleLauncher
-    // For tests and diagnostics: drivers, logging
     public var extra: [String: String] = [:]
     public private(set) var session: RetroArchSession?
     public private(set) var request: PlayRequest?
@@ -84,8 +74,7 @@ public actor ConsolePlayer {
             if launch.mcp {
                 try await session.start()
                 try await session.load(core: request.core, content: request.content)
-                // RetroArch reads its configuration again as it loads the core, and
-                // has signed in by now: the token does not stay in cartouche.cfg
+                // RetroArch re-reads its configuration as it loads the core and has signed in by now: the token does not stay in cartouche.cfg.
                 if request.achievements != nil { try? launch.config.withoutSecrets.write() }
                 self.session = session
                 self.request = request
@@ -112,7 +101,7 @@ public actor ConsolePlayer {
         }
     }
 
-    // Applied while the game runs; SET_SHADER answers once it is on screen
+    // SET_SHADER answers once the shader is on screen.
     public func setLook(_ look: ConsoleLook) async throws {
         request?.look = look
         guard session != nil else { return }
@@ -145,7 +134,6 @@ public actor ConsolePlayer {
         try await session?.setOption("cheevos_hardcore", on: on)
     }
 
-    // Opens the tray, steps to the disc, closes the tray
     public func setDisc(_ disc: Int) async throws {
         guard let current = request?.disc, current != disc else { return }
         try await insert(disc: disc, from: current)
@@ -171,7 +159,6 @@ public actor ConsolePlayer {
         return PlayReport(stop: stop, played: played)
     }
 
-    // RetroArch quit by itself: what was played, once
     public func ended() async -> PlayReport? {
         guard let session, await !session.isRunning else { return nil }
         return await quit()
@@ -188,16 +175,12 @@ public actor ConsolePlayer {
         return try await session.log(since: since)
     }
 
-    // RetroArch's AI service translates what is on screen now
     public func translateNow() async throws {
         guard let session, request?.translation != nil else { throw RetroArchSessionError.notRunning }
         try await session.command("AI_SERVICE")
     }
 
-    // RetroArch writes its settings back at times, and seals the
-    // RetroAchievements token in retroarch-keychain.cfg beside a key file of
-    // its own. Cartouche keeps the token in the macOS keychain only, so both
-    // copies go once RetroArch is gone.
+    // RetroArch seals the token in retroarch-keychain.cfg beside a key file; Cartouche keeps it in the macOS keychain only, so both copies go once RetroArch is gone.
     public static func scrubSecrets(in paths: RetroArchPaths) {
         let files = FileManager.default
         let folder = paths.baseConfig.deletingLastPathComponent()

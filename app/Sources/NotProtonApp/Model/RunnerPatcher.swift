@@ -1,5 +1,3 @@
-// Patcher logic
-
 import Foundation
 
 enum RunnerPatcher {

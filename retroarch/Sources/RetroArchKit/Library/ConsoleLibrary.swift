@@ -1,6 +1,5 @@
 import Foundation
 
-// How a console game looks in RetroArch: its shader preset
 public enum ConsoleLook: String, Codable, Sendable, CaseIterable, Identifiable {
     case original, crt, lcd
 
@@ -15,7 +14,6 @@ public enum ConsoleLook: String, Codable, Sendable, CaseIterable, Identifiable {
     }
 }
 
-// What the panel's Setup holds for one game
 public struct ConsoleGameSetup: Codable, Sendable, Equatable {
     // nil plays with the console's recommended core
     public var core: String?
@@ -23,36 +21,28 @@ public struct ConsoleGameSetup: Codable, Sendable, Equatable {
     // RetroArch's run-ahead, one frame
     public var lowerInputLag = true
     public var hardcore = false
-    // The disc a multi-disc game starts from, from 0
     public var disc = 0
 
     public init() {}
 }
 
-// How a file was told apart
 public enum IdentifiedBy: String, Codable, Sendable {
     // CRC32 of a cartridge, or of a disc track, in the libretro database
     case checksum
     // The serial a disc carries, in the libretro database
     case discID
-    // The file's name is a database name
     case fileName
-    // The user picked the console; the database does not know the file
     case chosen
 }
 
-// One console game in the library. Its files are the user's own and are only
-// ever read: Cartouche never moves, renames or deletes them.
 public struct ConsoleGame: Codable, Sendable, Equatable, Identifiable {
     public var id: String
     public var console: String
-    // As the library shows it: "Super Metroid"
     public var name: String
     // The database's full name, which libretro-thumbnails files are named after
     public var databaseName: String?
     // What RetroArch loads: the cartridge, the .cue, or the .m3u of a multi-disc game
     public var file: String
-    // Each disc of a multi-disc game, in order; empty for one file
     public var discs: [String] = []
     public var identifiedBy: IdentifiedBy
     public var added: Date
@@ -76,8 +66,6 @@ public struct ConsoleGame: Codable, Sendable, Equatable, Identifiable {
         id = Self.id(console: console, databaseName: databaseName, file: file)
     }
 
-    // The same dump found twice is one game; a file the database does not
-    // know is told apart by its name
     public static func id(console: String, databaseName: String?, file: URL) -> String {
         "console:\(console):" + (databaseName ?? "file:\(file.lastPathComponent)")
     }
@@ -93,7 +81,6 @@ public struct ConsoleGame: Codable, Sendable, Equatable, Identifiable {
     public var exists: Bool { FileManager.default.fileExists(atPath: file) }
 }
 
-// The console games, in library.json in Cartouche's RetroArch folder
 public actor ConsoleLibrary {
 
     public let file: URL
@@ -114,7 +101,6 @@ public actor ConsoleLibrary {
 
     public func game(_ id: String) -> ConsoleGame? { games().first { $0.id == id } }
 
-    // New games join; one already here keeps its play time and setup
     @discardableResult
     public func add(_ new: [ConsoleGame]) throws -> [ConsoleGame] {
         var all = games()
@@ -134,12 +120,10 @@ public actor ConsoleLibrary {
         try save(all)
     }
 
-    // Takes the entry out of the library; the files stay where they are
     public func remove(_ id: String) throws {
         try save(games().filter { $0.id != id })
     }
 
-    // Every file the library already has, discs included
     public func knownFiles() -> Set<String> {
         Set(games().flatMap { [$0.file] + $0.discs })
     }

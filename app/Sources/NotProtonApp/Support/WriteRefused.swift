@@ -1,5 +1,3 @@
-// We couldn't write? Logic for that
-
 import AppKit
 import Foundation
 
@@ -25,8 +23,7 @@ extension WriteRefused {
     var remedy: Remedy { Remedy(forPath: path) }
 }
 
-// A write failure generally equals App Management permission error
-// or bad folder ownership
+// A write failure generally equals App Management permission error or bad folder ownership
 enum Remedy: Hashable {
     case appManagement
     case otherAccount

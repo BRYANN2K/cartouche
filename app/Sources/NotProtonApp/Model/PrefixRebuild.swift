@@ -1,5 +1,3 @@
-// Prefix rebuild feature, experimental, blah blah.
-
 import Foundation
 
 extension PrefixTools {

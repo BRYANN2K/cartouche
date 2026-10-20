@@ -1,5 +1,3 @@
-// Logic for the Repair button
-
 import Foundation
 
 enum RepairPhase: Sendable {
@@ -65,7 +63,6 @@ enum SteamRepair {
             )
         }
 
-        // Restoring Valve's bundle would delete another tool's dylib with it
         let other = SteamBundle.otherInjection(in: app)
         guard other.isEmpty else {
             throw StepFailure(step: step, detail: otherToolRefusal(other))
@@ -226,8 +223,6 @@ enum SteamRepair {
         String(localized: "Steam also loads another tool's dylib (\(other.joined(separator: ", "))). Repair Steam would remove it, so Steam was left as it is. Remove that tool from Steam first.")
     }
 
-    // Removes Cartouche's insert entry. Another tool's entries stay, and so does the
-    // controller key, which that tool sets too.
     static func clearInsert(at plist: URL) throws -> Bool {
         guard var dict = SteamBundle.readInfoPlist(at: plist),
               var environment = dict[SteamBundle.environmentKey] as? [String: Any]

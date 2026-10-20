@@ -1,5 +1,3 @@
-// I Love Logs
-
 import Foundation
 
 enum AppLog {

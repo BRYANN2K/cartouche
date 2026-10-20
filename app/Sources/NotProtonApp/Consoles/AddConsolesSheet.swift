@@ -1,7 +1,6 @@
 import RetroArchKit
 import SwiftUI
 
-// What the Add Consoles sheet has picked, apart from the view so tests can drive it
 struct AddConsolesChoice: Equatable {
     var picked: [String] = []
 
@@ -18,7 +17,6 @@ struct AddConsolesChoice: Equatable {
     }
 }
 
-// Pick the systems you play: only their cores are downloaded
 struct AddConsolesSheet: View {
     let center: ConsoleCenter
     @State var choice = AddConsolesChoice()
@@ -117,7 +115,6 @@ struct AddConsoleTile: View {
     }
 }
 
-// A console in the sidebar, with Add Games and Remove on right-click
 struct ConsoleSidebarRow: View {
     let id: String
     let model: LibraryModel

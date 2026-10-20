@@ -3,7 +3,6 @@ import GameController
 import RetroArchKit
 import SwiftUI
 
-// The panel of a console game, as launcher.html's renderRetroInspector
 struct ConsolePanel: View {
     let game: Game
     let console: ConsoleGame
@@ -187,7 +186,6 @@ struct ConsolePanel: View {
     }
 }
 
-// One state under Continue From: the picture RetroArch saved with it
 private struct StateButton: View {
     let state: SaveState
     let look: ConsoleLook
@@ -256,7 +254,6 @@ private struct ConsoleSetupRows: View {
     }
 }
 
-// The controller RetroArch reads, as macOS sees it
 private struct ControllerRow: View {
     @State private var name: String?
 
@@ -274,8 +271,6 @@ private struct ControllerRow: View {
     }
 }
 
-// The panel's picture in the look RetroArch applies: scanlines and a vignette
-// for CRT, the pixel grid for LCD
 struct LookOverlay: View {
     let look: ConsoleLook
 
@@ -313,7 +308,6 @@ struct LookOverlay: View {
     }
 }
 
-// More…: what the panel leaves out
 struct ConsoleMoreSheet: View {
     let game: ConsoleGame
     let content: ConsolePanelContent

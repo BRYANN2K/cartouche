@@ -113,7 +113,6 @@ struct PerformanceStoreTests {
         defer { fixture.remove() }
         let start = PerformanceFixture.start
         let folder = try fixture.launch("1-a-1", appID: 1, ended: start + 200, seconds: 150, settings: ["MTL_HUD_ENABLED=1", "DXMT_LOG=a=b"])
-        // A helper process in the same launch: a launcher window at 10 fps
         var helper = ["# cartouche-fps 1 pid=7 arch=x86_64"]
         for i in 0..<150 { helper.append("\(start + 5 + i) 10 1 800 600") }
         try Data(helper.joined(separator: "\n").utf8).write(to: folder.appending(path: "samples-7"))

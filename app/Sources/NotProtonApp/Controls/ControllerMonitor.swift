@@ -1,23 +1,18 @@
-// The controllers macOS sees, with their name and battery, from Apple's Game
-// Controller framework. Pairing stays macOS's job, so no Bluetooth access is asked.
+// The controllers macOS sees, with their name and battery, from Apple's Game Controller framework. Pairing stays macOS's job, so no Bluetooth access is asked.
 
 import Foundation
 import GameController
 import Observation
 
-// Whose button names a controller carries
 enum PadFamily: String, Codable, Sendable {
     case playStation, xbox, nintendo, generic
 }
 
 struct ControllerInfo: Identifiable, Equatable, Sendable {
     var id: String
-    // "DualSense Wireless Controller", as Settings > Controllers lists it
     var name: String
-    // "DualSense", as the game panel shows it
     var shortName: String
     var family: PadFamily
-    // 0 to 1; nil for a wired controller or one that does not say
     var battery: Double?
     var charging = false
 
@@ -25,7 +20,6 @@ struct ControllerInfo: Identifiable, Equatable, Sendable {
         battery.map { "\(Int(($0 * 100).rounded()))%" }
     }
 
-    // "Battery 80%", "Charging, battery 80%", "Connected"
     var status: String {
         guard let percent = batteryText else { return String(localized: "Connected") }
         return charging ? String(localized: "Charging, battery \(percent)") : String(localized: "Battery \(percent)")
@@ -61,14 +55,11 @@ extension ControllerInfo {
     }
 }
 
-// Where the list comes from: the framework, or a stand-in in tests
 @MainActor
 protocol ControllerSource: AnyObject {
     var controllers: [ControllerInfo] { get }
-    // `changed` runs on each connection, disconnection and battery change
     func start(_ changed: @escaping @MainActor () -> Void)
     func stop()
-    // The battery poll runs only while a view that shows it is on screen
     func pollBattery(_ on: Bool)
 }
 
@@ -128,8 +119,6 @@ final class GameControllerSource: ControllerSource {
                 try? await Task.sleep(for: interval)
                 guard let self else { return }
                 let now = self.controllers
-                // No controller connected: nothing to read, connections and
-                // disconnections still arrive as notifications
                 guard !now.isEmpty else { self.last = []; continue }
                 if now != self.last {
                     self.last = now
@@ -162,7 +151,6 @@ final class ControllerMonitor {
         refresh()
     }
 
-    // Views that show the battery call this from onAppear/onDisappear
     func batteryShown(_ on: Bool) {
         let was = batteryViewers > 0
         batteryViewers = max(0, batteryViewers + (on ? 1 : -1))

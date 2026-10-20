@@ -1,6 +1,5 @@
 import SwiftUI
 
-// Placeholder covers while the first import runs
 struct LoadingGrid: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pulse = false
@@ -77,7 +76,6 @@ struct WelcomeView: View {
     }
 }
 
-// The Steam source when Steam is not on this Mac
 struct SteamInstallView: View {
     @Bindable var setup: SteamSetup
     let locate: () -> URL?
@@ -181,7 +179,6 @@ struct SteamInstallView: View {
     }
 }
 
-// A store that is not connected yet: its page and sign-in
 struct SignInView: View {
     let source: GameSource
     @Environment(StoreCenter.self) private var stores: StoreCenter?

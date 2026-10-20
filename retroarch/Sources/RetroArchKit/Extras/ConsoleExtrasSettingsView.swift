@@ -1,7 +1,5 @@
 import SwiftUI
 
-// Settings > Consoles: the RetroAchievements account,
-// saves in iCloud Drive, the translation service and the netplay name
 struct ConsoleExtrasSections: View {
 
     @Bindable var extras: ConsoleExtras

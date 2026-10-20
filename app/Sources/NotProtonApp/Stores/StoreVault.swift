@@ -1,14 +1,9 @@
-// Store sign-ins live in the Keychain and nowhere else. The clients keep their
-// tokens in files, so those files are written into the client's own folder just
-// before it runs, read back once the last run that needs them ends (a client may
-// have refreshed them), and deleted. Cartouche never sees a password: only the
-// tokens the store hands the client after the user signs in on the store's page.
+// Tokens live in the Keychain; client token files exist only while a run needs them: written before, read back after the last overlapping run, then deleted.
 
 import Foundation
 import RetroArchKit
 import Security
 
-// What the Keychain holds for one store: the client's token files and the account name
 struct StoreSecret: Codable, Sendable, Equatable {
     var account: String
     // Path inside the client's folder to the file's bytes
@@ -21,8 +16,7 @@ protocol TokenVault: Sendable {
     func delete(_ store: GameSource) throws
 }
 
-// One generic password per store, readable only while the Mac is unlocked and
-// never synced to other devices
+// One generic password per store, readable only while the Mac is unlocked, never synced.
 struct KeychainVault: TokenVault {
 
     // QA sign-ins use their own service so the real Keychain items are never read
@@ -70,12 +64,10 @@ struct KeychainVault: TokenVault {
     }
 }
 
-// Writes a store's token files for the clients and takes them back. Runs that
-// overlap share one copy; the last one to end puts it back in the vault.
+// Token files out for a run, back in the vault when the last overlapping run ends.
 actor StoreSecrets {
 
     let vault: any TokenVault
-    // The folder each store's client reads its tokens from
     let folders: [GameSource: URL]
     // The token files of each store, as paths or "*.ext" patterns inside its folder
     let patterns: [GameSource: [String]]
@@ -91,11 +83,7 @@ actor StoreSecrets {
 
     func secret(_ store: GameSource) throws -> StoreSecret? { try vault.read(store) }
 
-    // Runs body with the store's token files in place. `fresh` starts the client
-    // from an empty folder instead of the vault's copy — a sign-in (nile refuses
-    // to register over a saved token) — and a failed body then leaves the vault's
-    // older session alone. The account name of a new sign-in comes from the body's
-    // result.
+    // fresh starts the client from an empty folder (nile refuses to register over a saved token); a failed body leaves the vault's older session alone.
     func using<T: Sendable>(_ store: GameSource, account: String? = nil, fresh: Bool = false,
                             _ body: @Sendable () async throws -> T) async throws -> T {
         try open(store, account: account, fresh: fresh)
@@ -104,8 +92,7 @@ actor StoreSecrets {
             do {
                 try close(store, collect: true)
             } catch {
-                // The Keychain can be unreachable on a locked Mac; the files stay
-                // (0600) and sweep() picks them up at the next start.
+                // The Keychain can be unreachable on a locked Mac; the files stay (0600) for sweep() at next start.
                 AppLog.note("store \(store.id): tokens could not be stored: \(error.localizedDescription)")
             }
             return result
@@ -145,7 +132,6 @@ actor StoreSecrets {
         if collect { try self.collect(store) } else { clearFiles(store) }
     }
 
-    // Deletes the token files a client was given; the vault keeps its copy.
     func clearFiles(_ store: GameSource) {
         guard let folder = folders[store] else { return }
         for (_, url) in Self.files(in: folder, matching: patterns[store] ?? []) {
@@ -153,9 +139,7 @@ actor StoreSecrets {
         }
     }
 
-    // Puts whatever token files the client left back into the vault. With none
-    // left, the client signed out, and so does the vault. The files are deleted
-    // only once the vault holds them.
+    // No files left means the client signed out, and so does the vault; files are deleted only once the vault holds them.
     func collect(_ store: GameSource) throws {
         guard let folder = folders[store] else { return }
         let files = Self.files(in: folder, matching: patterns[store] ?? [])
@@ -201,15 +185,12 @@ actor StoreSecrets {
 }
 
 extension StoreSecrets {
-    // Drops a store's tokens from the vault and from disk
     func forget(_ store: GameSource) throws {
         clearFiles(store)
         try vault.delete(store)
     }
 
-    // Names the account of the tokens a sign-in just saved. With a run still open
-    // (a GOG game keeping comet alive), the vault is left alone: that run's close
-    // writes the files under this account.
+    // With a run still open (a GOG game keeping comet alive), the vault is left alone: that run's close writes under this account.
     func remember(account: String, for store: GameSource) throws {
         setAccount(account, for: store)
         guard (users[store] ?? 0) == 0 else { return }

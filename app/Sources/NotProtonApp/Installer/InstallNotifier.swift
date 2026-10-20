@@ -1,7 +1,4 @@
-// "<Game> is installed" with an Open button, when the install finishes while
-// the sheet is closed, and "<Game> could not be installed" when it fails. Posts
-// only if notifications are already allowed: the prompt itself comes from
-// NotificationOffer, after Cartouche's explanation.
+// Posts only if notifications are already allowed; the prompt comes from NotificationOffer.
 
 import Foundation
 
@@ -18,7 +15,6 @@ final class UserInstallNotifier: InstallNotifying {
     static let failedCategory = "install-failed"
     static let openAction = "open"
 
-    // Called with the job's ID when the user clicks Open.
     var onOpen: (UUID) -> Void = { _ in }
 
     let poster: any NotificationPosting
@@ -40,7 +36,6 @@ final class UserInstallNotifier: InstallNotifying {
             action: Self.openAction, actionTitle: String(localized: "Open"), userInfo: ["job": job.uuidString]))
     }
 
-    // Open shows the sheet on the failed install, with its retries
     func failed(name: String, job: UUID) {
         poster.post(NotificationSpec(
             identifier: "failed-\(job.uuidString)", title: String(localized: "\(name) could not be installed"),

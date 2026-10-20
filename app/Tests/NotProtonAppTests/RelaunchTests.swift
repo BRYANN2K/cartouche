@@ -14,7 +14,6 @@ final class FakeGames: GameActivity, Sendable {
 
     private let state: Mutex<State>
 
-    // The game quits after this many checks
     init(runningFor checks: Int = 0) {
         state = Mutex(State(running: checks))
     }
@@ -33,7 +32,6 @@ final class FakeGames: GameActivity, Sendable {
         }
     }
 
-    // Resumes when the service first asks whether a game runs
     func firstCall() async {
         await withCheckedContinuation { continuation in
             if state.withLock({ s -> Bool in
@@ -48,7 +46,6 @@ final class FakeGames: GameActivity, Sendable {
 @MainActor
 final class FakeRelauncher: Relauncher {
     var count = 0
-    // A relauncher that cannot start the helper reports false
     var succeeds = true
     func relaunch() -> Bool { count += 1; return succeeds }
 }
@@ -260,8 +257,6 @@ struct RelaunchTests {
         let work = try scratchDirectory("reopen")
         defer { try? FileManager.default.removeItem(at: work) }
         let marker = work.appending(path: "reopened")
-        // The "old process" stays up until the test has checked the marker,
-        // then is ended on purpose — no window where timing decides the order
         let old = Process()
         old.executableURL = URL(filePath: "/bin/sleep")
         old.arguments = ["30"]

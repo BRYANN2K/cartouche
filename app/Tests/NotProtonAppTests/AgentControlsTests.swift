@@ -4,7 +4,7 @@ import Testing
 
 @testable import NotProtonApp
 
-// The P15 controls tools over the fixture backend: every call lands on the
+// The controls tools over the fixture backend: every call lands on the
 // same GameControls the Controls sheet writes, and Steam games stay refused.
 @MainActor
 private func controlsService(

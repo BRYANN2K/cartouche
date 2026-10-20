@@ -1,6 +1,4 @@
-// What the first launch shows before it asks anything: Steam and its account,
-// CrossOver, Game Porting Toolkit, controllers, and folders that hold games.
-// Every source reads only; none of them can show a macOS permission prompt.
+// Every source reads only; none can show a macOS permission prompt.
 
 import Foundation
 import GameController
@@ -12,21 +10,18 @@ struct FoundSteam: Equatable, Sendable {
     var games: Int
 }
 
-// CrossOver or Game Porting Toolkit, as the user installed it
 struct FoundRunner: Equatable, Sendable {
     var name: String
 }
 
 struct FoundController: Equatable, Sendable {
     var name: String
-    // 0 to 100, when the controller reports it
     var battery: Int?
 }
 
 struct FoundFolder: Equatable, Sendable, Identifiable {
     var url: URL
     var games: Int
-    // ConsoleCatalog IDs, with how many games each
     var consoles: [String: Int]
 
     var id: String { url.plainPath }
@@ -38,14 +33,12 @@ struct MacFindings: Equatable, Sendable {
     var portingToolkit: [FoundRunner] = []
     var controllers: [FoundController] = []
     var folders: [FoundFolder] = []
-    // False when a source was still reading at the deadline
     var complete = true
 
     var isEmpty: Bool {
         steam == nil && crossOver.isEmpty && portingToolkit.isEmpty && controllers.isEmpty && folders.isEmpty
     }
 
-    // Games per console across every folder found
     var consoleGames: [String: Int] {
         folders.reduce(into: [:]) { total, folder in
             for (console, n) in folder.consoles { total[console, default: 0] += n }
@@ -60,7 +53,6 @@ struct MacScan: Sendable {
     var controllers: @Sendable () async -> [FoundController]
     var folders: @Sendable () -> [FoundFolder]
 
-    // The found list shows within this time, with whatever came back
     static let deadline: Duration = .seconds(3)
 
     func run(deadline: Duration = Self.deadline) async -> MacFindings {
@@ -84,7 +76,6 @@ struct MacScan: Sendable {
         }
     }
 
-    // Collects each source's answer and resumes once, when all are in or time is up
     private final class Gather: Sendable {
         struct State {
             var found = MacFindings()
@@ -156,7 +147,6 @@ extension MacScan {
         }
     }
 
-    // Controllers connect a moment after launch, so an empty list is read again once
     @MainActor
     static func liveControllers() async -> [FoundController] {
         var list = GCController.controllers()
@@ -173,13 +163,10 @@ extension MacScan {
     }
 }
 
-// Folders in the home folder that look like they hold console games. Only
-// these names are looked at, never Documents, Desktop or Downloads, which macOS
-// protects, and nothing that leads to another disk.
+// Only these folder names are looked at - never Documents, Desktop or Downloads, which macOS protects - and nothing leading to another disk.
 struct GameFolderScan: Sendable {
     let home: URL
     var candidates = ["Games/ROMs", "Games/roms", "ROMs", "roms", "Emulation/roms", "Emulation", "RetroArch/roms", "Games"]
-    // Enough for a big collection, small enough to stay within the deadline
     var maxEntries = 20_000
     var maxDepth = 4
 
@@ -212,7 +199,6 @@ struct GameFolderScan: Sendable {
         return offered
     }
 
-    // The real path, without a trailing slash
     static func resolved(_ url: URL) -> String {
         var path = url.resolvingSymlinksInPath().standardizedFileURL.path(percentEncoded: false)
         while path.count > 1 && path.hasSuffix("/") { path.removeLast() }
@@ -239,7 +225,6 @@ struct GameFolderScan: Sendable {
             seen += 1
             if seen > maxEntries || Task.isCancelled { break }
             if walker.level > maxDepth { walker.skipDescendants() }
-            // Resolving a path costs a stat; only a directory can skip a subtree
             if (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true {
                 let path = Self.resolved(url)
                 if skipping.contains(where: { path == $0 || path.hasPrefix($0 + "/") }) {
@@ -256,14 +241,12 @@ struct GameFolderScan: Sendable {
 }
 
 extension FoundFolder {
-    // "~/Games/ROMs"
     func shortPath(home: URL = SupportPaths.home) -> String {
         let path = url.plainPath
         let homePath = home.plainPath
         return path.hasPrefix(homePath + "/") ? "~" + path.dropFirst(homePath.count) : path
     }
 
-    // Product names of the consoles, most games first
     var consoleNames: [String] {
         consoles.sorted { $0.value != $1.value ? $0.value > $1.value : $0.key < $1.key }
             .compactMap { ConsoleCatalog.console($0.key)?.name }

@@ -309,8 +309,6 @@ struct MCPHTTPTests {
         #expect(ok.contains("{}"))
     }
 
-    // Sends a raw request and reads until the server closes, since a reply
-    // may span several receive callbacks.
     private func post(raw: String, port: UInt16) async throws -> String {
         let connection = NWConnection(host: "127.0.0.1",
                                       port: NWEndpoint.Port(rawValue: port)!, using: .tcp)
@@ -351,8 +349,6 @@ struct MCPHTTPTests {
         func append(_ data: Data) {
             lock.withLock { storage += String(decoding: data, as: UTF8.self) }
         }
-        // Only the first finish resumes the continuation: a failed state can
-        // still arrive after the reply.
         func finish(_ body: () -> Void) {
             guard lock.withLock({ !done && { done = true; return true }() }) else { return }
             body()
@@ -392,9 +388,6 @@ struct MCPHTTPTests {
         #expect(reply.contains("403"))
     }
 
-    // Starts the listener and waits for its "running" state — the bound port
-    // is only valid once the listener reports ready. A 10 s cap fails loudly
-    // instead of hanging the suite.
     private func boundPort(_ server: MCPHTTPServer) async throws -> UInt16 {
         let (stream, yield) = AsyncStream<String>.makeStream()
         server.onState = { yield.yield($0) }
@@ -640,7 +633,6 @@ struct AgentServiceTests {
         #expect(reply["isError"] == .bool(true))
         #expect(errorText(reply)?.contains("2 games") == true)
         #expect(!backend.calls.contains { $0.hasPrefix("hide:") })
-        // The exact id still works.
         let ok = await service.call("hide_game", ["game": .string("steam:1")], client: "test")
         #expect(ok["isError"] == .bool(false))
     }
@@ -741,8 +733,6 @@ struct AgentScanTests {
         let inside = root.appending(path: "My File.log").path(percentEncoded: false)
         #expect(AgentScan.scrub(.string(inside), under: [root], home: home)
             == .string("~/Library/Application Support/Cartouche/My File.log"))
-        // The old pattern stopped at the space and would have leaked
-        // "/Private/x"; the whole path must reduce to its file name.
         let outside = URL(filePath: "/Volumes/My Disk/Private/x").path(percentEncoded: false)
         #expect(AgentScan.scrub(.string(outside), under: [root], home: home) == .string("…/x"))
     }
@@ -804,8 +794,8 @@ struct AgentScanTests {
                 ["game": .string(game.id), "path": .string(escape)], client: "test")
             #expect(reply["isError"] == .bool(true))
         }
-
         // A symlink inside the prefix that points outside it is refused.
+
         let elsewhere = FileManager.default.temporaryDirectory
             .appending(path: "cartouche-elsewhere-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: elsewhere, withIntermediateDirectories: true)

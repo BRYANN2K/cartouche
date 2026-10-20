@@ -1,5 +1,4 @@
-// Install from a Windows installer: the sheet. Steps follow mockup/launcher.html.
-// Closing it never stops an install; InstallCenter keeps the job.
+// Steps follow mockup/launcher.html; closing never stops an install.
 
 import AppKit
 import InstallerKit
@@ -42,7 +41,6 @@ private struct DropStep: View {
 
     var body: some View {
         Text("Install a Windows Game").font(.title2.bold())
-        // The + sheet's two kinds, as in the mockup; Console Games is its own sheet
         if let showConsoleGames {
             Picker("Kind", selection: Binding(get: { AddGamesKind.windows }, set: { if $0 == .consoles { showConsoleGames() } })) {
                 ForEach(AddGamesKind.allCases) { Text($0.title).tag($0) }
@@ -222,7 +220,6 @@ private struct InstallingStep: View {
         if let job = model.job {
             Text("Installing \(job.title)").font(.title2.bold())
             HStack(alignment: .top, spacing: 18) {
-                // The cover colors in from the bottom as the files unpack.
                 InstallCover(appID: job.request.appID, name: job.title)
                     .saturation(job.phase == .installing || job.phase == .redistributables ? job.progress.fraction : 1)
                     .overlay {

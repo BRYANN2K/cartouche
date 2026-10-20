@@ -107,7 +107,6 @@ struct ControlsUITests {
         let connected = ContinuousClock.now
         scene.source.connect(FakeControllerSource.dualSense)
         await settings.settle(0.1)
-        // One reading of each window, as drawn
         let listed = try settings.texts()
         let shown = try panel.texts()
         let took = ContinuousClock.now - connected

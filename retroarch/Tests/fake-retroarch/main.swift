@@ -53,7 +53,6 @@ let tools: Any = env["FAKE_RA_TOOLS"]
     .flatMap { FileManager.default.contents(atPath: $0) }
     .flatMap { try? JSONSerialization.jsonObject(with: $0) } ?? ["tools": []]
 
-// 1x1 PNG
 let png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC"
 
 func reply(_ id: Any, _ result: Any) {

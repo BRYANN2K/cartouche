@@ -1,12 +1,9 @@
-// What the game panel and its Details sheet show, in order. The panel answers: can I
-// play it, how fast, with which setup. Sources and rare settings go behind Details.
 
 import Foundation
 
 struct LayerReport: Equatable, Sendable, Identifiable {
     let layer: TranslationLayer
     let count: Int
-    // MacGamingDB's 0 to 5 scale
     let average: Double
 
     var id: TranslationLayer { layer }
@@ -14,7 +11,6 @@ struct LayerReport: Equatable, Sendable, Identifiable {
 
 enum GraphicsReports {
 
-    // Reports of Windows games run through Wine, by layer, most reported first
     static func layers(_ entry: MacGamingDBEntry?) -> [LayerReport] {
         var groups: [TranslationLayer: [Int]] = [:]
         for report in entry?.reports ?? [] where report.method == .wine {
@@ -27,7 +23,6 @@ enum GraphicsReports {
                     > ($1.count, -(order.firstIndex(of: $1.layer) ?? order.count)) }
     }
 
-    // Best average among layers with at least 5 reports, else the most reported
     static func best(_ layers: [LayerReport]) -> TranslationLayer? {
         let solid = layers.filter { $0.count >= 5 }
         if let top = solid.max(by: { $0.average < $1.average }) { return top.layer }
@@ -73,7 +68,6 @@ struct GamePanelContent {
     let layers: [LayerReport]
     let bestLayer: TranslationLayer?
     let setup: GameSetupChoice
-    // The user's own sessions, measured by the frame counter
     let play: GamePlay?
 
     init(game: Game, compat: CompatibilityPanel, setup: GameSetupChoice, play: GamePlay? = nil) {
@@ -87,7 +81,6 @@ struct GamePanelContent {
 
     var playLabel: String { game.installed ? String(localized: "Play") : String(localized: "Install") }
 
-    // Your Play once the game has a session
     var sections: [Section] {
         var out: [Section] = [.play]
         if play != nil { out.append(.yourPlay) }
@@ -107,12 +100,10 @@ struct GamePanelContent {
         return out
     }
 
-    // "Steam. Played yesterday."
     func subtitle(now: Date = Date()) -> String {
         String(localized: "\(game.source.name). \(game.status(now: now)).")
     }
 
-    // A suggestion only when it changes something
     var suggestedBackend: GraphicsBackend? {
         guard let best = bestLayer.flatMap(GraphicsBackend.init) else { return nil }
         return best == (setup.graphics ?? .d3dmetal) ? nil : best
@@ -125,7 +116,6 @@ struct GamePanelContent {
         let note: String
     }
 
-    // The three numbers, or nil with the line to show instead
     static func estimate(_ result: CompatEstimate.Result, macReportsOn: Bool) -> (Estimate?, String?) {
         guard macReportsOn else { return (nil, String(localized: "Mac reports are turned off in Settings > Privacy")) }
         switch result {
@@ -143,7 +133,6 @@ struct GamePanelContent {
         }
     }
 
-    // AppleGamingWiki's ways to run a game, in the order the sheet lists them
     static let wikiMethods = ["native", "rosetta2", "crossover", "wine", "parallels"]
 
     static func wikiMethod(_ key: String) -> String {

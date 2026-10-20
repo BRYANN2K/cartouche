@@ -4,7 +4,7 @@ import Testing
 @testable import NotProtonApp
 
 // The frame counter reaches the support folder with the other components, and the run
-// script names the same files and folders the app reads (P8)
+// script names the same files and folders the app reads
 @Suite("Frame counter deployment")
 struct PerformanceInjectionTests {
 

@@ -16,7 +16,6 @@ enum RecordedAchievements {
     static let patch = #"{"Success":true,"PatchData":{"ID":228,"Title":"Cartouche Homebrew","ConsoleID":3,"ImageIcon":"/Images/000001.png","RichPresencePatch":"Lookup:Area\n0=Title\n1=Brinstar\n\nDisplay:\n@Area(0xH0d6c) - Lives @Number(0xH0032)","Achievements":[],"Leaderboards":[]}}"#
 }
 
-// A dorequest.php that answers from the recorded set and keeps what was sent
 final class RecordedPost: @unchecked Sendable {
     private let lock = NSLock()
     private var sent: [[String: String]] = []
@@ -79,7 +78,6 @@ struct AchievementsTests {
         let snes = work.appending(path: "game.sfc")
         try (Data(repeating: 0xEE, count: 512) + body).write(to: snes)
         #expect(AchievementsConsole.hash(of: snes, console: "snes") == md5(body))
-        // Game Boy: the whole file
         let gb = work.appending(path: "game.gb")
         try body.write(to: gb)
         #expect(AchievementsConsole.hash(of: gb, console: "gb") == md5(body))
@@ -174,7 +172,6 @@ struct ConsoleExtrasTests {
         // The hash asked for is the cartridge's, its copier header left out
         let hash = try #require(post.requests.first { $0["r"] == "gameid" }?["m"])
         #expect(hash == AchievementsConsole.hash(of: game.fileURL, console: "snes"))
-        // Read again by a new Cartouche: the counts and the account stay
         let again = ConsoleExtras(paths: extras.paths, client: AchievementsClient(post: post.post), secrets: secrets)
         #expect(again.progress(for: game)?.unlocked == 12 && again.login?.token == "Q1w2E3r4T5y6U7i8")
 
@@ -249,7 +246,6 @@ struct CloudSavesTests {
         let macA = RetroArchPaths(root: work.appending(path: "mac-a"))
         let macB = RetroArchPaths(root: work.appending(path: "mac-b"))
 
-        // Mac A had a state before the option was on: it moves to iCloud Drive
         let early = macA.states.appending(path: "Snes9x/Cartouche Homebrew.state1")
         try FileManager.default.createDirectory(at: early.deletingLastPathComponent(), withIntermediateDirectories: true)
         try Data("slot 1".utf8).write(to: early)
@@ -265,7 +261,6 @@ struct CloudSavesTests {
         try Data("slot 3".utf8).write(to: folder.appending(path: "Cartouche Homebrew.state3"))
         try Data("png".utf8).write(to: folder.appending(path: "Cartouche Homebrew.state3.png"))
 
-        // Mac B's Continue From
         let onB = SaveStates.list(contentName: "Cartouche Homebrew", in: macB.states)
         #expect(Set(onB.compactMap(\.slot)) == [1, 3])
         #expect(onB.first { $0.slot == 3 }?.picture != nil)

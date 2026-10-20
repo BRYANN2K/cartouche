@@ -1,7 +1,5 @@
 import SwiftUI
 
-// What the panel leaves out: other Macs, every report, AppleGamingWiki, anti-cheat
-// details, the HUD, and the sources with their licenses
 struct GameDetailsSheet: View {
     let content: GamePanelContent
     let compat: CompatibilityModel
@@ -13,7 +11,6 @@ struct GameDetailsSheet: View {
 
     private var thisMac: String? { compat.chip }
 
-    // Chips the data knows, weakest first
     private var chips: [String] {
         let gpu = compat.data?.gpuStrength ?? [:]
         return gpu.keys.sorted { (gpu[$0]!, $0) < (gpu[$1]!, $1) }

@@ -6,7 +6,6 @@ import Testing
 @Suite("Version order")
 struct VersionOrderTests {
 
-    // Shared with packaging/tests/test_release.py, so the app and the release tools agree
     static func ordered() throws -> [String] {
         let text = try String(contentsOf: IdentityTests.repoRoot.appending(path: "packaging/tests/version-order.txt"),
                               encoding: .utf8)
@@ -96,7 +95,6 @@ struct VersionOrderTests {
                 == .newerInstalled)
     }
 
-    // ADR 0011: Cartouche counts 0.x from 0.1.0, not on from NotProton's 1.2.0
     @Test("version.h carries a Cartouche 0.x version, not NotProton's number")
     func versionHeader() throws {
         let header = try String(contentsOf: IdentityTests.repoRoot.appending(path: "dylib/version.h"), encoding: .utf8)

@@ -1,11 +1,8 @@
-// Starting a store game: the runner and graphics backend of its setup, its own
-// prefix, and the exe the store names, run under Rosetta as Windows installs are.
+// Store games run under Rosetta, as Windows installs do.
 
 import Foundation
 import InstallerKit
 
-// A program Cartouche started for a game, and its end. The process wrapper of
-// the installers, with the store's captured log file.
 final class StoreProcess: @unchecked Sendable {
     private let run: InstallRun
 

@@ -1,5 +1,3 @@
-// Prefix management UI inside Cartouche, also see PrefixesModel
-
 import SwiftUI
 
 struct PrefixesView: View {

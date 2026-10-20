@@ -1,5 +1,3 @@
-// Every action on a game, listed once. The context menu, the Game menu in the menu
-// bar and the panel's More button all show this list, so none can miss an action.
 
 import AppKit
 import Foundation
@@ -15,7 +13,6 @@ enum GameAction: Hashable, Sendable {
     case showInFinder
     case showInSteam
     case verifyFiles
-    // A store game's update, through its store's client
     case update
     case changeCover
     case resetCover
@@ -27,7 +24,6 @@ enum GameAction: Hashable, Sendable {
 struct Shortcut: Equatable, Sendable {
     let key: String
     let command: Bool
-    // ⌘↩, ⌘D, ⌘I as menus print them
     var label: String { (command ? "⌘" : "") + (key == "\r" ? "↩" : key.uppercased()) }
 }
 
@@ -39,7 +35,6 @@ struct GameMenuItem: Equatable {
     var disabled = false
     var destructive = false
     var children: [GameMenuItem] = []
-    // A separator when both title and action are empty
     var isDivider: Bool { title.isEmpty && action == nil && children.isEmpty }
 
     static let divider = GameMenuItem(title: "")
@@ -56,10 +51,8 @@ enum GameMenu {
         let setup = model.setup(for: game.id)
         // Only a real Steam game gets steam:// links; an installer game keeps its own launcher
         let steam = game.steamAppID != nil && game.source == .steam
-        // A store game downloads through its store, which needs the session
         let store = game.source.isStore
         let expired = model.isExpired(.source(game.source))
-        // A running download or play session on this game locks its actions
         let busy = store && stores?.job(for: game.id) != nil
         let playing = store && (stores?.playing.contains(game.id) ?? false)
         var items: [GameMenuItem] = [
@@ -80,9 +73,7 @@ enum GameMenu {
             .divider,
         ])
         if !game.source.isConsole {
-            // Installer games pick from the install runners: ready free Wine builds included
             let runners = game.source == .installer ? model.installRunners : model.runners.filter(\.isOffered)
-            // Only the pairs this Mac can run; nothing to pick for the Mac version
             let resolved = model.resolution(for: game).setup
             let windows = resolved.version == .windows
             items.append(GameMenuItem(
@@ -128,8 +119,7 @@ enum GameMenu {
     }
 }
 
-// Runs a menu action. Steam games go through Steam's own steam:// links, so Steam
-// does the installing, verifying and uninstalling.
+// Steam games go through steam:// links, so Steam does the installing, verifying and uninstalling.
 @MainActor
 struct GameActionRunner {
 
@@ -137,20 +127,14 @@ struct GameActionRunner {
     var open: @MainActor (URL) -> Void = { NSWorkspace.shared.open($0) }
     var reveal: @MainActor (URL) -> Void = { NSWorkspace.shared.activateFileViewerSelecting([$0]) }
     var chooseImage: @MainActor () -> URL? = GameActionRunner.chooseImage
-    // Called for Get Info, so the window shows the panel
     var showInfo: @MainActor () -> Void = {}
-    // What Cartouche does once a game starts, from Settings > General
     var afterLaunch: @MainActor () -> Void = {}
-    // Console games start in RetroArch, through the console center
     var playConsole: @MainActor (Game) -> Void = { _ in }
-    // A game installed from a Windows installer runs its launch script; the
-    // setup's DXMT winemetal.dll is refreshed first, as store games do. The
-    // text a failed launch should show as the library's problem, nil on success
+    // DXMT's winemetal.dll is refreshed first, as store games do at launch; returns the failure text, nil on success.
     var playInstaller: @MainActor (Game) -> String? = { game in
         if case .failure(let error) = GameActionRunner.launchInstaller(game) { return error.errorDescription }
         return nil
     }
-    // Epic, GOG and Amazon games go through their store's client
     var stores: StoreCenter?
     var confirmUninstall: @MainActor (Game) -> Bool = GameActionRunner.confirmUninstall
 
@@ -169,7 +153,6 @@ struct GameActionRunner {
         switch action {
         case .play:
             if game.source == .installer {
-                // Its own launcher script, kept in step with the game's setup
                 if let failure = playInstaller(game) {
                     model.problem = failure
                 } else {
@@ -221,7 +204,6 @@ struct GameActionRunner {
         }
     }
 
-    // True when the store handled the action
     private func performStore(_ action: GameAction, on game: Game, _ stores: StoreCenter) -> Bool {
         switch action {
         case .play: stores.play(game)
@@ -245,11 +227,6 @@ struct GameActionRunner {
         return panel.runModal() == .OK ? panel.url : nil
     }
 
-    // Detaches the install folder's launch script; the agent's launch endpoint
-    // and InstallAllTests run the same file. DXMT's winemetal.dll is refreshed
-    // for the record's backend, as store games do at launch. The failure text
-    // comes back for the caller to show; a missing record or silent kill no
-    // longer looks like a launch.
     @discardableResult
     @MainActor static func launchInstaller(_ game: Game, installs: URL = GameFolder.installs) -> Result<Void, LaunchFailed> {
         guard game.id.hasPrefix("installer:") else { return .success(()) }
@@ -262,8 +239,6 @@ struct GameActionRunner {
         }
         SetupEnvironment.prepare(record.backend, prefix: folder.prefix, backends: BackendInstaller.folder)
         do {
-            // The launcher is a shell script; HOME/USER/TMPDIR/PATH let it and
-            // the shell's own expansions work when detached from the app
             try Shell.detach("/bin/sh", [record.launcher.path(percentEncoded: false)], environment: [
                 "HOME": NSHomeDirectory(),
                 "USER": NSUserName(),

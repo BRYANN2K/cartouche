@@ -1,6 +1,4 @@
-// The Bridge Payload consists of the components Proton uses to 'bridge'
-// communication between the game running under Proton and the native
-// Steam client. This component of the app deploys them.
+// The Proton bridge components deployed between the game and the Steam client.
 
 import Foundation
 

@@ -1,5 +1,3 @@
-// Shortcuts to launch the Wine tools (winecfg/regedit/task manager) against
-// a selected prefix, opens prefix directory in finder, etc.
 
 import AppKit
 import Foundation
@@ -19,7 +17,6 @@ enum WineTool: String, CaseIterable, Sendable {
     }
 }
 
-// The logs compat_run.sh writes for a game.
 enum PrefixLog: CaseIterable, Sendable {
     case launch
     case wine
@@ -320,7 +317,6 @@ enum PrefixTools {
             "/bin/sh", [script.path(percentEncoded: false), "-q"] + verbs,
             environment: environment, to: log
         )
-        // Until the wineserver exits, the prefix still counts as in use.
         _ = try? Shell.run(layout(runner: runner, flavor: flavor).server.path(percentEncoded: false), ["-w"], environment: environment)
         guard status == 0 else {
             throw StepFailure(
@@ -331,9 +327,8 @@ enum PrefixTools {
         return log
     }
 
-    // Under -q annihilate wipes the prefix and its saves without asking,
-    // prefix= switches to another prefix, and options like --self-update
-    // change winetricks itself. Agents and the prefix sheet share this filter.
+    // Under -q annihilate wipes the prefix and its saves without asking, prefix= switches prefix, --self-update
+    // changes winetricks itself. Agents and the prefix sheet share this filter.
     static func refusedVerb(_ verbs: [String]) -> String? {
         verbs.first { $0 == "annihilate" || $0.hasPrefix("prefix=") || $0.hasPrefix("-") }
     }

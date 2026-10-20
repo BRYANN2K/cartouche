@@ -1,5 +1,4 @@
-// Your Play for the game panel: reads finished sessions into the store, keeps
-// each game's numbers, and shares new ones only when the user turned sharing on.
+// Shares new numbers only when the user turned sharing on.
 
 import Foundation
 import Observation
@@ -26,8 +25,7 @@ final class PerformanceModel {
 
     func play(appID: Int?) -> GamePlay? { appID.flatMap { plays[$0] } }
 
-    // Off the main thread: new folders into SQLite, then the numbers. The full
-    // table is read once; later refreshes touch only the games a folder added.
+    // Off the main thread; the full table is read once, later refreshes touch only the games a folder added.
     func refresh() async {
         guard !refreshing else { return }
         refreshing = true
@@ -50,7 +48,6 @@ final class PerformanceModel {
         await share(added)
     }
 
-    // A panel open reads nothing when no launch folder waits
     func refreshIfNeeded() async {
         let store = store
         let pending = await Task.detached { store.hasIncomingSessions }.value

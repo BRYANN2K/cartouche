@@ -1,15 +1,9 @@
 import CartoucheIdentity
 import Foundation
 
-// The local transport between the app and the bundled cartouche-mcp helper: a
-// Unix socket inside Cartouche's data folder. One JSON-RPC message per line in
-// each direction — the same frames MCPStdio carries. This replaces XPC: only
-// a launchd job may vend a Mach service, and NSXPCConnection(serviceName:) is
-// for XPC services bundled inside the connecting app.
+// Unix socket instead of XPC: only a launchd job may vend a Mach service.
 
-// Where the socket lives: ~/Library/Application Support/<Cartouche>/agent/
-// mcp.sock — the same root SupportPaths builds for the app; the helper cannot
-// see that file, so the names come from the shared identity header.
+// The helper cannot see the app data folder, so the path names come from the shared identity header.
 public enum MCPSocketPath {
     public static var support: URL {
         URL(filePath: NSHomeDirectory())
@@ -55,11 +49,7 @@ private func unixSocket() throws -> Int32 {
     return fd
 }
 
-// The app's half: binds the socket and answers each line through the same
-// handler the HTTP transport uses. A peer is admitted only when it runs as
-// this user (getpeereid) and its executable — read through LOCAL_PEERPID and
-// proc_pidpath — passes the injected check: the bundled cartouche-mcp in the
-// app, the test runner in tests.
+// A peer is admitted only when it runs as this user (getpeereid) and its executable (LOCAL_PEERPID + proc_pidpath) passes the injected check.
 public final class MCPSocketServer: @unchecked Sendable {
 
     private let handler: @Sendable (Data) async -> Data
@@ -93,8 +83,7 @@ public final class MCPSocketServer: @unchecked Sendable {
         }
     }
 
-    // Closes the listener and every connection and unlinks the socket file, so
-    // quitting the app leaves no stale path in the data folder.
+    // Unlinks the socket file so quitting leaves no stale path.
     public func stop() {
         queue.sync {
             listenSource?.cancel()
@@ -106,16 +95,13 @@ public final class MCPSocketServer: @unchecked Sendable {
 
     // MARK: Peer checks
 
-    // The one executable the app's check admits: cartouche-mcp inside this .app.
     public static func bundledHelper(in bundle: URL = Bundle.main.bundleURL) -> String {
         normalized(bundle.appending(path: "Contents/Helpers/cartouche-mcp")
             .path(percentEncoded: false))
     }
 
-    // The peer's executable, as the kernel reports it, normalized so a symlinked
-    // bundle and proc_pidpath's answer compare equal.
+    // The peer executable as the kernel reports it, normalized so a symlinked bundle still compares equal.
     public static func executablePath(of pid: pid_t) -> String? {
-        // PROC_PIDPATHINFO_MAXSIZE (4 × MAXPATHLEN) does not import into Swift.
         var buffer = [CChar](repeating: 0, count: 4 * Int(MAXPATHLEN))
         guard proc_pidpath(pid, &buffer, UInt32(buffer.count)) > 0 else { return nil }
         let end = buffer.firstIndex(of: 0) ?? buffer.count
@@ -128,9 +114,7 @@ public final class MCPSocketServer: @unchecked Sendable {
             .path(percentEncoded: false)
     }
 
-    // The peer checks every accepted connection passes: same uid as the app,
-    // and an executable the injected check admits. Internal so tests can call
-    // it on socketpair fds — the CLI sandbox denies bind, not pairs.
+    // Same uid plus an admitted executable; internal so tests can use socketpair fds (the sandbox denies bind, not pairs).
     func admit(_ fd: Int32) -> Bool {
         var uid = uid_t(0), gid = gid_t(0)
         guard getpeereid(fd, &uid, &gid) == 0, uid == getuid() else { return false }
@@ -142,16 +126,14 @@ public final class MCPSocketServer: @unchecked Sendable {
         return admitsExecutable(executable)
     }
 
-    // Takes over a connected fd — accepted by the listener, or a socketpair
-    // end in tests. The peer checks run first; a refused peer is closed.
+    // Peer checks run first; a refused peer is closed.
     func adopt(_ fd: Int32) {
         queue.async { self.register(fd) }
     }
 
     // MARK: Connections
 
-    // Queued tasks carry a connection only as an identity; its fields are
-    // read and written on the serial queue alone.
+    // Mutable fields are read and written on the serial queue alone.
     private final class Connection: @unchecked Sendable {
         let id = UUID()
         let fd: Int32
@@ -203,7 +185,6 @@ public final class MCPSocketServer: @unchecked Sendable {
         }
     }
 
-    // Runs on the queue.
     private func register(_ fd: Int32) {
         guard admit(fd) else { close(fd); return }
         var one: Int32 = 1
@@ -224,9 +205,7 @@ public final class MCPSocketServer: @unchecked Sendable {
 
     private func drop(_ connection: Connection) {
         guard connections.removeValue(forKey: connection.id) != nil else { return }
-        // The fd closes in a cancel handler so no queued event can meet a
-        // reused fd number. A suspended source traps on cancel — and on
-        // release — so a drained writer is resumed first.
+        // The fd closes in a cancel handler so no queued event meets a reused fd number; a suspended source traps on cancel, so a drained writer is resumed first.
         if let writer = connection.writeSource {
             if !connection.writeArmed { writer.resume() }
             writer.setCancelHandler { close(connection.fd) }
@@ -268,8 +247,7 @@ public final class MCPSocketServer: @unchecked Sendable {
         queue.async { [weak self] in
             guard let self, let connection,
                   self.connections[connection.id] === connection else { return }
-            // An empty reply is a notification: its work is done. Dropping the
-            // connection gives a client still reading an EOF, not a hang.
+            // An empty reply is a notification; dropping the connection gives a reader EOF, not a hang.
             if reply.isEmpty { self.drop(connection); return }
             var line = reply
             if line.last != 0x0A { line.append(0x0A) }
@@ -279,8 +257,6 @@ public final class MCPSocketServer: @unchecked Sendable {
         }
     }
 
-    // Writes what fits; when the peer stops reading the rest waits for the
-    // write source instead of stalling the queue.
     private func pump(_ connection: Connection) {
         while !connection.outbox.isEmpty {
             let sent = connection.outbox.withUnsafeBytes {
@@ -323,11 +299,7 @@ public final class MCPSocketServer: @unchecked Sendable {
     }
 }
 
-// The helper's half: connects to the socket, sends one line, reads the one
-// reply line back. Each send opens a fresh connection and a dead app fails
-// fast on connect(). Once bytes went out the error is thrown, never retried:
-// a replay could run a non-idempotent tool twice — retries only happen in
-// LaunchingChannel and only when connect() failed.
+// Fresh connection per send; once bytes went out the error is never retried - a replay could run a non-idempotent tool twice.
 public final class MCPSocketClient: MCPRequestChannel, @unchecked Sendable {
 
     private let socketURL: URL

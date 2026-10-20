@@ -1,5 +1,4 @@
-// Unpacks the gzip compat file. The Compression framework reads raw deflate only,
-// so the gzip header and trailer are handled here.
+// Unpacks the gzip compat file. The Compression framework reads raw deflate only, so the gzip header and trailer are handled here.
 
 import Compression
 import Foundation

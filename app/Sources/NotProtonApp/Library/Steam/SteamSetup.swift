@@ -1,5 +1,3 @@
-// The three ways to get Steam when it is not on this Mac: Valve's own installer,
-// Homebrew when it is installed, or pointing Cartouche at a Steam that is elsewhere.
 
 import Foundation
 import Observation
@@ -12,7 +10,6 @@ final class SteamSetup {
         case idle
         case downloading
         case installingWithHomebrew
-        // Steam is in place, the user signs in once in Steam
         case signIn
         case failed(String)
     }
@@ -26,7 +23,6 @@ final class SteamSetup {
     private(set) var stage: Stage = .idle
 
     struct Steps: Sendable {
-        // Downloads Valve's installer and moves Steam.app into the folder
         var downloadAndInstall: @Sendable (_ into: URL) async throws -> Void = SteamSetup.installFromValve
         var runBrew: @Sendable (_ brew: String) async throws -> Void = SteamSetup.brewInstall
         var brewPath: @Sendable () -> String? = {
@@ -38,7 +34,6 @@ final class SteamSetup {
 
     @ObservationIgnored let steps: Steps
     @ObservationIgnored let defaults: UserDefaults
-    // Called once Steam is in place, so the library loads it
     @ObservationIgnored var onInstalled: @MainActor () -> Void = {}
 
     init(steps: Steps = Steps(), defaults: UserDefaults = .standard) {
@@ -46,7 +41,6 @@ final class SteamSetup {
         self.defaults = defaults
     }
 
-    // Shown only when Homebrew is on this Mac
     var homebrew: String? { steps.brewPath() }
 
     var isWorking: Bool { stage == .downloading || stage == .installingWithHomebrew }
@@ -111,7 +105,6 @@ final class SteamSetup {
         defer { _ = try? Shell.run("/usr/bin/hdiutil", ["detach", mount.path, "-force"]) }
         let app = mount.appending(path: "Steam.app")
         try verifyValveApp(app)
-        // ditto merges into an existing app, so refuse rather than write over one
         let destination = applications.appending(path: "Steam.app")
         guard !FileManager.default.fileExists(atPath: destination.path(percentEncoded: false)) else {
             throw Failed(errorDescription: String(localized: "Steam is already in \(applications.lastPathComponent)."))
@@ -120,8 +113,7 @@ final class SteamSetup {
         guard copy.succeeded else { throw Failed(errorDescription: copy.stderr) }
     }
 
-    // Only Valve's signature may land in Applications; HTTPS alone does not
-    // prove the DMG is Valve's, as the URL can be re-pointed in QA mode
+    // Only Valve's signature may land in Applications; HTTPS alone does not prove the DMG is Valve's, as the URL can be re-pointed in QA mode
     nonisolated static func verifyValveApp(_ app: URL) throws {
         let check = try Shell.run("/usr/bin/codesign", ["--verify", "--deep", "--strict", app.path(percentEncoded: false)])
         guard check.succeeded else {

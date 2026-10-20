@@ -1,5 +1,3 @@
-// Checks files on disk versus the manifest, presents state to user
-
 import Foundation
 
 struct PayloadState: Sendable {

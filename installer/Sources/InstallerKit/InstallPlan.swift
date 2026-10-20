@@ -1,12 +1,9 @@
-// Turns an analysis into what the app shows and runs: the game name to look up,
-// the space needed, the Inno command line, and the exe to launch afterwards.
 
 import Foundation
 
 public enum GameName {
 
-    // "CarX Street [Offline Installer]" → "CarX Street"
-    // "The Witcher 3 Wild Hunt GOTY (Offline Installer) v4.04 + 2 DLCs" → "The Witcher 3 Wild Hunt GOTY"
+    // "CarX Street [Offline Installer]" → "CarX Street" "The Witcher 3 Wild Hunt GOTY (Offline Installer) v4.04 + 2 DLCs" → "The Witcher 3 Wild Hunt GOTY"
     public static func clean(_ folder: String) -> String {
         // "Stardew.Valley.1.6.8": a dotted version ends the name, before dots become spaces
         var s = folder.replacing(/[\s._-]v?\d+(\.\d+)+\b.*$/, with: "")
@@ -24,9 +21,8 @@ public struct SpaceEstimate: Sendable, Equatable {
     public let temporary: Int64
     public var total: Int64 { installed + temporary }
 
-    // The installed size is not in the installer data (records.inf only holds
-    // progress weights), so it is estimated from the compressed parts. Heavy
-    // decompressors write temp files inside the game folder (TempPath={app}).
+    // The installed size is not in the installer data (records.inf only holds progress weights), so it is estimated
+    // from the compressed parts. Heavy decompressors write temp files inside the game folder (TempPath={app}).
     public static func from(compressed: Int64, heavy: Bool) -> SpaceEstimate {
         let ratio = heavy ? 2.5 : 1.6
         let installed = Int64(Double(compressed) * ratio)
@@ -69,9 +65,7 @@ public enum ExeDetector {
 
     nonisolated(unsafe) private static let noise = /(?i)(unins\d*|setup|crash|report|redist|vcredist|dxsetup|dxwebsetup|directx|dotnet|ue4prereq|easyanticheat|quicksfv|helper|launcherpatcher|7z)/
 
-    // shortcuts: targets of .lnk files the installer created, most trusted.
-    // primary: the play task of a GOG info file.
-    // uninstallIcon: DisplayIcon from the Uninstall registry key.
+    // shortcuts: targets of .lnk files the installer created, most trusted. primary: the play task of a GOG info file. uninstallIcon: DisplayIcon from the Uninstall registry key.
     public static func rank(
         exes: [(path: String, size: Int64)], shortcuts: [String] = [], uninstallIcon: String? = nil, primary: String? = nil
     ) -> [Candidate] {

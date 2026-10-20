@@ -1,11 +1,5 @@
-// A layout as SDL_GAMECONTROLLERCONFIG, which Wine's SDL backend (winebus.sys,
-// bus_sdl.c) adds with SDL_GameControllerAddMapping. The game then sees an Xbox
-// controller whose buttons follow the layout. No Wine patch is involved.
-//
-// SDL reads these controllers through its HIDAPI drivers, which number the
-// buttons the same way for every model (SDL_CreateMappingForHIDAPIController):
-// a mapping written in that order fits any of them. The GUID carries no CRC and
-// no version, so SDL matches it on its second pass, whatever the firmware.
+// SDL_GAMECONTROLLERCONFIG for Wine's SDL backend (winebus.sys): the game sees an Xbox controller; no Wine patch involved.
+// HIDAPI drivers number buttons the same way for every model, and the GUID carries no CRC, so SDL matches it on its second pass.
 
 import Foundation
 
@@ -35,11 +29,9 @@ enum SDLMapping {
         + [0x0b12, 0x0b13].map { Pad(family: .xbox, vendor: 0x045e, product: UInt16($0), extras: "misc1:b15,") }
     }()
 
-    // USB and Bluetooth
     static let buses: [UInt16] = [0x03, 0x05]
 
-    // SDL's GUID: bus, CRC, vendor, 0, product, 0, version, all 16-bit little
-    // endian, then the driver: 'h' for HIDAPI
+    // SDL's GUID: bus, CRC, vendor, 0, product, 0, version, all 16-bit little endian, then 'h' for HIDAPI.
     static func guid(bus: UInt16, vendor: UInt16, product: UInt16) -> String {
         let words: [UInt16] = [bus, 0, vendor, 0, product, 0, 0]
         var bytes: [UInt8] = []
@@ -48,7 +40,6 @@ enum SDLMapping {
         return bytes.map { String(format: "%02x", Int($0)) }.joined()
     }
 
-    // SDL's names for the buttons the game gets
     static func name(_ button: PadButton) -> String {
         switch button {
         case .south: "a"
@@ -92,12 +83,10 @@ enum SDLMapping {
         }
     }
 
-    // "a:b1,b:b0,…": the game's button, then the physical one that drives it
     static func fields(_ layout: ControllerLayout) -> String {
         var pairs = PadButton.allCases.map { button -> (String, String) in
             let target = layout.target(of: button)
             var from = source(button)
-            // A trigger pulled halfway presses a button
             if button.isTrigger && !target.isTrigger { from = "+" + from }
             return (name(target), from)
         }
@@ -107,8 +96,7 @@ enum SDLMapping {
         return pairs.sorted { ($0.0, $0.1) < ($1.0, $1.1) }.map { "\($0):\($1)," }.joined()
     }
 
-    // One line per model and bus, or nil for the standard layout, which needs none.
-    // The name "*" keeps the controller's own name, which games read.
+    // nil for the standard layout, which needs none; "*" keeps the controller's own name, which games read.
     static func config(_ layout: ControllerLayout) -> String? {
         guard !layout.isStandard else { return nil }
         let fields = fields(layout)

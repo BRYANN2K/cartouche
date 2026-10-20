@@ -3,7 +3,7 @@ import Testing
 
 @testable import RetroArchKit
 
-// P16: the standalone emulator catalog and the consoles it plays
+// The standalone emulator catalog and the consoles it plays
 @Suite("Standalone emulator catalog")
 struct EmulatorCatalogTests {
 
@@ -51,7 +51,6 @@ struct EmulatorCatalogTests {
         }
     }
 
-    // No download link and no word about where keys, firmware or BIOS come from
     @Test func noLinkToAnEmulatorFileOrKeys() throws {
         let sources = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
             .appending(path: "../../Sources/RetroArchKit/Standalone").standardized

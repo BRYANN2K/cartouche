@@ -95,7 +95,6 @@ struct NetplayJoinSheet: View {
     }
 }
 
-// More…'s options: Translate the screen and Coach mode
 struct ConsoleOptionsSections: View {
     let game: ConsoleGame
     let center: ConsoleCenter
@@ -136,7 +135,6 @@ struct ConsoleOptionsSections: View {
 }
 
 extension View {
-    // Local Network's explanation, when the app gave the center a flow
     @ViewBuilder
     func netplayExplanations(_ flow: PermissionFlow?) -> some View {
         if let flow { permissionExplanations(flow) } else { self }

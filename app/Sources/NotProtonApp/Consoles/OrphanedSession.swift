@@ -1,47 +1,35 @@
-// A console session survives Cartouche: the record is kept beside it so a
-// killed Cartouche still counts the play time. A pid is never trusted alone —
-// the process's own start time must match — and a process found this way is
-// never signaled, only asked politely to quit.
+// A session record survives a killed Cartouche; a pid is trusted only with its process start, and a found process is never signaled, only asked to quit.
 
 import AppKit
 import Darwin
 import Foundation
 import RetroArchKit
 
-// One console session, as the record on disk knows it
 struct ConsoleSessionRecord: Codable, Equatable, Sendable {
     var gameID: String
     // The standalone emulator it plays in; nil for RetroArch
     var emulator: String?
     var pid: Int32
-    // The process's own start, seconds since 1970: what tells it apart from
-    // whoever takes the pid next
+    // Seconds since 1970; distinguishes the process from whoever takes the pid next.
     var processStarted: TimeInterval
-    // When the game started
     var started: Date
-    // The last beat while Cartouche lived, one a minute
+    // One beat a minute while Cartouche lived.
     var heartbeat: Date
 }
 
-// The session record file and the process table it is checked against.
-// Tests hand in their own file and their own table.
 struct SessionRecords: Sendable {
 
     var file: URL
-    // The process's start, seconds since 1970; nil when it is gone or not
-    // ours to look at
+    // Seconds since 1970; nil when the process is gone or not ours to look at.
     var processStart: @Sendable (pid_t) -> TimeInterval? = SessionRecords.processStarted
     var now: @Sendable () -> Date = { Date() }
-    // Start times this close are the same process
     var tolerance: TimeInterval = 0.5
 
-    // The record on disk; nil when there is none or it does not decode
     func read() -> ConsoleSessionRecord? {
         guard let data = try? Data(contentsOf: file) else { return nil }
         return try? JSONDecoder().decode(ConsoleSessionRecord.self, from: data)
     }
 
-    // A file that does not decode is leftover garbage: ignored and swept away
     func clearUnreadable() {
         guard FileManager.default.fileExists(atPath: file.path(percentEncoded: false)),
               read() == nil else { return }
@@ -53,7 +41,6 @@ struct SessionRecords: Sendable {
         try? JSONEncoder().encode(record).write(to: file, options: .atomic)
     }
 
-    // The heartbeat the next launch counts to when the process is gone
     func heartbeat() {
         guard var record = read() else { return }
         record.heartbeat = now()
@@ -64,8 +51,7 @@ struct SessionRecords: Sendable {
         try? FileManager.default.removeItem(at: file)
     }
 
-    // The pid answers AND its process started when the record says: anything
-    // else is not ours, be it gone or someone else holding the pid
+    // Same pid AND same start; anything else is not ours - gone or someone else holding the pid.
     func isSameProcess(_ record: ConsoleSessionRecord) -> Bool {
         guard let start = processStart(record.pid) else { return false }
         return abs(start - record.processStarted) < tolerance
@@ -81,15 +67,11 @@ struct SessionRecords: Sendable {
     }
 }
 
-// A console session found still running at launch: the game shows as playing
-// and its time is counted when the process ends. Cartouche did not start it
-// this time and cannot drive it, so it is only ever asked its own Quit —
-// never sent a signal.
+// Cartouche did not start it and cannot drive it: only ever asked its own Quit, never sent a signal.
 actor OrphanedRunner: ConsoleRunning {
 
     let record: ConsoleSessionRecord
     let sessions: SessionRecords
-    // How long a polite Quit is given before the session is left alone
     var quitGrace: Duration = .seconds(5)
 
     init(record: ConsoleSessionRecord, sessions: SessionRecords) {
@@ -99,15 +81,13 @@ actor OrphanedRunner: ConsoleRunning {
 
     var processIdentifier: Int32? { record.pid }
 
-    // Never called: the session is already running when this exists
     func play(_ request: PlayRequest) async throws { throw RetroArchSessionError.notRunning }
     func setLook(_ look: ConsoleLook) async throws {}
     func setLowerInputLag(_ on: Bool) async throws {}
     func setHardcore(_ on: Bool) async throws {}
     func setDisc(_ disc: Int) async throws {}
 
-    // The app's own Quit: RetroArch writes its auto state, an emulator saves.
-    // If it stays, the session is still counted and the process left alone.
+    // RetroArch writes its auto state, an emulator saves; if it stays, the session is still counted.
     func quit() async -> PlayReport {
         // The pid may belong to another app by now: only the same process is asked to quit
         if sessions.isSameProcess(record) {
@@ -125,8 +105,7 @@ actor OrphanedRunner: ConsoleRunning {
         sessions.isSameProcess(record) ? nil : report(way: .quit)
     }
 
-    // RetroArch quits first as on any Cartouche quit; a standalone emulator is
-    // the user's own app and keeps running
+    // A standalone emulator is the user's own app and keeps running.
     func leaveForTermination() async -> PlayReport {
         if record.emulator == nil { return await quit() }
         return report(way: .notRunning)

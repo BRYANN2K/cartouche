@@ -6,8 +6,6 @@ import Testing
 
 @testable import NotProtonApp
 
-// A cover with color everywhere: a hue sweep with darker stripes, so gray and color
-// are easy to tell apart pixel by pixel
 func revealFixtureCover(width: Int = 300, height: Int = 450) -> CGImage {
     let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
                             space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
@@ -22,7 +20,6 @@ func revealFixtureCover(width: Int = 300, height: Int = 450) -> CGImage {
     return context.makeImage()!
 }
 
-// Per row, the share of pixels that carry color (channel spread over 0.15)
 struct PixelRows {
     let width: Int
     let height: Int
@@ -49,7 +46,6 @@ struct PixelRows {
         colored = rows
     }
 
-    // Rows from `from` to `to`, as fractions of the height from the top
     func share(_ from: Double, _ to: Double) -> Double {
         let a = Int(Double(height) * from), b = max(a + 1, Int(Double(height) * to))
         return colored[a..<b].reduce(0, +) / Double(b - a)

@@ -1,6 +1,4 @@
-// What a controller holds right now, read from the Game Controller framework.
-// Couch mode and Play with a controller both poll it, so neither takes the
-// controller's handlers from the other.
+// What a controller holds right now, read from the Game Controller framework. Couch mode and Play with a controller both poll it, so neither takes the controller's handlers from the other.
 
 import CoreGraphics
 import Foundation
@@ -8,7 +6,6 @@ import GameController
 
 struct PadState: Equatable, Sendable {
     var pressed: Set<PadButton> = []
-    // -1 to 1, up is positive
     var leftStick = CGPoint.zero
     var rightStick = CGPoint.zero
 
@@ -17,7 +14,6 @@ struct PadState: Equatable, Sendable {
 
 @MainActor
 protocol PadReader: AnyObject {
-    // nil when no controller is connected
     func read() -> PadState?
 }
 
