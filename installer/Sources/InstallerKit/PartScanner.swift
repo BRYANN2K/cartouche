@@ -22,6 +22,7 @@ public enum PartScanner {
 
     nonisolated(unsafe) private static let numbered = /^(.*?[-_. ]?)(\d{1,3})(\.bin)$/
     nonisolated(unsafe) private static let split = /^(.*\.bin\.)(\d{3})()$/
+    nonisolated(unsafe) private static let setupName = /(?i)^(setup|install)/
 
     public static func scan(_ folder: URL) throws -> PartScan {
         let fm = FileManager.default
@@ -29,13 +30,13 @@ public enum PartScanner {
         var parts: [InstallerPart] = []
         // prefix → (suffix, digit width), to rebuild the names of missing parts
         var shape: [String: (String, Int)] = [:]
-        var setup: URL?
+        var exes: [URL] = []
 
         for name in names.sorted() {
             let url = folder.appending(path: name)
             let lower = name.lowercased()
             if lower.hasSuffix(".exe") {
-                if setup == nil || lower == "setup.exe" { setup = url }
+                if !DroppedFolder.isUninstaller(name) { exes.append(url) }
                 continue
             }
             guard let m = (try? numbered.wholeMatch(in: name)) ?? (try? split.wholeMatch(in: name)),
@@ -54,6 +55,11 @@ public enum PartScanner {
                 missing.append(prefix + String(repeating: "0", count: max(0, width - String(n).count)) + String(n) + suffix)
             }
         }
+        // setup.exe, then a setup- or install- name, then an installer signature; a game's own program is never picked first.
+        let setup = exes.first { $0.lastPathComponent.lowercased() == "setup.exe" }
+            ?? exes.first { (try? setupName.firstMatch(in: $0.lastPathComponent)) != nil }
+            ?? exes.first(where: DroppedFolder.hasInstallerSignature)
+            ?? exes.first
         return PartScan(folder: folder, setup: setup,
                         parts: parts.sorted { ($0.prefix, $0.number) < ($1.prefix, $1.number) },
                         missing: missing.sorted())

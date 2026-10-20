@@ -132,17 +132,19 @@ extension AgentTools {
                         + (found.manifest.map { [$0.source] } ?? [])
                     let setupSize = Int64((try? setup.resourceValues(forKeys: [.fileSizeKey])
                         .fileSize).flatMap { $0 } ?? 0)
-                    let request = InstallRequest(
+                    var request = InstallRequest(
                         setup: setup, source: found.folder, name: name,
                         appID: options["app_id"]?.int, gogID: nil,
                         expectedBytes: found.space.installed,
                         installerBytes: found.scan.totalSize + setupSize,
                         installerFiles: files, manifest: found.manifest)
+                    request.unpacker = found.unpacker
                     let runnerID = options["runner"]?.string
                         ?? backend.runners().filter(\.isOffered).first?.id
                         ?? backend.runners().first?.id
                     guard let runnerID else { throw AgentToolError("no runner is set up for installs") }
                     var inputs = InstallInputs(runnerID: runnerID, gameName: name, mode: mode, language: language)
+                    if found.unpacker != nil { inputs.applyUnpackerProfile() }
                     inputs.verifyFirst = options["verify_first"]?.bool ?? false
                     let id = backend.startInstall(request, inputs: inputs)
                     return ["job": .string(id.uuidString), "title": .string(name), "runner": .string(runnerID)]

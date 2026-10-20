@@ -136,7 +136,9 @@ final class InstallCenter {
 
     private func ended(_ job: InstallJob) {
         if job.phase == .stopped { jobs.removeAll { $0 === job } }
-        if job.phase == .choosing {
+        // An import picks its program up front, so it ends ready, already in the library.
+        if job.phase == .ready, let game = job.game { onGameReady(game) }
+        if job.phase == .choosing || job.phase == .ready {
             if let flow = permissionFlow { NotificationOffer.offer(after: .installFinished, flow: flow) }
             if !isSheetPresented || sheet.job !== job { notifier.installed(name: job.title, job: job.id) }
         }

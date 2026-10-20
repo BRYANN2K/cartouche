@@ -1108,6 +1108,22 @@
         }
       }
     },
+    "%@, nothing to install" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, niente da installare"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@，无需安装"
+          }
+        }
+      }
+    },
     "%@. %@." : {
       "localizations" : {
         "it" : {
@@ -2192,6 +2208,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已安装较新的版本。"
+          }
+        }
+      }
+    },
+    "A part file the installer needs is missing" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manca un file parziale necessario al programma di installazione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缺少安装程序需要的分卷文件"
           }
         }
       }
@@ -4829,6 +4861,22 @@
         }
       }
     },
+    "Checking the Game" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controllo del gioco"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在检查游戏"
+          }
+        }
+      }
+    },
     "Checking the Installer" : {
       "localizations" : {
         "it" : {
@@ -4969,6 +5017,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "选择 Steam 应用。"
+          }
+        }
+      }
+    },
+    "Choose the folder that holds the game." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli la cartella che contiene il gioco."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请选择包含游戏的文件夹。"
           }
         }
       }
@@ -5949,6 +6013,22 @@
         }
       }
     },
+    "Copy into Cartouche" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copia in Cartouche"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制到 Cartouche"
+          }
+        }
+      }
+    },
     "Copy the built bridge files" : {
       "localizations" : {
         "it" : {
@@ -6025,6 +6105,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在复制 CrossOver"
+          }
+        }
+      }
+    },
+    "Copying game files" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copia dei file del gioco"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在复制游戏文件"
           }
         }
       }
@@ -8048,6 +8144,22 @@
         }
       }
     },
+    "Game files" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File del gioco"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "游戏文件"
+          }
+        }
+      }
+    },
     "Game folders" : {
       "localizations" : {
         "it" : {
@@ -8624,6 +8736,22 @@
         }
       }
     },
+    "Import" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importa"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入"
+          }
+        }
+      }
+    },
     "Import Games…" : {
       "localizations" : {
         "it" : {
@@ -8668,6 +8796,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在导入"
+          }
+        }
+      }
+    },
+    "Importing %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importazione di %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在导入 %@"
           }
         }
       }
@@ -8972,6 +9116,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已安装的文件与此版本不一致。"
+          }
+        }
+      }
+    },
+    "Installed game, ready to import" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gioco installato, pronto da importare"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已安装的游戏，可以导入"
           }
         }
       }
@@ -10896,6 +11056,22 @@
         }
       }
     },
+    "No program in this folder" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun programma in questa cartella"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此文件夹中没有程序"
+          }
+        }
+      }
+    },
     "No program was found in the install folder." : {
       "localizations" : {
         "it" : {
@@ -11212,6 +11388,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "解压程序内存不足"
+          }
+        }
+      }
+    },
+    "Not enough space to copy the game." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spazio insufficiente per copiare il gioco."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "空间不足，无法复制游戏。"
           }
         }
       }
@@ -11596,6 +11788,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "登录后，在“设置 > 账户”中导入：Cartouche 会检查游戏是否属于你的账户。"
+          }
+        }
+      }
+    },
+    "One of the installer's own helper programs reported an error." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uno dei programmi di supporto del programma di installazione ha segnalato un errore."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装程序的一个辅助程序报告了错误。"
           }
         }
       }
@@ -12812,6 +13020,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "就绪"
+          }
+        }
+      }
+    },
+    "Ready to Import" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pronto per l’importazione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "准备导入"
           }
         }
       }
@@ -16505,6 +16729,22 @@
         }
       }
     },
+    "The archive data or its header is damaged." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I dati dell'archivio o la sua intestazione sono danneggiati."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "压缩包数据或文件头已损坏。"
+          }
+        }
+      }
+    },
     "The bundled Cartouche dylib is invalid." : {
       "localizations" : {
         "it" : {
@@ -16633,6 +16873,38 @@
         }
       }
     },
+    "The decompressor could not get the memory it asked for. It can also mean an archive error on this code." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il decompressore non ha ottenuto la memoria richiesta. Questo codice può anche indicare un errore dell'archivio."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解压器无法获得所需的内存，此代码也可能表示压缩包错误。"
+          }
+        }
+      }
+    },
+    "The decompressor could not read the archive or write a file out." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il decompressore non è riuscito a leggere l'archivio o a scrivere un file."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解压器无法读取压缩包或写出文件。"
+          }
+        }
+      }
+    },
     "The detour is %lld bytes from the hook site, which a branch and link cannot reach." : {
       "localizations" : {
         "it" : {
@@ -16741,6 +17013,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下载的 Steam 应用未签名。"
+          }
+        }
+      }
+    },
+    "The extractor looked for a part file that is not there. The folder is missing a file." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il programma di estrazione ha cercato un file parziale assente. Nella cartella manca un file."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解压器找不到所需的分卷文件，文件夹中缺少一个文件。"
           }
         }
       }
@@ -16921,6 +17209,22 @@
         }
       }
     },
+    "The installer quit right after unpacking its helper programs, before showing its first page. A helper the runner could not load is the most likely cause." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il programma di installazione si è chiuso subito dopo aver decompresso i programmi di supporto, prima di mostrare la prima pagina. La causa più probabile è un programma di supporto che il runner non è riuscito a caricare."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装程序在解压辅助程序后、显示第一个页面之前退出，最可能的原因是运行器无法加载某个辅助程序。"
+          }
+        }
+      }
+    },
     "The installer seems stuck." : {
       "localizations" : {
         "it" : {
@@ -16965,6 +17269,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "安装程序自带的 Visual C++ 和 DirectX 软件包将由对应的 Wine 版本替代。完成前 Mac 不会进入睡眠。"
+          }
+        }
+      }
+    },
+    "The installer's compatibility settings could not be applied" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile applicare le impostazioni di compatibilità del programma di installazione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法应用安装程序的兼容性设置"
+          }
+        }
+      }
+    },
+    "The installer's compatibility settings were applied" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le impostazioni di compatibilità del programma di installazione sono state applicate"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已应用安装程序的兼容性设置"
           }
         }
       }
@@ -17257,6 +17593,22 @@
         }
       }
     },
+    "This drive must be connected to play." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per giocare, questa unità deve essere collegata."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "游玩时必须连接此磁盘。"
+          }
+        }
+      }
+    },
     "This folder could not be read." : {
       "localizations" : {
         "it" : {
@@ -17285,6 +17637,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此游戏无法读取键盘。请在系统设置的“输入监控”中允许。"
+          }
+        }
+      }
+    },
+    "This installer unpacks its data with its own helper programs. It needs the guided mode and a short install path." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo programma di installazione decomprime i dati con i propri programmi di supporto. Richiede la modalità guidata e un percorso di installazione breve."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此安装程序使用自带的辅助程序解压数据，需要引导模式和较短的安装路径。"
           }
         }
       }
@@ -18117,6 +18485,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用 Steam Play"
+          }
+        }
+      }
+    },
+    "Uses an external unpacker (%@)" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa un programma di decompressione esterno (%@)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用外部解压器（%@）"
           }
         }
       }

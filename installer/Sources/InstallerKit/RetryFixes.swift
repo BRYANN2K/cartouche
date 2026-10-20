@@ -65,10 +65,11 @@ public enum CLSConfig {
     }
 
     // Temp folders of every Wine user in the prefix, a few levels down (is-XXXXX.tmp).
+    // C:\T is where an external-unpacker install points TEMP/TMP.
     public static func candidates(in prefix: URL) -> [URL] {
         let fm = FileManager.default
         let users = prefix.appending(path: "drive_c/users")
-        var roots = [prefix.appending(path: "drive_c/windows/temp")]
+        var roots = [prefix.appending(path: "drive_c/windows/temp"), prefix.appending(path: "drive_c/T")]
         for user in (try? fm.contentsOfDirectory(atPath: users.path(percentEncoded: false))) ?? [] {
             roots.append(users.appending(path: "\(user)/Temp"))
             roots.append(users.appending(path: "\(user)/AppData/Local/Temp"))

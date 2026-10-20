@@ -175,4 +175,23 @@ extension ExeDetector {
         let primaryPath = primary.map { $0.standardizedFileURL.path(percentEncoded: false) }
         return Scan(installFolder: folder, candidates: rank(exes: exes, shortcuts: shortcuts, uninstallIcon: icon, primary: primaryPath))
     }
+
+    // A game imported as it is: no prefix to read, so its GOG info is the only hint besides names and sizes.
+    public static func scan(gameFolder folder: URL) -> Scan {
+        let base = folder.standardizedFileURL.path(percentEncoded: false)
+        var exes: [(path: String, size: Int64)] = []
+        if let walk = FileManager.default.enumerator(at: folder, includingPropertiesForKeys: [.fileSizeKey], options: [.skipsHiddenFiles]) {
+            for case let url as URL in walk where url.pathExtension.lowercased() == "exe" {
+                let path = url.standardizedFileURL.path(percentEncoded: false)
+                let relative = path.hasPrefix(base + "/") ? String(path.dropFirst(base.count + 1)) : url.lastPathComponent
+                if Redistributables.identify(relative) != nil || relative.lowercased().contains("redist/") { continue }
+                let size = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize).flatMap { $0 }.map(Int64.init) ?? 0
+                exes.append((path, size))
+            }
+        }
+        let primary = GOGInfo.find(in: folder).flatMap { found in
+            found.info.primaryExe.map { found.url.deletingLastPathComponent().appending(path: $0).standardizedFileURL.path(percentEncoded: false) }
+        }
+        return Scan(installFolder: folder, candidates: rank(exes: exes, primary: primary))
+    }
 }

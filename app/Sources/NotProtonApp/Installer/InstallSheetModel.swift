@@ -29,6 +29,8 @@ final class InstallSheetModel {
         case idle, confirming, done(Int64), failed(String)
     }
 
+    enum Storage: Sendable, Equatable { case inPlace, copy }
+
     @ObservationIgnored weak var center: InstallCenter?
 
     private var baseStep: Step = .drop
@@ -51,11 +53,17 @@ final class InstallSheetModel {
     private(set) var steamOutcome: SteamShortcuts.Outcome?
     private(set) var finishProblem: String?
     var cleanup: Cleanup = .idle
+    // An installed game: its programs, its size, where it stays
+    private(set) var programs: ExeDetector.Scan?
+    private(set) var gameBytes: Int64 = 0
+    private(set) var onExternalDrive = false
+    var storage: Storage = .inPlace
 
     @ObservationIgnored private var analysisTask: Task<Void, Never>?
     @ObservationIgnored var cleaner = InstallerCleanup()
     @ObservationIgnored var loadRunners: @Sendable () -> [Runner] = { InstallRunners.choices(RunnerRegistry.refresh(free: .standard)) }
     @ObservationIgnored var tool: @Sendable () -> String? = { Innoextract.path() }
+    @ObservationIgnored var isExternal: @Sendable (URL) -> Bool = GameCopy.isExternal
 
     var step: Step {
         guard let job else { return baseStep }
@@ -72,6 +80,7 @@ final class InstallSheetModel {
         dropped = nil; analysis = nil; readProblem = nil; isAnalyzing = false; verifyFraction = nil
         identification = nil; search = ""; job = nil; chosenExe = nil; showInSteam = true
         steamOutcome = nil; finishProblem = nil; cleanup = .idle
+        programs = nil; gameBytes = 0; onExternalDrive = false; storage = .inPlace
     }
 
     func show(_ job: InstallJob) {
@@ -87,13 +96,18 @@ final class InstallSheetModel {
         dropped = url
         baseStep = .analysis
         analysis = nil; readProblem = nil; identification = nil
+        programs = nil; gameBytes = 0; onExternalDrive = false
         isAnalyzing = true
         verifyFraction = nil
-        let tool = tool()
+        let tool = tool(), isExternal = isExternal
         analysisTask = Task { [weak self] in
             let start = Date()
-            let inspected = await Task.detached { () -> Result<InstallerAnalysis, Error> in
-                Result { try Analyzer.inspect(url, tool: tool) }
+            let inspected = await Task.detached { () -> Result<(InstallerAnalysis, ExeDetector.Scan?, Int64, Bool), Error> in
+                Result {
+                    let found = try Analyzer.inspect(url, tool: tool)
+                    guard found.isInstalledGame else { return (found, nil, 0, false) }
+                    return (found, ExeDetector.scan(gameFolder: found.folder), DroppedFolder.size(of: found.folder), isExternal(found.folder))
+                }
             }.value
             guard let self, !Task.isCancelled else { return }
             switch inspected {
@@ -101,7 +115,10 @@ final class InstallSheetModel {
                 readProblem = String(localized: "This folder could not be read.")
                 isAnalyzing = false
                 return
-            case .success(var found):
+            case .success(let read):
+                var found = read.0
+                programs = read.1; gameBytes = read.2; onExternalDrive = read.3
+                chosenExe = programs?.candidates.first?.path
                 analysis = found
                 await identify(found)
                 guard !Task.isCancelled else { return }
@@ -143,8 +160,10 @@ final class InstallSheetModel {
     private func identify(_ found: InstallerAnalysis) async {
         let data = await center?.compat()
         index = await center?.titles.index(for: data) ?? GameIndex([])
-        let product = found.scan.setup.flatMap(PEVersion.productName)
+        let main = found.scan.setup ?? programs?.candidates.first.map { URL(filePath: $0.path) }
+        let product = main.flatMap(PEVersion.productName)
         identification = GameIdentification.identify(
+            gog: found.isInstalledGame ? GOGInfo.find(in: found.folder)?.info : nil,
             gogID: GOGInfo.id(inFileList: found.inno?.files ?? []), installerTitle: found.inno?.title,
             productName: product, folderName: found.folder.lastPathComponent, index: index
         )
@@ -157,11 +176,25 @@ final class InstallSheetModel {
     var items: [Item] {
         guard let analysis else { return [] }
         var items: [Item] = []
+        if analysis.isInstalledGame {
+            items.append(programs?.candidates.isEmpty == false
+                ? Item(id: "type", title: String(localized: "Installed game, ready to import"),
+                       detail: String(localized: "\(Self.size(gameBytes)), nothing to install"), check: .ok)
+                : Item(id: "type", title: String(localized: "No program in this folder"),
+                       detail: String(localized: "Choose the folder that holds the game."), check: .failed))
+            if let game = gameItem { items.append(game) }
+            return items
+        }
         if let inno = analysis.inno {
             let version = inno.version.map { String($0.split(separator: ".").prefix(2).joined(separator: ".")) } ?? ""
+            let detail: String
+            if let unpacker = analysis.unpacker {
+                detail = String(localized: "Uses an external unpacker (\(unpacker.helpers.joined(separator: ", ")))")
+            } else {
+                detail = inno.heavyDecompression ? String(localized: "With heavy decompression (\(inno.decompressors.joined(separator: ", ")))") : String(localized: "Standard decompression")
+            }
             items.append(Item(id: "type", title: String(localized: "Inno Setup \(version) installer"),
-                              detail: inno.heavyDecompression ? String(localized: "With heavy decompression (\(inno.decompressors.joined(separator: ", ")))") : String(localized: "Standard decompression"),
-                              check: .ok))
+                              detail: detail, check: .ok))
         } else if analysis.scan.setup == nil {
             items.append(Item(id: "type", title: String(localized: "No setup.exe in this folder"),
                               detail: String(localized: "Choose the folder that holds the installer."), check: .failed))
@@ -197,14 +230,7 @@ final class InstallSheetModel {
             }
         }
 
-        if let id = identification {
-            if let match = id.match {
-                items.append(Item(id: "game", title: String(localized: "Identified as \(match.name)"),
-                                  detail: String(localized: "Matched in the compatibility data"), check: .ok, cover: match.appID))
-            } else {
-                items.append(Item(id: "game", title: id.name, detail: String(localized: "Not found in the compatibility data. You can pick the game in the next step."), check: .warning))
-            }
-        }
+        if let game = gameItem { items.append(game) }
 
         let need = analysis.space.total
         if let free = freeBytes {
@@ -215,8 +241,22 @@ final class InstallSheetModel {
         return items
     }
 
-    var canContinue: Bool { !isAnalyzing && analysis?.canInstall == true }
-    var hasBlockingProblem: Bool { !isAnalyzing && (readProblem != nil || analysis?.canInstall == false) }
+    private var gameItem: Item? {
+        guard let id = identification else { return nil }
+        if let match = id.match {
+            return Item(id: "game", title: String(localized: "Identified as \(match.name)"),
+                        detail: String(localized: "Matched in the compatibility data"), check: .ok, cover: match.appID)
+        }
+        return Item(id: "game", title: id.name, detail: String(localized: "Not found in the compatibility data. You can pick the game in the next step."), check: .warning)
+    }
+
+    private var ready: Bool {
+        guard let analysis else { return false }
+        return analysis.isInstalledGame ? programs?.candidates.isEmpty == false : analysis.canInstall
+    }
+
+    var canContinue: Bool { !isAnalyzing && ready }
+    var hasBlockingProblem: Bool { !isAnalyzing && (readProblem != nil || (analysis != nil && !ready)) }
 
     func toReview() { if canContinue { baseStep = .review } }
 
@@ -239,22 +279,51 @@ final class InstallSheetModel {
         search = ""
     }
 
-    var installDir: String { InstallInputs(runnerID: "", gameName: gameName).installDir }
+    var installDir: String {
+        var inputs = InstallInputs(runnerID: "", gameName: gameName)
+        if analysis?.unpacker != nil { inputs.applyUnpackerProfile() }
+        return inputs.installDir
+    }
 
-    var canInstall: Bool { analysis?.canInstall == true && runnerID != nil }
+    var isImport: Bool { analysis?.isInstalledGame == true }
+
+    // A copy needs the game's size free in Cartouche's folder.
+    var copyFits: Bool { freeBytes.map { $0 >= gameBytes } ?? true }
+
+    var canInstall: Bool {
+        guard ready, runnerID != nil else { return false }
+        return isImport ? chosenExe != nil && (storage == .inPlace || copyFits) : true
+    }
 
     func install() {
+        if isImport { importGame(); return }
         guard let analysis, let setup = analysis.scan.setup, let runnerID, canInstall else { return }
         let inno = analysis.inno
         let language = inno?.languages.first { $0.lowercased().hasPrefix("en") } ?? inno?.languages.first
         let files = [setup] + analysis.scan.parts.map(\.url) + (analysis.manifest.map { [$0.source] } ?? [])
         let setupSize = (try? setup.resourceValues(forKeys: [.fileSizeKey]).fileSize).flatMap { $0 }.map(Int64.init) ?? 0
-        let request = InstallRequest(
+        var request = InstallRequest(
             setup: setup, source: analysis.folder, name: gameName, appID: appID, gogID: identification?.gogID,
             expectedBytes: analysis.space.installed, installerBytes: analysis.scan.totalSize + setupSize,
             installerFiles: files, manifest: analysis.manifest
         )
-        let job = InstallJob(request: request, inputs: InstallInputs(runnerID: runnerID, gameName: gameName, mode: mode, language: language))
+        request.unpacker = analysis.unpacker
+        var inputs = InstallInputs(runnerID: runnerID, gameName: gameName, mode: mode, language: language)
+        if analysis.unpacker != nil { inputs.applyUnpackerProfile() }
+        let job = InstallJob(request: request, inputs: inputs)
+        self.job = job
+        center?.enqueue(job)
+    }
+
+    private func importGame() {
+        guard let analysis, let runnerID, let exe = chosenExe, canInstall else { return }
+        var request = InstallRequest(
+            setup: analysis.folder, source: analysis.folder, name: gameName, appID: appID,
+            gogID: identification?.gogID, expectedBytes: storage == .copy ? gameBytes : 0, installerBytes: 0,
+            installerFiles: [], manifest: nil
+        )
+        request.importing = GameImport(folder: analysis.folder, exe: URL(filePath: exe), copy: storage == .copy, showInSteam: showInSteam)
+        let job = InstallJob(request: request, inputs: InstallInputs(runnerID: runnerID, gameName: gameName))
         self.job = job
         center?.enqueue(job)
     }
@@ -298,7 +367,7 @@ final class InstallSheetModel {
     func requestCleanup() { cleanup = .confirming }
 
     func confirmCleanup() {
-        guard let request = job?.request else { return }
+        guard let request = job?.request, request.importing == nil else { return }
         do {
             try cleaner.run(files: request.installerFiles, folder: request.source)
             cleanup = .done(request.installerBytes)

@@ -105,8 +105,10 @@ enum AgentTools {
                 "fixes": .array(diagnosis.fixes.map { .string($0.rawValue) }),
                 "exit_code": .number(Double(diagnosis.exitCode)),
                 "detail": diagnosis.detail.map { .string($0) } ?? .null,
+                "explanation": diagnosis.explanation.map { .string($0.rawValue) } ?? .null,
             ])
         }
+        if let prep = job.unpackerPrepInstalled { out["unpacker_prep"] = .bool(prep) }
         if let game = job.game { out["game"] = .string(game.name) }
         return .object(out)
     }

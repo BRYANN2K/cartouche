@@ -18,6 +18,7 @@ var report: [String: Any] = [
     "parts": scan.parts.map { ["file": $0.url.lastPathComponent, "size": $0.size] },
     "missing": scan.missing,
     "compressed": scan.totalSize,
+    "kind": DroppedFolder.classify(folder).kind == .installedGame ? "installedGame" : "installer",
 ]
 
 var heavy = false

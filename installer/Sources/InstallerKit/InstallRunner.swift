@@ -82,35 +82,68 @@ public struct ProcessGroup: Sendable {
     public let root: pid_t
     public let prefix: String?
 
+    public struct Entry: Sendable, Equatable {
+        public let pid: pid_t
+        public let comm: String
+        // Found through the root's parent chain; false when matched by the prefix environment.
+        public let descendant: Bool
+    }
+
     public init(root: pid_t, prefix: String?) { self.root = root; self.prefix = prefix }
 
-    // With `environments` false the KERN_PROCARGS2 scans are skipped: only the root's own descendants are found (wine re-parents can lag a scan).
-    public func members(environments: Bool = true) -> [pid_t] {
+    // Processes Wine keeps up for the session itself. They do no install work, so the run never
+    // waits on them and a stuck one cannot keep a finished install alive.
+    static let sessionHelpers: Set<String> = [
+        "services.exe", "winedevice.exe", "plugplay.exe", "svchost.exe", "explorer.exe",
+        "rpcss.exe", "wineboot.exe", "winemenubuilder", "tabtip.exe", "winedbg.exe",
+        "winecfg.exe", "wineconsole.exe", "conhost.exe",
+    ]
+
+    public static func isSessionHelper(_ comm: String) -> Bool {
+        let name = comm.lowercased()
+        return name.hasPrefix("wineserver") || sessionHelpers.contains(name)
+    }
+
+    // With `environments` false the KERN_PROCARGS2 scans are skipped: only the root's own
+    // descendants are found. Wine spawns every Windows process through wineserver, which is
+    // itself inside our tree, so the descendant walk already covers the whole prefix. The
+    // WINEPREFIX env match is a best-effort extra for pids we never saw as descendants —
+    // recent macOS returns no environment through KERN_PROCARGS2, where it quietly no-ops;
+    // reparented children are covered because the monitor keeps tracking seen pids.
+    public func entries(environments: Bool = true) -> [Entry] {
         // Root 0/1 would make launchd's whole tree "the installer's processes".
         guard root > 1 else { return [] }
         let all = Self.allPIDs()
         var children: [pid_t: [pid_t]] = [:]
-        var wineish: [pid_t] = []
+        var comms: [pid_t: String] = [:]
         for pid in all {
             var info = proc_bsdinfo()
             guard proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, Int32(MemoryLayout<proc_bsdinfo>.size)) > 0 else { continue }
             children[pid_t(info.pbi_ppid), default: []].append(pid)
-            guard environments else { continue }
-            let comm = withUnsafeBytes(of: info.pbi_comm) { String(decoding: $0.prefix { $0 != 0 }, as: UTF8.self) }
-            if comm.hasPrefix("wine") || comm == "arch" { wineish.append(pid) }
+            comms[pid] = withUnsafeBytes(of: info.pbi_comm) { String(decoding: $0.prefix { $0 != 0 }, as: UTF8.self) }
         }
-        var found: Set<pid_t> = [root]
+        var found: [pid_t: Bool] = [root: true]
         var queue = children[root] ?? []
         while let next = queue.popLast() {
-            if found.insert(next).inserted { queue += children[next] ?? [] }
+            if found[next] == nil { found[next] = true; queue += children[next] ?? [] }
         }
         if let prefix, environments {
             let marker = "WINEPREFIX=" + prefix
-            for pid in wineish where !found.contains(pid) && Self.environment(of: pid).contains(marker) {
-                found.insert(pid)
+            for pid in all where pid > 1 && found[pid] == nil && Self.environment(of: pid).contains(marker) {
+                found[pid] = false
             }
         }
-        return found.filter { $0 > 1 && kill($0, 0) == 0 }.sorted()
+        return found.keys.filter { $0 > 1 && kill($0, 0) == 0 }.sorted()
+            .map { Entry(pid: $0, comm: comms[$0] ?? "", descendant: found[$0] ?? false) }
+    }
+
+    public func members(environments: Bool = true) -> [pid_t] {
+        entries(environments: environments).map(\.pid)
+    }
+
+    // pids still doing install work: the root is tracked by its own exit status, the session helpers never count.
+    public func live(environments: Bool = true) -> [Entry] {
+        entries(environments: environments).filter { $0.pid != root && !Self.isSessionHelper($0.comm) }
     }
 
     public static func cpuSeconds(_ pids: [pid_t]) -> Double {
@@ -137,16 +170,27 @@ public struct ProcessGroup: Sendable {
         return Array(pids.prefix(Int(max(filled, 0)))).filter { $0 > 0 }
     }
 
-    static func environment(of pid: pid_t) -> [String] {
+    // KERN_PROCARGS2: argc, the exec path, the argv strings, then the environment.
+    static func procArgs(of pid: pid_t) -> (exe: String, argv: [String], env: [String])? {
         var mib: [Int32] = [CTL_KERN, KERN_PROCARGS2, pid]
         var size = 0
-        guard sysctl(&mib, 3, nil, &size, nil, 0) == 0, size > 4 else { return [] }
+        guard sysctl(&mib, 3, nil, &size, nil, 0) == 0, size > 4 else { return nil }
         var buffer = [UInt8](repeating: 0, count: size)
-        guard sysctl(&mib, 3, &buffer, &size, nil, 0) == 0 else { return [] }
+        let ok = buffer.withUnsafeMutableBytes { sysctl(&mib, 3, $0.baseAddress, &size, nil, 0) }
+        guard ok == 0 else { return nil }
         let argc = Int(buffer.withUnsafeBytes { $0.load(as: Int32.self) })
-        let strings = buffer[4..<size].split(separator: 0, omittingEmptySubsequences: true)
+        let strings = buffer[4..<min(size, buffer.count)].split(separator: 0, omittingEmptySubsequences: true)
             .map { String(decoding: $0, as: UTF8.self) }
-        return Array(strings.dropFirst(1 + argc))
+        guard strings.count > argc else { return nil }
+        return (strings[0], Array(strings[1...argc]), Array(strings.dropFirst(1 + argc)))
+    }
+
+    static func environment(of pid: pid_t) -> [String] {
+        procArgs(of: pid)?.env ?? []
+    }
+
+    public static func commandLine(of pid: pid_t) -> String? {
+        procArgs(of: pid).map { ([$0.exe] + $0.argv).joined(separator: " ") }
     }
 }
 
@@ -168,8 +212,11 @@ public final class InstallRun: @unchecked Sendable {
     private var status: Int32?
     private var waiters: [CheckedContinuation<Int32, Never>] = []
     private var outputHandle: FileHandle?
+    private var bounded: OutputLog?
+    private let drained = DispatchGroup()
 
-    public init(_ launch: InstallLaunch, output: URL? = nil) {
+    // With `outputLimit` the log file never grows past it: the head stays, the middle is dropped.
+    public init(_ launch: InstallLaunch, output: URL? = nil, outputLimit: Int64? = nil) {
         self.launch = launch
         process.executableURL = URL(filePath: launch.executable)
         process.arguments = launch.arguments
@@ -178,7 +225,22 @@ public final class InstallRun: @unchecked Sendable {
         process.standardInput = FileHandle.nullDevice
         // waitUntilExit can hang on a concurrency thread, which has no run loop.
         process.terminationHandler = { [weak self] p in self?.finished(p.terminationStatus) }
-        if let output, FileManager.default.createFile(atPath: output.path(percentEncoded: false), contents: nil),
+        if let output, let outputLimit, let log = OutputLog(url: output, limit: outputLimit) {
+            bounded = log
+            let pipe = Pipe()
+            process.standardOutput = pipe
+            process.standardError = pipe
+            drained.enter()
+            DispatchQueue.global().async {
+                while true {
+                    let data = pipe.fileHandleForReading.availableData
+                    if data.isEmpty { break }
+                    log.feed(data)
+                }
+                log.finish()
+                self.drained.leave()
+            }
+        } else if let output, FileManager.default.createFile(atPath: output.path(percentEncoded: false), contents: nil),
            let handle = try? FileHandle(forWritingTo: output) {
             outputHandle = handle
             process.standardOutput = handle
@@ -192,31 +254,48 @@ public final class InstallRun: @unchecked Sendable {
     public var pid: pid_t { process.processIdentifier }
     public var isRunning: Bool { lock.withLock { status == nil } && process.isRunning }
     public var wasStopped: Bool { lock.withLock { stopped } }
+    public var outputSkipped: Int64 { bounded?.skipped ?? 0 }
 
     public var group: ProcessGroup { ProcessGroup(root: pid, prefix: launch.environment["WINEPREFIX"]) }
 
     public func start() throws { try process.run() }
 
+    // Returns once the run can truly be called finished: the root has exited and nothing in its
+    // group or prefix is still alive. Inno's setup.exe can exit while the inner setup or the
+    // unpackers it spawned keep working; a verdict before they are gone reads a half-written result.
     public func monitor(
-        folder: URL, expected: Int64, policy: Policy = Policy(),
+        folder: URL, expected: Int64, policy: Policy = Policy(), journal: ProcessJournal? = nil,
         onTick: @Sendable () -> Void = {}, onProgress: @Sendable (InstallProgress) -> Void
     ) async -> Int32 {
         var tracker = ProgressTracker(expected: expected, start: Date(), stuckAfter: policy.stuckAfter, stuckCPU: policy.stuckCPU)
+        var live: Set<pid_t> = []
         var lastCPU = ProcessGroup.cpuSeconds(group.members())
         var lastTime = Date()
         var tick = 0
-        while lock.withLock({ status == nil }) {
+        while true {
             try? await Task.sleep(for: .seconds(policy.interval))
             if Task.isCancelled { stop() }
             onTick()
             let now = Date()
-            // The per-pid environment scan is the expensive part; every 10 ticks.
+            let rootAlive = lock.withLock { status == nil }
+            // The per-pid environment scan is the expensive part; every 10 ticks while the root
+            // lives, every tick while the group drains after it.
             tick += 1
-            let cpuNow = ProcessGroup.cpuSeconds(group.members(environments: tick % 10 == 0))
+            let complete = !rootAlive || tick % 10 == 0
+            let entries = group.entries(environments: complete)
+            let workers = entries.filter { $0.pid != pid && !ProcessGroup.isSessionHelper($0.comm) }
+            // Union, never replace: a worker reparented to launchd between scans is still the
+            // install's process until it dies — a scan snapshot alone would lose it.
+            live.formUnion(complete ? workers.map(\.pid) : workers.filter(\.descendant).map(\.pid))
+            live = live.filter { kill($0, 0) == 0 }
+            journal?.record(descendants: entries.filter { $0.descendant && !ProcessGroup.isSessionHelper($0.comm) },
+                            environment: complete ? entries.filter { !ProcessGroup.isSessionHelper($0.comm) } : nil, at: now)
+            let cpuNow = ProcessGroup.cpuSeconds(entries.map(\.pid))
             // A process that exited takes its CPU time with it, so the sum can drop.
             let cpu = max(0, cpuNow - lastCPU) / max(now.timeIntervalSince(lastTime), 0.001) * 100
             lastCPU = cpuNow; lastTime = now
             onProgress(tracker.record(bytes: FolderSize.bytes(folder), cpu: cpu, at: now))
+            if !rootAlive && live.isEmpty { break }
         }
         return await exitStatus()
     }
@@ -238,6 +317,8 @@ public final class InstallRun: @unchecked Sendable {
             return waiters
         }
         try? outputHandle?.close()
+        // The pipe reader flushes the tail of the log after the process dies.
+        if bounded != nil { _ = drained.wait(timeout: .now() + 10) }
         for waiter in pending { waiter.resume(returning: code) }
     }
 

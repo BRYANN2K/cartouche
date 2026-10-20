@@ -1,0 +1,9 @@
+2026-10-20 18:32:00.001   Log opened. (Time zone: UTC+02:00)
+2026-10-20 18:32:00.002   Setup version: Inno Setup version 5.5.1.ee2 (u)
+2026-10-20 18:32:00.002   Original Setup EXE: S:\setup.exe
+2026-10-20 18:32:00.002   Setup command line: /SL5="$E0046,6924107,397824,S:\setup.exe" /DIR=C:\G\CarXStre /NORESTART /LOG=C:\installer.log /LANG=en
+2026-10-20 18:32:00.002   Windows version: 6.2.9200  (NT platform: Yes)
+2026-10-20 18:32:00.002   64-bit Windows: Yes
+2026-10-20 18:32:00.003   Processor architecture: x64
+2026-10-20 18:32:00.003   User privileges: Administrative
+2026-10-20 18:32:00.010   Created temporary directory: C:\users\user\AppData\Local\Temp\is-IJK6I.tmp

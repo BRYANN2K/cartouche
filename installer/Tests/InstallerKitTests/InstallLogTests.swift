@@ -11,22 +11,59 @@ private func fixture(_ name: String) -> String? {
 @Suite("Install log")
 struct InstallLogTests {
 
-    @Test("An unarc.dll error names memory, path, damaged file in that order and offers the three retries")
+    @Test("unarc -11 is explained as memory or archive trouble, with the memory retries first")
     func unarc() {
         let d = InstallLog.diagnose(exitCode: 0, log: fixture("unarc-error"))
         #expect(d.kind == .decompression)
         #expect(d.causes == [.memory, .path, .damagedFile])
-        #expect(Array(d.fixes.prefix(3)) == [.verifyFiles, .fewerThreads, .lessMemory])
+        #expect(Array(d.fixes.prefix(3)) == [.lessMemory, .fewerThreads, .verifyFiles])
+        #expect(d.explanation == .decompressorMemory)
         #expect(d.detail == "An error occurred while unpacking: Unarc.dll returned an error code: -11")
         #expect(!d.succeeded)
     }
 
-    @Test("An ISDone.dll error is a decompression error too")
+    @Test("An ISDone.dll missing part is its own verdict, not a decompression guess")
     func isdone() {
         let d = InstallLog.diagnose(exitCode: 1, log: fixture("isdone-error"))
-        #expect(d.kind == .decompression)
-        #expect(d.causes == [.memory, .path, .damagedFile])
+        #expect(d.kind == .missingPart)
+        #expect(d.causes == [.missingPart])
+        #expect(d.explanation == .missingPart)
         #expect(d.detail == "ISDone.dll: It is not found any file specified for ISArcExtract")
+    }
+
+    @Test("The unpackers' error codes map to what they mean", arguments: [
+        (-1, InstallDiagnosis.Explanation.decompressorData),
+        (-3, .decompressorData),
+        (-2, .decompressorMemory),
+        (-12, .decompressorMemory),
+        (-6, .decompressorIO),
+        (-7, .decompressorIO),
+        (-9, .helperFailed),
+    ])
+    func unarcCodes(code: Int, explanation: InstallDiagnosis.Explanation) {
+        let log = "Message box (OK):\n  An error occurred while unpacking: Unarc.dll returned an error code: \(code)\n"
+        let d = InstallLog.diagnose(exitCode: 1, log: log)
+        #expect(d.kind == .decompression)
+        #expect(d.explanation == explanation)
+    }
+
+    @Test("A log that ends at the temp dir means the setup died before its first page")
+    func diedBeforeWizard() {
+        let d = InstallLog.diagnose(exitCode: 1, log: fixture("died-early"))
+        #expect(d.kind == .setupFailed)
+        #expect(d.explanation == .diedBeforeWizard)
+        #expect(d.causes == [.runner])
+        #expect(d.detail == #"Created temporary directory: C:\users\user\AppData\Local\Temp\is-IJK6I.tmp"#)
+    }
+
+    @Test("When Inno's log says nothing, Wine's own output names what crashed")
+    func wineFallback() {
+        let d = InstallLog.diagnose(
+            exitCode: 1,
+            log: "Log opened.\nSetup version: Inno Setup version 5.5.1\nStarting the installation process.\nLog closed.",
+            wineLog: "mvk-info: Created VkDevice\n0024:err:seh:setup_exception Unhandled page fault on read access to 0x00000000\n")
+        #expect(d.kind == .setupFailed)
+        #expect(d.detail?.contains("Unhandled page fault") == true)
     }
 
     @Test("A full disk is named as such, not as memory")

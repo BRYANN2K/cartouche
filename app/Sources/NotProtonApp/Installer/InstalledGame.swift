@@ -19,6 +19,8 @@ struct InstalledGame: Codable, Sendable, Equatable, Identifiable {
     var installerFolder: String
     var redistributables: [String]
     var steamShortcut = false
+    // The folder of a game imported where it is. Cartouche never deletes it.
+    var gameFolder: String?
 
     var exeURL: URL { URL(filePath: exe) }
     var launcher: URL { URL(filePath: prefix).deletingLastPathComponent().appending(path: "launch") }

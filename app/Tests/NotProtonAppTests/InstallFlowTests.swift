@@ -61,13 +61,19 @@ struct FakeInstall {
         let wine = root.appending(path: "lib/wine/x86_64-unix/wine")
         let script = """
         #!/bin/sh
-        echo "$(uname -m) $*" >> '\(calls.path)'
+        echo "$(uname -m) $* TEMP=$TEMP" >> '\(calls.path)'
         if [ "$1" = wineboot ]; then mkdir -p "$WINEPREFIX/drive_c/users/crossover/Temp"; exit 0; fi
         dir=""
         for a in "$@"; do case "$a" in /DIR=*) dir="${a#/DIR=}";; esac; done
         game="$WINEPREFIX/drive_c/$(echo "${dir#C:\\\\}" | tr '\\\\' '/')"
         case '\(behavior)' in
         hang) mkdir -p "$game"; sleep 30; exit 0;;
+        spawn)
+          mkdir -p "$game"; head -c 300000 /dev/zero > "$game/game.exe"
+          /bin/sh -c 'sleep 2; touch "$WINEPREFIX/../helper-done"' &
+          printf 'Starting the installation process.\\nInstallation process succeeded.\\nLog closed.\\n' > "$WINEPREFIX/drive_c/installer.log"
+          sleep 0.6
+          exit 0;;
         unarc)
           printf 'Starting the installation process.\\nAn error occurred while unpacking: Unarc.dll returned an error code: -11\\nERROR: archive data corrupted (decompression fails)\\n' > "$WINEPREFIX/drive_c/installer.log"
           exit 0;;
@@ -173,8 +179,8 @@ struct InstallFlowTests {
 
         // Rosetta, the runner's loader, setup.exe with the Inno options; wineboot first.
         let calls = fake.calledWith()
-        #expect(calls.first == "x86_64 wineboot --init")
-        #expect(calls.dropFirst().first == "x86_64 \(fake.source.appending(path: "setup.exe").path) /DIR=C:\\Games\\Sample Game /NORESTART /LOG=C:\\installer.log /LANG=en")
+        #expect(calls.first == "x86_64 wineboot --init TEMP=")
+        #expect(calls.dropFirst().first == "x86_64 \(fake.source.appending(path: "setup.exe").path) /DIR=C:\\Games\\Sample Game /NORESTART /LOG=C:\\installer.log /LANG=en TEMP=")
         #expect(calls.count == 2)
         #expect(!FileManager.default.fileExists(atPath: fake.trap.path))
 
@@ -265,11 +271,48 @@ struct InstallFlowTests {
         center.enqueue(job)
         #expect(await waitFor { job.phase == .failed })
         #expect(job.diagnosis?.causes == [.memory, .path, .damagedFile])
-        #expect(Array(center.sheet.fixes.prefix(3)) == [.verifyFiles, .fewerThreads, .lessMemory])
+        #expect(job.diagnosis?.explanation == .decompressorMemory)
+        #expect(Array(center.sheet.fixes.prefix(3)) == [.lessMemory, .fewerThreads, .verifyFiles])
 
         center.sheet.retry(.lessMemory)
         #expect(job.inputs.memoryPercent == 50)
         #expect(await waitFor { job.phase == .failed && fake.calledWith().count == 4 })
+    }
+
+    @Test("An external-unpacker install: the prefix is prepared first, setup runs guided on short paths, and the helper it spawned is waited on")
+    func unpackerFlow() async throws {
+        let fake = try FakeInstall("flow-unpacker", behavior: "spawn")
+        let verbs = VerbLog()
+        let center = InstallCenter(engine: fake.engine(winetricks: verbs), notifier: RecordingNotifier())
+        var request = fake.request()
+        request.unpacker = ExternalUnpacker(helpers: ["isdone.dll", "unarc.dll"])
+        var inputs = InstallInputs(runnerID: fake.runner.id, gameName: "Sample Game", mode: .automatic, language: "en")
+        inputs.applyUnpackerProfile(ramBytes: 16 << 30)
+        let job = InstallJob(request: request, inputs: inputs)
+        center.sheet.show(job)
+        let start = Date()
+        center.enqueue(job)
+        #expect(await waitFor { job.phase == .choosing })
+
+        // The prefix preparation ran before the installer, with the unpacker's verbs.
+        #expect(verbs.calls == [["win10", "vcrun2005", "vcrun2008", "vcrun2010"]])
+        #expect(job.unpackerPrepInstalled == true)
+
+        // Setup ran guided from drive S: into C:\G\<short>, on the C:\T temp dir — never silent.
+        let calls = fake.calledWith()
+        let setup = try #require(calls.first { $0.contains("setup.exe") })
+        #expect(setup.contains(#"S:\setup.exe /DIR=C:\G\SampleGa"#))
+        #expect(setup.hasSuffix(#"TEMP=C:\T"#))
+        #expect(!setup.contains("/VERYSILENT"))
+
+        // The spawned helper outlived setup.exe; the engine waited ~2 s for it.
+        #expect(Date().timeIntervalSince(start) > 1.5)
+        let folder = try #require(job.folder)
+        #expect(FileManager.default.fileExists(atPath: folder.prefix.appending(path: "../helper-done").standardizedFileURL.path))
+
+        // The install folder keeps the process journal and a bounded output log.
+        #expect(FileManager.default.fileExists(atPath: folder.root.appending(path: "processes.log").path))
+        #expect(FileManager.default.fileExists(atPath: folder.prefix.appending(path: "drive_c/T").path, isDirectory: nil))
     }
 
     @Test("Stop while the checksums verify: the job ends stopped before Wine ever runs")

@@ -125,6 +125,53 @@ struct InstallRunnerTests {
         #expect(peak < 150)
     }
 
+    @Test("The run is not finished while a process of the prefix is alive: setup exits first, a reparented helper keeps working")
+    func drainsAfterRootExits() async throws {
+        let prefix = try tempFolder([:]).appending(path: "pfx")
+        let folder = prefix.appending(path: "drive_c/G/X")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let marker = prefix.appending(path: "helper-done")
+        let journalFile = prefix.appending(path: "processes.log")
+        // setup.sh spawns a helper in the background, lingers 0.6 s, then exits. The monitor
+        // sees the helper as a descendant first; once the root dies the helper is reparented
+        // to launchd and only the monitor's seen-pid tracking still ties it to this install.
+        let script = try tempFolder([:]).appending(path: "setup.sh")
+        try executable(script, """
+        #!/bin/sh
+        /bin/sh -c 'sleep 2; touch "\(marker.path)"' &
+        sleep 0.6
+        exit 0
+        """)
+        let launch = InstallLaunch(executable: "/bin/sh", arguments: [script.path],
+                                   environment: ["WINEPREFIX": prefix.path(percentEncoded: false)])
+        let run = InstallRun(launch)
+        try run.start()
+        let journal = ProcessJournal(file: journalFile)
+        let start = Date()
+        let status = await run.monitor(folder: folder, expected: 1, policy: .init(interval: 0.2), journal: journal) { _ in }
+        journal?.finish(root: run.pid, status: status)
+        journal?.close()
+        #expect(status == 0)
+        // Without the drain the verdict would land after one tick (~0.2 s); the helper sleeps 2.
+        #expect(Date().timeIntervalSince(start) > 1.5)
+        #expect(FileManager.default.fileExists(atPath: marker.path))
+        let journalText = try String(contentsOf: journalFile, encoding: .utf8)
+        #expect(journalText.contains("+ \(run.pid) "))
+        #expect(journalText.contains("= \(run.pid) "))
+        #expect(journalText.contains("exited, status 0"))
+    }
+
+    @Test("Session helpers like wineserver or explorer.exe are never waited on")
+    func sessionHelpers() {
+        #expect(ProcessGroup.isSessionHelper("wineserver"))
+        #expect(ProcessGroup.isSessionHelper("wineserver64"))
+        #expect(ProcessGroup.isSessionHelper("services.exe"))
+        #expect(ProcessGroup.isSessionHelper("explorer.exe"))
+        #expect(!ProcessGroup.isSessionHelper("setup.tmp"))
+        #expect(!ProcessGroup.isSessionHelper("unarc.exe"))
+        #expect(!ProcessGroup.isSessionHelper("precomp.exe"))
+    }
+
     @Test("Processes sharing the Wine prefix count as the installer's")
     func prefixMembers() async throws {
         let marker = "/tmp/cartouche-test-prefix-\(UUID().uuidString)"

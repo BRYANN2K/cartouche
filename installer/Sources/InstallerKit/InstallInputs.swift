@@ -16,6 +16,8 @@ public struct InstallInputs: Sendable, Equatable, Codable {
     public var memoryPercent: Int?
     // Run setup.exe from a drive letter mapped to its folder instead of its full path.
     public var shortSource = false
+    // The installer unpacks through its own helper processes (ExternalUnpacker), not Inno's extractor.
+    public var externalUnpacker = false
 
     public init(runnerID: String, gameName: String, mode: InnoCommand.Mode = .guided, language: String? = nil) {
         self.runnerID = runnerID
@@ -24,8 +26,32 @@ public struct InstallInputs: Sendable, Equatable, Codable {
         self.language = language
     }
 
+    public init(from decoder: any Decoder) throws {
+        let box = try decoder.container(keyedBy: CodingKeys.self)
+        runnerID = try box.decode(String.self, forKey: .runnerID)
+        installDir = try box.decode(String.self, forKey: .installDir)
+        mode = try box.decode(InnoCommand.Mode.self, forKey: .mode)
+        language = try box.decodeIfPresent(String.self, forKey: .language)
+        log = try box.decodeIfPresent(String.self, forKey: .log) ?? #"C:\installer.log"#
+        verifyFirst = try box.decodeIfPresent(Bool.self, forKey: .verifyFirst) ?? false
+        threads = try box.decodeIfPresent(Int.self, forKey: .threads)
+        memoryPercent = try box.decodeIfPresent(Int.self, forKey: .memoryPercent)
+        shortSource = try box.decodeIfPresent(Bool.self, forKey: .shortSource) ?? false
+        externalUnpacker = try box.decodeIfPresent(Bool.self, forKey: .externalUnpacker) ?? false
+    }
+
+    // What an external unpacker needs to work: short ASCII paths, its own UI, and a memory
+    // share that fits a 32-bit address space. The prefix preparation adds the rest.
+    public mutating func applyUnpackerProfile(ramBytes: UInt64 = ProcessInfo.processInfo.physicalMemory) {
+        externalUnpacker = true
+        installDir = #"C:\G\"# + Self.shortName(installDir)
+        shortSource = true
+        mode = .guided
+        memoryPercent = min(memoryPercent ?? 90, ExternalUnpacker.memoryPercent(ramBytes: ramBytes))
+    }
+
     public var innoArguments: [String] {
-        InnoCommand(installDir: installDir, mode: mode, language: language, log: log).arguments
+        InnoCommand(installDir: installDir, mode: externalUnpacker ? .guided : mode, language: language, log: log).arguments
     }
 }
 
@@ -83,6 +109,16 @@ public enum WineInstall {
 
     public static let sourceDrive = "s:"
 
+    // The setup's temp dir when an external unpacker runs: three characters, no long user paths.
+    public static let shortTemp = #"C:\T"#
+
+    // Errors of every channel, plus structured exception handling, DLL loads and process
+    // starts/exits: the next failure names what died. The output log is capped by the run.
+    // CARTOUCHE_WINEDEBUG (open --env) widens the channels when a crash needs a deeper trace
+    public static var setupDebug: String {
+        ProcessInfo.processInfo.environment["CARTOUCHE_WINEDEBUG"] ?? "err+all,+seh,+loaddll,+process"
+    }
+
     // Rosetta always: the decompressors are x86 programs and run most reliably translated.
     public static let rosetta = ["/usr/bin/arch", "-x86_64"]
 
@@ -106,6 +142,12 @@ public enum WineInstall {
         return env
     }
 
+    // drive_c/T for the Windows-side temp dir; C:\T is what TEMP/TMP point at.
+    public static func makeTemp(prefix: URL) throws {
+        try FileManager.default.createDirectory(
+            at: prefix.appending(path: "drive_c/T"), withIntermediateDirectories: true)
+    }
+
     // wineboot --init makes the new prefix without the Mono and Gecko prompts.
     public static func createPrefix(runner: WineRunner, prefix: URL, base: [String: String]) -> InstallLaunch {
         var env = environment(runner: runner, prefix: prefix, inputs: nil, base: base)
@@ -120,10 +162,16 @@ public enum WineInstall {
     public static func runSetup(
         _ setup: URL, runner: WineRunner, prefix: URL, inputs: InstallInputs, base: [String: String]
     ) -> InstallLaunch {
-        InstallLaunch(
+        var env = environment(runner: runner, prefix: prefix, inputs: inputs, base: base)
+        env["WINEDEBUG"] = setupDebug
+        if inputs.externalUnpacker {
+            env["TEMP"] = shortTemp
+            env["TMP"] = shortTemp
+        }
+        return InstallLaunch(
             executable: rosetta[0],
             arguments: Array(rosetta.dropFirst()) + [runner.loader.path(percentEncoded: false), setupPath(setup, inputs: inputs)] + inputs.innoArguments,
-            environment: environment(runner: runner, prefix: prefix, inputs: inputs, base: base),
+            environment: env,
             currentDirectory: setup.deletingLastPathComponent()
         )
     }

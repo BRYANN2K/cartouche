@@ -16,7 +16,8 @@ struct InstallSheet: View {
             switch model.step {
             case .drop: DropStep(model: model, showConsoleGames: center.showConsoleGames)
             case .analysis: AnalysisStep(model: model)
-            case .review: ReviewStep(model: model)
+            case .review:
+                if model.isImport { ImportReviewStep(model: model) } else { ReviewStep(model: model) }
             case .installing: InstallingStep(center: center, model: model)
             case .chooseExe: ExeStep(model: model)
             case .ready: ReadyStep(model: model)
@@ -82,7 +83,7 @@ private struct AnalysisStep: View {
     let model: InstallSheetModel
 
     var body: some View {
-        Text("Checking the Installer").font(.title2.bold())
+        Text(model.isImport ? "Checking the Game" : "Checking the Installer").font(.title2.bold())
         if let folder = model.dropped {
             Text(Analyzer.folder(for: folder).lastPathComponent).font(.callout.monospaced()).foregroundStyle(.secondary).lineLimit(1)
         }
@@ -176,9 +177,15 @@ private struct ReviewStep: View {
                         Text("Automatic").tag(InnoCommand.Mode.automatic)
                     }
                     .pickerStyle(.segmented)
-                    Text(model.mode == .guided ? "The installer window opens so you can pick languages and options."
-                                               : "No windows. Default options are used.")
-                        .font(.callout).foregroundStyle(.secondary)
+                    .disabled(model.analysis?.unpacker != nil)
+                    if model.analysis?.unpacker != nil {
+                        Text("This installer unpacks its data with its own helper programs. It needs the guided mode and a short install path.")
+                            .font(.callout).foregroundStyle(.secondary)
+                    } else {
+                        Text(model.mode == .guided ? "The installer window opens so you can pick languages and options."
+                                                   : "No windows. Default options are used.")
+                            .font(.callout).foregroundStyle(.secondary)
+                    }
                 }
                 .formStyle(.columns)
             }
@@ -192,6 +199,58 @@ private struct ReviewStep: View {
             Button("Back") { model.back() }
             Spacer()
             Button("Install") { model.install() }.keyboardShortcut(.defaultAction).disabled(!model.canInstall)
+        }
+    }
+}
+
+// An installed game: nothing runs, the program is picked here and the folder stays where it is unless copied.
+private struct ImportReviewStep: View {
+    @Bindable var model: InstallSheetModel
+
+    var body: some View {
+        Text("Ready to Import").font(.title2.bold())
+        HStack(alignment: .top, spacing: 18) {
+            InstallCover(appID: model.appID, name: model.gameName).frame(width: 140, height: 210)
+            VStack(alignment: .leading, spacing: 10) {
+                Text(model.gameName).font(.title3.bold())
+                if let analysis = model.analysis {
+                    Text(verbatim: "\(analysis.folder.lastPathComponent) · \(InstallSheetModel.size(model.gameBytes))")
+                        .foregroundStyle(.secondary).lineLimit(1)
+                }
+                GameSearch(model: model)
+                Form {
+                    Picker("Runner", selection: $model.runnerID) {
+                        if model.runners.isEmpty { Text("None set up").tag(String?.none) }
+                        ForEach(model.runners) { runner in
+                            Text(verbatim: "\(runner.kind.name) \(runner.displayVersion)").tag(Optional(runner.id))
+                        }
+                    }
+                    Picker("Game files", selection: $model.storage) {
+                        Text("Use in Place").tag(InstallSheetModel.Storage.inPlace)
+                        Text("Copy into Cartouche").tag(InstallSheetModel.Storage.copy)
+                    }
+                    .pickerStyle(.radioGroup)
+                    if model.storage == .inPlace && model.onExternalDrive {
+                        Text("This drive must be connected to play.").font(.callout).foregroundStyle(.secondary)
+                    } else if model.storage == .copy && !model.copyFits {
+                        Text("Not enough space to copy the game.").font(.callout).foregroundStyle(.red)
+                    }
+                }
+                .formStyle(.columns)
+            }
+        }
+        if let programs = model.programs {
+            Text("Which file starts the game?").font(.headline)
+            ExePicker(candidates: programs.candidates, base: programs.installFolder, selection: $model.chosenExe)
+        }
+        Toggle("Show in Steam", isOn: $model.showInSteam)
+        if model.runners.isEmpty {
+            Text("No runner is set up for installs. Set one up in Runners first.").font(.callout).foregroundStyle(.red)
+        }
+        Footer {
+            Button("Back") { model.back() }
+            Spacer()
+            Button("Import") { model.install() }.keyboardShortcut(.defaultAction).disabled(!model.canInstall)
         }
     }
 }
@@ -218,7 +277,7 @@ private struct InstallingStep: View {
 
     var body: some View {
         if let job = model.job {
-            Text("Installing \(job.title)").font(.title2.bold())
+            Text(job.request.importing == nil ? "Installing \(job.title)" : "Importing \(job.title)").font(.title2.bold())
             HStack(alignment: .top, spacing: 18) {
                 InstallCover(appID: job.request.appID, name: job.title)
                     .saturation(job.phase == .installing || job.phase == .redistributables ? job.progress.fraction : 1)
@@ -259,7 +318,10 @@ private struct ProgressBody: View {
     var body: some View {
         Text(phaseText).font(.headline)
         ProgressView(value: job.progress.fraction)
-        if job.phase == .installing {
+        if job.phase == .installing, job.request.importing != nil {
+            Text("\(InstallSheetModel.size(job.progress.bytes)) of \(InstallSheetModel.size(job.request.expectedBytes))")
+                .foregroundStyle(.secondary).monospacedDigit()
+        } else if job.phase == .installing {
             Grid(alignment: .leading, horizontalSpacing: 24) {
                 GridRow {
                     Text("Unpacked").foregroundStyle(.secondary)
@@ -297,7 +359,7 @@ private struct ProgressBody: View {
         case .verifying: String(localized: "Checking files")
         case .preparing: String(localized: "Preparing a new prefix")
         case .redistributables: String(localized: "Installing Visual C++ and DirectX")
-        default: String(localized: "Unpacking game files")
+        default: job.request.importing == nil ? String(localized: "Unpacking game files") : String(localized: "Copying game files")
         }
     }
 
@@ -320,6 +382,9 @@ private struct FailureView: View {
         }
         if let diagnosis = job.diagnosis {
             if let detail = diagnosis.detail { Text(detail).font(.callout.monospaced()).foregroundStyle(.secondary).textSelection(.enabled) }
+            if let explanation = diagnosis.explanation {
+                Text(Self.text(explanation)).font(.callout)
+            }
             if !diagnosis.causes.isEmpty {
                 Text("Probable causes, most likely first:").font(.callout)
                 ForEach(Array(diagnosis.causes.enumerated()), id: \.offset) { n, cause in
@@ -341,6 +406,24 @@ private struct FailureView: View {
         case .damagedFile: String(localized: "A damaged installer file")
         case .diskSpace: String(localized: "Not enough disk space")
         case .runner: String(localized: "The runner cannot run this installer")
+        case .missingPart: String(localized: "A part file the installer needs is missing")
+        }
+    }
+
+    static func text(_ explanation: InstallDiagnosis.Explanation) -> String {
+        switch explanation {
+        case .decompressorMemory:
+            String(localized: "The decompressor could not get the memory it asked for. It can also mean an archive error on this code.")
+        case .decompressorData:
+            String(localized: "The archive data or its header is damaged.")
+        case .decompressorIO:
+            String(localized: "The decompressor could not read the archive or write a file out.")
+        case .missingPart:
+            String(localized: "The extractor looked for a part file that is not there. The folder is missing a file.")
+        case .diedBeforeWizard:
+            String(localized: "The installer quit right after unpacking its helper programs, before showing its first page. A helper the runner could not load is the most likely cause.")
+        case .helperFailed:
+            String(localized: "One of the installer's own helper programs reported an error.")
         }
     }
 
@@ -365,18 +448,11 @@ private struct ExeStep: View {
                 Text("No program was found in the install folder.").foregroundStyle(.secondary)
             } else {
                 Text("Installed. These programs were created, the first one is the most likely.").foregroundStyle(.secondary)
-                Picker("Program", selection: $model.chosenExe) {
-                    ForEach(Array(job.candidates.enumerated()), id: \.element.path) { n, candidate in
-                        VStack(alignment: .leading) {
-                            Text(relative(candidate.path, job)).font(.body.monospaced())
-                            Text(Self.reason(candidate.source) + (n == 0 ? " · " + String(localized: "Recommended") : ""))
-                                .font(.callout).foregroundStyle(.secondary)
-                        }
-                        .tag(Optional(candidate.path))
-                    }
-                }
-                .pickerStyle(.radioGroup)
-                .labelsHidden()
+                ExePicker(candidates: job.candidates, base: job.installFolder, selection: $model.chosenExe)
+            }
+            if let installed = job.unpackerPrepInstalled {
+                Label(installed ? String(localized: "The installer's compatibility settings were applied") : String(localized: "The installer's compatibility settings could not be applied"),
+                      systemImage: installed ? "checkmark" : "exclamationmark.triangle")
             }
             if let installed = job.redistributablesInstalled {
                 let labels = ListFormatter.localizedString(byJoining: Redistributables.labels(job.redistributables))
@@ -394,11 +470,6 @@ private struct ExeStep: View {
         }
     }
 
-    private func relative(_ path: String, _ job: InstallJob) -> String {
-        let base = (job.installFolder?.standardizedFileURL.path(percentEncoded: false) ?? "") + "/"
-        return path.hasPrefix(base) ? String(path.dropFirst(base.count)) : (path as NSString).lastPathComponent
-    }
-
     static func reason(_ source: ExeDetector.Candidate.Source) -> String {
         switch source {
         case .shortcut: String(localized: "From the Start Menu shortcut")
@@ -410,6 +481,32 @@ private struct ExeStep: View {
     }
 }
 
+private struct ExePicker: View {
+    let candidates: [ExeDetector.Candidate]
+    let base: URL?
+    @Binding var selection: String?
+
+    var body: some View {
+        Picker("Program", selection: $selection) {
+            ForEach(Array(candidates.enumerated()), id: \.element.path) { n, candidate in
+                VStack(alignment: .leading) {
+                    Text(relative(candidate.path)).font(.body.monospaced())
+                    Text(ExeStep.reason(candidate.source) + (n == 0 ? " · " + String(localized: "Recommended") : ""))
+                        .font(.callout).foregroundStyle(.secondary)
+                }
+                .tag(Optional(candidate.path))
+            }
+        }
+        .pickerStyle(.radioGroup)
+        .labelsHidden()
+    }
+
+    private func relative(_ path: String) -> String {
+        let prefix = (base?.standardizedFileURL.path(percentEncoded: false) ?? "") + "/"
+        return path.hasPrefix(prefix) ? String(path.dropFirst(prefix.count)) : (path as NSString).lastPathComponent
+    }
+}
+
 private struct ReadyStep: View {
     @Bindable var model: InstallSheetModel
 
@@ -418,29 +515,31 @@ private struct ReadyStep: View {
             VStack(spacing: 12) {
                 InstallCover(appID: job.request.appID, name: job.title).frame(width: 120, height: 180)
                 Text("\(job.title) is ready").font(.title2.bold())
-                if let outcome = model.steamOutcome { Text(Self.steam(outcome)).foregroundStyle(.secondary) }
+                if let outcome = model.steamOutcome ?? job.steamOutcome { Text(Self.steam(outcome)).foregroundStyle(.secondary) }
             }
             .frame(maxWidth: .infinity)
-            HStack {
-                switch model.cleanup {
-                case .done(let bytes):
-                    Label("Installer files moved to the Trash. \(InstallSheetModel.size(bytes)) freed.", systemImage: "checkmark")
-                case .failed(let problem):
-                    Text(problem).foregroundStyle(.red)
-                default:
-                    Text("Delete the installer files and free \(InstallSheetModel.size(job.request.installerBytes))")
-                    Spacer()
-                    Button("Delete…") { model.requestCleanup() }
+            if job.request.importing == nil {
+                HStack {
+                    switch model.cleanup {
+                    case .done(let bytes):
+                        Label("Installer files moved to the Trash. \(InstallSheetModel.size(bytes)) freed.", systemImage: "checkmark")
+                    case .failed(let problem):
+                        Text(problem).foregroundStyle(.red)
+                    default:
+                        Text("Delete the installer files and free \(InstallSheetModel.size(job.request.installerBytes))")
+                        Spacer()
+                        Button("Delete…") { model.requestCleanup() }
+                    }
                 }
-            }
-            .confirmationDialog(
-                "Move the installer files to the Trash?",
-                isPresented: Binding(get: { model.cleanup == .confirming }, set: { if !$0 && model.cleanup == .confirming { model.cleanup = .idle } })
-            ) {
-                Button("Move to Trash", role: .destructive) { model.confirmCleanup() }
-                Button("Cancel", role: .cancel) { model.cleanup = .idle }
-            } message: {
-                Text("setup.exe and its \(job.request.installerFiles.count - 1) other files go to the Trash. The installed game is not touched.")
+                .confirmationDialog(
+                    "Move the installer files to the Trash?",
+                    isPresented: Binding(get: { model.cleanup == .confirming }, set: { if !$0 && model.cleanup == .confirming { model.cleanup = .idle } })
+                ) {
+                    Button("Move to Trash", role: .destructive) { model.confirmCleanup() }
+                    Button("Cancel", role: .cancel) { model.cleanup = .idle }
+                } message: {
+                    Text("setup.exe and its \(job.request.installerFiles.count - 1) other files go to the Trash. The installed game is not touched.")
+                }
             }
             Footer {
                 Spacer()

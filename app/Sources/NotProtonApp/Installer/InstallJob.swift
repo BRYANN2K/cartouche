@@ -14,6 +14,17 @@ struct InstallRequest: Sendable {
     let installerBytes: Int64
     var installerFiles: [URL]
     var manifest: ChecksumManifest?
+    // Set when the analysis found an installer that uses an external unpacker.
+    var unpacker: ExternalUnpacker? = nil
+    // Set for a game that is already installed: nothing from its folder runs, the folder is used in place or copied.
+    var importing: GameImport? = nil
+}
+
+struct GameImport: Sendable, Equatable {
+    var folder: URL
+    var exe: URL
+    var copy: Bool
+    var showInSteam: Bool
 }
 
 enum GameInstallPhase: Sendable, Equatable {
@@ -44,7 +55,10 @@ final class InstallJob: Identifiable {
     var candidates: [ExeDetector.Candidate] = []
     var redistributables: [Redistributable] = []
     var redistributablesInstalled: Bool?
+    // Nil until the external-unpacker preparation ran, then whether it succeeded.
+    var unpackerPrepInstalled: Bool?
     var game: InstalledGame?
+    var steamOutcome: SteamShortcuts.Outcome?
     var tried: [RetryFix] = []
 
     @ObservationIgnored var run: InstallRun?

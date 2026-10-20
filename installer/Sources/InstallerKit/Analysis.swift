@@ -15,11 +15,14 @@ public struct InstallerAnalysis: Sendable {
     public let inno: InnoReport?
     public let innoProblem: InnoInspector.Failure?
     public let name: String
+    // Set when the installer unpacks through its own helper programs (ExternalUnpacker).
+    public let unpacker: ExternalUnpacker?
+    public let classification: FolderClassification
     public var checksums: [URL: ChecksumResult] = [:]
     public var seconds: Double = 0
 
     public var space: SpaceEstimate {
-        SpaceEstimate.from(compressed: scan.totalSize, heavy: inno?.heavyDecompression ?? false)
+        SpaceEstimate.from(compressed: scan.totalSize, heavy: (inno?.heavyDecompression ?? false) || unpacker != nil)
     }
 
     public var missing: [MissingPart] {
@@ -31,7 +34,11 @@ public struct InstallerAnalysis: Sendable {
     public var verified: Bool { !checksums.isEmpty }
     public var checksumsOK: Bool { verified && checksums.values.allSatisfy { $0 == .ok || $0 == .absent } && damaged.isEmpty }
 
+    // A game that is already installed: nothing to run, it is imported as it is.
+    public var isInstalledGame: Bool { classification.kind == .installedGame }
+
     public var blockingProblems: [String] {
+        if isInstalledGame { return [] }
         var problems: [String] = []
         if scan.setup == nil { problems.append("setup") }
         problems += missing.filter { !$0.mayBeOptional }.map(\.file)
@@ -65,7 +72,15 @@ public enum Analyzer {
     public static func inspect(
         _ dropped: URL, tool: String? = Innoextract.path(), runner: any ToolRunning = ProcessToolRunner()
     ) throws -> InstallerAnalysis {
-        let folder = folder(for: dropped)
+        let classification = DroppedFolder.classify(folder(for: dropped))
+        let folder = classification.root
+        if classification.kind == .installedGame {
+            return InstallerAnalysis(
+                folder: folder, scan: PartScan(folder: folder, setup: nil, parts: [], missing: []), manifest: nil,
+                inno: nil, innoProblem: nil, name: GameName.clean(folder.lastPathComponent), unpacker: nil,
+                classification: classification
+            )
+        }
         let scan = try PartScanner.scan(folder)
         let manifest = Checksums.findManifest(in: folder).flatMap { try? Checksums.parse($0) }
         var inno: InnoReport?
@@ -77,7 +92,9 @@ public enum Analyzer {
         }
         return InstallerAnalysis(
             folder: folder, scan: scan, manifest: manifest, inno: inno, innoProblem: problem,
-            name: GameName.clean(folder.lastPathComponent)
+            name: GameName.clean(folder.lastPathComponent),
+            unpacker: ExternalUnpacker.detect(inno: inno, folder: folder),
+            classification: classification
         )
     }
 

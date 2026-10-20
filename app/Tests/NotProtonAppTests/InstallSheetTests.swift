@@ -57,13 +57,36 @@ struct InstallSheetTests {
         #expect(await waitFor { !center.sheet.isAnalyzing })
         let items = center.sheet.items
         #expect(items.map(\.title) == ["Inno Setup 5.5 installer", "2 parts found", "Files are intact", "Identified as Disco Elysium", items.last!.title])
-        #expect(items[0].detail.hasPrefix("With heavy decompression (unarc, isdone"))
+        #expect(items[0].detail.hasPrefix("Uses an external unpacker (cls-srep_x64.exe, isdone.dll, unarc.dll)"))
         #expect(items[3].cover == 632_470)
         #expect(items.allSatisfy { $0.check != .failed })
         #expect(center.sheet.canContinue)
         #expect((center.sheet.analysis?.seconds ?? 99) < 30)
         center.sheet.toReview()
         #expect(center.sheet.step == .review)
+    }
+
+    @Test("An installer that uses an external unpacker gets the unpacker inputs: short paths and guided mode")
+    func unpackerRequest() async throws {
+        let (center, folder) = try sheetFixture("sheet-unpacker")
+        center.open([folder])
+        #expect(await waitFor { !center.sheet.isAnalyzing })
+        let analysis = try #require(center.sheet.analysis)
+        #expect(analysis.unpacker?.helpers == ["cls-srep_x64.exe", "isdone.dll", "unarc.dll"])
+
+        center.sheet.toReview()
+        // The preview shows the short path an unpacker gets.
+        #expect(center.sheet.installDir.hasPrefix(#"C:\G\"#))
+        center.sheet.runnerID = "r"
+        center.sheet.mode = .automatic
+        center.sheet.install()
+        let job = try #require(center.sheet.job)
+        #expect(job.request.unpacker?.helpers == ["cls-srep_x64.exe", "isdone.dll", "unarc.dll"])
+        #expect(job.inputs.externalUnpacker)
+        #expect(job.inputs.mode == .guided)
+        #expect(job.inputs.shortSource)
+        #expect(job.inputs.installDir.hasPrefix(#"C:\G\"#))
+        #expect(job.inputs.memoryPercent != nil)
     }
 
     @Test("A missing required part is named in red, Continue is disabled and Check Again is offered")
@@ -109,7 +132,8 @@ struct InstallSheetTests {
         #expect(center.sheet.appID == 1_245_620)
         #expect(center.sheet.gameName == "Elden Ring")
         #expect(center.sheet.identification?.source == .user)
-        #expect(center.sheet.installDir == #"C:\Games\Elden Ring"#)
+        // The fixture's file list names ISDone/unarc, so the unpacker profile applies: short C:\G\ path.
+        #expect(center.sheet.installDir == #"C:\G\EldenRin"#)
     }
 
     @Test("After a failed install, Close then Add Games starts again from the drop step")
