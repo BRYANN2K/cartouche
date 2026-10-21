@@ -414,37 +414,30 @@ static int parse_tool_line(char *line, tool_entry_t *out, int with_backend) {
     return 1;
 }
 
-static int read_tool_list(const char *path, const char *tools_dir, int with_backend);
+// Every read and write of the list happens under this lock, because the WebUI file
+// server, the compat hooks and the loader can be running at the same time.
+static pthread_mutex_t g_tools_lock = PTHREAD_MUTEX_INITIALIZER;
 
-int np_compat_load_tool_list(const char *path, const char *tools_dir) {
-    g_tool_count = 0;
-    g_tool_list_present = 0;
+// A list a newer one replaced is retired, never freed: names and dirs handed out
+// before the swap (the fallback name, the FEX names) stay valid for the process's life.
+static tool_entry_t **g_retired;
+static int g_retired_count;
 
-    FILE *f = fopen(path, "r");
-    if (!f) {
-        NP_WARN("np_compat_load_tool_list: %s is missing, so no build has a tool "
-                "until Cartouche sets one up", path);
-        return 0;
-    }
-    fclose(f);
-    g_tool_list_present = 1;
-    return read_tool_list(path, tools_dir, 0);
+static void retire_tools(tool_entry_t *old) {
+    if (!old) return;
+    tool_entry_t **grown = realloc(g_retired,
+                                   (size_t)(g_retired_count + 1) * sizeof(*grown));
+    if (!grown) return;
+    g_retired = grown;
+    g_retired[g_retired_count++] = old;
 }
 
-// Appends the runner and backend pairs after the runner tools, which keep their order
-// and so stay the defaults. A missing list is a Cartouche without backend tools yet.
-int np_compat_load_backend_tool_list(const char *path, const char *tools_dir) {
-    FILE *f = fopen(path, "r");
-    if (!f) {
-        NP_LOG("np_compat_load_backend_tool_list: %s is missing, so no tool forces a "
-               "graphics backend", path);
-        return 0;
-    }
-    fclose(f);
-    return read_tool_list(path, tools_dir, 1);
+static uint32_t manager_tools_max_locked(void) {
+    return COMPAT_MANAGER_TOOLS_HEADROOM + (uint32_t)g_tool_count;
 }
 
-static int read_tool_list(const char *path, const char *tools_dir, int with_backend) {
+static int read_tool_list_into(const char *path, const char *tools_dir, int with_backend,
+                               tool_entry_t **list, int *count, int *cap) {
     FILE *f = fopen(path, "r");
     if (!f) return 0;
     int added = 0;
@@ -464,30 +457,104 @@ static int read_tool_list(const char *path, const char *tools_dir, int with_back
         }
 
         int taken = 0;
-        for (int i = 0; i < g_tool_count; i++)
-            taken |= strcmp(g_tools[i].name, entry.name) == 0;
+        for (int i = 0; i < *count; i++)
+            taken |= strcmp((*list)[i].name, entry.name) == 0;
         if (taken) {
             NP_WARN("np_compat_load_tool_list: %s is listed twice, the later line "
                     "(build %s) is skipped", entry.name, entry.build);
             continue;
         }
-        if (g_tool_count == g_tool_cap) {
-            int cap = g_tool_cap ? g_tool_cap * 2 : 8;
-            tool_entry_t *grown = realloc(g_tools, (size_t)cap * sizeof(*grown));
+        if (*count == *cap) {
+            int grown_cap = *cap ? *cap * 2 : 8;
+            tool_entry_t *grown = realloc(*list, (size_t)grown_cap * sizeof(*grown));
             if (!grown) {
                 NP_WARN("np_compat_load_tool_list: out of memory at %s, the rest is skipped",
                         entry.name);
                 break;
             }
-            g_tools = grown;
-            g_tool_cap = cap;
+            *list = grown;
+            *cap = grown_cap;
         }
 
         snprintf(entry.dir, sizeof(entry.dir), "%s/%s", tools_dir, entry.name);
-        g_tools[g_tool_count++] = entry;
+        (*list)[(*count)++] = entry;
         added++;
     }
     fclose(f);
+    return added;
+}
+
+// Caller holds g_tools_lock. Rebuilds the list from the runner tool file, with the
+// backend pairs behind it. Returns the runner tools kept.
+static int load_lists_locked(const char *tools_path, const char *backend_path,
+                             const char *tools_dir) {
+    FILE *f = fopen(tools_path, "r");
+    if (!f) {
+        NP_WARN("np_compat_load_tool_list: %s is missing, so no build has a tool "
+                "until Cartouche sets one up", tools_path);
+        retire_tools(g_tools);
+        g_tools = NULL;
+        g_tool_count = 0;
+        g_tool_cap = 0;
+        g_tool_list_present = 0;
+        return 0;
+    }
+    fclose(f);
+
+    tool_entry_t *fresh = NULL;
+    int count = 0, cap = 0;
+    int kept = read_tool_list_into(tools_path, tools_dir, 0, &fresh, &count, &cap);
+    if (backend_path) {
+        f = fopen(backend_path, "r");
+        if (f) {
+            fclose(f);
+            read_tool_list_into(backend_path, tools_dir, 1, &fresh, &count, &cap);
+        } else {
+            NP_LOG("np_compat_load_backend_tool_list: %s is missing, so no tool "
+                   "forces a graphics backend", backend_path);
+        }
+    }
+
+    retire_tools(g_tools);
+    g_tools = fresh;
+    g_tool_count = count;
+    g_tool_cap = cap;
+    g_tool_list_present = 1;
+    return kept;
+}
+
+int np_compat_load_tool_list(const char *path, const char *tools_dir) {
+    pthread_mutex_lock(&g_tools_lock);
+    int kept = load_lists_locked(path, NULL, tools_dir);
+    pthread_mutex_unlock(&g_tools_lock);
+    return kept;
+}
+
+// Appends the runner and backend pairs after the runner tools, which keep their order
+// and so stay the defaults. A missing list is a Cartouche without backend tools yet.
+int np_compat_load_backend_tool_list(const char *path, const char *tools_dir) {
+    FILE *f = fopen(path, "r");
+    if (!f) {
+        NP_LOG("np_compat_load_backend_tool_list: %s is missing, so no tool forces a "
+               "graphics backend", path);
+        return 0;
+    }
+    fclose(f);
+
+    pthread_mutex_lock(&g_tools_lock);
+    int cap = g_tool_count > 8 ? g_tool_count : 8;
+    int count = g_tool_count;
+    tool_entry_t *fresh = malloc((size_t)cap * sizeof(*fresh));
+    int added = 0;
+    if (fresh) {
+        memcpy(fresh, g_tools, (size_t)count * sizeof(*fresh));
+        added = read_tool_list_into(path, tools_dir, 1, &fresh, &count, &cap);
+        retire_tools(g_tools);
+        g_tools = fresh;
+        g_tool_count = count;
+        g_tool_cap = cap;
+    }
+    pthread_mutex_unlock(&g_tools_lock);
     return added;
 }
 
@@ -498,27 +565,83 @@ static int tools_dir_path(char *out, size_t size) {
     return 0;
 }
 
-static void load_tool_list(void) {
-    const char *home = np_home_dir();
-    char tools_dir[512];
-    if (!home || tools_dir_path(tools_dir, sizeof(tools_dir)) != 0) return;
+typedef struct {
+    int      present;
+    uint64_t ino;
+    int64_t  sec;
+    int64_t  size;
+} file_sig_t;
 
-    char path[512];
-    snprintf(path, sizeof(path), "%s/" CARTOUCHE_SUPPORT_DIR "/tools", home);
-    np_compat_load_tool_list(path, tools_dir);
-    if (!g_tool_list_present) return;
-    snprintf(path, sizeof(path), "%s/" CARTOUCHE_SUPPORT_DIR "/" CARTOUCHE_BACKEND_TOOL_LIST, home);
-    np_compat_load_backend_tool_list(path, tools_dir);
+static file_sig_t file_sig(const char *path) {
+    struct stat st;
+    file_sig_t sig = { 0 };
+    if (stat(path, &st) == 0) {
+        sig.present = 1;
+        sig.ino  = (uint64_t)st.st_ino;
+        sig.sec  = (int64_t)st.st_mtime;
+        sig.size = (int64_t)st.st_size;
+    }
+    return sig;
 }
 
-static void load_tool_list_once(void) {
-    static pthread_once_t once = PTHREAD_ONCE_INIT;
-    pthread_once(&once, load_tool_list);
+static int ensure_tool_manifest_locked(void);
+
+// The app rewrites its lists while Steam runs, e.g. when a runner is set up mid
+// session. The files are looked at no more than once a second and rebuilt when
+// they changed, so a tool that appears late still registers into the manager.
+static int g_lists_loaded;
+static file_sig_t g_sig[2];
+_Atomic int64_t g_tools_next_check;
+
+static void refresh_tool_list_locked(void) {
+    struct timespec now;
+    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) return;
+    int64_t ms = (int64_t)now.tv_sec * 1000 + now.tv_nsec / 1000000;
+
+    if (g_lists_loaded) {
+        int64_t due = atomic_load(&g_tools_next_check);
+        if (ms < due ||
+            !atomic_compare_exchange_strong(&g_tools_next_check, &due, ms + 1000))
+            return;
+    }
+
+    const char *home = np_home_dir();
+    char tools_dir[512];
+    if (!home || tools_dir_path(tools_dir, sizeof tools_dir) != 0) return;
+
+    char tools_path[512], backend_path[512];
+    snprintf(tools_path, sizeof tools_path,
+             "%s/" CARTOUCHE_SUPPORT_DIR "/tools", home);
+    snprintf(backend_path, sizeof backend_path,
+             "%s/" CARTOUCHE_SUPPORT_DIR "/" CARTOUCHE_BACKEND_TOOL_LIST, home);
+
+    if (!g_lists_loaded) {
+        g_lists_loaded = 1;
+        atomic_store(&g_tools_next_check, ms + 1000);
+        load_lists_locked(tools_path, backend_path, tools_dir);
+        g_sig[0] = file_sig(tools_path);
+        g_sig[1] = file_sig(backend_path);
+        return;
+    }
+
+    file_sig_t now_sig[2] = { file_sig(tools_path), file_sig(backend_path) };
+    if (memcmp(now_sig, g_sig, sizeof now_sig) == 0) return;
+    memcpy(g_sig, now_sig, sizeof g_sig);
+
+    int was = g_tool_count;
+    load_lists_locked(tools_path, backend_path, tools_dir);
+    if (g_tool_count != was)
+        NP_LOG("compat: the tool list changed under Steam, now %d tool(s)",
+               g_tool_count);
+    ensure_tool_manifest_locked();
 }
 
 uint32_t np_compat_manager_tools_max(void) {
-    load_tool_list_once();
-    return COMPAT_MANAGER_TOOLS_HEADROOM + (uint32_t)g_tool_count;
+    pthread_mutex_lock(&g_tools_lock);
+    refresh_tool_list_locked();
+    uint32_t max = manager_tools_max_locked();
+    pthread_mutex_unlock(&g_tools_lock);
+    return max;
 }
 
 static int write_tool(const tool_entry_t *tool) {
@@ -638,7 +761,7 @@ static void remove_unlisted_tools(const char *tools_dir) {
     closedir(dir);
 }
 
-int np_compat_ensure_tool_manifest(void) {
+static int ensure_tool_manifest_locked(void) {
     char tools_dir[512];
     if (tools_dir_path(tools_dir, sizeof(tools_dir)) != 0) return -1;
 
@@ -646,8 +769,6 @@ int np_compat_ensure_tool_manifest(void) {
         NP_WARN("np_compat_ensure_tool_manifest: cannot create %s", tools_dir);
         return -1;
     }
-
-    load_tool_list_once();
 
     if (!g_tool_list_present) return 0;
 
@@ -659,24 +780,29 @@ int np_compat_ensure_tool_manifest(void) {
     return failed ? -1 : 0;
 }
 
-static char g_tool_dir[640];
-
-static void resolve_tool_dir(void) {
-    load_tool_list_once();
-
-    if (g_tool_count > 0) {
-        snprintf(g_tool_dir, sizeof(g_tool_dir), "%s", g_tools[0].dir);
-        return;
-    }
-
-    char tools_dir[512];
-    if (tools_dir_path(tools_dir, sizeof(tools_dir)) == 0)
-        snprintf(g_tool_dir, sizeof(g_tool_dir), "%s/%s", tools_dir, TOOL_DIR_NAME);
+int np_compat_ensure_tool_manifest(void) {
+    pthread_mutex_lock(&g_tools_lock);
+    refresh_tool_list_locked();
+    int rc = ensure_tool_manifest_locked();
+    pthread_mutex_unlock(&g_tools_lock);
+    return rc;
 }
 
+static char g_tool_dir[640];
+
 const char *np_compat_tool_dir(void) {
-    static pthread_once_t once = PTHREAD_ONCE_INIT;
-    pthread_once(&once, resolve_tool_dir);
+    pthread_mutex_lock(&g_tools_lock);
+    refresh_tool_list_locked();
+    if (g_tool_count > 0) {
+        snprintf(g_tool_dir, sizeof(g_tool_dir), "%s", g_tools[0].dir);
+    } else {
+        char tools_dir[512];
+        if (tools_dir_path(tools_dir, sizeof(tools_dir)) == 0)
+            snprintf(g_tool_dir, sizeof(g_tool_dir), "%s/%s", tools_dir, TOOL_DIR_NAME);
+        else
+            g_tool_dir[0] = '\0';
+    }
+    pthread_mutex_unlock(&g_tools_lock);
     return g_tool_dir[0] ? g_tool_dir : NULL;
 }
 
@@ -924,11 +1050,12 @@ int np_compat_app_runs_tool(uint32_t appid) {
     return tool && is_tool_name(*(const char *const *)(tool + COMPAT_TOOL_NAME_OFF));
 }
 
+// Caller holds g_tools_lock.
 static void *find_tool(void *compat_mgr, const char *wanted) {
     uint8_t *base = (uint8_t *)compat_mgr;
     uint8_t *array = *(uint8_t **)(base + COMPAT_MANAGER_TOOL_ARRAY_OFF);
     uint32_t count = *(uint32_t *)(base + COMPAT_MANAGER_TOOL_COUNT_OFF);
-    if (!array || count > np_compat_manager_tools_max()) {
+    if ((count && !array) || count > manager_tools_max_locked()) {
         // Once, because Steam walks this for every windows-only app as the library
         // redraws and a count this wrong does not correct itself.
         static const char once = 0;
@@ -937,6 +1064,8 @@ static void *find_tool(void *compat_mgr, const char *wanted) {
                    "which is not a list this reads", count, (const void *)array);
         return NULL;
     }
+    if (!array)
+        return NULL;
 
     for (uint32_t i = 0; i < count; i++) {
         uint8_t *entry = array + (size_t)i * np_compat_tool_stride();
@@ -947,33 +1076,42 @@ static void *find_tool(void *compat_mgr, const char *wanted) {
     return NULL;
 }
 
-void np_compat_register_crossover(void *compat_mgr) {
-    static int registered = 0;
-
+int np_compat_register_crossover(void *compat_mgr) {
     // Every compat query arrives on the instance the properties page reads, which is
     // the one the tool list has to be enumerated from.
     if (compat_mgr)
         g_manager = compat_mgr;
 
-    if (registered || !compat_mgr || !g_yld_register_tool)
-        return;
-    registered = 1;
-    load_tool_list_once();
+    if (!compat_mgr || !g_yld_register_tool)
+        return 0;
+
+    pthread_mutex_lock(&g_tools_lock);
+    refresh_tool_list_locked();
+
+    int missing = 0;
+    for (int i = 0; i < g_tool_count; i++)
+        if (!find_tool(compat_mgr, g_tools[i].name)) missing++;
+    if (!missing) {
+        pthread_mutex_unlock(&g_tools_lock);
+        return 0;
+    }
 
     // YldRegisterTool copies the entry and its strings. Each buffer carries headroom
     // for a client that inserted a field. to_oslist=macos passes
     // the registration gate, from_oslist=windows intersects the app mask so the
     // dropdown keeps it, and appid 0 marks a manager-local tool the resolver routes
     // to the local run script.
-    uint8_t (*buffers)[COMPAT_TOOL_STRIDE + 64] = calloc((size_t)g_tool_count, sizeof(*buffers));
-    if (g_tool_count && !buffers) {
+    uint8_t (*buffers)[COMPAT_TOOL_STRIDE + 64] = calloc((size_t)missing, sizeof(*buffers));
+    if (!buffers) {
         NP_WARN("np_compat_register_crossover: out of memory, no tool registered");
-        return;
+        pthread_mutex_unlock(&g_tools_lock);
+        return 0;
     }
     static const char from_oslist[] = "windows";
     static const char to_oslist[]   = "macos";
 
-    for (int i = 0; i < g_tool_count; i++) {
+    int added = 0;
+    for (int i = 0; i < g_tool_count && added < missing; i++) {
         const tool_entry_t *t = &g_tools[i];
 
         if (find_tool(compat_mgr, t->name)) {
@@ -982,8 +1120,8 @@ void np_compat_register_crossover(void *compat_mgr) {
             continue;
         }
 
-        uint8_t *tool = buffers[i];
-        memset(tool, 0, sizeof(buffers[i]));
+        uint8_t *tool = buffers[added];
+        memset(tool, 0, sizeof(buffers[added]));
         *(uint32_t *)(tool + COMPAT_TOOL_FLAGS_OFF)      = COMPAT_TOOL_FLAG_NO_APP;
         *(const char **)(tool + COMPAT_TOOL_NAME_OFF)    = t->name;
         *(const char **)(tool + COMPAT_TOOL_DISPLAY_OFF) = t->display;
@@ -994,20 +1132,27 @@ void np_compat_register_crossover(void *compat_mgr) {
 
         g_yld_register_tool(compat_mgr, tool);
         free_tool_paths(tool);
+        added++;
         NP_LOG("np_compat_register_crossover: registered %s (build %s) into manager 0x%llx",
                t->name, t->build, (unsigned long long)(uintptr_t)compat_mgr);
     }
 
     free(buffers);
+    pthread_mutex_unlock(&g_tools_lock);
+    return added;
 }
 
 const char *np_compat_fallback_tool_name(void) {
-    load_tool_list_once();
-    return g_tool_count > 0 ? g_tools[0].name : TOOL_DIR_NAME;
+    pthread_mutex_lock(&g_tools_lock);
+    refresh_tool_list_locked();
+    const char *name = g_tool_count > 0 ? g_tools[0].name : TOOL_DIR_NAME;
+    pthread_mutex_unlock(&g_tools_lock);
+    return name;
 }
 
 size_t np_compat_fex_tools(const char **names, size_t max) {
-    load_tool_list_once();
+    pthread_mutex_lock(&g_tools_lock);
+    refresh_tool_list_locked();
     size_t n = 0;
     for (int i = 0; i < g_tool_count; i++) {
         if (strcmp(g_tools[i].flavor, "fex") != 0) continue;
@@ -1020,6 +1165,7 @@ size_t np_compat_fex_tools(const char **names, size_t max) {
         }
         names[n++] = g_tools[i].name;
     }
+    pthread_mutex_unlock(&g_tools_lock);
     return n;
 }
 
@@ -1027,14 +1173,15 @@ void *np_compat_registered_tool(void *compat_mgr) {
     if (!compat_mgr)
         return NULL;
 
-    load_tool_list_once();
-    if (g_tool_count == 0)
-        return find_tool(compat_mgr, TOOL_DIR_NAME);
-
-    for (int i = 0; i < g_tool_count; i++) {
-        void *entry = find_tool(compat_mgr, g_tools[i].name);
-        if (entry)
-            return entry;
+    pthread_mutex_lock(&g_tools_lock);
+    refresh_tool_list_locked();
+    void *entry = NULL;
+    if (g_tool_count == 0) {
+        entry = find_tool(compat_mgr, TOOL_DIR_NAME);
+    } else {
+        for (int i = 0; i < g_tool_count && !entry; i++)
+            entry = find_tool(compat_mgr, g_tools[i].name);
     }
-    return NULL;
+    pthread_mutex_unlock(&g_tools_lock);
+    return entry;
 }

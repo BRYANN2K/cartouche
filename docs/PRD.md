@@ -101,7 +101,7 @@ The toolbar + opens one Add Games sheet with a drop zone and Choose… for files
 
 ### Installation verification (accepted policy, implementation pending)
 
-Track installed state separately from verification (ADR 0026; UI merged in 7f8773b, engine pending). A shipped checksum list or archive CRC always triggers full verification; Stop marks not verified and there is no skip checkbox. Script presence/sizes alone gives “verified (sizes)”. Without evidence, allow “Installed, not verified” with a discreet badge and panel line. Verify Files… permits later checks. Mismatch offers Retry with the standard method (default), Keep Anyway (advanced; not verified, mismatches logged), and Cancel. Retry uses shipped helpers/original settings, then guided real-installer execution under Wine last. Output-equivalence and local-corpus rules from ADR 0025 stand; the detection tree remains proposed.
+Track installed state separately from verification (ADR 0026; UI merged in 7f8773b, engine pending). A shipped checksum list or archive CRC always triggers full verification; Stop marks not verified and there is no skip checkbox. Script presence/sizes alone gives “verified (sizes)”. Without evidence, allow “Installed, not verified” with a discreet badge and panel line. Verify Files… permits later checks. Mismatch offers Retry with the standard method (default), Keep Anyway (advanced; not verified, mismatches logged), and Cancel. Retry uses shipped helpers/original settings, then guided real-installer execution under Wine last. Output-equivalence and local-corpus rules from ADR 0025 stand; the detection tree is approved by ADR 0028.
 
 ### Stores
 
@@ -148,6 +148,10 @@ Track installed state separately from verification (ADR 0026; UI merged in 7f877
 3. The agent has PC tools and console tools. It proposes or applies a fix within the access level the user set (Read only, Standard, Full).
 4. Anything that installs, deletes or runs an exe waits for the user's approval in the app.
 5. The user sees every agent action in Settings > Agents and can undo configuration changes.
+
+## Approved follow-ups (2026-10-21)
+
+French uses vouvoiement and Apple macOS terms, with the glossary owned by l10n-fr at docs/l10n/glossary-fr.md. Local crash reports offer Copy Summary and Collect Diagnostics without network reporting. All Windows-game panels gain Advanced for the options in ADR 0030; runtime support awaits research-upscaling. These follow-ups are accepted, not complete. The static detection tree is approved by ADR 0028.
 
 ## Success measures
 

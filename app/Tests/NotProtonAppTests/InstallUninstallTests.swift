@@ -24,7 +24,7 @@ struct InstallUninstallTests {
     }
 
     private func scene(_ label: String, name: String = "Sample Game",
-                       inPlace: Bool = false, saves: Bool = false) throws -> Scene {
+                       inPlace: Bool = false, legacy: Bool = false, saves: Bool = false) throws -> Scene {
         let work = try scratchDirectory(label)
         let installs = work.appending(path: "installs")
         let external = work.appending(path: "External/\(name)")
@@ -35,13 +35,15 @@ struct InstallUninstallTests {
         try Data("exe".utf8).write(to: gameDir.appending(path: "game.exe"))
         try fm.createDirectory(at: folder.prefix, withIntermediateDirectories: true)
         try Data("launch".utf8).write(to: folder.launcher)
+        // A legacy record predates gameFolder: the folder it was imported from is the hint.
         let record = InstalledGame(
             id: folder.root.lastPathComponent, name: name, appID: nil, gogID: nil,
             runnerID: "r", graphics: GraphicsBackend.wined3d.rawValue, wineVersion: nil, wineRunnerKind: nil,
             prefix: folder.prefix.path(percentEncoded: false),
             exe: gameDir.appending(path: "game.exe").path(percentEncoded: false),
-            installedAt: Date(), installerFolder: work.path(percentEncoded: false),
-            redistributables: [], gameFolder: inPlace ? external.path(percentEncoded: false) : nil)
+            installedAt: Date(),
+            installerFolder: legacy ? external.path(percentEncoded: false) : work.path(percentEncoded: false),
+            redistributables: [], gameFolder: inPlace && !legacy ? external.path(percentEncoded: false) : nil)
         try InstalledGames.save(record, in: folder)
         if saves {
             for rel in ["AppData/Game", "Saved Games/Game", "Documents/My Games/Game"] {
@@ -112,10 +114,10 @@ struct InstallUninstallTests {
         let c = center(s)
         let calls = Box(0)
         let onMain = Box(false)
-        c.isPrefixInUse = { _ in
+        c.prefixUse = { _ in
             calls.value += 1
             onMain.value = onMain.value || Thread.isMainThread
-            return true
+            return .running(.game)
         }
         #expect(item(s, installs: c)?.disabled == false)
         #expect(calls.value == 0)
@@ -134,11 +136,11 @@ struct InstallUninstallTests {
         let s = try scene("remove-busy")
         let c = center(s)
         #expect(item(s, installs: c)?.disabled == false)
-        c.isPrefixInUse = { _ in true }
+        c.prefixUse = { _ in .running(.game) }
         c.refreshBusy(for: [s.game], in: s.installs)
         #expect(await waitFor { c.busyGames.contains(s.game.id) })
         #expect(item(s, installs: c)?.disabled == true)
-        c.isPrefixInUse = { _ in false }
+        c.prefixUse = { _ in .free }
         c.refreshBusy(for: [s.game], in: s.installs)
         #expect(await waitFor { !c.busyGames.contains(s.game.id) })
         #expect(item(s, installs: c)?.disabled == false)
@@ -187,6 +189,28 @@ struct InstallUninstallTests {
         #expect(await waitFor { s.model.game(s.game.id) == nil })
         #expect(fm.fileExists(atPath: s.bin.appending(path: s.folder.root.lastPathComponent).path(percentEncoded: false)))
         #expect(fm.fileExists(atPath: s.external.appending(path: "game.exe").path(percentEncoded: false)))
+    }
+
+    @Test("A record written before gameFolder is still an in-place import: it removes, never deletes")
+    func legacyInPlace() async throws {
+        let s = try scene("remove-legacy", inPlace: true, legacy: true)
+        let (actions, plans) = try runner(s)
+        let fm = FileManager.default
+        #expect(try #require(InstalledGames.record(in: s.folder)).gameFolder == nil)
+        #expect(item(s)?.title == "Remove from Library…")
+
+        actions.perform(.uninstall, on: s.game)
+        #expect(await waitFor { s.model.game(s.game.id) == nil })
+        #expect(plans.value.first?.inPlace == true)
+        // Only Cartouche's folder goes: the game's own files were never Cartouche's.
+        #expect(fm.fileExists(atPath: s.external.appending(path: "game.exe").path(percentEncoded: false)))
+        #expect(fm.fileExists(atPath: s.bin.appending(path: s.folder.root.lastPathComponent).path(percentEncoded: false)))
+    }
+
+    @Test("An exe inside the prefix is never called in-place, gameFolder or not")
+    func legacyInstalledStaysUninstall() throws {
+        let s = try scene("remove-legacy-installed", legacy: true)
+        #expect(item(s)?.title == "Uninstall…")
     }
 
     @Test("Keep save files copies them to saves/<game id>/ before the prefix goes")

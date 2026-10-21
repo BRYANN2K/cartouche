@@ -163,6 +163,19 @@ final class SystemStatus {
 
     var setupSource: CrossOverInstall? { repairSource ?? usableCrossOver }
 
+    // The manifest's pinned Cartouche Wine build, when this app still offers one.
+    nonisolated static var wineToolBuild: RunnerManifest.Build? {
+        RunnerManifest.current().builds.first {
+            $0.kind == Runner.Kind.wineBuild.rawValue && $0.origin == .cartouche && $0.isPinned
+        }
+    }
+
+    // Anything that can become a compatibility tool: a usable CrossOver, an
+    // installed clone to repair, or the pinned Wine CrossOver download.
+    var canSetUpTool: Bool {
+        setupSource != nil || !(snapshot?.runner.builds.isEmpty ?? true) || Self.wineToolBuild != nil
+    }
+
     func checkLicense(for chosen: CrossOverInstall? = nil) async -> CrossOverLicense.Status? {
         guard let install = chosen ?? usableCrossOver else { return nil }
         let status = await Task.detached(priority: .userInitiated) {
@@ -406,9 +419,14 @@ final class SystemStatus {
 
     private func setUpRunner(from install: CrossOverInstall?, replacingExisting: Bool = false) async {
         guard let install else {
-            setFailure(String(localized: "No supported copy of CrossOver found."))
-            AppLog.note("run refused: no supported CrossOver")
-            outcome = nil
+            // No CrossOver: repair installed clones in place, or set up the
+            // Wine CrossOver download as the compatibility tool.
+            let builds = (snapshot?.runner.builds ?? []).compactMap { RunnerRegistry.build(id: $0) }
+            if !builds.isEmpty {
+                await repatchRunners(builds)
+            } else {
+                await installWineRunner()
+            }
             return
         }
 
@@ -427,6 +445,53 @@ final class SystemStatus {
             }.value
 
             return await runnerOutcome(result)
+        }
+    }
+
+    // Re-stage and re-patch installed clones; each one's own files prove the license.
+    private func repatchRunners(_ builds: [RunnerBuild]) async {
+        await perform(from: RunnerSetup.Phase.staging.label) { progress in
+            let lock = try DeploymentContent.acquireInstallationLock()
+            defer { lock.release() }
+            try await requireInstallableContent()
+            let last = try await Task.detached(priority: .userInitiated) {
+                try builds.map { try RunnerSetup.prepare($0, report: { progress($0.label) }) }.last
+            }.value
+            guard let last else { return nil }
+            return await runnerOutcome(last)
+        }
+    }
+
+    // No CrossOver needed: fetch the pinned Wine CrossOver build if absent, patch
+    // it for Steam and register its compatibility tools.
+    private func installWineRunner() async {
+        await perform(from: WineRunnerInstaller.step) { progress in
+            let lock = try DeploymentContent.acquireInstallationLock()
+            defer { lock.release() }
+            try await requireInstallableContent()
+            let build = Self.wineToolBuild
+            let hint = Self.toolsRestartHint
+            return try await Task.detached(priority: .userInitiated) {
+                guard let build else {
+                    throw StepFailure(
+                        step: RunnerSetup.prepareStep,
+                        detail: String(localized: "No supported copy of CrossOver found."))
+                }
+                var downloaded = false
+                if !WineRunnerInstaller.isInstalled(build.id) {
+                    progress(WineRunnerInstaller.step)
+                    _ = try await WineRunnerInstaller.install(build)
+                    downloaded = true
+                }
+                let result = try RunnerSetup.prepareWine(build, report: { progress($0.label) })
+                if result.installed.wroteNothing && !result.toolsChanged && !downloaded {
+                    return String(localized: "Compatibility tool is already set up.")
+                }
+                let running = SteamBundle.isRunning
+                return result.toolsChanged && running
+                    ? String(localized: "Compatibility tool ready. \(hint)")
+                    : String(localized: "Compatibility tool ready.")
+            }.value
         }
     }
 

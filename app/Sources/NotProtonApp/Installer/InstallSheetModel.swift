@@ -226,6 +226,10 @@ final class InstallSheetModel {
         } else if analysis.scan.setup == nil {
             items.append(Item(id: "type", title: String(localized: "No setup.exe in this folder"),
                               detail: String(localized: "Choose the folder that holds the installer."), check: .failed))
+        } else if case .newerThanSupported(let found) = analysis.innoProblem {
+            items.append(Item(id: "type", title: String(localized: "Inno version newer than supported"),
+                              detail: String(localized: "The installer uses Inno Setup \(found), above what innoextract reads. It runs in Guided mode only."),
+                              check: .warning))
         } else {
             items.append(Item(id: "type", title: String(localized: "Not an Inno Setup installer"),
                               detail: analysis.innoProblem == .toolMissing ? String(localized: "innoextract is missing, so the installer could not be read.") : String(localized: "It runs in Guided mode only."),
@@ -396,7 +400,8 @@ final class InstallSheetModel {
 
     var fixes: [RetryFix] {
         guard let job, let center else { return [] }
-        return job.availableFixes(runners: runners.isEmpty ? center.engine.runnerIDs() : runners.map(\.id))
+        // center's list is refreshed off the main actor: a sync registry() call here would wait on codesign
+        return job.availableFixes(runners: runners.isEmpty ? center.retryRunners : runners.map(\.id))
     }
 
     func showInstallerWindow() {

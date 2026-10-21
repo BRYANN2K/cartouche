@@ -46,12 +46,11 @@ int main(int argc, char **argv) {
         fputs(NP_IMAGE_FILES_LABEL, stdout);
         return 0;
     }
-    if (argc >= 2 && strcmp(argv[1], "export") == 0) {
-        np_webpatch_set_export_token(argc >= 3 ? argv[2] : NULL);
+    if (argc == 2 && strcmp(argv[1], "export") == 0) {
         put_panel(NP_LIBRARY_EXPORT);
         return 0;
     }
     fputs("usage: emit component|statement [fallback [fex-tool...]]|migration|downloads|compat-hint|"
-          "image-files-label|export [token]\n", stderr);
+          "image-files-label|export\n", stderr);
     return 2;
 }

@@ -144,6 +144,7 @@ struct ConsoleSidebarRow: View {
                     Button(entry.title, role: entry.destructive ? .destructive : nil) {
                         Task { await consoles.perform(entry.action, on: id) }
                     }
+                    .disabled(entry.disabled)
                 }
             }
         }

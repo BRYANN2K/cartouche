@@ -25,15 +25,11 @@
 #define NP_FALLBACK_TOOL "\021"
 // Stands for the JS array set by np_webpatch_set_fex_tools.
 #define NP_FEX_TOOLS "\022"
-// Stands for the export token set by np_webpatch_set_export_token.
-#define NP_EXPORT_TOKEN "\027"
 
 #define NP_TOOL_NAME_MAX 128
-#define NP_EXPORT_TOKEN_MAX 64
 
 static _Thread_local char g_fallback_tool[NP_TOOL_NAME_MAX];
 static _Thread_local char g_fex_tools[NP_WEBPATCH_FEX_TOOLS_MAX * (NP_TOOL_NAME_MAX + 3) + 3] = "[]";
-static _Thread_local char g_export_token[NP_EXPORT_TOKEN_MAX + 1];
 
 typedef struct {
     const char *find;
@@ -88,24 +84,9 @@ void np_webpatch_set_fex_tools(const char *const *names, size_t count) {
     g_fex_tools[n] = '\0';
 }
 
-void np_webpatch_set_export_token(const char *token) {
-    g_export_token[0] = '\0';
-    if (!token) return;
-    size_t n = strlen(token);
-    if (n > NP_EXPORT_TOKEN_MAX) return;
-    for (size_t i = 0; i < n; i++) {
-        unsigned char c = (unsigned char)token[i];
-        if (!(c >= '0' && c <= '9') && !(c >= 'a' && c <= 'f') &&
-            !(c >= 'A' && c <= 'F'))
-            return;
-    }
-    memcpy(g_export_token, token, n + 1);
-}
-
 static const char *marker_text(char c) {
     if (c == NP_FALLBACK_TOOL[0]) return g_fallback_tool;
     if (c == NP_FEX_TOOLS[0]) return g_fex_tools;
-    if (c == NP_EXPORT_TOKEN[0]) return g_export_token;
     return NULL;
 }
 
@@ -439,9 +420,12 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
 // owned-games list from the app store and, when it changed, sends it through the
 // client's own transport socket to the dylib's Cartouche.ExportOwnedGames#1 route.
 // The socket authenticates like any WebUI connection and the payload carries the
-// per-launch token the route requires; nothing else on the page can know it.
+// per-launch token the route requires; nothing else on the page can know it. The
+// token comes from the loopback host at run time, so a page cached from an earlier
+// launch always presents this launch's token; a refusal backs off and logs once
+// rather than retrying every poll forever.
 #define NP_LIBRARY_EXPORT \
-    "(()=>{const T=\"" NP_EXPORT_TOKEN "\";if(T.length!==32||!window.appStore)return;" \
+    "(()=>{if(!window.appStore)return;" \
     "const te=new TextEncoder()," \
     "vn=n=>{const b=[];do{let x=n%128;n=(n-x)/128;if(n)x|=128;b.push(x)}while(n);return b}," \
     "f2=(n,v)=>{const b=typeof v===\"string\"?te.encode(v):v;return[...vn(n*8+2),...vn(b.length),...b]}," \
@@ -455,7 +439,7 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     "else if(w===2){const l=rv();p+=l}" \
     "else if(w===5)p+=4;else return null}" \
     "return{jt,er}}catch(e){return null}};" \
-    "let ws=0,seq=0,pend={},max=4e6,key=\"\",big=0,last=\"\";" \
+    "let ws=0,seq=0,pend={},max=4e6,key=\"\",big=0,last=\"\",fails=0,warned=0;" \
     "const call=(name,body)=>new Promise(r=>{const s=++seq,h=[...f1(10,s),...f2(12,name),...f2(40,key)]," \
     "m=new Uint8Array(8+h.length+body.length),d=new DataView(m.buffer);" \
     "d.setUint32(0,2147483794,true);d.setUint32(4,h.length,true);m.set(h,8);m.set(body,8+h.length);" \
@@ -491,14 +475,27 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     "cols.push({id:String(c.id),name:String(c.displayName||c.id).slice(0,256),apps:as})}" \
     "if(cols.length)e.collections=cols}}catch(x){}" \
     "return e}," \
-    "tick=async()=>{try{const e=collect();if(!e)return;" \
+    "tok=async()=>{try{" \
+    "const r=await fetch(\"/cartouche/" NP_EXPORT_TOKEN_FILE "\",{cache:\"no-store\"});" \
+    "if(!r.ok)return\"\";" \
+    "const t=(await r.text()).trim();" \
+    "return/^[0-9a-f]{32}$/i.test(t)?t:\"\"}catch(x){return\"\"}}," \
+    "requeue=n=>setTimeout(tick,Math.min(15e3*Math.pow(2,n||0),3e5))," \
+    "refuse=why=>{fails+=1;if(!warned){warned=1;console.warn(\"Cartouche: \"+why)}requeue(fails)}," \
+    "tick=async()=>{try{const e=collect();if(!e)return requeue(0);" \
     "const fp=JSON.stringify(e.apps)+(e.collections?JSON.stringify(e.collections):\"\");" \
-    "if(fp===last||!await open())return;" \
+    "if(fp===last)return requeue(0);" \
+    "const T=await tok();" \
+    "if(!T)return refuse(\"the owned-games export token is not being served; retrying in the background\");" \
+    "if(!await open())return requeue(0);" \
     "const body=te.encode(T+\"\\n\"+JSON.stringify(e));" \
-    "if(body.length>max){if(!big){big=1;console.warn(\"Cartouche: owned-games export is \"+body.length+\" bytes, over the transport limit\")}return}" \
-    "if(await call(\"Cartouche.ExportOwnedGames#1\",new Uint8Array(f2(1,body)))===1){" \
-    "last=fp;big=0;console.log(\"Cartouche: exported \"+e.apps.length+\" owned games\")}}catch(x){}};" \
-    "tick();setInterval(tick,15e3)})()"
+    "if(body.length>max){if(!big){big=1;console.warn(\"Cartouche: owned-games export is \"+body.length+\" bytes, over the transport limit\")}return requeue(0)}" \
+    "if(await call(\"Cartouche.ExportOwnedGames#1\",new Uint8Array(f2(1,body)))!==1)" \
+    "return refuse(\"the owned-games export was refused; retrying in the background\");" \
+    "last=fp;big=0;fails=0;warned=0;" \
+    "console.log(\"Cartouche: exported \"+e.apps.length+\" owned games\");requeue(0)" \
+    "}catch(x){requeue(0)}};" \
+    "tick()})()"
 
 static const np_gate_t g_gates_forcetool[] = {
     // SteamPlay settings section
@@ -746,6 +743,13 @@ int np_webpatch_is_download_commands(const char *path) {
         return 0;
     const char *rest = inside_steamui(path);
     return rest && strcmp(rest, "cartouche/" NP_DOWNLOAD_COMMANDS_FILE) == 0;
+}
+
+int np_webpatch_is_export_token(const char *path) {
+    if (!path)
+        return 0;
+    const char *rest = inside_steamui(path);
+    return rest && strcmp(rest, "cartouche/" NP_EXPORT_TOKEN_FILE) == 0;
 }
 
 int np_webpatch_should_patch(const char *path) {

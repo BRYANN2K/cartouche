@@ -73,6 +73,15 @@ enum WineRunnerInstaller {
         }
     }
 
+    static func recordPreparedLoader(_ id: String, runners: URL) throws {
+        guard let root = installedFolder(for: id, runners: runners),
+              let receipt = receipt(for: id, runners: runners), let loader = receipt.loader else { return }
+        var files = receipt.files
+        files[loader] = try Digest.sha256(of: root.appending(path: loader))
+        let updated = Receipt(id: receipt.id, archiveSHA256: receipt.archiveSHA256, files: files, loader: loader)
+        try atomicReplace(root.appending(path: receiptName), with: JSONEncoder().encode(updated), step: step)
+    }
+
     @discardableResult
     static func install(
         _ build: RunnerManifest.Build,
@@ -90,7 +99,10 @@ enum WineRunnerInstaller {
         defer { try? FileManager.default.removeItem(at: archive) }
         // A swapped archive is checked again before it is unpacked
         let extras = await QAEnvironment.extraHashes(session: session)
-        return try unpack(archive, build: build, runners: runners, extraHashes: extras)
+        // tar and the hashing wait on a process: they never run on the caller's actor
+        return try await Task.detached {
+            try unpack(archive, build: build, runners: runners, extraHashes: extras)
+        }.value
     }
 
     static func unpack(

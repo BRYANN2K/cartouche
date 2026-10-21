@@ -154,6 +154,17 @@ struct InstallSheetTests {
         #expect(center.sheet.job == nil)
     }
 
+    @Test("Only a guided setup can show an installer window")
+    func installerWindowAvailability() throws {
+        let fake = try FakeUnpack("sheet-direct-window")
+        let job = InstallJob(request: fake.request(), inputs: fake.inputs())
+        #expect(!job.canShowInstallerWindow)
+        job.request.directUnpack = nil
+        #expect(job.canShowInstallerWindow)
+        job.inputs.mode = .automatic
+        #expect(!job.canShowInstallerWindow)
+    }
+
     @Test("Without a runner, Install is disabled")
     func noRunner() async throws {
         let (center, folder) = try sheetFixture("sheet-norunner")

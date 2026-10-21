@@ -36,10 +36,31 @@ final class RunnersModelTests {
             manifest: RunnerManifest(format: 1, revision: 1, builds: [])).d3dMetalRunners
     }
 
-    func model(builds: [RunnerManifest.Build], toolkits: @escaping @Sendable () -> [PortingToolkitInstall] = { [] }) -> RunnersModel {
+    func model(builds: [RunnerManifest.Build], toolkits: @escaping @Sendable () -> [PortingToolkitInstall] = { [] }) throws -> RunnersModel {
         let bridge = work.appending(path: "bridge")
+        for (arch, name) in [("i386-windows", "lsteamclient.dll"), ("x86_64-windows", "lsteamclient.dll"),
+                             ("x86_64-unix", "lsteamclient.so")] {
+            let file = bridge.appending(path: "\(arch)/\(name)")
+            try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try Data("bridge".utf8).write(to: file)
+        }
+        let run = work.appending(path: "run")
+        try Data("#!/bin/sh\nexit 0\n".utf8).write(to: run)
         return RunnersModel(
             runnersFolder: runners, downloads: work.appending(path: "downloads"),
+            prepareWine: { build, runners in
+                _ = try RunnerSetup.prepareWine(
+                    build, runners: runners, bridge: bridge,
+                    toolList: bridge.deletingLastPathComponent().appending(path: "tools"),
+                    compatTools: bridge.deletingLastPathComponent().appending(path: "compatibilitytools.d"),
+                    runScript: { run })
+            },
+            syncTools: { runners in
+                _ = try CompatToolList.sync(
+                    runners: runners, bridge: bridge,
+                    file: bridge.deletingLastPathComponent().appending(path: "tools"),
+                    compatTools: bridge.deletingLastPathComponent().appending(path: "compatibilitytools.d"))
+            },
             scan: { FreeRunnerScan(manifest: RunnerManifest(format: 1, revision: 1, builds: builds), toolkits: toolkits()) },
             registry: { RunnerRegistry.refresh(runners: $0, bridge: bridge, roots: [], manual: [], pins: [], fexAvailable: true, free: $1) },
             manifestFeed: nil, manifestCache: work.appending(path: "runners.json"),
@@ -47,16 +68,17 @@ final class RunnersModelTests {
         )
     }
 
-    // A fixture archive and its manifest entry, laid out in this suite's scratch folder
-    func fixture() throws -> RunnerManifest.Build {
-        let archive = try WineRunnerInstallerTests.archive(id: "wine-crossover-26.3.0-1", in: work)
+    // A fixture archive and its manifest entry, laid out in this suite's scratch folder.
+    // archive() waits on tar, so it builds off this suite's main actor.
+    func fixture() async throws -> RunnerManifest.Build {
+        let archive = try await offMain { try WineRunnerInstallerTests.archive(id: "wine-crossover-26.3.0-1", in: self.work) }
         return try WineRunnerInstallerTests.build(id: "wine-crossover-26.3.0-1", for: archive)
     }
 
     @Test("Download on Wine CrossOver 26.3 installs it and the row reads Ready")
     func download() async throws {
-        let build = try fixture()
-        let model = model(builds: [build])
+        let build = try await fixture()
+        let model = try model(builds: [build])
         await model.refresh()
         let before = try #require(model.rows.first { $0.id == build.id })
         #expect(before.title == "Wine CrossOver 26.3")
@@ -72,16 +94,28 @@ final class RunnersModelTests {
         #expect(after.action == .none)
         #expect(model.message == nil)
         #expect(WineRunnerInstaller.isInstalled(build.id, runners: runners))
+        #expect(WineRunnerInstaller.verify(build.id, runners: runners).isEmpty)
+        let loader = WineRunnerInstaller.dir(for: build.id, runners: runners)
+            .appending(path: "lib/wine/x86_64-unix/wine")
+        let signed = try await offMain { try Shell.check("/usr/bin/codesign", ["-d", "--entitlements", ":-", loader.path(percentEncoded: false)]) }
+        let entitlements = try #require(try PropertyListSerialization.propertyList(
+            from: Data(signed.utf8), format: nil) as? [String: Bool])
+        #expect(entitlements["com.apple.security.cs.allow-dyld-environment-variables"] == true)
+        #expect(entitlements["com.apple.security.cs.disable-library-validation"] == true)
+        #expect(try String(contentsOf: work.appending(path: "tools"), encoding: .utf8)
+            == "\(SupportPaths.toolPrefix)-\(build.id)\t\(build.id)\trosetta\tWine CrossOver 26.3\n")
+        #expect(FileManager.default.isExecutableFile(atPath: work.appending(
+            path: "compatibilitytools.d/\(SupportPaths.toolPrefix)-\(build.id)/run").path(percentEncoded: false)))
     }
 
     @Test("A damaged download leaves the runner not installed and tells the user")
     func damagedDownload() async throws {
-        let build = try fixture()
+        let build = try await fixture()
         let wrong = RunnerManifest.Build(
             id: build.id, kind: build.kind, origin: build.origin, name: build.name, version: build.version,
             displayVersion: build.displayVersion, url: build.url, size: build.size,
             sha256: String(repeating: "0", count: 64), root: build.root, loader: build.loader, flavors: build.flavors)
-        let model = model(builds: [wrong])
+        let model = try model(builds: [wrong])
         await model.refresh()
         await model.download(wrong.id)
 
@@ -94,7 +128,7 @@ final class RunnersModelTests {
 
     @Test("Without a toolkit the row reads Not found with How to Get It, and D3DMetal is not offered")
     func toolkitAbsent() async throws {
-        let model = model(builds: [])
+        let model = try model(builds: [])
         await model.refresh()
         let row = try #require(model.rows.first { $0.kind == .portingToolkit })
         #expect(row.title == "Game Porting Toolkit")
@@ -116,7 +150,7 @@ final class RunnersModelTests {
     func toolkitCopy() async throws {
         let apps = try toolkitApp()
         let search = PortingToolkitSource.Search(volumes: volumes(), applications: [apps])
-        let model = model(builds: [], toolkits: { PortingToolkitSource.discover(search) })
+        let model = try model(builds: [], toolkits: { PortingToolkitSource.discover(search) })
 
         await model.refresh()
 
@@ -144,7 +178,7 @@ final class RunnersModelTests {
         let apps = try toolkitApp()
         let lib = apps.appending(path: "Game Porting Toolkit.app/Contents/Resources/wine/lib")
         let search = PortingToolkitSource.Search(volumes: volumes(), applications: [apps])
-        let model = model(builds: [], toolkits: { PortingToolkitSource.discover(search) })
+        let model = try model(builds: [], toolkits: { PortingToolkitSource.discover(search) })
         await model.refresh()
 
         await model.answerToolkit(.inPlace)
@@ -183,7 +217,7 @@ final class RunnersModelTests {
     func toolkitAskedOnce() async throws {
         let apps = try toolkitApp()
         let search = PortingToolkitSource.Search(volumes: volumes(), applications: [apps])
-        let model = model(builds: [], toolkits: { PortingToolkitSource.discover(search) })
+        let model = try model(builds: [], toolkits: { PortingToolkitSource.discover(search) })
         await model.refresh()
         #expect(model.toolkitQuestion != nil)
 
@@ -242,7 +276,7 @@ final class RunnersModelTests {
         let image = volumes()
         let apps = try toolkitApp(in: image)
         let search = PortingToolkitSource.Search(volumes: image, applications: [apps])
-        let model = model(builds: [], toolkits: { PortingToolkitSource.discover(search) })
+        let model = try model(builds: [], toolkits: { PortingToolkitSource.discover(search) })
 
         await model.refresh()
         #expect(model.toolkitQuestion == nil, "an ejectable image is never asked about on sight")
@@ -265,9 +299,9 @@ final class RunnersModelTests {
 
     @Test("An unsupported free runner's row offers Remove, which deletes the install")
     func removeRunner() async throws {
-        let build = try fixture()
+        let build = try await fixture()
         try await WineRunnerInstaller.install(build, runners: runners, downloads: work.appending(path: "downloads"))
-        let model = model(builds: [])
+        let model = try model(builds: [])
         await model.refresh()
 
         let row = try #require(model.rows.first { $0.id == build.id })
@@ -281,7 +315,7 @@ final class RunnersModelTests {
 
     @Test("A refresh that finishes after a newer one does not overwrite its list")
     func staleRefreshDropped() async throws {
-        let build = try fixture()
+        let build = try await fixture()
         final class Calls: @unchecked Sendable {
             private let lock = NSLock()
             private var n = 0

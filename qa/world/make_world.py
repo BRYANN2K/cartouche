@@ -73,17 +73,17 @@ OSLIST = {
 RDB_ROWS = {
     "Nintendo - Game Boy": [
         {"name": "Cartouche Quest (World)", "rom_name": "Cartouche Quest (World).gb",
-         "size": 32768, "crc": "d6106f3a", "md5": "d3ea2bea44e10c929d339f1934bd22d2",
-         "sha1": "cd8df01afc660a34b8ba4d5563f6365f51bbc035"},
+         "size": 32768, "crc": "0e8b3192", "md5": "2117da792975fb39bc42f8903e54d7ef",
+         "sha1": "4d4176a77c6c38a0487bbd9540a94f7dc30682f9"},
         {"name": "Cartouche Puzzle (World)", "rom_name": "Cartouche Puzzle (World).gb",
-         "size": 32768, "crc": "b91b5d93", "md5": "772817e285e8201a95bdf0d8ab9f633b",
-         "sha1": "9230f8df6f3950d213386ed6c97dceaf272dc825"},
+         "size": 32768, "crc": "0414d9d9", "md5": "aad00045f4a32d9719cc32e3f0dc5cb9",
+         "sha1": "16bb3e1554b4074eb292b50ef6d17b3322d19b0c"},
         {"name": "Cartouche Race (World)", "rom_name": "Cartouche Race (World).gb",
-         "size": 32768, "crc": "60ee6afc", "md5": "7844772693d6639275fa14cba9cf509d",
-         "sha1": "b3fec3ba018275743795f929e5d53beceba54c90"},
+         "size": 32768, "crc": "735c8190", "md5": "9249964dcdae2e2d76ff93dbac18f417",
+         "sha1": "86418f9725ca2ca81e77312547898bb5644e5371"},
         {"name": "Cartouche Maze (World)", "rom_name": "Cartouche Maze (World).gb",
-         "size": 32768, "crc": "f6ff6e5e", "md5": "a6d499f212299e6174717c3fd29f42d2",
-         "sha1": "859af205aa8fd133bea5a27554b364fc5482a9dd"},
+         "size": 32768, "crc": "80d95fd0", "md5": "2663344fb0e0084c31f6b8cbc509fe19",
+         "sha1": "78e4837f395d818769d1d08e6f3c2e6a94d7c59d"},
     ],
     "Nintendo - Super Nintendo Entertainment System": [
         {"name": "Cartouche Homebrew (World)", "rom_name": "Cartouche Homebrew (World).sfc",
@@ -435,20 +435,46 @@ def write_dolphin(home: Path) -> Path:
 # Console games — the P13 fixtures byte for byte
 # ---------------------------------------------------------------------------
 
+# The 48-byte logo every Game Boy cart carries at 0x104.
+GB_LOGO = bytes([
+    0xCE, 0xED, 0x66, 0x66, 0xCC, 0x0D, 0x00, 0x0B, 0x03, 0x73, 0x00, 0x83,
+    0x00, 0x0C, 0x00, 0x0D, 0x00, 0x08, 0x11, 0x1F, 0x88, 0x89, 0x00, 0x0E,
+    0xDC, 0xCC, 0x6E, 0xE6, 0xDD, 0xDD, 0xD9, 0x99, 0xBB, 0xBB, 0x67, 0x63,
+    0x6E, 0x0E, 0xEC, 0xCC, 0xDD, 0xDC, 0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E])
+
+# The 156-byte logo every GBA cart carries at 0x04.
+GBA_LOGO = bytes([
+    0x24, 0xFF, 0xAE, 0x51, 0x69, 0x9A, 0xA2, 0x21, 0x3D, 0x84, 0x82, 0x0A,
+    0x84, 0xE4, 0x09, 0xAD, 0x11, 0x24, 0x8B, 0x98, 0xC0, 0x81, 0x7F, 0x21,
+    0xA3, 0x52, 0xBE, 0x19, 0x93, 0x09, 0xCE, 0x20, 0x10, 0x46, 0x4A, 0x4A,
+    0xF8, 0x27, 0x31, 0xEC, 0x58, 0xC7, 0xE8, 0x33, 0x82, 0xE3, 0xCE, 0xBF,
+    0x85, 0xF4, 0xDF, 0x94, 0xCE, 0x4B, 0x09, 0xC1, 0x94, 0x56, 0x8A, 0xC0,
+    0x13, 0x72, 0xA7, 0xFC, 0x9F, 0x84, 0x4D, 0x73, 0xA3, 0xCA, 0x9A, 0x61,
+    0x58, 0x97, 0xA3, 0x27, 0xFC, 0x03, 0x98, 0x76, 0x23, 0x1D, 0xC7, 0x61,
+    0x03, 0x04, 0xAE, 0x56, 0xBF, 0x38, 0x84, 0x00, 0x40, 0xA7, 0x0E, 0xFD,
+    0xFF, 0x52, 0xFE, 0x03, 0x6F, 0x95, 0x30, 0xF1, 0x97, 0xFB, 0xC0, 0x85,
+    0x60, 0xD6, 0x80, 0x25, 0xA9, 0x63, 0xBE, 0x03, 0x01, 0x4E, 0x38, 0xE2,
+    0xF9, 0xA2, 0x34, 0xFF, 0xBB, 0x3E, 0x03, 0x44, 0x78, 0x00, 0x90, 0xCB,
+    0x88, 0x11, 0x3A, 0x94, 0x65, 0xC0, 0x7C, 0x63, 0x87, 0xF0, 0x3C, 0xAF,
+    0xD6, 0x25, 0xE4, 0x8B, 0x38, 0x0A, 0xAC, 0x72, 0x21, 0xD4, 0xF8, 0x07])
+
+
 def homebrew_gb(title: str, fill: int = 0x00) -> bytes:
-    """ConsoleFixtures.homebrewGB: 32 KiB, the title in the header at 0x134."""
+    """ConsoleFixtures.homebrewGB: 32 KiB, logo at 0x104, title at 0x134."""
     rom = bytearray([fill] * (32 * 1024))
+    rom[0x104:0x134] = GB_LOGO
     name = title.encode()[:15]
     rom[0x134:0x134 + len(name)] = name
     return bytes(rom)
 
 
 def homebrew_gba(title: str, code: str, fill: int = 0x00) -> bytes:
-    """A 32 KiB homebrew GBA cartridge: entry branch, title/game code/maker at
-    0xA0-0xB1, the fixed 0x96 byte and a correct header checksum. The Nintendo
-    logo area stays zero — only the BIOS needs it."""
+    """A 32 KiB homebrew GBA cartridge: entry branch, the Nintendo logo at
+    0x04, title/game code/maker at 0xA0-0xB1, the fixed 0x96 byte and a
+    correct header checksum."""
     rom = bytearray([fill] * (32 * 1024))
     rom[0x00:0x04] = b"\x2e\x00\x00\xea"          # b 0xc0
+    rom[0x04:0xA0] = GBA_LOGO
     rom[0xA0:0xA0 + 12] = title.encode()[:12].ljust(12, b"\x00")
     rom[0xAC:0xB0] = code.encode()[:4].ljust(4, b" ")
     rom[0xB0:0xB2] = b"42"
@@ -725,6 +751,8 @@ def build(directory: Path, profile: str, damage: bool = False, stale: bool = Fal
     if stale and profile not in ("medium", "retro", "senior"):
         raise ValueError("--stale needs a profile with a world (medium, retro, senior)")
     home = directory.resolve()
+    if home in (Path("/"), Path.home().resolve()):
+        raise ValueError(f"a scratch world is never built over {home}")
     home.mkdir(parents=True, exist_ok=True)
     if any(home.iterdir()):
         raise FileExistsError(f"{home} is not empty; pass --force to rebuild it")
@@ -797,6 +825,10 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
 
     if args.force and args.dir.exists() and args.dir.is_dir() and any(args.dir.iterdir()):
+        if not (args.dir / "cartouche-world.json").is_file():
+            print(f"make_world: --force only replaces a folder a world was built in; "
+                  f"{args.dir} holds something else", file=sys.stderr)
+            return 2
         shutil.rmtree(args.dir)
     try:
         made = build(args.dir, args.profile, damage=args.damage, stale=args.stale)

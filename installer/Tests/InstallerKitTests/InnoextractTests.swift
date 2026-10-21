@@ -68,4 +68,51 @@ struct InnoextractTests {
             try InnoInspector.inspect(URL(filePath: "/tmp/setup.exe"), tool: nil)
         }
     }
+
+    // innoextract reads the Inno header, warns that the stored data version is
+    // not in its known list, then reports "Not a supported Inno Setup
+    // installer!". The bundled build's --version says it knows Inno through
+    // 6.4.0, and a Homebrew 1.9 fallback says 6.2.2.
+    @Test("An Inno version above the tool's range is reported, not called not-Inno")
+    func newerInnoVersion() {
+        let newSetup = "Inspecting \"Next Game\" - setup data version 6.5.0\nUnexpected setup data version: 6.5.0 (unicode)\nNot a supported Inno Setup installer!\n"
+        let runner = RecordingRunner(answers: [
+            "--info": newSetup,
+            "--version": "innoextract 1.10\nExtracts installers created by Inno Setup 1.2.10 to 6.4.0\n",
+        ])
+        #expect(throws: InnoInspector.Failure.newerThanSupported("6.5.0")) {
+            try InnoInspector.inspect(URL(filePath: "/tmp/setup.exe"), tool: "/x/innoextract", runner: runner)
+        }
+        #expect(runner.calls.map(\.arguments).first == ["--info", "/tmp/setup.exe"])
+        #expect(runner.calls.contains { $0.arguments == ["--version"] })
+    }
+
+    @Test("The same installer is newer-than-supported for an older tool")
+    func newerInnoVersionOlderTool() {
+        let newSetup = "Unexpected setup data version: 6.3.0 (unicode)\nNot a supported Inno Setup installer!\n"
+        let runner = RecordingRunner(answers: [
+            "--info": newSetup,
+            "--version": "innoextract 1.9\nExtracts installers created by Inno Setup 1.2.10 to 6.2.2\n",
+        ])
+        #expect(throws: InnoInspector.Failure.newerThanSupported("6.3.0")) {
+            try InnoInspector.inspect(URL(filePath: "/tmp/setup.exe"), tool: "/x/innoextract", runner: runner)
+        }
+    }
+
+    @Test("A version inside the tool's range, or an unknown file, is still not-Inno")
+    func unknownVersionIsNotNewer() {
+        let oldSetup = "Unexpected setup data version: 1.0.0\nNot a supported Inno Setup installer!\n"
+        let notInno = "Not a supported Inno Setup installer!\n"
+        let runner = RecordingRunner(answers: [
+            "--info": oldSetup,
+            "--version": "innoextract 1.10\nExtracts installers created by Inno Setup 1.2.10 to 6.4.0\n",
+        ])
+        #expect(throws: InnoInspector.Failure.notInno(oldSetup)) {
+            try InnoInspector.inspect(URL(filePath: "/tmp/setup.exe"), tool: "/x/innoextract", runner: runner)
+        }
+        let other = RecordingRunner(answers: ["--info": notInno])
+        #expect(throws: InnoInspector.Failure.notInno(notInno)) {
+            try InnoInspector.inspect(URL(filePath: "/tmp/setup.exe"), tool: "/x/innoextract", runner: other)
+        }
+    }
 }

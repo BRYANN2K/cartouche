@@ -15,12 +15,17 @@ final class ActivityCenter {
     @ObservationIgnored var consoleSource: @MainActor () -> RunningGame? = { nil }
     @ObservationIgnored var storeSource: @MainActor () -> StoreActivity? = { nil }
     @ObservationIgnored var stopStore: @MainActor (StoreActivity) -> Void = { _ in }
+    // Onboarding's background work (runner, cores, toolkit import) reports here
+    @ObservationIgnored var setupSource: @MainActor () -> SetupActivity? = { nil }
     private(set) var downloads: [DownloadActivity] = []
     private(set) var finishing: [Int: Date] = [:]
     private(set) var problem: String?
+    // False while Steam is closed: downloads then read as paused and nothing runs
+    private(set) var steamRunning = true
 
     @ObservationIgnored let installs: InstallCenter
     @ObservationIgnored var reader: SteamActivityReader
+    @ObservationIgnored let monitor: SteamDownloadMonitor
     @ObservationIgnored var control: any SteamDownloadControlling
     @ObservationIgnored var processes: GameProcesses
     @ObservationIgnored var notifier: any ActivityNotifying
@@ -39,9 +44,11 @@ final class ActivityCenter {
 
     init(installs: InstallCenter? = nil, reader: SteamActivityReader = SteamActivityReader(),
          control: (any SteamDownloadControlling)? = nil, processes: GameProcesses = GameProcesses(),
-         notifier: (any ActivityNotifying)? = nil) {
+         notifier: (any ActivityNotifying)? = nil,
+         steamRunning: (@Sendable () -> Bool)? = nil) {
         self.installs = installs ?? .shared
         self.reader = reader
+        self.monitor = SteamDownloadMonitor(reader: reader, isSteamRunning: steamRunning)
         self.control = control ?? SteamDownloadCommands()
         self.processes = processes
         self.notifier = notifier ?? UserActivityNotifier()
@@ -53,12 +60,12 @@ final class ActivityCenter {
 
     var slot: ActivitySlot? {
         ActivitySlot.pick(playing: playing, install: installs.activity, store: storeSource(),
-                          downloads: downloads)
+                          downloads: downloads, setup: setupSource())
     }
 
     var menuSections: [ActivityMenuSection] {
         ActivityMenuSection.all(playing: playing, install: installs.activity, store: storeSource(),
-                                downloads: downloads)
+                                downloads: downloads, setup: setupSource())
     }
 
     func download(for game: Game) -> DownloadActivity? {
@@ -75,12 +82,18 @@ final class ActivityCenter {
 
     // MARK: Reading Steam
 
-    func watch(every interval: Duration = .seconds(1)) {
+    // The monitor decides the next tick from what it just read, and a write in Steam's
+    // folders still lands a read before the tick would have come
+    func watch() {
         watcher?.cancel()
+        let monitor = monitor
         watcher = Task { [weak self] in
+            await monitor.watchFiles { [weak self] in Task { @MainActor in self?.poke() } }
             while !Task.isCancelled {
-                await self?.refresh()
-                try? await Task.sleep(for: interval)
+                guard let self else { break }
+                let reading = await monitor.poll()
+                self.apply(reading.snapshot)
+                try? await Task.sleep(for: reading.interval)
             }
         }
     }
@@ -88,20 +101,25 @@ final class ActivityCenter {
     func stopWatching() {
         watcher?.cancel()
         watcher = nil
+        Task { await monitor.quiet() }
+    }
+
+    private func poke() {
+        Task { [weak self] in await self?.refresh() }
     }
 
     func refresh() async {
-        let reader = reader
-        let snapshot = await Task.detached { reader.read() }.value
-        apply(snapshot)
+        let reading = await monitor.poll()
+        apply(reading.snapshot)
     }
 
     func apply(_ snapshot: SteamActivitySnapshot) {
+        if steamRunning != snapshot.steamRunning { steamRunning = snapshot.steamRunning }
         let before = Dictionary(downloads.map { ($0.appID, $0) }, uniquingKeysWith: { first, _ in first })
         var next = snapshot.downloads.map(settle)
         // A pause or resume shows at once; Steam's files catch up within a few seconds
         for i in next.indices {
-            if let ask = asked[next[i].appID], !next[i].isFailed { next[i].state = ask.state }
+            if let ask = asked[next[i].appID], !next[i].isFailed, snapshot.steamRunning { next[i].state = ask.state }
         }
         // The first read only learns what was already going on
         if hasRead {

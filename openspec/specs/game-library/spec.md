@@ -8,11 +8,21 @@ Cartouche shows one library for PC and console games, built from Steam's own fil
 ### Requirement: Steam library import
 The app SHALL use the signed-in Steam account’s SteamExport v1 `steam-library.json` for the full owned-games list, collections and play data. The injected dylib SHALL register a WebUI route using the same mechanism as compatsvc’s routes. The route SHALL require a random token generated per Steam launch and known only to Cartouche’s injected page script. The dylib SHALL validate the token and payload before atomically replacing the export. This writer is required for v0.1.0 (maintainer decision 2026-10-20; ADR 0022).
 
+In review on `fix/steam-compat-tools` (not merged): the injected page script SHALL fetch the token at run time from the dylib’s `/cartouche/steam-export-token` route, served no-store, instead of carrying it in the injected source. A failed fetch SHALL be retried with backoff starting at 15 seconds and capped at 300 seconds.
+
 The importer SHALL merge installed games and installed status from `appmanifest_*.acf`. It SHALL use `localconfig.vdf` for play data only, never ownership. An export from a different known account SHALL NOT populate the current account’s library. No loopback HTTP listener, public Steam profile or user Web API key SHALL be required.
 
 #### Scenario: Import from Steam
 - **WHEN** Steam is running and signed in with an account that has N owned games, including uninstalled games, and its injected page submits a valid export
 - **THEN** within 10 seconds the library shows those N owned games, merges any additional installed games from manifests, and names the signed-in account in the toolbar
+
+#### Scenario: Token fetched at run time
+- **WHEN** the injected page script is ready to export and has no token yet
+- **THEN** it requests `/cartouche/steam-export-token` with no-store, receives the per-launch token, and presents it to the export route (in review on `fix/steam-compat-tools`)
+
+#### Scenario: Token fetch retried
+- **WHEN** a token request fails or the route is not yet available
+- **THEN** the script retries with backoff starting at 15 seconds and capped at 300 seconds, and exports once a token is returned (in review on `fix/steam-compat-tools`)
 
 #### Scenario: Reject an unauthorized page
 - **WHEN** a route request has no token, an incorrect token, or a token from a previous Steam launch
@@ -141,3 +151,14 @@ View and menu construction SHALL NOT synchronously wait for process probes. Game
 #### Scenario: Menu during process refresh
 - **WHEN** a game menu is built while process state is being refreshed
 - **THEN** menu construction reads cached state without waiting for lsof or pgrep
+
+### Requirement: Local crash reports
+Crash reports SHALL be generated and kept on the Mac; nothing SHALL be sent over the network (ADR 0029). After a crash, the next launch SHALL offer Show Report and Copy Summary, and a Collect Diagnostics command SHALL write a zip of logs and reports locally for the user to share.
+
+#### Scenario: Crash prompt
+- **WHEN** the app starts after a crash
+- **THEN** it offers Show Report and Copy Summary, and no report or summary leaves the Mac on its own
+
+#### Scenario: Diagnostics archive
+- **WHEN** the user runs Collect Diagnostics
+- **THEN** a zip of logs and crash reports is written locally, and nothing is uploaded

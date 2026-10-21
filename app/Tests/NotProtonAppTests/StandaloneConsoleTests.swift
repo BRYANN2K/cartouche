@@ -74,7 +74,7 @@ struct StandaloneConsoleTests {
     }
 
     private func dolphinScene(_ label: String) async throws -> (ConsoleScene, ConsoleGame, URL, URL, URL) {
-        let scene = try ConsoleScene(label)
+        let scene = try await ConsoleScene(label)
         let app = try FakeEmulatorApp.install("Dolphin", bundleID: "org.dolphin-emu.dolphin", version: "2509", in: scene.applications)
         let args = scene.work.appending(path: "dolphin-args.txt"), quit = scene.work.appending(path: "dolphin-quit")
         scene.center.standaloneEnvironment = FakeEmulatorApp.environment(args: args, quit: quit)
@@ -170,7 +170,7 @@ struct StandaloneConsoleTests {
 
     @Test("A console with no RetroArch core and no emulator: Xbox says xemu is not installed")
     func xboxWithoutXemu() async throws {
-        let scene = try ConsoleScene("xbox")
+        let scene = try await ConsoleScene("xbox")
         defer { scene.remove() }
         let game = try await scene.addGame(console: "xbox", name: "Cartouche Homebrew", ext: "iso")
         #expect(scene.coreRequests.isEmpty, "no core is fetched for a console RetroArch cannot play")

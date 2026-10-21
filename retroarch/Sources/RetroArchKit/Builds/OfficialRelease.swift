@@ -64,6 +64,13 @@ public struct OfficialRelease: Sendable {
             throw OfficialReleaseError.downloadFailed(error.localizedDescription)
         }
 
+        // hdiutil and ditto are synchronous process waits: never on the caller's actor
+        return try await Task.detached { try self.mountCopy(version, image: image, work: work) }.value
+    }
+
+    private func mountCopy(_ version: String, image: URL, work: URL) throws -> URL {
+        // Only ever called from a detached task; a direct call on the main actor traps in debug builds
+        assert(!Thread.isMainThread, "hdiutil and ditto wait on processes; they never run on the main actor")
         let mount = work.appending(path: "mount", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: mount, withIntermediateDirectories: true)
         guard Self.hdiutil(["attach", "-nobrowse", "-readonly", "-noautoopen", "-mountpoint",

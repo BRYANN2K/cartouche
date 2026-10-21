@@ -58,7 +58,8 @@ struct DropSheetTests {
 
     @Test("Failures say what happened and offer another file")
     func failures() async throws {
-        let wanted = ["needs a password", "is damaged", "kind of archive", "No game found"]
+        let wanted = ["needs a password", "is damaged", "kind of archive",
+                      "is missing", "Not enough disk space", "No game found"]
         for (n, failure) in DropFixtures.failures.enumerated() {
             let texts = try await render(.result(failure), named: "failed-\(n)")
             #expect(seen(texts, wanted[n]))

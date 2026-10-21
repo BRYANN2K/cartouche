@@ -55,8 +55,9 @@ enum PerformanceIncoming {
             }
         }
         guard let appID = keys["app_id"].flatMap(Int.init), appID > 0,
-              let started = keys["started"].flatMap(TimeInterval.init),
-              let runner = keys["runner"], !runner.isEmpty else { return .invalid }
+              let started = keys["started"].flatMap(TimeInterval.init) else { return .invalid }
+        // A launch folder written before the script recorded the setup still migrates in
+        let runner = keys["runner"].flatMap { $0.isEmpty ? nil : $0 } ?? PlaySetup.unknownRunnerID
 
         let sampleFiles = ((try? files.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? [])
             .filter { $0.lastPathComponent.hasPrefix("samples-") }
@@ -111,6 +112,8 @@ struct PerformanceStore: Sendable {
     var database: URL { folder.appending(path: "sessions.sqlite") }
     var incoming: URL { folder.appending(path: PerformanceIncoming.folderName) }
 
+    static let schemaVersion = 2
+
     static let schema = """
         CREATE TABLE IF NOT EXISTS sessions (
           id INTEGER PRIMARY KEY,
@@ -141,7 +144,6 @@ struct PerformanceStore: Sendable {
           counted INTEGER NOT NULL
         );
         CREATE INDEX IF NOT EXISTS samples_session ON samples(session);
-        PRAGMA user_version = 1;
         """
 
     @discardableResult
@@ -300,11 +302,71 @@ final class Database {
         sqlite3_busy_timeout(handle, 2000)
         try execute("PRAGMA foreign_keys = ON")
         try execute(PerformanceStore.schema)
+        try migrate()
+        try execute("PRAGMA user_version = \(PerformanceStore.schemaVersion)")
     }
 
     deinit { sqlite3_close(handle) }
 
     var lastInsertID: Int64 { sqlite3_last_insert_rowid(handle) }
+
+    // A database written before sessions carried the setup gets the missing columns and
+    // fills them from what it has: the display name for the runner, Rosetta for translation
+    private func migrate() throws {
+        var version: Int64 = 0
+        if case .int(let v)? = try query("PRAGMA user_version").first?.first { version = v }
+        guard version < PerformanceStore.schemaVersion else { return }
+        try addMissingColumns("sessions", [
+            ("runner", "TEXT NOT NULL DEFAULT '\(PlaySetup.unknownRunnerID)'"),
+            ("translation", "TEXT NOT NULL DEFAULT 'rosetta'"),
+            ("backend", "TEXT"),
+            ("runner_name", "TEXT NOT NULL DEFAULT ''"),
+            ("settings", "TEXT NOT NULL DEFAULT '{}'"),
+            ("measurement", "TEXT NOT NULL DEFAULT 'on'"),
+            ("measured_seconds", "INTEGER NOT NULL DEFAULT 0"),
+            ("frames", "INTEGER NOT NULL DEFAULT 0"),
+            ("average", "REAL"),
+            ("low1", "REAL"),
+            ("histogram", "TEXT NOT NULL DEFAULT ''"),
+            ("width", "INTEGER"),
+            ("height", "INTEGER"),
+        ])
+        try execute("""
+            UPDATE sessions SET runner_name = runner
+            WHERE (runner_name IS NULL OR runner_name = '') AND runner != '' AND runner != '\(PlaySetup.unknownRunnerID)'
+            """)
+        try execute("""
+            UPDATE sessions SET runner = CASE WHEN runner_name != '' THEN runner_name ELSE '\(PlaySetup.unknownRunnerID)' END
+            WHERE runner IS NULL OR runner = '' OR runner = '\(PlaySetup.unknownRunnerID)'
+            """)
+        try execute("UPDATE sessions SET translation = 'rosetta' WHERE translation IS NULL OR translation = ''")
+        if try addMissingColumns("samples", [
+            ("frontmost", "INTEGER NOT NULL DEFAULT 1"),
+            ("counted", "INTEGER NOT NULL DEFAULT 0"),
+        ]).contains("counted") {
+            try execute("""
+                UPDATE samples SET counted = CASE
+                  WHEN frontmost != 0 AND frames >= \(PlayStats.loadingBelow)
+                       AND time >= (SELECT MIN(time) FROM samples s WHERE s.session = samples.session)
+                                   + \(PlayStats.warmUpSeconds)
+                  THEN 1 ELSE 0 END
+                """)
+        }
+    }
+
+    @discardableResult
+    private func addMissingColumns(_ table: String, _ columns: [(name: String, type: String)]) throws -> Set<String> {
+        let existing = try query("PRAGMA table_info(\(table))").compactMap { row -> String? in
+            if case .text(let name) = row[1] { return name }
+            return nil
+        }
+        var added: Set<String> = []
+        for column in columns where !existing.contains(column.name) {
+            try execute("ALTER TABLE \(table) ADD COLUMN \(column.name) \(column.type)")
+            added.insert(column.name)
+        }
+        return added
+    }
 
     private var error: PerformanceStore.Failure {
         PerformanceStore.Failure(description: String(cString: sqlite3_errmsg(handle)))

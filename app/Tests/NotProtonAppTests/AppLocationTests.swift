@@ -61,24 +61,30 @@ struct AppLocationTests {
         let mount: URL
         var app: URL { mount.appending(path: "Cartouche.app") }
 
-        init() throws {
-            work = try scratchDirectory("dmg-move")
-            let source = work.appending(path: "source/Cartouche.app/Contents/MacOS")
+        init() async throws {
+            let scratch = try scratchDirectory("dmg-move")
+            work = scratch
+            let source = scratch.appending(path: "source/Cartouche.app/Contents/MacOS")
             try FileManager.default.createDirectory(at: source, withIntermediateDirectories: true)
             try FileManager.default.copyItem(at: URL(filePath: "/usr/bin/true"), to: source.appending(path: "Cartouche"))
-            let image = work.appending(path: "Cartouche.dmg").path(percentEncoded: false)
-            try #require(Shell.run("/usr/bin/hdiutil", [
-                "create", "-quiet", "-srcfolder", work.appending(path: "source").path(percentEncoded: false),
+            let image = scratch.appending(path: "Cartouche.dmg").path(percentEncoded: false)
+            // hdiutil waits on a process: never on this suite's main actor
+            let made = try await offMain { try Shell.run("/usr/bin/hdiutil", [
+                "create", "-quiet", "-srcfolder", scratch.appending(path: "source").path(percentEncoded: false),
                 "-volname", "Cartouche", "-format", "UDZO", image,
-            ]).succeeded)
-            mount = work.appending(path: "mount")
-            try #require(Shell.run("/usr/bin/hdiutil", [
-                "attach", "-quiet", "-readonly", "-nobrowse", "-noautoopen", "-mountpoint", mount.path(percentEncoded: false), image,
-            ]).succeeded)
+            ]) }
+            try #require(made.succeeded)
+            let mountPoint = scratch.appending(path: "mount")
+            mount = mountPoint
+            let attached = try await offMain { try Shell.run("/usr/bin/hdiutil", [
+                "attach", "-quiet", "-readonly", "-nobrowse", "-noautoopen", "-mountpoint", mountPoint.path(percentEncoded: false), image,
+            ]) }
+            try #require(attached.succeeded)
         }
 
-        func remove() {
-            _ = try? Shell.run("/usr/bin/hdiutil", ["detach", "-quiet", "-force", mount.path(percentEncoded: false)])
+        func remove() async {
+            let mount = mount, work = work
+            _ = try? await offMain { try Shell.run("/usr/bin/hdiutil", ["detach", "-quiet", "-force", mount.path(percentEncoded: false)]) }
             try? FileManager.default.removeItem(at: work)
         }
 
@@ -89,9 +95,9 @@ struct AppLocationTests {
     }
 
     @Test("Opened from the mounted disk image: Move copies it to Applications and relaunches from there")
-    func moveFromDiskImage() throws {
-        let image = try MountedImage()
-        defer { image.remove() }
+    func moveFromDiskImage() async throws {
+        let image = try await MountedImage()
+        defer { Task { await image.remove() } }
         #expect(image.location == .diskImage)
 
         let applications = image.work.appending(path: "Applications")
@@ -107,6 +113,8 @@ struct AppLocationTests {
 
         #expect(!goesOn, "onboarding does not start from the disk image")
         #expect(asked == [.diskImage])
+        // The copy runs off the main actor; the relaunch lands back on it
+        #expect(await waitFor { !relaunched.isEmpty || quits > 0 })
         #expect(relaunched == [applications.appending(path: "Cartouche.app")])
         #expect(quits == 0)
         #expect(FileManager.contentsEqual(image.app.appending(path: "Contents/MacOS/Cartouche"),
@@ -116,21 +124,21 @@ struct AppLocationTests {
     }
 
     @Test("An older copy in Applications is replaced")
-    func replacesOlderCopy() throws {
-        let image = try MountedImage()
-        defer { image.remove() }
+    func replacesOlderCopy() async throws {
+        let image = try await MountedImage()
+        defer { Task { await image.remove() } }
         let destination = image.work.appending(path: "Applications/Cartouche.app")
         try FileManager.default.createDirectory(at: destination.appending(path: "Contents/MacOS"), withIntermediateDirectories: true)
         try Data("old".utf8).write(to: destination.appending(path: "Contents/MacOS/Cartouche"))
 
-        try AppMover(destination: destination, relauncher: { _ in }).move(image.app)
+        try await offMain { try AppMover.move(image.app, to: destination) }
 
         #expect(FileManager.contentsEqual(image.app.appending(path: "Contents/MacOS/Cartouche"),
                                           destination.appending(path: "Contents/MacOS/Cartouche")))
     }
 
     @Test("A copy running from the destination is never replaced")
-    func destinationRunning() throws {
+    func destinationRunning() async throws {
         let work = try scratchDirectory("running-move")
         defer { try? FileManager.default.removeItem(at: work) }
         let source = work.appending(path: "Cartouche.app/Contents/MacOS")
@@ -144,39 +152,39 @@ struct AppLocationTests {
         var relaunched = 0
         let mover = AppMover(destination: destination, relauncher: { _ in relaunched += 1 },
                              destinationRunning: { _ in true })
-        #expect(throws: AppMover.Failed.self) {
-            try mover.moveAndRelaunch(work.appending(path: "Cartouche.app"))
+        await #expect(throws: AppMover.Failed.self) {
+            try await mover.moveAndRelaunch(work.appending(path: "Cartouche.app"))
         }
         #expect(relaunched == 0)
         #expect(try Data(contentsOf: destination.appending(path: "Contents/MacOS/Cartouche")) == Data("old".utf8))
     }
 
     @Test("A quarantined copy arrives in Applications without the mark")
-    func stripsQuarantine() throws {
+    func stripsQuarantine() async throws {
         let work = try scratchDirectory("quarantine-move")
         defer { try? FileManager.default.removeItem(at: work) }
         let source = work.appending(path: "source/Cartouche.app")
         let macos = source.appending(path: "Contents/MacOS")
         try FileManager.default.createDirectory(at: macos, withIntermediateDirectories: true)
         try FileManager.default.copyItem(at: URL(filePath: "/usr/bin/true"), to: macos.appending(path: "Cartouche"))
-        try Shell.check("/usr/bin/xattr",
-            ["-w", "com.apple.quarantine", "0081;00000000;Cartouche;", source.path(percentEncoded: false)])
+        try await offMain { try Shell.check("/usr/bin/xattr",
+            ["-w", "com.apple.quarantine", "0081;00000000;Cartouche;", source.path(percentEncoded: false)]) }
 
         let destination = work.appending(path: "Applications/Cartouche.app")
         try FileManager.default.createDirectory(
             at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try AppMover(destination: destination, relauncher: { _ in }).move(source)
+        try await offMain { try AppMover.move(source, to: destination) }
 
         #expect(FileManager.default.fileExists(atPath: destination.appending(path: "Contents/MacOS/Cartouche").path(percentEncoded: false)))
-        let probe = try Shell.run("/usr/bin/xattr",
-            ["-p", "com.apple.quarantine", destination.path(percentEncoded: false)])
+        let probe = try await offMain { try Shell.run("/usr/bin/xattr",
+            ["-p", "com.apple.quarantine", destination.path(percentEncoded: false)]) }
         #expect(!probe.succeeded, "the moved copy is still quarantined")
     }
 
     @Test("Quit leaves everything as it was")
-    func quit() throws {
-        let image = try MountedImage()
-        defer { image.remove() }
+    func quit() async throws {
+        let image = try await MountedImage()
+        defer { Task { await image.remove() } }
         let destination = image.work.appending(path: "Applications/Cartouche.app")
         var relaunched = 0
         var quits = 0

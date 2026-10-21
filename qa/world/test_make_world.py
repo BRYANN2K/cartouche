@@ -94,6 +94,23 @@ class MakeWorldTests(unittest.TestCase):
             with self.assertRaises(FileExistsError):
                 make_world.build(home, "empty")
 
+    def test_refuses_a_real_home(self):
+        # A world builds only into a scratch dir, never over the real ~ or /
+        for real in (Path.home(), Path("/")):
+            with self.assertRaises(ValueError, msg=str(real)):
+                make_world.build(real, "empty")
+
+    def test_force_needs_a_built_world(self):
+        # --force removes the target: it must never be pointed at a folder
+        # that is not a world this tool built
+        with tempfile.TemporaryDirectory() as tmp:
+            Path(tmp, "something").write_text("x")
+            self.assertEqual(make_world.main([tmp, "--force"]), 2)
+            self.assertTrue(Path(tmp, "something").exists())
+            Path(tmp, "cartouche-world.json").write_text("{}")
+            self.assertEqual(make_world.main([tmp, "--force", "--profile", "empty"]), 0)
+            self.assertTrue((Path(tmp) / "cartouche-world.json").is_file())
+
     # -- the Steam fixture -------------------------------------------------
 
     def test_medium_steam(self):
@@ -158,16 +175,17 @@ class MakeWorldTests(unittest.TestCase):
 
         # The Game Boy carts are byte-identical to the P13 fixtures: their
         # CRC32s are the recorded rows.
-        expected = {"Cartouche Quest (World).gb": "d6106f3a",
-                    "Cartouche Puzzle (World).gb": "b91b5d93",
-                    "Cartouche Race (World).gb": "60ee6afc",
-                    "Cartouche Maze (World).gb": "f6ff6e5e"}
+        expected = {"Cartouche Quest (World).gb": "0e8b3192",
+                    "Cartouche Puzzle (World).gb": "0414d9d9",
+                    "Cartouche Race (World).gb": "735c8190",
+                    "Cartouche Maze (World).gb": "80d95fd0"}
         for name, crc in expected.items():
             data = (roms / "Game Boy" / name).read_bytes()
             self.assertEqual(len(data), 32768)
             self.assertEqual(f"{zlib.crc32(data):08x}", crc, name)
 
         cart = (roms / "Game Boy Advance" / "Cart Demo (World).gba").read_bytes()
+        self.assertEqual(cart[0x04:0xA0], make_world.GBA_LOGO)
         self.assertEqual(cart[0xA0:0xA9], b"CART DEMO")
         self.assertEqual(cart[0xB2], 0x96)
         check = (-(0x19 + sum(cart[0xA0:0xBD]))) & 0xFF

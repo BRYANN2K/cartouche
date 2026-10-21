@@ -1,7 +1,8 @@
 'use strict';
-// Runs the injected library exporter against a fake transport socket, app store and
-// collection store, so the checks exercise the payload the gate writes — the packet
-// format, the auth handshake, the route name, the token framing, and the debounce.
+// Runs the injected library exporter against a fake transport socket, app store,
+// collection store and loopback fetch, so the checks exercise the payload the
+// gate writes — the packet format, the auth handshake, the route name, the
+// token framing, the debounce, and the refusal backoff.
 const { execFileSync } = require('child_process');
 const { runner } = require('./harness');
 
@@ -10,6 +11,7 @@ if (!emit) { console.error('usage: library-export.js <emit>'); process.exit(2); 
 const emitWith = (...a) => execFileSync(emit, a, { encoding: 'utf8' }).trim();
 
 const TOKEN = 'a1b2c3d4e5f60718293a4b5c6d7e8f9a';
+const TOKEN_NEXT = 'b2c3d4e5f60718293a4b5c6d7e8f9a01';
 const SID = '76561198123456789';
 
 // Minimal wire helpers mirroring the client's frame format: u32 eMsg, u32 header
@@ -76,6 +78,10 @@ const app = (id, o) => Object.assign({
 function page(opts) {
   opts = opts || {};
   const sockets = [];
+  const fetched = [];
+  const warnings = [];
+  const timeouts = [];
+  let token = opts.token === undefined ? TOKEN : opts.token;
   const store = opts.store || { m_mapApps: new Map() };
   class FakeWS {
     constructor(url) {
@@ -103,17 +109,31 @@ function page(opts) {
     appStore: opts.noStore ? undefined : store,
     collectionStore: opts.collections,
   };
-  const console = { log() {}, warn() {}, error() {} };
-  let tick = null;
-  const setInterval = (f, ms) => { tick = { f, ms }; return 1; };
-  const src = emitWith('export', opts.token === undefined ? TOKEN : opts.token);
-  new Function('window', 'SteamClient', 'WebSocket', 'setInterval', 'console',
+  // The loopback host answers with the current launch token, or refuses.
+  const fetch = async (url, init) => {
+    fetched.push({ url, cache: init && init.cache });
+    return token
+      ? { ok: true, text: async () => token }
+      : { ok: false, status: 403, text: async () => '' };
+  };
+  // Requeue and the call's own timeouts all land here; the last push of a poll
+  // is always the next tick.
+  const setTimeout = (f, ms) => { timeouts.push({ f, ms }); return timeouts.length; };
+  const console = { log() {}, warn(m) { warnings.push(String(m)) }, error() {} };
+  const src = emitWith('export');
+  new Function('window', 'SteamClient', 'WebSocket', 'fetch', 'setTimeout', 'console',
                'return ' + src + ';')
-    .call(self, window, SteamClient, FakeWS, setInterval, console);
+    .call(self, window, SteamClient, FakeWS, fetch, setTimeout, console);
   return {
-    sockets, tick,
-    get ms() { return tick && tick.ms; },
-    poll: async () => { await tick.f(); await new Promise(r => setImmediate(r)); },
+    sockets, fetched, warnings,
+    set token(v) { token = v; },
+    get ms() { const t = timeouts[timeouts.length - 1]; return t && t.ms; },
+    poll: async () => {
+      const t = timeouts.pop();
+      timeouts.length = 0;
+      if (t) await t.f();
+      await new Promise(r => setImmediate(r));
+    },
     flush: () => new Promise(r => setImmediate(r)),
   };
 }
@@ -128,16 +148,17 @@ const payload_json = f => {
 (async () => {
   const t = runner('library-export');
 
-  // No token means the script is inert: no socket, no traffic.
-  {
-    const p = page({ token: '' });
-    await p.flush();
-    t.ok(p.sockets.length === 0, 'an empty token never opens a socket');
-  }
+  // No app store, or an empty one, stays inert without touching the token.
   {
     const p = page({ noStore: true });
     await p.flush();
-    t.ok(p.sockets.length === 0, 'no app store stays inert');
+    t.ok(p.sockets.length === 0 && p.fetched.length === 0, 'no app store stays inert');
+  }
+  {
+    const p = page({ token: '' });
+    await p.flush();
+    t.ok(p.sockets.length === 0 && p.fetched.length === 0 && p.ms === 15000,
+         'an empty library polls quietly without asking for the token');
   }
 
   // A populated store exports once.
@@ -160,6 +181,9 @@ const payload_json = f => {
   };
   const p = page({ store: { m_mapApps: apps }, collections });
   await p.flush();
+  t.ok(p.fetched.length === 1 && p.fetched[0].url === '/cartouche/steam-export-token'
+       && p.fetched[0].cache === 'no-store',
+       'the launch token is fetched from the loopback host, uncached');
   t.ok(p.ms === 15000, 'polls every 15 seconds, no tight loop');
   t.ok(p.sockets.length === 1, 'one transport socket');
   const ws = p.sockets[0];
@@ -171,7 +195,7 @@ const payload_json = f => {
   const ex = export_msgs(ws);
   t.ok(ex.length === 1, 'one export for the first snapshot');
   const { token, doc } = payload_json(ex[0]);
-  t.ok(token === TOKEN, 'payload is prefixed with the launch token');
+  t.ok(token === TOKEN, 'payload is prefixed with the fetched token');
   t.ok(doc.version === 1 && doc.steamid === SID, 'export names the logged-in account');
   const ids = doc.apps.map(a => a.appid);
   t.ok(ids.join() === '7,8,13', 'only owned games, sorted');
@@ -181,29 +205,53 @@ const payload_json = f => {
   t.ok(doc.collections.length === 1 && doc.collections[0].id === 'x1' &&
        doc.collections[0].apps.join() === '7,13', 'user collections only');
 
-  // Debounce: an unchanged snapshot sends nothing.
+  // Debounce: an unchanged snapshot sends nothing and does not fetch again.
   await p.poll();
   t.ok(export_msgs(ws).length === 1, 'unchanged library is not re-exported');
+  t.ok(p.fetched.length === 1, 'an unchanged library skips the token fetch');
 
-  // A new owned game re-exports.
+  // A new owned game re-exports; the token is fetched again at run time, so a
+  // cached page always presents this launch's token rather than a stale one.
+  p.token = TOKEN_NEXT;
   apps.set(14, app(14, { display_name: 'New One' }));
   await p.poll();
   t.ok(export_msgs(ws).length === 2, 'an owned set change re-exports');
+  t.ok(payload_json(export_msgs(ws)[1]).token === TOKEN_NEXT,
+       'a cached page always presents this launch\'s token');
   t.ok(payload_json(export_msgs(ws)[1]).doc.apps.length === 4, 'new app in the new export');
 
-  // A failed export retries next poll instead of latching.
+  // A failed export retries on the next poll, backing off and logging once.
   apps.set(15, app(15));
   const p2opts = { store: { m_mapApps: apps }, collections, exportResult: 2 };
   const p2 = page(p2opts);
   await p2.flush();
+  t.ok(export_msgs(p2.sockets[0]).length === 1 && p2.warnings.length === 1,
+       'a refused export is logged once');
+  t.ok(p2.ms === 30000, 'a refused export backs off');
   await p2.poll();
-  t.ok(export_msgs(p2.sockets[0]).length === 2, 'a failed export retries on the next poll');
+  t.ok(export_msgs(p2.sockets[0]).length === 2, 'a refused export retries on the next poll');
+  t.ok(p2.warnings.length === 1 && p2.ms === 60000, 'refusals stay quiet and keep backing off');
+
+  // A launch that does not serve the token (an older dylib, or a 403) is
+  // refused the same way: one warning, exponential backoff, no socket.
+  const p3 = page({ store: { m_mapApps: apps }, token: '' });
+  await p3.flush();
+  t.ok(p3.fetched[0].url === '/cartouche/steam-export-token' && p3.sockets.length === 0,
+       'an unanswered token fetch never opens a socket');
+  t.ok(p3.warnings.length === 1 && p3.ms === 30000, 'a refused token backs off quietly');
+  await p3.poll();
+  t.ok(p3.warnings.length === 1 && p3.ms === 60000 && p3.sockets.length === 0,
+       'a launch without the token keeps backing off without logging again');
+  p3.token = TOKEN;
+  await p3.poll();
+  t.ok(p3.sockets.length === 1 && export_msgs(p3.sockets[0]).length === 1 && p3.ms === 15000,
+       'a token that appears later resumes the export');
 
   // The route still answers without transport info only when info is missing.
-  const p3 = page({ store: { m_mapApps: apps }, info: {} });
-  await p3.flush();
-  t.ok(p3.sockets.length === 0, 'no transport info means no socket');
+  const p4 = page({ store: { m_mapApps: apps }, info: {} });
+  await p4.flush();
+  t.ok(p4.sockets.length === 0, 'no transport info means no socket');
 
   if (t.failed) { console.error(`library-export: ${t.failed} failed`); process.exit(1); }
-  console.log('==> library export: authed socket, owned games only, debounced');
+  console.log('==> library export: live token, authed socket, owned games only, backed-off refusals');
 })();

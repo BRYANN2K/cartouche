@@ -267,15 +267,16 @@ struct RelaunchTests {
         try await Task.sleep(for: .milliseconds(500))
         #expect(!FileManager.default.fileExists(atPath: marker.path), "ran before the old process ended")
 
+        // waitUntilExit would block this suite's main actor, so the waits poll isRunning instead
         old.terminate()
-        old.waitUntilExit()
+        while old.isRunning { try await Task.sleep(for: .milliseconds(20)) }
         let ended = ContinuousClock.now
         while !FileManager.default.fileExists(atPath: marker.path), ContinuousClock.now - ended < .seconds(5) {
             try await Task.sleep(for: .milliseconds(20))
         }
         #expect(FileManager.default.fileExists(atPath: marker.path))
         #expect(ContinuousClock.now - ended < .seconds(5))
-        helper.waitUntilExit()
+        while helper.isRunning { try await Task.sleep(for: .milliseconds(20)) }
     }
 
     @Test("The banners render in light and dark")

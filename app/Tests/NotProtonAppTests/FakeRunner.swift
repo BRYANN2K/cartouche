@@ -101,6 +101,15 @@ extension ConsoleScene {
         }
     }
 
+    // RetroArch's SRAM save for a game, as it writes it under saves/<core>/
+    func writeSave(_ game: ConsoleGame, core: String = "Snes9x", age: TimeInterval) throws {
+        let folder = paths.saves.appending(path: core, directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let file = folder.appending(path: "\(game.contentName).srm")
+        try Data("sram".utf8).write(to: file)
+        try FileManager.default.setAttributes([.modificationDate: Date(timeIntervalSinceNow: -age)], ofItemAtPath: file.path)
+    }
+
     func useFakeRunner(picture: Data, pid: Int32? = nil) -> FakeRunner {
         let runner = FakeRunner(states: paths.states, picture: picture, pid: pid)
         center.makeRunner = { _ in runner }

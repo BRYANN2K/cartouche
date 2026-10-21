@@ -44,6 +44,13 @@ Steam (Mac client)
 - Reuses the existing app code: `CrossOverSource`, `RunnerStore`, `RunnerInstaller`, `SupportedRunner`, `PinnedDownload`, `AppUpdater`, `SupportPaths`.
 - Own names inside Steam (`cartouche.dylib`, `cartouche-proton*` tools, `CARTOUCHE_*` variables) come from one header, `cartouche_identity.h`. Install, Repair Steam and Remove Everything never touch an installed NotProton.
 
+### Approved follow-ups (2026-10-21)
+
+- Detection follows ADR 0028’s approved static-inspection tree, not a proposed design. Expose evidence/confidence, respect innoextract’s supported range, distinguish runtime decompression, require complete archive parts, and ask on conflicts. Never execute an unknown EXE by default or automatically run portable-build redistributables.
+- French joins English, with vouvoiement and Apple macOS terminology. l10n-fr owns docs/l10n/glossary-fr.md; the file and translated behavior must be reviewed before marking this complete.
+- ADR 0029 requires local crash reports, Copy Summary and Collect Diagnostics with no network reporting. Implementation remains pending.
+- ADR 0030 adds Advanced to all Windows-game panels: DLSS→MetalFX, MetalFX upscaling, AVX2 to Rosetta, MSync, High Resolution and Metal HUD. Runtime eligibility and mechanisms await research-upscaling; no defaults or working support are claimed yet.
+
 ### Process probes outside view updates (fixed in f9bb3d7)
 
 A release-app crash (AttributeGraph precondition failure) came from synchronous lsof/pgrep waits during SwiftUI updates: GameMenu.items → isBusy → lsof and LibraryModel.watch → SteamBundle.isRunning. GameMenu.items now reads cached per-game busy state and is pure. Busy refresh and Steam-presence probing run off the main actor. Uninstall planning/probes run detached before confirmation returns to the main actor. SystemStatus, SteamSetup, CoverBackdrop, PrefixTools and PrefixesModel also move blocking waits off the main actor.
@@ -76,12 +83,16 @@ The dark Liquid Glass layout uses a floating sidebar, cover-tinted backdrop, sto
 - Game Porting Toolkit is never in the repository, a release or a download we host. The app finds it in mounted volumes (`/Volumes/*/redist/lib`), apps with "Porting Toolkit" in their name in `/Applications` and `~/Applications`, the Homebrew kegs, and folders the user picked. The version comes from `D3DMetal.framework`. `packaging/redist-scan.sh` also scans tar archives and matches files by SHA-256 and size against `packaging/redist-hashes.txt`.
 - D3DMetal is offered only from a ready GPTK copy or from a CrossOver that has `lib64/apple_gptk/external/D3DMetal.framework`. That path is not confirmed on a real CrossOver.
 - Installed free runners live in `runners/wine-<id>/` (with a receipt of key file hashes) and `runners/gptk-<version>/lib` (receipt of every file hash). Downloads go to `~/Library/Caches/Cartouche/runners` and are deleted after unpacking. A download whose size or SHA-256 differs is deleted.
-- Free runners are listed by the registry but not offered to Steam yet. Their ntdll hook offsets need the built ntdll. CI runs `ntdll-patch/resolve.py` and uploads the values. Then the maintainer pins them in `NtdllPatcher` and `SupportedRunner`, as for CrossOver builds. P3 lists their Steam tools.
+- Free runners are listed by the registry but not offered to Steam yet. Their ntdll hook offsets need the built ntdll. CI runs `ntdll-patch/resolve.py` and uploads the values. Then the maintainer pins them in `NtdllPatcher` and `SupportedRunner`, as for CrossOver builds. P3 lists their Steam tools. In review on `fix/steam-compat-tools` (not merged): Wine CrossOver builds register as Steam compatibility tools; WineHQ and GPTK still wait for their pinned offsets.
 - Each supported build is pinned: URL, size and SHA-256 in the runner manifest, ntdll hashes and RVAs in the code. `ntdll-patch/resolve.py` finds the RVAs.
 - Backends (P3): D3DMetal, DXMT, DXVK, wined3d. DXMT and DXVK are downloaded pinned by version, size and SHA-256 in `Resources/backends.json` (DXMT 0.80 MIT, DXVK 1.10.3-20230507-repack zlib). D3DMetal comes only from the user's GPTK or CrossOver.
 - A game setup is runner, backend, CPU translation and environment variables. The choice is written to Steam's `CompatToolMapping` through `SpecifyCompatTool`.
 - Steam sees one compatibility tool per valid runner and backend pair, named `<runner> · <backend>`.
 - A game installed from a Windows installer gets the same setup picker, limited to the install runners. `SetupEnvironment` builds the launch environment for store and installer games alike; `GameLauncher` rewrites `installs/<slug>/launch` in place, so the game and its prefix are never copied. Its record keeps the Wine version that last ran the prefix: picking an older Wine warns that the game may not start, and still applies.
+
+### Graphics UI amendment (ADR 0027, pending)
+
+Hide unavailable backends and list only offered choices. Remove unavailable-backend reason lines from the panel and menus. Show one Get More Graphics Backends… entry only while something is missing; it leads to Wine CrossOver installation. Onboarding preselects Wine CrossOver. This supersedes the reason-line UI merged in 95b4e47, not the backend eligibility checks.
 
 ### Unified Add Games (UI merged, backend pending)
 
@@ -102,7 +113,7 @@ ADR 0024 replaces separate Windows Games… / Console Games… entries. Toolbar 
 
 The UI defines GameVerificationPresenting in Library/Verification/GameVerification.swift, with badge/panel status, Verify Files…, progress with Stop, and mismatch choices. Its default backend is nil; FixtureGameVerification is not a production verifier. Engine implementation and live wiring remain pending. ADR 0026 separates installed and verification states. Full: shipped checksum list or archive CRC, always checked, no skip; Stop marks not verified. Partial: script file presence/sizes, labelled “verified (sizes)”. Unavailable: allow installation as “Installed, not verified” with a discreet badge and panel line. Verify Files… supports later checks. Mismatch offers Retry with the standard method (default), Keep Anyway (advanced; not verified, mismatches logged), and Cancel. Retry uses shipped helpers/original settings before guided real-installer execution under Wine. No successful process exit alone grants verified status.
 
-Optimizations may change speed only. Native helper replacements require exact version hashes on an allowlist; unknown helpers use shipped Windows versions. Every optimization needs byte-identical output on applicable local user-owned regression cases, including CarX Street, Lost in Random and Silksong RAR. Corpus files and verification data never leave the Mac. No helper hashes are selected here. The research-verified.md detection tree remains proposed.
+Optimizations may change speed only. Native helper replacements require exact version hashes on an allowlist; unknown helpers use shipped Windows versions. Every optimization needs byte-identical output on applicable local user-owned regression cases, including CarX Street, Lost in Random and Silksong RAR. Corpus files and verification data never leave the Mac. No helper hashes are selected here. The research-verified.md detection tree is approved by ADR 0028.
 
 ### InstallerKit (`installer/`)
 
@@ -317,7 +328,7 @@ Change [`p18-onboarding`](../openspec/changes/archive/2026-10-19-p18-onboarding/
 
 ## Open technical questions
 
-- Merged Steam export (451e393 / de0e6ec): Cartouche.ExportOwnedGames#1 uses SteamClient WebUI transport, per-launch token prefix, a 4 MB payload limit, v1/account/type/name validation, atomic 0600 writes and symlink refusal. Page polling is every 15 seconds and sends on change. Reported automated checks: libexport-check 0 failures, library-export.js 20 checks. Real Steam freshness and account switching remain manual checks; closed-client ownership is cached, never inferred from localconfig.vdf.
+- Merged Steam export (451e393 / de0e6ec): Cartouche.ExportOwnedGames#1 uses SteamClient WebUI transport, per-launch token prefix, a 4 MB payload limit, v1/account/type/name validation, atomic 0600 writes and symlink refusal. Page polling is every 15 seconds and sends on change. Reported automated checks: libexport-check 0 failures, library-export.js 20 checks. Real Steam freshness and account switching remain manual checks; closed-client ownership is cached, never inferred from localconfig.vdf. In review on `fix/steam-compat-tools` (not merged): the page script fetches the token at run time from `/cartouche/steam-export-token` (no-store, retry backoff 15 s→300 s) instead of carrying it in the injected source, and Wine CrossOver builds register Steam compatibility tools.
 - Not proven on real runners: frame counter injection per runner; the probe exists and a refused runner plays unmeasured (P8 evidence).
 - Not proven on a real Steam: Pause and Resume reach `SteamClient.Downloads` through the injected page (P7 evidence, manual check M1).
 - Not proven on real services: the netplay lobby and MITM relay, live RetroAchievements, real iCloud Drive sync and two physical Macs (P14 evidence). The RetroArch MCP tool list is pinned by a fixture at the current commit and compared in CI at every bump.

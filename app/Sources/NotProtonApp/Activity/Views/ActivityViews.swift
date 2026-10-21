@@ -43,6 +43,7 @@ struct ActivitySlotView: View {
         case .installing: 1
         case .store: 2
         case .downloads: 3
+        case .setup: 4
         }
     }
 
@@ -57,8 +58,10 @@ struct ActivitySlotView: View {
                                  show: { library.reveal(gameID: activity.gameID) })
             case .downloads(let downloads):
                 DownloadsCard(summary: DownloadSummary(downloads: downloads),
+                              live: center.steamRunning,
                               toggle: { center.toggleAll(downloads) },
                               show: { downloads.first.map { library.reveal(gameID: $0.gameID) } })
+            case .setup(let activity): SetupCard(activity: activity)
             }
         }
         .padding(.horizontal, 12)
@@ -159,14 +162,28 @@ struct StoreInstallCard: View {
     }
 }
 
+// Onboarding's background work keeps reporting after the sheet closes.
+private struct SetupCard: View {
+    let activity: SetupActivity
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ProgressView().controlSize(.small)
+            SlotHeader(label: activity.label, title: activity.title)
+        }
+        .accessibilityElement(children: .contain)
+    }
+}
+
 struct DownloadsCard: View {
     let summary: DownloadSummary
+    var live = true
     let toggle: () -> Void
     let show: () -> Void
 
     var body: some View {
         HStack(spacing: 10) {
-            DownloadRing(fraction: summary.fraction, mark: summary.mark, action: toggle)
+            DownloadRing(fraction: summary.fraction, mark: summary.mark, live: live, action: toggle)
             Button(action: show) {
                 VStack(alignment: .leading, spacing: 2) {
                     SlotHeader(label: summary.label, title: summary.title)
@@ -204,6 +221,8 @@ struct DownloadRing: View {
     let fraction: Double
     var mark: DownloadSummary.Mark? = nil
     var size: CGFloat = 32
+    // Steam is closed: the ring still reads, it just can't act on Steam
+    var live = true
     var action: (() -> Void)? = nil
 
     @State private var hovering = false
@@ -214,7 +233,7 @@ struct DownloadRing: View {
                 Button(action: action) { ring }
                     .buttonStyle(.plain)
                     .onHover { hovering = $0 }
-                    .disabled(mark == .failed)
+                    .disabled(mark == .failed || !live)
                     .help(Text(helpText))
                     .accessibilityLabel(Text(helpText))
             } else {
@@ -308,14 +327,23 @@ struct DownloadBlock: View {
                         .monospacedDigit()
                 }
                 Spacer()
+                if case .downloading = download.state, let speed = download.speedText {
+                    Text(speed).monospacedDigit()
+                }
             }
             .font(.system(size: 12))
             .foregroundStyle(Glass.label2)
+            if !center.steamRunning {
+                Text("Steam is closed. Some details may be out of date.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             HStack(spacing: 6) {
                 if download.isFailed {
                     Button("Try Again") { center.retry(download.appID) }.buttonStyle(.pillProminent)
                 } else {
-                    Button(download.isPaused ? "Resume" : "Pause") { center.togglePause(download.appID) }.buttonStyle(.pill)
+                    Button(download.isPaused ? "Resume" : "Pause") { center.togglePause(download.appID) }
+                        .buttonStyle(.pill)
+                        .disabled(!center.steamRunning)
                 }
                 Button("Cancel") { center.cancel(download.appID) }
                     .buttonStyle(.pill)

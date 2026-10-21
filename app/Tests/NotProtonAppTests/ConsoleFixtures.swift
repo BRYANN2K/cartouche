@@ -78,19 +78,22 @@ enum ConsoleFixtures {
         Data([0xCF, 0xFA, 0xED, 0xFE]) + Data("cartouche test core \(build)".utf8)
     }
 
-    static func zip(_ files: [String: Data], in work: URL) throws -> Data {
-        let folder = work.appending(path: "zip-\(UUID().uuidString)", directoryHint: .isDirectory)
-        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: folder) }
-        for (name, data) in files { try data.write(to: folder.appending(path: name)) }
-        let archive = folder.appending(path: "out.zip")
-        let zip = Process()
-        zip.executableURL = URL(fileURLWithPath: "/usr/bin/zip")
-        zip.currentDirectoryURL = folder
-        zip.arguments = ["-q", "-X", archive.path(percentEncoded: false)] + files.keys.sorted()
-        try zip.run()
-        zip.waitUntilExit()
-        return try Data(contentsOf: archive)
+    // zip is waited on synchronously, so it runs off the caller: a ConsoleScene lives on the main actor
+    static func zip(_ files: [String: Data], in work: URL) async throws -> Data {
+        try await offMain {
+            let folder = work.appending(path: "zip-\(UUID().uuidString)", directoryHint: .isDirectory)
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            defer { try? FileManager.default.removeItem(at: folder) }
+            for (name, data) in files { try data.write(to: folder.appending(path: name)) }
+            let archive = folder.appending(path: "out.zip")
+            let zip = Process()
+            zip.executableURL = URL(fileURLWithPath: "/usr/bin/zip")
+            zip.currentDirectoryURL = folder
+            zip.arguments = ["-q", "-X", archive.path(percentEncoded: false)] + files.keys.sorted()
+            try zip.run()
+            zip.waitUntilExit()
+            return try Data(contentsOf: archive)
+        }
     }
 
     static func info(_ core: String, firmware: [(String, String)] = []) -> Data {
@@ -151,11 +154,31 @@ enum ConsoleFixtures {
         ("race.gb", "CARTOUCHE RACE", 2), ("maze.gb", "CARTOUCHE MAZE", 3),
     ]
 
-    // A homebrew Game Boy cartridge: 32 KiB with its title in the header
+    // A homebrew Game Boy cartridge: 32 KiB, the logo and title in the header
     static func homebrewGB(title: String, fill: UInt8 = 0x00) -> Data {
         var rom = Data(repeating: fill, count: 32 * 1024)
+        rom.replaceSubrange(0x104..<0x134, with: CartHeader.gameBoyLogo)
         let name = Array(title.utf8.prefix(15))
         rom.replaceSubrange(0x134..<(0x134 + name.count), with: name)
+        return rom
+    }
+
+    // A homebrew Game Boy Advance cartridge, as make_world.py writes it
+    static func homebrewGBA(title: String, code: String = "CT00", fill: UInt8 = 0x00) -> Data {
+        var rom = Data(repeating: fill, count: 32 * 1024)
+        rom.replaceSubrange(0x00..<0x04, with: [0x2E, 0x00, 0x00, 0xEA])
+        rom.replaceSubrange(0x04..<0xA0, with: CartHeader.advanceLogo)
+        var name = Array(title.utf8.prefix(12))
+        while name.count < 12 { name.append(0) }
+        rom.replaceSubrange(0xA0..<0xAC, with: name)
+        var gameCode = Array(code.utf8.prefix(4))
+        while gameCode.count < 4 { gameCode.append(0x20) }
+        rom.replaceSubrange(0xAC..<0xB0, with: gameCode)
+        rom[0xB0] = 0x34
+        rom[0xB1] = 0x32
+        rom[0xB2] = 0x96
+        let sum = rom[0xA0..<0xBD].reduce(0) { $0 + Int($1) }
+        rom[0xBD] = UInt8(truncatingIfNeeded: -(0x19 + sum))
         return rom
     }
 }
@@ -177,12 +200,17 @@ final class ConsoleScene {
     let folders: GameFolders
     var work: URL { fixture.root }
 
-    init(_ label: String, steamGames: Bool = false) throws {
+    init(_ label: String, steamGames: Bool = false) async throws {
         fixture = try SteamFixture("console-\(label)")
         if steamGames { try fixture.writeExport() }
         paths = RetroArchPaths(root: fixture.root.appending(path: "retroarch", directoryHint: .isDirectory))
         let source = CoreSource(cores: web.base.appending(path: "nightly/"), info: web.base.appending(path: "info.zip"))
-        cores = CoreManager(paths: paths, source: source, session: web.session)
+        let bin = fixture.root.appending(path: "bin", directoryHint: .isDirectory)
+        // The Trash in a test moves into the scene's own bin/, never the user's real Trash
+        cores = CoreManager(paths: paths, source: source, session: web.session) { url in
+            try FileManager.default.createDirectory(at: bin, withIntermediateDirectories: true)
+            try FileManager.default.moveItem(at: url, to: bin.appending(path: url.lastPathComponent))
+        }
         settings = ConsolesSettingsModel(paths: paths, includedApp: fixture.root.appending(path: "RetroArch.app"),
                                          cores: cores, official: OfficialRelease(paths: paths), probe: { _ in nil })
         library = libraryModel(fixture, installed: steamGames, defaults: scratch)
@@ -200,12 +228,12 @@ final class ConsoleScene {
         var infos: [String: Data] = [:]
         for console in ConsoleCatalog.all {
             web.put("/nightly/\(console.core)_libretro.dylib.zip",
-                    try ConsoleFixtures.zip(["\(console.core)_libretro.dylib": ConsoleFixtures.fakeCore("1")], in: fixture.root))
+                    try await ConsoleFixtures.zip(["\(console.core)_libretro.dylib": ConsoleFixtures.fakeCore("1")], in: fixture.root))
             infos["\(console.core)_libretro.info"] = console.id == "ps1"
                 ? ConsoleFixtures.info(console.core, firmware: [("scph5501.bin", "490f666e1afb15b7362b406ed1cea246")])
                 : ConsoleFixtures.info(console.core)
         }
-        web.put("/info.zip", try ConsoleFixtures.zip(infos, in: fixture.root))
+        web.put("/info.zip", try await ConsoleFixtures.zip(infos, in: fixture.root))
     }
 
     func remove() { fixture.remove() }

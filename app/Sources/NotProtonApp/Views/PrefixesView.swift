@@ -49,13 +49,16 @@ struct PrefixesView: View {
                 )
             }
         }
-        .toolbar {
-            if #available(macOS 26.1, *) {
-                ToolbarItemGroup(placement: .primaryAction) { strip }
-                    .visibilityPriority(.high)
-            } else {
-                ToolbarItemGroup(placement: .primaryAction) { strip }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            HStack {
+                strip
+                Spacer()
+                Menu("Actions") { actions(for: model.selection) }
+                    .disabled(model.selection.isEmpty || model.isBusy)
             }
+            .controlSize(.small)
+            .padding(12)
+            .background(.bar)
         }
         .task { await model.load() }
         .confirmationDialog(

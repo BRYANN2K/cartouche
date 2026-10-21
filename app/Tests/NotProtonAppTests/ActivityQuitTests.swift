@@ -20,7 +20,7 @@ struct ActivityQuitTests {
 
     @Test("Play: a CRT power-on, then the game shows as playing in the activity slot with Quit")
     func launch() async throws {
-        let scene = try ConsoleScene("launch")
+        let scene = try await ConsoleScene("launch")
         defer { scene.remove() }
         _ = scene.useFakeRunner(picture: try ConsolePanelTests.screen("AUTO"))
         let game = try await scene.addGame(console: "snes", name: "Cartouche Homebrew", databaseName: "Cartouche Homebrew (World)")
@@ -57,7 +57,7 @@ struct ActivityQuitTests {
 
     @Test("Reduce Motion: no power-on")
     func reduceMotion() async throws {
-        let scene = try ConsoleScene("reduce")
+        let scene = try await ConsoleScene("reduce")
         defer { scene.remove() }
         _ = scene.useFakeRunner(picture: try ConsolePanelTests.screen("AUTO"))
         let game = try await scene.addGame(console: "snes", name: "Cartouche Homebrew")
@@ -69,7 +69,7 @@ struct ActivityQuitTests {
 
     @Test("Quit from Cartouche: the auto state is written, Continue From shows its picture, play time grows by the session")
     func quit() async throws {
-        let scene = try ConsoleScene("quit")
+        let scene = try await ConsoleScene("quit")
         defer { scene.remove() }
         let runner = scene.useFakeRunner(picture: try ConsolePanelTests.screen("QUIT HERE"))
         let game = try await scene.addGame(console: "snes", name: "Cartouche Homebrew")
@@ -94,7 +94,7 @@ struct ActivityQuitTests {
 
     @Test("RetroArch closed from its own window ends the session in Cartouche too")
     func endedByItself() async throws {
-        let scene = try ConsoleScene("ended")
+        let scene = try await ConsoleScene("ended")
         defer { scene.remove() }
         let runner = scene.useFakeRunner(picture: try ConsolePanelTests.screen("AUTO"))
         let game = try await scene.addGame(console: "snes", name: "Cartouche Homebrew")
@@ -111,7 +111,7 @@ struct ActivityQuitTests {
 
     @Test("Quit on RetroArch", .enabled(if: LiveRetroArch.available, "set CARTOUCHE_RETROARCH and CARTOUCHE_TEST_CORE"))
     func quitOnRetroArch() async throws {
-        let scene = try ConsoleScene("quit-live")
+        let scene = try await ConsoleScene("quit-live")
         defer { scene.remove() }
         let player = await LiveRetroArch.player(scene)
         scene.center.makeRunner = { _ in player }

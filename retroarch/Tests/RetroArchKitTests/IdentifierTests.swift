@@ -34,7 +34,7 @@ struct IdentifierTests {
         #expect(CRC32.checksum(Data()) == 0)
         // Computed with Python's zlib.crc32, in rows.json
         #expect(CRC32.checksum(Homebrew.snes()) == 0x3FA8_62E9)
-        #expect(CRC32.checksum(Homebrew.gb("CARTOUCHE QUEST")) == 0xD610_6F3A)
+        #expect(CRC32.checksum(Homebrew.gb("CARTOUCHE QUEST")) == 0x0E8B_3192)
         var pieces = CRC32()
         let data = Homebrew.snes()
         pieces.update(data.prefix(1000))
@@ -94,7 +94,7 @@ struct IdentifierTests {
         let zip = try zipFixture(["quest.gb": Homebrew.gb("CARTOUCHE QUEST")], in: scene.work)
         let file = try scene.write("quest.zip", zip)
         let found = await scene.identifier.identify(file)
-        #expect(Zip.members(file).first?.crc == 0xD610_6F3A)
+        #expect(Zip.members(file).first?.crc == 0x0E8B_3192)
         #expect(found.name == "Cartouche Quest")
         #expect(found.console == "gb")
         #expect(found.identifiedBy == .checksum)
@@ -133,7 +133,7 @@ struct IdentifierTests {
 
     @Test func anUnknownHomebrewAsksForAConsole() async throws {
         let scene = try Scene("unknown")
-        let file = try scene.write("my_homebrew.gba", Data(repeating: 0x7E, count: 4096))
+        let file = try scene.write("my_homebrew.gba", Homebrew.gba("MY HOMEBREW"))
         let found = await scene.identifier.identify(file)
         #expect(!found.isRecognized)
         #expect(found.identifiedBy == nil)
@@ -143,6 +143,43 @@ struct IdentifierTests {
         #expect(found.game() == nil)
         #expect(found.game(console: "gba")?.identifiedBy == .chosen)
         #expect(found.game(console: "gba")?.console == "gba")
+    }
+
+    @Test func aCartridgeWithoutItsHeaderIsNotAGame() async throws {
+        let scene = try Scene("fake")
+        // The name claims Game Boy; the bytes are not a cartridge's
+        for name in ["fake.gb", "fake.gbc", "fake.gba", "fake.nds", "fake.nes"] {
+            let file = try scene.write(name, Data(repeating: 0x7E, count: 8192))
+            let found = await scene.identifier.identify(file)
+            #expect(!found.isRecognized, "\(name)")
+            #expect(found.candidates.isEmpty, "\(name)")
+            #expect(found.game() == nil)
+        }
+    }
+
+    @Test func workingCopiesAndLibrariesAreNeverScanned() throws {
+        let scene = try Scene("fences")
+        let repo = scene.games.appending(path: "clone", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: repo.appending(path: ".git"), withIntermediateDirectories: true)
+        _ = try scene.write("clone/roms/quest.gb", Homebrew.gb("CARTOUCHE QUEST"))
+        // A linked worktree's .git is a file, not a folder
+        let worktree = scene.games.appending(path: "wt", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: worktree.appending(path: "roms"), withIntermediateDirectories: true)
+        try Data().write(to: worktree.appending(path: ".git"))
+        try Homebrew.gb("CARTOUCHE QUEST").write(to: worktree.appending(path: "roms/quest.gb"))
+        let library = scene.games.appending(path: "Library/Cartouche", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: library, withIntermediateDirectories: true)
+        try Homebrew.gb("CARTOUCHE QUEST").write(to: library.appending(path: "quest.gb"))
+
+        #expect(Identifier.files(in: [scene.games]).map(\.lastPathComponent).isEmpty)
+        // The fences refuse such folders even as the walk's own root
+        #expect(Identifier.files(in: [repo]).isEmpty)
+        #expect(Identifier.files(in: [worktree]).isEmpty)
+        #expect(Identifier.files(in: [library]).isEmpty)
+        // An explicitly named file still identifies — the fence bounds walks
+        let file = scene.games.appending(path: "quest.gb")
+        try Homebrew.gb("CARTOUCHE QUEST").write(to: file)
+        #expect(Identifier.files(in: [file]).map(\.lastPathComponent) == ["quest.gb"])
     }
 
     @Test func otherFilesAreLeftOut() throws {

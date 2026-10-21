@@ -38,8 +38,9 @@ final class RunnersViewUITests {
         )
     }
 
-    func fixture() throws -> RunnerManifest.Build {
-        let archive = try WineRunnerInstallerTests.archive(id: "wine-crossover-26.3.0-1", in: work)
+    // archive() waits on tar, so it builds off this suite's main actor
+    func fixture() async throws -> RunnerManifest.Build {
+        let archive = try await offMain { try WineRunnerInstallerTests.archive(id: "wine-crossover-26.3.0-1", in: self.work) }
         return try WineRunnerInstallerTests.build(id: "wine-crossover-26.3.0-1", for: archive)
     }
 
@@ -62,7 +63,7 @@ final class RunnersViewUITests {
 
     @Test("Each row shows the title, detail, status and action the model computes")
     func rows() async throws {
-        let build = try fixture()
+        let build = try await fixture()
         let apps = try toolkitApp()
         let search = self.search(applications: apps)
         let model = model(builds: [build], toolkits: { PortingToolkitSource.discover(search) })

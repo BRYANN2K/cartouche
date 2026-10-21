@@ -20,7 +20,7 @@ struct GameFolderTests {
 
     @Test("Games already found are suggested: 4 Game Boy games in the folder, Game Boy not added, its tile says \"4 games found\"")
     func foundGamesAreSuggested() async throws {
-        let scene = try ConsoleScene("found")
+        let scene = try await ConsoleScene("found")
         defer { scene.remove(); scene.center.stopWatching() }
         let folder = try gameBoyFolder(scene)
         await scene.center.reload()
@@ -51,7 +51,7 @@ struct GameFolderTests {
 
     @Test("Watched folder: a recognized game copied in appears in its console within 10 seconds, no sheet opened")
     func copiedGameAppears() async throws {
-        let scene = try ConsoleScene("watch")
+        let scene = try await ConsoleScene("watch")
         defer { scene.remove(); scene.center.stopWatching() }
         await scene.center.add(["gb"])
         let folder = scene.work.appending(path: "Watched", directoryHint: .isDirectory)
@@ -80,20 +80,28 @@ struct GameFolderTests {
         #expect(!scene.library.showAddConsoles)
         print("evidence: quest.gb copied into the watched folder, in Game Boy as 'Cartouche Quest' after \(after)")
 
-        // A file the database does not know is scanned (the folder's count
-        // rises) but stays out of the library
-        try Data(repeating: 9, count: 2048).write(to: folder.appending(path: "unknown.gb"))
+        // A file with the header but no database row is scanned (the folder's
+        // count rises) yet stays out of the library
+        try ConsoleFixtures.homebrewGB(title: "STRANGER").write(to: folder.appending(path: "unknown.gb"))
         let deadline = ContinuousClock.now + .seconds(12)
         while scene.center.folderCounts[folder.plainPath] != 2, ContinuousClock.now < deadline {
             try await Task.sleep(for: .milliseconds(100))
         }
         #expect(scene.center.folderCounts[folder.plainPath] == 2, "the scan never saw unknown.gb")
         #expect(scene.library.games(in: .source(.console("gb"))).count == 1)
+
+        // Bytes that are not a cartridge never count, whatever the name
+        try Data(repeating: 9, count: 2048).write(to: folder.appending(path: "junk.gb"))
+        let junkDeadline = ContinuousClock.now + .seconds(3)
+        while ContinuousClock.now < junkDeadline, scene.center.folderCounts[folder.plainPath] == 2 {
+            try await Task.sleep(for: .milliseconds(100))
+        }
+        #expect(scene.center.folderCounts[folder.plainPath] == 2, "a header-less .gb was counted")
     }
 
     @Test("Folders are kept, and turning automatic adding off leaves new games out")
     func choicesAreKept() async throws {
-        let scene = try ConsoleScene("choices")
+        let scene = try await ConsoleScene("choices")
         defer { scene.remove(); scene.center.stopWatching() }
         let folder = try gameBoyFolder(scene)
         await scene.center.add(["gb"])

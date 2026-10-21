@@ -57,10 +57,24 @@ struct GamePanel: View {
                     .padding(.bottom, 14)
                     if game.source == .installer && game.installed {
                         GameVerificationRow(game: game)
+                        // A cleaned-up name no match could vouch for: offered, never taken.
+                        if let suggested = model.nameSuggestions[game.id] {
+                            HStack {
+                                Text(String(localized: "Identified as \(suggested)?"))
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(Glass.label2)
+                                Spacer()
+                                Button(String(localized: "Rename")) { model.rename(game, to: suggested) }
+                                    .buttonStyle(.pill)
+                                    .controlSize(.small)
+                            }
+                            .padding(.bottom, 14)
+                        }
                     }
                     ForEach(content.sections, id: \.self) { section in
                         block(section, content)
                     }
+                    AdvancedGameRows(game: game, model: model)
                     if let controls {
                         group(String(localized: "Controls")) { ControlsRow(game: game, center: controls) }
                     }
@@ -105,7 +119,7 @@ struct GamePanel: View {
                     .disabled(!game.installed && model.isOffline)
                     .help(!game.installed && model.isOffline ? Text("Connect to the internet to download") : Text(verbatim: ""))
                     Menu {
-                        GameMenuContent(items: GameMenu.items(for: game, in: model, stores: stores)) { actions.perform($0, on: game) }
+                        GameMenuContent(items: GameMenu.items(for: game, in: model, stores: stores, consoles: consoles)) { actions.perform($0, on: game) }
                     } label: {
                         Image(systemName: "ellipsis")
                     }
@@ -248,6 +262,7 @@ struct SetupRows: View {
     let suggestion: GraphicsBackend?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         let setup = model.setup(for: game.id)
@@ -284,12 +299,15 @@ struct SetupRows: View {
     // Only pairs this Mac can run are offered: no D3DMetal without a copy of it, no FEX before macOS 26
     @ViewBuilder
     private func windowsRows(_ setup: GameSetupChoice, _ resolved: GameSetup, _ runners: [Runner]) -> some View {
-        let backends = resolved.runner == nil ? GraphicsBackend.allCases : model.graphicsChoices(for: game)
+        let backends = model.graphicsChoices(for: game)
         let translations = model.translationChoices(for: game)
         PanelRow(title: Text("Runner")) {
             if runners.isEmpty {
-                SetupWindowButton(title: String(localized: "Set Up a Runner…"))
-                    .buttonStyle(.pill)
+                Button("Set Up a Runner…") {
+                    SettingsRoute.shared.tab = .compatibility
+                    openSettings()
+                }
+                .buttonStyle(.pill)
             } else {
                 Picker("Runner", selection: Binding(
                     get: { resolved.runner?.id ?? "" },
@@ -305,8 +323,7 @@ struct SetupRows: View {
         }
         PanelRow(title: Text("Graphics")) {
             GraphicsMenu(selected: resolved.backend ?? backends.first ?? .d3dmetal,
-                         offered: resolved.runner == nil ? [] : backends, runner: resolved.runner,
-                         availability: model.backendAvailability) { backend in
+                         offered: backends) { backend in
                 var s = setup; s.graphics = backend; model.setSetup(s, for: game.id)
             }
             .accessibilityLabel(Text("Graphics"))
@@ -335,17 +352,6 @@ struct SetupRows: View {
                 Button("Use") { var s = setup; s.graphics = suggestion; model.setSetup(s, for: game.id) }
                     .buttonStyle(.pill)
                     .controlSize(.small)
-            }
-        }
-        // The backends the picker cannot offer, with what each is missing.
-        if let runner = resolved.runner {
-            let missing = GraphicsBackend.allCases.compactMap { backend -> String? in
-                BackendSupport.missing(backend, for: runner, translation: resolved.translation,
-                                       availability: model.backendAvailability)
-                    .map { "\(backend.label) — \($0)" }
-            }
-            if !missing.isEmpty {
-                Text(missing.joined(separator: "\n")).font(.callout).foregroundStyle(.secondary)
             }
         }
     }

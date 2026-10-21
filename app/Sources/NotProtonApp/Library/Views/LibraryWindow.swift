@@ -178,6 +178,7 @@ struct LibraryWindow: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.activity) private var activity
     @Environment(ConsoleCenter.self) private var consoles: ConsoleCenter?
+    @Environment(CrashReportCenter.self) private var crashReports: CrashReportCenter?
 
     private var panelGame: Game? {
         guard model.showPanel, model.screen.showsPanel else { return nil }
@@ -304,6 +305,13 @@ struct LibraryWindow: View {
 
     private func handleDrop(_ urls: [URL]) -> Bool {
         guard !urls.isEmpty else { return false }
+        // A checksum list dropped on a selected installed game verifies it (ADR 0026).
+        if urls.count == 1, urls[0].pathExtension.lowercased() == "md5",
+           let game = model.selectedGame, game.source == .installer, game.installed,
+           let verification {
+            verification.verify(game, checksums: urls[0])
+            return true
+        }
         if let dropClassifier {
             let next = DropModel(classifier: dropClassifier)
             drop = next
@@ -369,9 +377,16 @@ struct LibraryWindow: View {
     }
 
     private func main(_ layout: WindowLayout) -> some View {
-        detail
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .toolbarBar { toolbar(layout) }
+        VStack(spacing: 0) {
+            SteamIntegrationBanner()
+                .padding(.horizontal, Glass.inset)
+            detail
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if let crashReports { CrashNoticeBanner(center: crashReports) }
+        }
+        .toolbarBar { toolbar(layout) }
     }
 
     private func toolbar(_ layout: WindowLayout) -> some View {

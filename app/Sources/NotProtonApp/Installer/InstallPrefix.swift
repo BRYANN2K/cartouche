@@ -17,7 +17,13 @@ struct GameFolder: Sendable, Equatable {
 
     var isFinished: Bool { FileManager.default.fileExists(atPath: record.path(percentEncoded: false)) }
 
-    static var installs: URL { SupportPaths.support.appending(path: "installs") }
+    static let installsKey = "installs.location"
+    // The games location picked in onboarding or Settings; an external disk is allowed
+    static var installs: URL {
+        UserDefaults.standard.string(forKey: installsKey)
+            .map { URL(filePath: $0, directoryHint: .isDirectory) }
+            ?? SupportPaths.support.appending(path: "installs")
+    }
 
     // An installer game's own folder under installs; nil for games from anywhere else.
     static func of(_ game: Game, in installs: URL = installs) -> GameFolder? {

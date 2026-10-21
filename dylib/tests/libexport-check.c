@@ -170,6 +170,26 @@ int main(void) {
     CHECK(hex, "token is hexadecimal");
     CHECK(strcmp(tok, np_libexport_token()) == 0, "token is stable for the launch");
 
+    // The loopback host serves the same launch token through an anonymous fd.
+    int tfd = np_libexport_open_token();
+    CHECK(tfd >= 0, "token is served");
+    char served[NP_TOKEN_LEN + 1];
+    memset(served, 0, sizeof served);
+    CHECK(read(tfd, served, NP_TOKEN_LEN) == NP_TOKEN_LEN &&
+          memcmp(served, tok, NP_TOKEN_LEN) == 0,
+          "served bytes are this launch's token");
+    CHECK(read(tfd, served, 1) == 0, "the served token is exactly the token");
+    close(tfd);
+    int tfd2 = np_libexport_open_token();
+    CHECK(tfd2 >= 0, "the token is served again");
+    if (tfd2 >= 0) {
+        memset(served, 0, sizeof served);
+        CHECK(read(tfd2, served, NP_TOKEN_LEN) == NP_TOKEN_LEN &&
+              memcmp(served, tok, NP_TOKEN_LEN) == 0,
+              "a re-served token matches the launch token");
+        close(tfd2);
+    }
+
     // Registration: name is routed to the TransportValidation message types.
     np_libexport_register(NULL, 0, 0, 0);
     CHECK(np_libexport_routes() == NP_LIBEXPORT_READY,
@@ -204,9 +224,35 @@ int main(void) {
           "collections kept");
     cJSON_Delete(j);
 
-    // Bad token, short token, no separator.
-    CHECK(call_export("00000000000000000000000000000000", good) == RESULT_FAIL,
-          "wrong token refused");
+    // A stale-token refusal warns once, then drops to debug so a page cached
+    // from an earlier launch does not fill dylib.log with repeats.
+    {
+        np_log_level = NP_LVL_DBG;
+        np_log_file = tmpfile();
+        CHECK(call_export("00000000000000000000000000000000", good) == RESULT_FAIL,
+              "wrong token refused");
+        CHECK(call_export("00000000000000000000000000000000", good) == RESULT_FAIL,
+              "a repeat refusal is still refused");
+        fflush(np_log_file);
+        rewind(np_log_file);
+        char logbuf[4096];
+        size_t n = fread(logbuf, 1, sizeof logbuf - 1, np_log_file);
+        logbuf[n] = '\0';
+        fclose(np_log_file);
+        np_log_file = NULL;
+        np_log_level = -1;
+        const char *hit =
+            "[cartouche] warn libexport: request without this launch's token";
+        const char *w = strstr(logbuf, hit);
+        CHECK(w != NULL, "a stale token warns once");
+        CHECK(w && strstr(w + strlen(hit), "[cartouche] warn libexport:") == NULL,
+              "the refusal does not warn again");
+        CHECK(strstr(logbuf,
+              "[cartouche] debug libexport: request without this launch's token") != NULL,
+              "a repeat refusal drops to debug");
+    }
+
+    // Short token, no separator.
     char small[40];
     snprintf(small, sizeof small, "%.16s", tok);
     CHECK(call_export(small, good) == RESULT_FAIL, "short token refused");

@@ -15,11 +15,32 @@ enum Homebrew {
         return rom
     }
 
-    // 32 KiB with the title in the Game Boy header
+    // 32 KiB with the logo and title in the Game Boy header
     static func gb(_ title: String, fill: UInt8 = 0) -> Data {
         var rom = Data(repeating: fill, count: 32 * 1024)
+        rom.replaceSubrange(0x104..<0x134, with: CartHeader.gameBoyLogo)
         let name = Array(title.utf8.prefix(15))
         rom.replaceSubrange(0x134..<(0x134 + name.count), with: name)
+        return rom
+    }
+
+    // 32 KiB as make_world.py writes it: entry branch, the logo, title, game
+    // code and maker, the fixed byte and a correct header checksum
+    static func gba(_ title: String, code: String = "CT00", fill: UInt8 = 0x00) -> Data {
+        var rom = Data(repeating: fill, count: 32 * 1024)
+        rom.replaceSubrange(0x00..<0x04, with: [0x2E, 0x00, 0x00, 0xEA])
+        rom.replaceSubrange(0x04..<0xA0, with: CartHeader.advanceLogo)
+        var name = Array(title.utf8.prefix(12))
+        while name.count < 12 { name.append(0) }
+        rom.replaceSubrange(0xA0..<0xAC, with: name)
+        var gameCode = Array(code.utf8.prefix(4))
+        while gameCode.count < 4 { gameCode.append(0x20) }
+        rom.replaceSubrange(0xAC..<0xB0, with: gameCode)
+        rom[0xB0] = 0x34
+        rom[0xB1] = 0x32
+        rom[0xB2] = 0x96
+        let sum = rom[0xA0..<0xBD].reduce(0) { $0 + Int($1) }
+        rom[0xBD] = UInt8(truncatingIfNeeded: -(0x19 + sum))
         return rom
     }
 

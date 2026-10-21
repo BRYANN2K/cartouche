@@ -61,10 +61,17 @@ public actor CoreManager {
     public let source: CoreSource
     private let session: URLSession
 
-    public init(paths: RetroArchPaths, source: CoreSource = .buildbot, session: URLSession = .shared) {
+    /// Removing a core only ever moves it to the Trash, never a hard delete.
+    public let trash: @Sendable (URL) throws -> Void
+
+    public init(paths: RetroArchPaths, source: CoreSource = .buildbot, session: URLSession = .shared,
+                trash: @escaping @Sendable (URL) throws -> Void = {
+                    try FileManager.default.trashItem(at: $0, resultingItemURL: nil)
+                }) {
         self.paths = paths
         self.source = source
         self.session = session
+        self.trash = trash
     }
 
     public func records() -> [CoreRecord] {
@@ -110,11 +117,14 @@ public actor CoreManager {
         try await download(core, refreshInfo: true)
     }
 
+    /// The core file and its `.info`, when they exist — both are inside Cartouche's folders.
+    public nonisolated func filesOf(_ core: String) -> [URL] {
+        [url(core), paths.coreInfo.appending(path: "\(core)_libretro.info")]
+            .filter { FileManager.default.fileExists(atPath: $0.path(percentEncoded: false)) }
+    }
+
     public func delete(_ core: String) throws {
-        let file = url(core)
-        if FileManager.default.fileExists(atPath: file.path(percentEncoded: false)) {
-            try FileManager.default.removeItem(at: file)
-        }
+        for file in filesOf(core) { try trash(file) }
         try save(records().filter { $0.core != core })
     }
 

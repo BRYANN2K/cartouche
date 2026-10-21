@@ -63,8 +63,17 @@ final class InstallJob: Identifiable {
     var game: InstalledGame?
     var steamOutcome: SteamShortcuts.Outcome?
     var tried: [RetryFix] = []
+    // The output check's outcome (ADR 0025/0026): written into the record when the job finishes.
+    var verification: VerificationOutcome?
+    // Where the check ran — the game folder for imports, the install dir inside the prefix otherwise.
+    var verificationDir: URL?
+    // How far the mismatch fallback got: 0 = original run, 1 = shipped helpers with their
+    // original settings, 2 = guided real installer under Wine (the last resort).
+    var verificationFallback = 0
     // When the prefix's first boot started — the "Preparing Windows environment" phase's elapsed time.
     var bootStarted: Date?
+    // The boot's prefix.log once the file exists; the check runs off the main actor so views never stat it.
+    var bootLog: URL?
 
     @ObservationIgnored var run: InstallRun?
     @ObservationIgnored var task: Task<Void, Never>?
@@ -76,11 +85,21 @@ final class InstallJob: Identifiable {
 
     var title: String { request.name }
 
+    // The verification outcome as it lands in the install record; nil while the check hasn't run.
+    var verificationRecord: VerificationRecord? {
+        guard let outcome = verification, let dir = verificationDir else { return nil }
+        return VerificationRecord(outcome: outcome, gameDir: dir)
+    }
+
     var isRunning: Bool {
         [.verifying, .preparing, .installing, .redistributables].contains(phase)
     }
 
     var isStuck: Bool { phase == .installing && progress.stuck }
+
+    var canShowInstallerWindow: Bool {
+        request.importing == nil && request.directUnpack == nil && inputs.mode == .guided
+    }
 
     func fail(_ message: String) {
         problem = message

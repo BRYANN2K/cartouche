@@ -12,6 +12,7 @@ final class ConsoleCenter {
 
     private(set) var added: [Console] = []
     private(set) var games: [ConsoleGame] = []
+    private(set) var ownedROMs: Set<String> = []
     private(set) var downloading: Set<String> = []
     var found: [String: Int] = [:]
     var problem: String?
@@ -49,6 +50,9 @@ final class ConsoleCenter {
     @ObservationIgnored var sessions = SessionRecords(file: SupportPaths.consoleSession)
     @ObservationIgnored var heartbeatEvery: Duration = .seconds(60)
     @ObservationIgnored var heartbeat: Task<Void, Never>?
+    @ObservationIgnored var uninstall = ConsoleUninstall()
+    @ObservationIgnored var confirmGameRemoval: @MainActor (ConsoleGameRemoval) -> RemovalAnswer = ConsoleUninstall.confirm
+    @ObservationIgnored var confirmRemoval: @MainActor (ConsoleRemoval) -> Bool = ConsoleUninstall.confirm
 
     // Asks for Local Network before netplay on the local network
     @ObservationIgnored var netplayFlow: PermissionFlow?
@@ -69,6 +73,12 @@ final class ConsoleCenter {
         importFlow = ConsoleImport(identifier: Identifier(database: database))
         self.library = library
         self.extras.isPlaying = { [weak self] in MainActor.assumeIsolated { self?.playing != nil } }
+        // Settings > Consoles removes through the same Trash confirmation as the sidebar
+        settings.removeConsole = { [weak self] console in
+            guard let self else { return nil }
+            await self.remove(console.id)
+            return self.problem
+        }
     }
 
     var identifier: Identifier { Identifier(database: database) }
@@ -78,7 +88,20 @@ final class ConsoleCenter {
     func reload() async {
         added = await shelf.added()
         let consoles = Set(added.map(\.id))
-        games = await store.games().filter { consoles.contains($0.console) }
+        let stored = await store.games().filter { consoles.contains($0.console) }
+        let paths = paths
+        let (activity, owned) = await Task.detached {
+            (SaveStates.latestActivity(in: paths),
+             Set(stored.filter { ConsoleUninstall.ownsROM($0.fileURL, in: paths.root) }.map(\.id)))
+        }.value
+        games = stored.map { game in
+            var game = game
+            if let played = [game.lastPlayed, activity[game.contentName]].compactMap({ $0 }).max() {
+                game.lastPlayed = played
+            }
+            return game
+        }
+        ownedROMs = owned
         publish()
     }
 
@@ -106,10 +129,14 @@ final class ConsoleCenter {
 
     func remove(_ id: String) async {
         problem = nil
+        guard let console = ConsoleCatalog.console(id) else { return }
         if let playing, game(playing.gameID)?.console == id {
-            problem = String(localized: "\(ConsoleCatalog.console(id)?.name ?? id) is playing. Quit the game first.")
+            problem = String(localized: "\(console.name) is playing. Quit the game first.")
             return
         }
+        let plan = ConsoleRemoval(console: console, games: games(of: id).count,
+                                  files: await shelf.filesToRemove(id))
+        guard confirmRemoval(plan) else { return }
         do {
             try await shelf.remove(id)
         } catch {
@@ -162,13 +189,14 @@ final class ConsoleCenter {
         let count = games(of: id).count
         let remove: String
         switch count {
-        case 0: remove = String(localized: "Remove \(console.name)")
-        case 1: remove = String(localized: "Remove \(console.name) (its game stays on disk)")
-        default: remove = String(localized: "Remove \(console.name) (\(count) games stay on disk)")
+        case 0: remove = String(localized: "Remove \(console.name)…")
+        case 1: remove = String(localized: "Remove \(console.name) (its game stays on disk)…")
+        default: remove = String(localized: "Remove \(console.name) (\(count) games stay on disk)…")
         }
+        let busy = playing.map { game($0.gameID)?.console == id } ?? false
         return [
             ConsoleMenuItem(title: String(localized: "Add \(console.name) Games…"), action: .addGames),
-            ConsoleMenuItem(title: remove, action: .remove, destructive: true),
+            ConsoleMenuItem(title: remove, action: .remove, destructive: true, disabled: busy),
         ]
     }
 
@@ -186,6 +214,7 @@ struct ConsoleMenuItem: Identifiable, Equatable {
     let title: String
     let action: Action
     var destructive = false
+    var disabled = false
 
     var id: String { title }
 }

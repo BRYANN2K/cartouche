@@ -22,7 +22,7 @@ enum GeneralSettings {
 }
 
 enum SettingsTab: String, CaseIterable, Identifiable {
-    case general, library, accounts, compatibility, privacy, consoles, controllers, agents
+    case general, library, accounts, steam, prefixes, compatibility, privacy, consoles, controllers, agents, advanced
 
     var id: String { rawValue }
 
@@ -31,11 +31,14 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .general: String(localized: "General")
         case .library: String(localized: "Library")
         case .accounts: String(localized: "Accounts")
-        case .compatibility: String(localized: "Compatibility")
+        case .steam: String(localized: "Steam")
+        case .prefixes: String(localized: "Wine Prefixes")
+        case .compatibility: String(localized: "Runners")
         case .privacy: String(localized: "Privacy")
         case .consoles: String(localized: "Consoles")
         case .controllers: String(localized: "Controllers")
         case .agents: String(localized: "Agents")
+        case .advanced: String(localized: "Advanced")
         }
     }
 
@@ -44,11 +47,14 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .general: "gearshape"
         case .library: "square.grid.2x2"
         case .accounts: "person.crop.circle"
+        case .steam: "link"
+        case .prefixes: "externaldrive"
         case .compatibility: "cpu"
         case .privacy: "hand.raised"
         case .consoles: "gamecontroller"
         case .controllers: "gamecontroller.fill"
         case .agents: "brain.head.profile"
+        case .advanced: "wrench.and.screwdriver"
         }
     }
 }
@@ -59,7 +65,7 @@ struct SettingsWindow: View {
     let consoles: ConsolesSettingsModel
     let choices: PrivacyChoices
 
-    // Kept across opens so "Get More Graphics Backends…" lands on Compatibility.
+    // Keep the selected destination across Settings opens.
     static let tabKey = "settings.tab"
 
     @AppStorage(tabKey) private var tab: SettingsTab = .general
@@ -68,17 +74,49 @@ struct SettingsWindow: View {
     @Environment(AgentControlModel.self) private var agents: AgentControlModel?
 
     var body: some View {
-        TabView(selection: $tab) {
-            ForEach(SettingsTab.allCases) { tab in
+        HStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: 3) {
+                    ForEach(SettingsTab.allCases) { item in
+                        SidebarRow(title: item.title, badge: nil, selected: tab == item,
+                                   icon: { Image(systemName: item.symbol) }) {
+                            tab = item
+                        }
+                        .accessibilityAddTraits(tab == item ? .isSelected : [])
+                    }
+                }
+                .padding(10)
+            }
+            .focusable()
+            .focusEffectDisabled()
+            .onKeyPress(.upArrow) { step(-1) }
+            .onKeyPress(.downArrow) { step(1) }
+            .frame(width: 184)
+            .background(.ultraThinMaterial)
+            Divider()
+            VStack(alignment: .leading, spacing: 0) {
+                Text(tab.title)
+                    .font(.title2.weight(.semibold))
+                    .padding(.horizontal, 24)
+                    .padding(.top, 22)
+                    .padding(.bottom, 8)
+                    .accessibilityAddTraits(.isHeader)
                 pane(tab)
-                    .tabItem { Label(tab.title, systemImage: tab.symbol) }
-                    .tag(tab)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .frame(width: 640, height: 560)
+        .frame(width: 900, height: 640)
         .onAppear(perform: followRoute)
         .onChange(of: SettingsRoute.shared.tab) { followRoute() }
         .scrollBounceBehavior(.basedOnSize, axes: [.vertical, .horizontal])
+    }
+
+    private func step(_ offset: Int) -> KeyPress.Result {
+        let tabs = SettingsTab.allCases
+        guard let current = tabs.firstIndex(of: tab) else { return .ignored }
+        let next = current + offset
+        if tabs.indices.contains(next) { tab = tabs[next] }
+        return .handled
     }
 
     private func followRoute() {
@@ -93,11 +131,14 @@ struct SettingsWindow: View {
         case .general: GeneralSettingsView()
         case .library: LibrarySettingsView(model: model)
         case .accounts: AccountsSettingsView(model: model)
+        case .steam: StatusView()
+        case .prefixes: WinePrefixesSettingsView()
         case .compatibility: CompatibilitySettingsView(model: model)
         case .privacy: PrivacySettingsView(center: permissions, choices: choices)
         case .consoles: ConsolesSettingsView(model: consoles, extras: consoleCenter?.extras, emulators: consoleCenter?.emulators)
         case .controllers: if let controls { ControllersSettingsView(center: controls) }
         case .agents: if let agents { AgentsSettingsView(model: agents) }
+        case .advanced: AdvancedSettingsView()
         }
     }
 
@@ -136,34 +177,11 @@ struct GeneralSettingsView: View {
 
 struct LibrarySettingsView: View {
     @Bindable var model: LibraryModel
-    @State private var steamPath = SupportPaths.Steam.app.path(percentEncoded: false)
-    @State private var locateError: String?
 
     var body: some View {
         Form {
             Section("PC Games") {
                 Toggle("Show games that are not installed", isOn: $model.showNotInstalled)
-                LabeledContent("Steam") {
-                    HStack {
-                        Text(verbatim: steamPath).font(.callout.monospaced()).foregroundStyle(.secondary)
-                            .lineLimit(1).truncationMode(.middle)
-                        Button("Locate Steam…") {
-                            guard let app = SteamInstallView.chooseSteam() else { return }
-                            let setup = SteamSetup()
-                            if setup.locate(app) {
-                                steamPath = app.path(percentEncoded: false)
-                                Task { await model.load() }
-                            } else if case .failed(let message) = setup.stage {
-                                locateError = message
-                            }
-                        }
-                        .alert(String(localized: "Locate Steam"), isPresented: Binding(
-                            get: { locateError != nil }, set: { if !$0 { locateError = nil } })
-                        ) {} message: {
-                            if let locateError { Text(verbatim: locateError) }
-                        }
-                    }
-                }
             }
             Section {
                 if model.hiddenGames.isEmpty {
@@ -219,9 +237,61 @@ struct AccountsSettingsView: View {
     }
 }
 
+// Collect Diagnostics writes a zip on the Desktop with Cartouche's own crash
+// reports and logs — nothing is sent anywhere.
+struct AdvancedSettingsView: View {
+    @State private var collecting = false
+    @State private var collectError: String?
+
+    var body: some View {
+        Form {
+            Section {
+                LabeledContent {
+                    Button(collecting ? String(localized: "Collecting…") : String(localized: "Collect Diagnostics…")) {
+                        collect()
+                    }
+                    .disabled(collecting)
+                } label: {
+                    Text("Diagnostics")
+                    Text("Crash reports and the last lines of Cartouche’s logs, zipped on your Desktop.")
+                        .foregroundStyle(.secondary)
+                }
+            } footer: {
+                Text("Nothing is sent anywhere. The zip is for attaching to a bug report.")
+            }
+        }
+        .formStyle(.grouped)
+        .alert(String(localized: "Diagnostics"), isPresented: Binding(
+            get: { collectError != nil }, set: { if !$0 { collectError = nil } })
+        ) {} message: {
+            if let collectError { Text(verbatim: collectError) }
+        }
+    }
+
+    @MainActor
+    private func collect() {
+        collecting = true
+        Task {
+            do {
+                let zip = try await Task.detached(priority: .userInitiated) {
+                    try Diagnostics.collect(
+                        into: FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first
+                            ?? SupportPaths.home.appending(path: "Desktop"),
+                        reportsFrom: CrashReports.directory,
+                        logsFrom: SupportPaths.logs,
+                        home: SupportPaths.home)
+                }.value
+                NSWorkspace.shared.activateFileViewerSelecting([zip])
+            } catch {
+                collectError = error.localizedDescription
+            }
+            collecting = false
+        }
+    }
+}
+
 struct CompatibilitySettingsView: View {
     let model: LibraryModel
-    @Environment(\.openWindow) private var openWindow
     @Environment(RunnersModel.self) private var runners: RunnersModel?
 
     var body: some View {
@@ -249,15 +319,8 @@ struct CompatibilitySettingsView: View {
             BackendDownloadsSection(model: model)
             SetupDefaultsSection(model: model)
             Section {
-                LabeledContent {
-                    Button("Open Steam Play Setup") { openWindow(id: CartoucheApp.setupWindow) }
-                } label: {
-                    Text("Steam Play Setup")
-                    Text("Install Cartouche into Steam, repair it, and manage prefixes and backups.")
-                        .foregroundStyle(.secondary)
-                }
-            } footer: {
                 Text("D3DMetal is never bundled. It comes from your own Game Porting Toolkit or CrossOver.")
+                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)

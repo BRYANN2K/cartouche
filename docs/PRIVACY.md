@@ -167,6 +167,7 @@ When Steam is closed, Cartouche uses the last account-matched export even if sta
 - The compatibility file, the per-game MacGamingDB answers and the Steam name-lookup answers (`~/Library/Application Support/Cartouche/compatibility/`).
 - Frame rates: one SQLite file, `performance/sessions.sqlite`, in the Cartouche folder (P8). Nothing is sent; v0.1.0 shows no sharing control, and MacGamingDB has no way to receive reports. If one ever existed, a report would carry only the chip, memory, macOS version, runner, backend, filtered settings and the FPS.
 - Logs in `~/Library/Logs/Cartouche`.
+- Planned local crash reports and diagnostics bundles (ADR 0029; implementation pending): after a crash, the next launch offers Show Report and Copy Summary; Collect Diagnostics creates a local zip. Nothing is sent over the network. Users choose whether to share files themselves.
 - Epic, GOG and Amazon tokens, and the RetroAchievements token, in the macOS Keychain only. Details below.
 - Console extras (`retroarch/extras.json`): RetroAchievements username, the translation service address, the netplay nickname, per-game toggles and the last achievement counts. No secrets in it.
 

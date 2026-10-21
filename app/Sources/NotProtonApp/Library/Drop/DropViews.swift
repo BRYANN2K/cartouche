@@ -459,6 +459,8 @@ private struct FailureView: View {
         case .detectionUnavailable: "exclamationmark.triangle"
         case .passwordProtected: "lock"
         case .unsupportedArchive, .damagedArchive: "doc.zipper"
+        case .missingVolume: "puzzlepiece"
+        case .insufficientSpace: "internaldrive"
         case .nothingRecognized: "questionmark.folder"
         }
     }
@@ -469,6 +471,8 @@ private struct FailureView: View {
         case .passwordProtected: Text("This archive needs a password")
         case .unsupportedArchive: Text("Cartouche can’t open this kind of archive")
         case .damagedArchive: Text("This archive is damaged")
+        case .missingVolume(_, let name): Text("\(name) is missing")
+        case .insufficientSpace: Text("Not enough disk space")
         case .nothingRecognized: Text("No game found here")
         }
     }
@@ -483,6 +487,14 @@ private struct FailureView: View {
             Text("\(url.lastPathComponent) is not a zip, 7z, rar, tar or disc image. Extract it first, then drop the folder.")
         case .damagedArchive(let url):
             Text("\(url.lastPathComponent) could not be read to the end. Download it again, then drop it here.")
+        case .missingVolume(let url, let name):
+            Text("Put \(name) in the same folder as \(url.lastPathComponent), then drop the archive again.")
+        case .insufficientSpace(let url, let needed, let free):
+            if needed > 0 {
+                Text("Extracting \(url.lastPathComponent) needs about \(DownloadSummary.size(needed)) free on this drive; \(DownloadSummary.size(free)) is free.")
+            } else {
+                Text("The drive ran out of space while extracting \(url.lastPathComponent).")
+            }
         case .nothingRecognized:
             Text("Cartouche found no installer, installed Windows game or console game in what you dropped.")
         }

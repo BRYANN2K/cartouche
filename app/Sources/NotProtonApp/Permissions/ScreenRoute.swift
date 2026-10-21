@@ -15,4 +15,6 @@ struct ScreenRoute: Codable, Hashable, Sendable {
     }
 
     static let pcGamesStep = "pcGames"
+    // The Steam integration row lives on the Stores step since onboarding v2
+    static let storesStep = "stores"
 }

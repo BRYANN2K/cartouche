@@ -55,14 +55,17 @@ Sparkle 2.10.0
   License text: https://github.com/sparkle-project/Sparkle/blob/2.10.0/LICENSE
   Where: embedded in Cartouche.app. It checks for and installs updates.
 
-innoextract 1.9
+innoextract 1.10 (1.10-dev-2025-01-07 snapshot plus upstream commits through
+  6e9e34e: released Inno Setup 6.4.0)
   License: zlib
-  Source: https://constexpr.org/innoextract/, pinned with three upstream build
-          patches in installer/innoextract/pins
-  Where: Cartouche.app/Contents/Helpers/innoextract, built by CI with
-         installer/innoextract/build.sh. Boost (BSL-1.0) and liblzma (public
-         domain, 0BSD) are linked statically into it. It reads Windows
-         installers for the analysis step and never runs them.
+  Source: https://constexpr.org/innoextract/, pinned in
+          installer/innoextract/pins
+  Where: Cartouche.app/Contents/Helpers/innoextract, a universal
+         (arm64+x86_64) build from installer/innoextract/build.sh. Boost 1.88.0
+         (BSL-1.0) and liblzma from xz 5.8.4 (public domain, 0BSD) are pinned
+         there too and linked statically into it; zlib, bzip2 and iconv are the
+         OS's. It reads Windows installers for the analysis step and never
+         runs them.
 
 libarchive 3.8.9
   License: BSD-2-Clause

@@ -14,6 +14,10 @@ struct GameProcesses: Sendable {
         var environment: [String: String]
     }
 
+    // The same folder match with no store app ID: an installer game carries no
+    // SteamGameId, so its processes are the ones its folder's exe and argv reach.
+    func pids(installFolder: URL) -> [pid_t] { pids(appID: 0, installFolder: installFolder) }
+
     // tracked PIDs count only after trusted clears them: a crashed Steam leaves "adding PID" entries forever, and a reused PID must never be taken for the game.
     func pids(appID: Int, tracked: [pid_t: Date] = [:], installFolder: URL? = nil) -> [pid_t] {
         let me = getpid()
@@ -118,6 +122,36 @@ struct GameProcesses: Sendable {
         let filled = proc_listallpids(&pids, Int32(pids.count * MemoryLayout<pid_t>.size))
         guard filled > 0 else { return [] }
         return Array(pids.prefix(Int(filled)))
+    }
+
+    // One sysctl for the whole table; p_comm is the exec'd file name, capped at 16 bytes.
+    // The table can grow between sizing and reading: the buffer gets slack, then a retry
+    static func processExists(named names: Set<String>) -> Bool {
+        var mib: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0]
+        var size = 0
+        guard sysctl(&mib, 4, nil, &size, nil, 0) == 0, size > 0 else { return false }
+        for _ in 0..<3 {
+            var table = [kinfo_proc](repeating: kinfo_proc(),
+                                     count: size / MemoryLayout<kinfo_proc>.stride + 64)
+            var got = table.count * MemoryLayout<kinfo_proc>.stride
+            if sysctl(&mib, 4, &table, &got, nil, 0) == 0 {
+                for entry in table.prefix(got / MemoryLayout<kinfo_proc>.stride) {
+                    var comm = entry.kp_proc.p_comm
+                    let name = withUnsafeBytes(of: &comm) {
+                        String(decoding: $0.prefix { $0 != 0 }, as: UTF8.self)
+                    }
+                    if names.contains(name) { return true }
+                }
+                return false
+            }
+            guard sysctl(&mib, 4, nil, &size, nil, 0) == 0, size > 0 else { return false }
+        }
+        return false
+    }
+
+    // The same name SteamBundle.isRunning hands to pgrep
+    static func steamIsRunning() -> Bool {
+        processExists(named: ["steam_osx"])
     }
 
     // KERN_PROCARGS2 gives exe, args and, where macOS still shows it, environment; only the user's own processes answer.

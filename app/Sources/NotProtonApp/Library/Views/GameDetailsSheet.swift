@@ -82,10 +82,7 @@ struct GameDetailsSheet: View {
             }
         case .advanced:
             Section(section.title) {
-                let setup = model.setup(for: content.game.id)
-                Toggle("Metal Performance HUD", isOn: Binding(
-                    get: { setup.metalHUD ?? false },
-                    set: { var s = setup; s.metalHUD = $0; model.setSetup(s, for: content.game.id) }))
+                AdvancedGameRows(game: content.game, model: model)
             }
         case .sources:
             Section {

@@ -14,7 +14,7 @@ struct RetroArchHomeTests {
     @Test("Launched by the app, RetroArch makes nothing in the user's home",
           .enabled(if: LiveRetroArch.available, "set CARTOUCHE_RETROARCH and CARTOUCHE_TEST_CORE"))
     func nothingInTheUsersHome() async throws {
-        let scene = try ConsoleScene("home")
+        let scene = try await ConsoleScene("home")
         defer { scene.remove() }
         let standIn = scene.work.appending(path: "user-home", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: standIn, withIntermediateDirectories: true)
@@ -55,7 +55,7 @@ struct RetroArchHomeTests {
 
     @Test("Cartouche quitting while a game runs: RetroArch quits first and the session's play time is kept")
     func quitWithCartouche() async throws {
-        let scene = try ConsoleScene("terminate")
+        let scene = try await ConsoleScene("terminate")
         defer { scene.remove() }
         let runner = scene.useFakeRunner(picture: try ConsolePanelTests.screen("AUTO"))
         let game = try await scene.addGame(console: "snes", name: "Cartouche Homebrew")

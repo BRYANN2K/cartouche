@@ -15,6 +15,7 @@ extension CartoucheApp {
         started = true
         updater.start()
         permissions.watchActivation()
+        await crashReports.check()
         var route: ScreenRoute?
         if onboarding == nil {
             let model = makeOnboarding()
@@ -70,6 +71,9 @@ extension CartoucheApp {
         let activity = ActivityCenter.shared
         activity.permissionFlow = permissionFlow
         InstallCenter.shared.permissionFlow = permissionFlow
+        InstallCenter.shared.onVerificationMismatch = { [verification] job in
+            verification.presentMismatch(for: job)
+        }
         activity.follow(consoleCenter)
         activity.onDownloadFinished = { [library] _ in Task { await library.load() } }
         activity.onGameEnded = { [performance] in Task { await performance.refresh() } }

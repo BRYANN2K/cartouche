@@ -36,6 +36,14 @@ enum Shell {
 
     private static let outputDrainTimeout: DispatchTimeInterval = .seconds(10)
 
+    // A process wait on the main thread stalls every view update. Debug builds
+    // trap so a caller on the main actor is found instead of shipped.
+    static func assertOffMain(_ caller: String = #function) {
+        #if DEBUG
+        assert(!Thread.isMainThread, "Shell.\(caller) waits on a process; call it from Task.detached, not the main actor")
+        #endif
+    }
+
     static func run(
         _ executable: String,
         _ arguments: [String],
@@ -43,6 +51,7 @@ enum Shell {
         currentDirectory: URL? = nil,
         drainTimeout: DispatchTimeInterval = outputDrainTimeout
     ) throws -> CommandResult {
+        assertOffMain()
         let process = Process()
         process.executableURL = URL(filePath: executable)
         process.arguments = arguments
@@ -127,6 +136,7 @@ enum Shell {
         environment: [String: String],
         to log: URL
     ) throws -> Int32 {
+        assertOffMain()
         guard FileManager.default.createFile(atPath: log.path(percentEncoded: false), contents: nil)
         else { throw CocoaError(.fileWriteUnknown, userInfo: [NSFilePathErrorKey: log.path(percentEncoded: false)]) }
         let handle = try FileHandle(forWritingTo: log)

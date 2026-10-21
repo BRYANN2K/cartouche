@@ -50,7 +50,9 @@ struct AppMover {
         let errorDescription: String?
     }
 
-    func move(_ bundle: URL) throws {
+    static func move(_ bundle: URL, to destination: URL) throws {
+        // ditto and xattr wait on processes: a call on the main actor traps in debug builds
+        assert(!Thread.isMainThread, "AppMover.move waits on processes; it never runs on the main actor")
         let fm = FileManager.default
         let folder = destination.deletingLastPathComponent()
         let staging = folder.appending(path: ".Cartouche-\(UUID().uuidString).app")
@@ -74,11 +76,13 @@ struct AppMover {
     }
 
     @MainActor
-    func moveAndRelaunch(_ bundle: URL) throws {
+    func moveAndRelaunch(_ bundle: URL) async throws {
         guard !destinationRunning(destination) else {
             throw Failed(errorDescription: String(localized: "Cartouche is already open from \(destination.path(percentEncoded: false)). Quit that copy, then move Cartouche again."))
         }
-        try move(bundle)
+        // ditto's copy waits on a process: it never runs on the main actor
+        let destination = destination
+        try await Task.detached { try Self.move(bundle, to: destination) }.value
         AppLog.note("moved to \(destination.path(percentEncoded: false)), relaunching")
         relauncher(destination)
     }
@@ -116,20 +120,24 @@ enum MoveToApplications {
     }
 
     static func check(location: AppLocation = .current, mover: AppMover = AppMover(),
-                      ask: @MainActor (AppLocation) -> Choice = ask, quit: @MainActor () -> Void = { NSApp.terminate(nil) },
+                      ask: @MainActor (AppLocation) -> Choice = ask, quit: @escaping @MainActor () -> Void = { NSApp.terminate(nil) },
                       bundle: URL = Bundle.main.bundleURL) -> Bool {
         guard location.offersMove else { return true }
         AppLog.note("running from \(bundle.path(percentEncoded: false)), offering to move")
         switch ask(location) {
         case .move:
-            do {
-                try mover.moveAndRelaunch(bundle)
-            } catch {
-                let alert = NSAlert()
-                alert.messageText = String(localized: "Cartouche couldn’t move itself")
-                alert.informativeText = error.localizedDescription
-                alert.runModal()
-                quit()
+            // The copy waits on a process: it runs after check returns, off the
+            // main actor, and the relaunch or the error alert comes back to it.
+            Task {
+                do {
+                    try await mover.moveAndRelaunch(bundle)
+                } catch {
+                    let alert = NSAlert()
+                    alert.messageText = String(localized: "Cartouche couldn’t move itself")
+                    alert.informativeText = error.localizedDescription
+                    alert.runModal()
+                    quit()
+                }
             }
         case .quit:
             quit()

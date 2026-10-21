@@ -4,8 +4,8 @@
 //
 // The result model mirrors the app's DropResult in
 // app/Sources/NotProtonApp/Library/Drop/DropResult.swift; the thin adapter that
-// maps between them lives in installer/AppAdapter/DropClassifierAdapter.swift
-// until the UI branch merges.
+// maps between them lives in
+// app/Sources/NotProtonApp/Library/Drop/DropClassifierAdapter.swift.
 
 import Foundation
 
@@ -85,8 +85,8 @@ public struct DropClassifier: Sendable {
         var outcomes: [DropOutcome] = []
         for unit in units {
             try Task.checkCancellation()
-            outcomes.append(await classifyUnit(unit, progress: progress,
-                                               cueCovered: cueCovered, dropped: dropped))
+            outcomes.append(try await classifyUnit(unit, progress: progress,
+                                                   cueCovered: cueCovered, dropped: dropped))
         }
         let flat = outcomes.flatMap { if case .mixed(let m) = $0 { return m }; return [$0] }
         // ROM files dropped together are one drop, not one group per file.
@@ -153,12 +153,12 @@ public struct DropClassifier: Sendable {
     }
 
     private func classifyUnit(_ unit: [URL], progress: @Sendable (ArchiveProgress) -> Void,
-                              cueCovered: [String: URL], dropped: Set<String> = []) async -> DropOutcome {
+                              cueCovered: [String: URL], dropped: Set<String> = []) async throws -> DropOutcome {
         let url = unit[0]
         let isDirectory = (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
         if isDirectory { return classifyFolder(url, cueCovered: cueCovered, dropped: dropped) }
         if ArchiveVolumes.set(for: url) != nil || ArchiveDetector.isArchive(url) {
-            return await classifyArchive(url, progress: progress)
+            return try await classifyArchive(url, progress: progress)
         }
         if url.pathExtension.lowercased() == "exe" { return classifyExecutable(url) }
         if let drop = roms([url], extraCovered: cueCovered, dropped: dropped) { return .roms(drop) }
@@ -224,7 +224,7 @@ public struct DropClassifier: Sendable {
 
     // MARK: archives
 
-    private func classifyArchive(_ url: URL, progress: @Sendable (ArchiveProgress) -> Void) async -> DropOutcome {
+    private func classifyArchive(_ url: URL, progress: @Sendable (ArchiveProgress) -> Void) async throws -> DropOutcome {
         guard let extractor else { return .failed(.unsupportedArchive(url)) }
         do {
             let probe = try extractor.probe(url)
@@ -235,6 +235,9 @@ public struct DropClassifier: Sendable {
             return classifyExtracted(result, archive: url)
         } catch let error as ArchiveError {
             return .failed(Self.failure(error, url))
+        } catch is CancellationError {
+            // A cancel is not a damaged archive; the caller drops the result.
+            throw CancellationError()
         } catch {
             return .failed(.damagedArchive(url))
         }
@@ -476,7 +479,7 @@ enum ConsoleDetect {
         case "gb", "gbc":
             return gameboy(url)
         case "gba":
-            return nintendoLogo(url) ? "gba" : nil
+            return advanceLogo(url) ? "gba" : nil
         case "n64", "z64", "v64":
             guard let h = head(url, 4) else { return nil }
             return [Data([0x80, 0x37, 0x12, 0x40]), Data([0x37, 0x80, 0x40, 0x12]), Data([0x40, 0x12, 0x37, 0x80])]
@@ -516,6 +519,27 @@ enum ConsoleDetect {
             0x6E, 0x0E, 0xEC, 0xCC, 0xDD, 0xDC, 0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E,
         ]
         return head(url, at: 0x104, logo.count).map { [UInt8]($0) } == logo
+    }
+
+    // The 156-byte Nintendo logo every GBA cart carries at 0x04, as checked by
+    // RetroArchKit's CartHeader.
+    private static func advanceLogo(_ url: URL) -> Bool {
+        let logo: [UInt8] = [
+            0x24, 0xFF, 0xAE, 0x51, 0x69, 0x9A, 0xA2, 0x21, 0x3D, 0x84, 0x82, 0x0A,
+            0x84, 0xE4, 0x09, 0xAD, 0x11, 0x24, 0x8B, 0x98, 0xC0, 0x81, 0x7F, 0x21,
+            0xA3, 0x52, 0xBE, 0x19, 0x93, 0x09, 0xCE, 0x20, 0x10, 0x46, 0x4A, 0x4A,
+            0xF8, 0x27, 0x31, 0xEC, 0x58, 0xC7, 0xE8, 0x33, 0x82, 0xE3, 0xCE, 0xBF,
+            0x85, 0xF4, 0xDF, 0x94, 0xCE, 0x4B, 0x09, 0xC1, 0x94, 0x56, 0x8A, 0xC0,
+            0x13, 0x72, 0xA7, 0xFC, 0x9F, 0x84, 0x4D, 0x73, 0xA3, 0xCA, 0x9A, 0x61,
+            0x58, 0x97, 0xA3, 0x27, 0xFC, 0x03, 0x98, 0x76, 0x23, 0x1D, 0xC7, 0x61,
+            0x03, 0x04, 0xAE, 0x56, 0xBF, 0x38, 0x84, 0x00, 0x40, 0xA7, 0x0E, 0xFD,
+            0xFF, 0x52, 0xFE, 0x03, 0x6F, 0x95, 0x30, 0xF1, 0x97, 0xFB, 0xC0, 0x85,
+            0x60, 0xD6, 0x80, 0x25, 0xA9, 0x63, 0xBE, 0x03, 0x01, 0x4E, 0x38, 0xE2,
+            0xF9, 0xA2, 0x34, 0xFF, 0xBB, 0x3E, 0x03, 0x44, 0x78, 0x00, 0x90, 0xCB,
+            0x88, 0x11, 0x3A, 0x94, 0x65, 0xC0, 0x7C, 0x63, 0x87, 0xF0, 0x3C, 0xAF,
+            0xD6, 0x25, 0xE4, 0x8B, 0x38, 0x0A, 0xAC, 0x72, 0x21, 0xD4, 0xF8, 0x07,
+        ]
+        return head(url, at: 0x04, logo.count).map { [UInt8]($0) } == logo
     }
 
     private static func gameboy(_ url: URL) -> String? {

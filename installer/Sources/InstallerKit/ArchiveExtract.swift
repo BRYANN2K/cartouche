@@ -220,7 +220,10 @@ public struct ArchiveExtractor: Sendable {
 
     // The engine resolved from the bundled dylib, when it exists.
     public static func live() throws -> ArchiveExtractor {
-        guard let path = ArchiveSupport.path() else { throw ArchiveError.engineUnavailable }
+        // The app puts the dylib in Contents/Helpers, which is on the
+        // executable's rpath, so the install name resolves where path()
+        // cannot look.
+        let path = ArchiveSupport.path() ?? "@rpath/libarchive.dylib"
         return ArchiveExtractor(engine: try LibarchiveEngine(library: path))
     }
 

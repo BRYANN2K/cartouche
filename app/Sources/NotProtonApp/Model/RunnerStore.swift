@@ -133,8 +133,26 @@ enum CompatToolList {
         tools.map { "\($0.name)\t\($0.build)\t\($0.flavor.rawValue)\t\($0.backend.rawValue)\t\($0.display)\n" }.joined()
     }
 
-    static func backendTools(for tools: [InstalledTool], runners: URL = SupportPaths.runners) -> [BackendTool] {
-        SupportedRunners.backendTools(for: tools) { tool in
+    static func backendTools(
+        for tools: [InstalledTool], runners: URL = SupportPaths.runners,
+        backends: URL = BackendInstaller.folder, manifest: RunnerManifest = .current()
+    ) -> [BackendTool] {
+        var wineAvailability: BackendAvailability?
+        return SupportedRunners.backendTools(for: tools) { tool in
+            if let build = manifest.build(id: tool.build),
+               build.kind == Runner.Kind.wineBuild.rawValue {
+                if wineAvailability == nil {
+                    wineAvailability = Self.wineAvailability(
+                        tools, manifest: manifest, runners: runners, backends: backends)
+                }
+                let runner = Runner(
+                    id: build.id, kind: .wineBuild, version: build.version,
+                    displayVersion: build.displayVersion, flavors: [tool.tool.flavor],
+                    state: .ready, build: nil, source: nil, isInstalled: true)
+                return BackendSupport.backends(
+                    for: runner, translation: tool.tool.flavor == .fex ? .fex : .rosetta,
+                    availability: wineAvailability ?? BackendAvailability())
+            }
             let root = SupportPaths.clonedRoot(forBuild: tool.build, runners: runners)
             return BackendSupport.crossOver(
                 translation: tool.tool.flavor == .fex ? .fex : .rosetta,
@@ -142,8 +160,28 @@ enum CompatToolList {
         }
     }
 
+    // What a downloaded Wine build can serve: wined3d always, Cartouche's DXMT or
+    // DXVK when downloaded, D3DMetal from its own files or the user's toolkit.
+    private static func wineAvailability(
+        _ tools: [InstalledTool], manifest: RunnerManifest, runners: URL, backends: URL
+    ) -> BackendAvailability {
+        var out = BackendAvailability()
+        for tool in tools where manifest.build(id: tool.build)?.origin == .cartouche {
+            out.crossOverWine.insert(tool.build)
+            let root = WineRunnerInstaller.dir(for: tool.build, runners: runners)
+            if RunnerRegistry.crossOverD3DMetal(inRoot: root) != nil
+                || PortingToolkitSource.libd3dshared(runners: runners) != nil {
+                out.d3dMetalRunners.insert(tool.build)
+            }
+        }
+        out.hasGamePortingToolkit = PortingToolkitSource.libd3dshared(runners: runners) != nil
+        out.installed = Set(BackendInstaller.installed(in: backends).map(\.backend))
+        return out
+    }
+
     private static func resolved(
-        runners: URL, file: URL, fexAvailable: Bool = CompatTool.Flavor.fexAvailable
+        runners: URL, file: URL, fexAvailable: Bool = CompatTool.Flavor.fexAvailable,
+        manifest: RunnerManifest = .current()
     ) -> (builds: [RunnerBuild], listed: String?, tools: [InstalledTool]) {
         let builds = RunnerStore.installedBuilds(in: runners)
         let listed = try? String(contentsOf: file, encoding: .utf8)
@@ -151,8 +189,33 @@ enum CompatToolList {
         let kept = Set((listed ?? "").split(separator: "\n").compactMap {
             $0.split(separator: "\t").first.map(String.init)
         })
-        return (builds, listed, SupportedRunners.tools(
-            for: builds, fexAvailable: fexAvailable, keeping: kept))
+        let tools = SupportedRunners.tools(for: builds, fexAvailable: fexAvailable, keeping: kept)
+            + wineTools(runners: runners, manifest: manifest, fexAvailable: fexAvailable, keeping: kept)
+        return (builds, listed, tools)
+    }
+
+    // Cartouche's own Wine builds are compatibility tools too: the manifest id
+    // doubles as the build, and each flavor the build serves is a tool of its own.
+    private static func wineTools(
+        runners: URL, manifest: RunnerManifest, fexAvailable: Bool, keeping kept: Set<String>
+    ) -> [InstalledTool] {
+        manifest.builds.flatMap { build -> [InstalledTool] in
+            guard build.kind == Runner.Kind.wineBuild.rawValue, build.origin == .cartouche,
+                  // The build field can only hold what the dylib's tool line accepts
+                  build.id.allSatisfy({ $0.isLetter || $0.isNumber || ".-".contains($0) }),
+                  WineRunnerInstaller.isInstalled(build.id, runners: runners)
+            else { return [] }
+            return build.cpuFlavors.compactMap { flavor in
+                let name = flavor == .fex
+                    ? "\(SupportPaths.toolPrefix)-fex-\(build.id)"
+                    : "\(SupportPaths.toolPrefix)-\(build.id)"
+                guard flavor != .fex || fexAvailable || kept.contains(name) else { return nil }
+                let display = flavor == .fex ? "\(build.title) FEX" : build.title
+                return InstalledTool(
+                    tool: CompatTool(name: name, flavor: flavor, display: display),
+                    build: build.id)
+            }
+        }
     }
 
     @discardableResult
@@ -161,19 +224,22 @@ enum CompatToolList {
         bridge: URL = SupportPaths.bridge,
         file: URL = SupportPaths.toolList,
         compatTools: URL = SupportPaths.Steam.compatTools,
-        fexAvailable: Bool = CompatTool.Flavor.fexAvailable
+        fexAvailable: Bool = CompatTool.Flavor.fexAvailable,
+        manifest: RunnerManifest = .current()
     ) throws -> Bool {
-        let (builds, listed, tools) = resolved(runners: runners, file: file, fexAvailable: fexAvailable)
+        let (builds, listed, tools) = resolved(
+            runners: runners, file: file, fexAvailable: fexAvailable, manifest: manifest)
         var changed = try write(contents(tools), to: file, had: listed)
         let pairs = backendFile(beside: file)
-        changed = try write(backendContents(backendTools(for: tools, runners: runners)), to: pairs,
-                            had: try? String(contentsOf: pairs, encoding: .utf8)) || changed
+        changed = try write(
+            backendContents(backendTools(for: tools, runners: runners, manifest: manifest)),
+            to: pairs, had: try? String(contentsOf: pairs, encoding: .utf8)) || changed
         NtdllPatcher.pruneBuilds(keeping: Set(builds.map(\.id)), in: bridge)
         return changed
     }
 
     private static func write(_ text: String, to file: URL, had listed: String?) throws -> Bool {
-        let changed = !(listed == text || (listed == nil && text.isEmpty))
+        let changed = listed != text
         if changed {
             try FileManager.default.createDirectory(
                 at: file.deletingLastPathComponent(), withIntermediateDirectories: true

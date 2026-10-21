@@ -20,7 +20,7 @@ struct BIOSLookTests {
 
     @Test("Missing BIOS blocks Play: the panel names the file and says to dump it from your own console")
     func missingBIOS() async throws {
-        let scene = try ConsoleScene("bios")
+        let scene = try await ConsoleScene("bios")
         defer { scene.remove() }
         let runner = scene.useFakeRunner(picture: try ConsolePanelTests.screen("PS"))
         let game = try await scene.addGame(console: "ps1", name: "Test Disc", ext: "cue")
@@ -61,7 +61,7 @@ struct BIOSLookTests {
 
     @Test("Look applies live: switching to CRT while playing goes to RetroArch, and the panel's picture takes the same look")
     func lookLive() async throws {
-        let scene = try ConsoleScene("look")
+        let scene = try await ConsoleScene("look")
         defer { scene.remove() }
         let runner = scene.useFakeRunner(picture: try ConsolePanelTests.screen("GAME"))
         let game = try await scene.addGame(console: "snes", name: "Cartouche Homebrew", databaseName: "Cartouche Homebrew (World)")
@@ -108,7 +108,7 @@ struct BIOSLookTests {
     @Test("Look applies on RetroArch within a second", .enabled(if: LiveRetroArch.available && LiveRetroArch.video != "null",
                                                                "set CARTOUCHE_RETROARCH, CARTOUCHE_TEST_CORE and CARTOUCHE_RETROARCH_VIDEO=gl"))
     func lookOnRetroArch() async throws {
-        let scene = try ConsoleScene("look-live")
+        let scene = try await ConsoleScene("look-live")
         defer { scene.remove() }
         let player = await LiveRetroArch.player(scene)
         scene.center.makeRunner = { _ in player }

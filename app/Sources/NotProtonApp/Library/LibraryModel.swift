@@ -97,6 +97,8 @@ final class LibraryModel {
     }
     var problem: String?
     var setupNotices: [String: String] = [:]
+    // Re-identification's unsure answers, game ID → name the panel offers until the user renames.
+    var nameSuggestions: [String: String] = [:]
 
     @ObservationIgnored var installsFolder: URL = GameFolder.installs
     @ObservationIgnored var runnersFolder: URL = SupportPaths.runners

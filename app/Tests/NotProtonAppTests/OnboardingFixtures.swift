@@ -40,10 +40,9 @@ final class OnboardingScene {
     var findings: MacFindings
     var consoles: ConsoleSetup?
 
-    nonisolated static let wine = RunnerManifest.Build(
-        id: "wine-stable-11.0_1", kind: "wineBuild", origin: .winehq, name: "Wine", version: "11.0_1",
-        displayVersion: "11.0", url: URL(string: "https://github.com/Gcenx/macOS_Wine_builds/releases/download/11.0_1/wine.tar.xz")!,
-        size: 1, sha256: String(repeating: "0", count: 64), root: "wine", loader: "bin/wine", flavors: ["rosetta"])
+    nonisolated static let wine = (try! RunnerManifest.bundled()).builds.first {
+        $0.id == "wine-crossover-26.3.0-1"
+    }!
 
     init(_ label: String, scratch: ScratchDefaults = ScratchDefaults(), steam: Bool = true) throws {
         fixture = try SteamFixture("onboarding-\(label)")
@@ -119,9 +118,22 @@ final class OnboardingScene {
                     $0.runnerInstalled = true
                 }
             })
+        let consoles = consoleSetup()
+        // The background tasks count the same way the direct calls used to
+        let setup = SetupTasks(
+            installRunner: { build in
+                counts.state.withLock {
+                    $0.runnerInstalls.append(build.id)
+                    $0.runnerInstalled = true
+                }
+            },
+            addCore: { id in try await consoles.add(id) },
+            importToolkit: { _ in "4.0b3" })
         return OnboardingModel(
-            store: store, scan: scan, runners: runners, consoles: consoleSetup(),
-            steamStep: try steamStep(blocked: steamBlocked), folders: folders, privacy: privacy, library: library)
+            store: store, scan: scan, runners: runners, consoles: consoles,
+            steamStep: try steamStep(blocked: steamBlocked), folders: folders, privacy: privacy,
+            library: library, setup: setup, permissions: makeCenter(tcc, scratch),
+            isRemovable: { $0.path.hasPrefix("/Volumes/") })
     }
 
     var untouched: Bool {
@@ -137,7 +149,8 @@ final class OnboardingScene {
                 let view = OnboardingView(model: model)
                     .environment(\.covers, fixture.covers())
                     .environment(\.glassMode, mode)
-                await sheetSnapshot(view, named: mode == .classic ? "\(name)-macos15" : name, dark: dark)
+                    .environment(\.controlActiveState, .key)
+                await sheetSnapshot(view, named: mode == .classic ? "\(name)-macos15" : name, size: CGSize(width: 900, height: 660), dark: dark)
             }
         }
     }
@@ -168,8 +181,9 @@ final class StubBuildbot: URLProtocol, @unchecked Sendable {
             StubBuildbot.requests.withLock { $0 }.filter { $0.hasPrefix(host + "/") }.map { String($0.dropFirst(host.count)) }
         }
 
-        // A zip holding one core: any Mach-O passes the core check
-        func serveCore(_ core: String, work: URL) throws {
+        // A zip holding one core: any Mach-O passes the core check. zip's wait
+        // never runs on the main actor: the suites that serve cores are @MainActor.
+        func serveCore(_ core: String, work: URL) async throws {
             let folder = work.appending(path: "core-\(core)")
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             let dylib = folder.appending(path: "\(core)_libretro.dylib")
@@ -177,13 +191,15 @@ final class StubBuildbot: URLProtocol, @unchecked Sendable {
             try FileManager.default.copyItem(at: URL(filePath: "/usr/bin/true"), to: dylib)
             let zip = folder.appending(path: "\(core)_libretro.dylib.zip")
             try? FileManager.default.removeItem(at: zip)
-            let result = try Shell.run("/usr/bin/zip", ["-q", "-j", zip.path(percentEncoded: false), dylib.path(percentEncoded: false)])
+            let result = try await Task.detached {
+                try Shell.run("/usr/bin/zip", ["-q", "-j", zip.path(percentEncoded: false), dylib.path(percentEncoded: false)])
+            }.value
             guard result.succeeded else { throw URLError(.cannotCreateFile) }
             let data = try Data(contentsOf: zip)
             StubBuildbot.files.withLock { $0["\(host)/cores/\(core)_libretro.dylib.zip"] = data }
         }
 
-        func serveInfo(_ cores: [String], work: URL) throws {
+        func serveInfo(_ cores: [String], work: URL) async throws {
             let folder = work.appending(path: "info")
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             var paths: [String] = []
@@ -194,7 +210,9 @@ final class StubBuildbot: URLProtocol, @unchecked Sendable {
             }
             let zip = folder.appending(path: "info.zip")
             try? FileManager.default.removeItem(at: zip)
-            let result = try Shell.run("/usr/bin/zip", ["-q", "-j", zip.path(percentEncoded: false)] + paths)
+            let result = try await Task.detached {
+                try Shell.run("/usr/bin/zip", ["-q", "-j", zip.path(percentEncoded: false)] + paths)
+            }.value
             guard result.succeeded else { throw URLError(.cannotCreateFile) }
             let data = try Data(contentsOf: zip)
             StubBuildbot.files.withLock { $0["\(host)/info.zip"] = data }

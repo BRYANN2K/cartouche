@@ -654,7 +654,7 @@ extension AgentTools {
 
             AgentTool(
                 name: "remove_console",
-                detail: "Remove a console: its core is deleted; the games' files "
+                detail: "Remove a console: its core moves to the Trash; the games' files "
                     + "stay on disk and their library entries keep play time.",
                 schema: .object([
                     "type": "object",

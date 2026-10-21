@@ -40,7 +40,15 @@ private struct InstallSheetHost: ViewModifier {
                 }
                 library.showInstalledGames(InstalledGames.all())
                 center.refreshBusy(for: library.allGames, in: library.installsFolder)
-                Task { await library.resolveInstallerAppIDs(lookup: center.lookup, allowed: compat.choices.fetchMacReports) }
+                Task {
+                    // Older records can still hold a raw folder name: the pipeline names
+                    // them once, then the Steam pass fills any app ID still missing.
+                    let allowed = compat.choices.fetchMacReports
+                    await library.reidentifyInstalledGames(
+                        index: await center.titles.index(for: await center.compat()),
+                        lookup: center.lookup, allowed: allowed)
+                    await library.resolveInstallerAppIDs(lookup: center.lookup, allowed: allowed)
+                }
             }
     }
 }

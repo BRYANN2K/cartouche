@@ -47,6 +47,7 @@ struct BackendAvailability: Equatable, Sendable {
     var crossOverWine: Set<String> = []
     // A ready Game Porting Toolkit, so a "needs GPTK" reason is only given when it really is missing.
     var hasGamePortingToolkit = false
+    var dxmtNVExtensionRunners: Set<String> = []
 
     // Never read from a runner source directly.
     static func current(
@@ -77,6 +78,11 @@ struct BackendAvailability: Equatable, Sendable {
             }
         }
         if PortingToolkitSource.libd3dshared(runners: runners) != nil { out.hasGamePortingToolkit = true }
+        for runner in registry.runners where runner.isInstalled {
+            if AdvancedSupport.nvExtensions(runner: runner, runners: runners, backends: backends) != nil {
+                out.dxmtNVExtensionRunners.insert(runner.id)
+            }
+        }
         out.installed = Set(BackendInstaller.installed(in: backends).map(\.backend))
         return out
     }
@@ -186,7 +192,7 @@ enum GameSetupResolver {
     static let allowedPrefixes = ["D3DM_", "DXMT_", "DXVK_", "MTL_", "ROSETTA_"]
 
     static func isAllowed(name: String, value: String) -> Bool {
-        guard let prefix = allowedPrefixes.first(where: name.hasPrefix), name.count > prefix.count, name.count <= 64
+        guard (name == "WINEMSYNC" || name == "CARTOUCHE_RETINA" || allowedPrefixes.contains(where: { name.hasPrefix($0) && name.count > $0.count })), name.count <= 64
         else { return false }
         let nameOK = name.unicodeScalars.allSatisfy { ("A"..."Z").contains($0) || ("0"..."9").contains($0) || $0 == "_" }
         let valueOK = value.count <= 256 && !value.unicodeScalars.contains { $0.value < 0x20 || $0.value == 0x7f }
@@ -229,7 +235,9 @@ enum GameSetupResolver {
         for (name, value) in (choice.environment ?? [:]).sorted(by: { $0.key < $1.key }) {
             if isAllowed(name: name, value: value) { environment[name] = value } else { problems.append(.variableRefused(name)) }
         }
-        let metalHUD = choice.metalHUD ?? false
+        let supported = AdvancedSupport.options(runner: runner, backend: backend, translation: translation, availability: availability)
+        environment = AdvancedSupport.environment(choice.advanced, supported: supported, existing: environment)
+        let metalHUD = (choice.metalHUD ?? false) && supported.contains(.metalHUD)
         if metalHUD { environment["MTL_HUD_ENABLED"] = "1" }
 
         let version: GameVersion = hasMacBuild ? (choice.version ?? .mac) : .windows

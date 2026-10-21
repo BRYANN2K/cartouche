@@ -8,6 +8,13 @@ func scratchDirectory(_ label: String) throws -> URL {
     return url
 }
 
+// A synchronous process wait never runs on the main actor; a @MainActor suite
+// moves its own shell work the same way the app does.
+@discardableResult
+func offMain<T: Sendable>(_ work: @escaping @Sendable () throws -> T) async throws -> T {
+    try await Task.detached(operation: work).value
+}
+
 // A stand-in install payload rather than the shipped one, so the tests do not depend on
 // make having been run. The dylib has to be a real Mach-O because it gets signed.
 func installTestPayload(in work: URL) throws -> InstallPayload.Located {

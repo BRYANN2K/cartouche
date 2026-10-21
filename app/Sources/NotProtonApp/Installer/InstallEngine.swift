@@ -24,7 +24,11 @@ struct InstallEngine: Sendable {
     var unpackerDriver: @Sendable () -> URL? = { InstallPayload.unpackerDriver() }
     var freeSpace: @Sendable (URL) -> Int64? = { Disk.freeBytes(at: $0) }
 
-    func runnerIDs() -> [String] { InstallRunners.choices(registry()).map(\.id) }
+    // The registry's signature checks run codesign, so the list never builds on the caller's actor.
+    func runnerIDs() async -> [String] {
+        let registry = registry
+        return await Task.detached { InstallRunners.choices(registry()).map(\.id) }.value
+    }
 
     @MainActor
     func run(_ job: InstallJob) async {
@@ -34,6 +38,7 @@ struct InstallEngine: Sendable {
         job.diagnosis = nil
         job.progress = InstallProgress(expected: request.expectedBytes)
         job.run = nil
+        job.bootLog = nil
 
         if let plan = request.importing {
             await runImport(job, plan)
@@ -135,6 +140,7 @@ struct InstallEngine: Sendable {
             return
         }
 
+        guard await verifyOutput(job, in: installDir) else { return }
         await finishScan(job, in: installDir, folder: folder, wine: wine)
     }
 
@@ -222,35 +228,7 @@ struct InstallEngine: Sendable {
             }
         }
 
-        if let rel = plan.manifestPath,
-           let manifest = try? Checksums.parse(installDir.appending(path: rel)), !manifest.entries.isEmpty {
-            job.phase = .verifying
-            let counted = ByteCount()
-            do {
-                let results = try await Checksums.verify(manifest, root: installDir) { hashed in
-                    counted.add(hashed)
-                    let total = counted.value
-                    Task { @MainActor in
-                        guard job.phase == .verifying else { return }
-                        job.progress.bytes = total
-                        job.progress.fraction = min(0.99, Double(total) / Double(max(1, job.progress.expected)))
-                    }
-                }
-                let bad = results.filter { $0.value != ChecksumResult.ok }.map(\.key.lastPathComponent).sorted()
-                guard bad.isEmpty else {
-                    job.diagnosis = InstallDiagnosis(
-                        kind: .damagedFile, causes: [.damagedFile], fixes: [.verifyFiles], exitCode: 0,
-                        detail: bad.prefix(3).joined(separator: ", ")
-                    )
-                    job.phase = .failed
-                    return
-                }
-            } catch {
-                stopped(job)
-                return
-            }
-        }
-
+        guard await verifyOutput(job, in: installDir) else { return }
         await finishScan(job, in: installDir, folder: folder, wine: wine)
     }
 
@@ -266,6 +244,13 @@ struct InstallEngine: Sendable {
         }.value
         let helpers = folder.prefix.appending(path: DirectUnpack.helperUnixDir)
         try Self.copyContents(of: sections.appending(path: DirectUnpack.helperSection), into: helpers)
+        // ADR 0025: a native tool may stand in for a shipped helper only on an exact allowlisted
+        // hash. The allowlist is empty today, so the shipped Windows helpers always run.
+        let staged = (try? FileManager.default.contentsOfDirectory(at: helpers, includingPropertiesForKeys: nil)) ?? []
+        let natives = staged.compactMap(HelperAllowlist.nativeReplacement)
+        if !natives.isEmpty {
+            AppLog.note("installer: allowlisted native helpers \(natives.joined(separator: ", "))")
+        }
         try FileManager.default.copyItem(at: driver, to: helpers.appending(path: DirectUnpack.driverName))
         if let ini = plan.clsConfig {
             _ = try DirectUnpack.patchConfig(
@@ -289,6 +274,125 @@ struct InstallEngine: Sendable {
     private func killPrefix(_ wine: WineRunner, prefix: URL) async {
         let env = WineInstall.environment(runner: wine, prefix: prefix, inputs: nil, base: environment)
         await WineServer.kill(server: wine.server, env: env)
+    }
+
+    // The ADR 0025/0026 gate before a game may be marked installed: the shipped manifest or the
+    // archive CRC the unpack just proved (full), else the script's file list and sizes (partial),
+    // else the install stays "Installed, not verified". A mismatch fails the job; the recovery
+    // choices reach it through the presenter via InstallCenter.onVerificationMismatch.
+    @MainActor
+    private func verifyOutput(_ job: InstallJob, in installDir: URL) async -> Bool {
+        job.verificationDir = installDir
+        var manifest: ChecksumManifest?
+        var manifestRel: String?
+        if let rel = job.request.directUnpack?.manifestPath {
+            let url = installDir.appending(path: rel)
+            if let found = GameVerify.usableManifest(at: url, root: installDir) {
+                manifest = found
+                manifestRel = rel
+            }
+        }
+        if manifest == nil, job.request.directUnpack == nil,
+           let url = Checksums.findManifest(in: installDir),
+           let found = GameVerify.usableManifest(at: url, root: installDir) {
+            manifest = found
+            manifestRel = GameVerify.relative(url, under: installDir)
+        }
+        let files = await scriptFiles(for: job)
+
+        if let manifest {
+            job.phase = .verifying
+            do {
+                let bad = try await GameVerify.checkManifest(manifest, root: installDir) { done, total, _ in
+                    Task { @MainActor in
+                        guard job.phase == .verifying else { return }
+                        job.progress.fraction = min(0.99, Double(done) / Double(max(1, total)))
+                    }
+                }
+                job.verification = VerificationOutcome(
+                    status: bad.isEmpty ? .full : .notVerified, level: .manifest,
+                    mismatched: bad, manifest: manifestRel, files: files.isEmpty ? nil : files)
+            } catch {
+                stopped(job)
+                return false
+            }
+        } else if job.request.directUnpack != nil {
+            // The driver's clean unarc exit is the parts' FreeArc CRC check already passed.
+            job.verification = VerificationOutcome(status: .full, level: .crc,
+                                                   files: files.isEmpty ? nil : files)
+            return true
+        } else if !files.isEmpty {
+            job.phase = .verifying
+            do {
+                let bad = try await GameVerify.checkSizes(files, root: installDir) { done, total, _ in
+                    Task { @MainActor in
+                        guard job.phase == .verifying else { return }
+                        job.progress.fraction = min(0.99, Double(done) / Double(max(1, total)))
+                    }
+                }
+                job.verification = VerificationOutcome(
+                    status: bad.isEmpty ? .sizes : .notVerified, level: .sizes,
+                    mismatched: bad, files: files)
+            } catch {
+                stopped(job)
+                return false
+            }
+        } else {
+            job.verification = VerificationOutcome(status: .notVerified, level: .unavailable)
+            return true
+        }
+
+        guard let outcome = job.verification, !outcome.mismatched.isEmpty else { return true }
+        job.diagnosis = InstallDiagnosis(
+            kind: .damagedFile, causes: [.damagedFile], fixes: [.verifyFiles], exitCode: 0,
+            detail: outcome.mismatched.prefix(3).joined(separator: ", "))
+        job.phase = .failed
+        return false
+    }
+
+    // The script's file list and sizes, the partial evidence: app/ entries are what lands in the
+    // install dir. Persisted so Verify Files… can check again after the installer folder is gone.
+    @MainActor
+    private func scriptFiles(for job: InstallJob) async -> [VerificationFile] {
+        guard job.request.importing == nil else { return [] }
+        let setup = job.request.setup, tool = innoextract(), runner = toolRunner()
+        let entries = try? await Task.detached { () throws -> [InnoFileEntry] in
+            try InnoInspector.listSizes(setup, tool: tool, runner: runner)
+        }.value
+        return GameVerify.installedFiles(from: entries ?? [])
+    }
+
+    // Keep Anyway: the install continues to the launcher step; its record keeps the
+    // not-verified outcome and the mismatched files land in the folder's log.
+    @MainActor
+    func resumeAfterMismatch(_ job: InstallJob) async {
+        guard job.phase == .failed, let outcome = job.verification, !outcome.mismatched.isEmpty,
+              let folder = job.folder, let installDir = job.verificationDir else { return }
+        let registry = registry()
+        guard let runner = registry.runner(id: job.inputs.runnerID) ?? InstallRunners.choices(registry).first,
+              let wine = InstallRunners.wine(for: runner, runners: runners) else {
+            job.fail(String(localized: "No runner is set up for installs. Set one up in Runners first."))
+            return
+        }
+        job.diagnosis = nil
+        job.problem = nil
+        let log = folder.root.appending(path: "verification-mismatch.log")
+        try? Data((outcome.mismatched.joined(separator: "\n") + "\n").utf8).write(to: log)
+        AppLog.note("verification: \(job.title) kept \(outcome.mismatched.count) mismatched files, listed in \(log.path(percentEncoded: false))")
+        for file in outcome.mismatched { AppLog.note("verification: mismatch \(file)") }
+        job.phase = .redistributables
+        if let plan = job.request.importing {
+            let exe = plan.copy ? GameCopy.rebase(plan.exe, from: plan.folder, to: installDir) : plan.exe
+            guard await installRedistributables(job, exe: exe, folder: folder, wine: wine) else { return }
+            job.progress.fraction = 1
+            do {
+                job.steamOutcome = try await finish(job, exe: exe, showInSteam: plan.showInSteam)
+            } catch {
+                job.fail(error.localizedDescription)
+            }
+        } else {
+            await finishScan(job, in: installDir, folder: folder, wine: wine)
+        }
     }
 
     // The shared tail of an install: launcher candidates from the unpacked files, the runtimes
@@ -335,6 +439,7 @@ struct InstallEngine: Sendable {
             game = target
         }
         job.installFolder = game
+        guard await verifyOutput(job, in: game) else { return }
         guard await installRedistributables(job, exe: exe, folder: folder, wine: wine) else { return }
         job.progress.fraction = 1
         do {
@@ -347,7 +452,9 @@ struct InstallEngine: Sendable {
     @MainActor
     private func makePrefix(_ job: InstallJob) async -> (GameFolder, WineRunner)? {
         job.phase = .preparing
-        let registry = registry()
+        // Refreshing the registry checks codesignatures: the probes wait on processes, so they run detached.
+        let load = registry
+        let registry = await Task.detached { load() }.value
         guard let runner = registry.runner(id: job.inputs.runnerID) ?? InstallRunners.choices(registry).first,
               let wine = InstallRunners.wine(for: runner, runners: runners) else {
             job.fail(String(localized: "No runner is set up for installs. Set one up in Runners first."))
@@ -362,6 +469,18 @@ struct InstallEngine: Sendable {
                                            log: folder.root.appending(path: "prefix.log"))
             job.bootStarted = boot.prepares ? boot.started : nil
             job.run = boot.run
+            // prefix.log is created by the boot task's own run; look for it off the main actor.
+            if let log = boot.log, boot.prepares {
+                Task.detached { [weak job] in
+                    for _ in 0..<50 where !Task.isCancelled {
+                        if FileManager.default.fileExists(atPath: log.path(percentEncoded: false)) {
+                            await MainActor.run { job?.bootLog = log }
+                            return
+                        }
+                        try? await Task.sleep(for: .milliseconds(100))
+                    }
+                }
+            }
             switch await boot.outcome.value {
             case .ready:
                 return (folder, wine)
@@ -456,11 +575,13 @@ struct InstallEngine: Sendable {
     func finish(_ job: InstallJob, exe: URL, showInSteam: Bool, steam: SteamShortcuts? = nil) async throws -> SteamShortcuts.Outcome? {
         guard let folder = job.folder else { return nil }
         let request = job.request, inputs = job.inputs, steps = job.runtimeSteps
+        let verification = job.verificationRecord
         let engine = self
         // The registry scan, the launcher, the record and the Steam shortcut's process probe: none of it belongs on the main actor.
         let made = try await Task.detached {
             try engine.writeInstall(folder: folder, request: request, inputs: inputs, runtimeSteps: steps,
-                                    exe: exe, showInSteam: showInSteam, steam: steam)
+                                    exe: exe, showInSteam: showInSteam, steam: steam,
+                                    verification: verification)
         }.value
         job.game = made.game
         job.phase = .ready
@@ -470,7 +591,7 @@ struct InstallEngine: Sendable {
     // Everything finish writes or probes, run off the caller's actor.
     private func writeInstall(folder: GameFolder, request: InstallRequest, inputs: InstallInputs,
                               runtimeSteps: [RuntimeStep], exe: URL, showInSteam: Bool,
-                              steam: SteamShortcuts?) throws -> (game: InstalledGame, steam: SteamShortcuts.Outcome?) {
+                              steam: SteamShortcuts?, verification: VerificationRecord?) throws -> (game: InstalledGame, steam: SteamShortcuts.Outcome?) {
         let registry = registry()
         guard let runner = registry.runner(id: inputs.runnerID),
               let wine = InstallRunners.wine(for: runner, runners: runners) else {
@@ -491,7 +612,8 @@ struct InstallEngine: Sendable {
             exe: exe.path(percentEncoded: false), installedAt: Date(),
             installerFolder: request.source.path(percentEncoded: false),
             redistributables: runtimeSteps.filter { $0.status == .installed }.map(\.verb),
-            gameFolder: request.importing.flatMap { $0.copy ? nil : $0.folder.path(percentEncoded: false) }
+            gameFolder: request.importing.flatMap { $0.copy ? nil : $0.folder.path(percentEncoded: false) },
+            verification: verification
         )
         var outcome: SteamShortcuts.Outcome?
         if showInSteam {

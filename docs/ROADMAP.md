@@ -43,6 +43,14 @@ Accepted follow-up status before v0.1.0:
 - Merged in 307ad2c: Ranked local identification and privacy-gated Steam search (ADR 0019).
 - Merged in 307ad2c: PE-based runtimes, one winetricks verb at a time, timeout, Skip, Wine Mono for .NET (ADR 0020).
 - Full Steam library export through a token-protected WebUI route and cached/stale presentation when Steam is closed (ADRs 0021–0022; merged in 451e393 / de0e6ec, real Steam check pending).
+- Installer detection by static inspection with evidence and confidence (ADR 0028; the corrected decision tree in `docs/research/research-verified.md` is approved).
+- Crash reports stay local (ADR 0029): a post-crash prompt with Show Report and Copy Summary, plus a Collect Diagnostics zip; implemented in main 1c25236.
+- Planned, pending research-upscaling: a game-panel Advanced section for all Windows games. Six approved options gated per runner and backend, no frame generation (ADRs 0030–0031).
+- Approved, implementation pending: onboarding v2 — seven steps (Welcome+scan, Windows games with Wine CrossOver default and GPTK disk image, Stores, Consoles, Controller, Permissions/storage/privacy, Ready), downloads as background tasks, resume after relaunch (ADR 0032; `openspec/changes/onboarding-v2`).
+- In review on `fix/steam-compat-tools` (not merged): the Steam export page script fetches its token at run time (`/cartouche/steam-export-token`, no-store, backoff 15 s→300 s), and Wine CrossOver builds register as Steam compatibility tools.
+- In progress: Settings rework — the legacy Setup and Prefix menus and the Steam Play Setup window move into Settings (Steam and Wine Prefixes), the CrossOver.app requirement is removed, and one integration banner remains.
+- French localization is merged (e7f8ba5) with `docs/l10n/glossary-fr.md`.
+- QA persona runs (`qa/`, beginner/medium/senior) are postponed.
 
 The app repository stays private until v0.1.0. Wine build recipes and assets are public in BRYANN2K/cartouche-wine. The landing page is https://cartouche.bryann2k.dev, linked from About.
 

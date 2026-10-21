@@ -98,6 +98,7 @@ struct RunnerManifestTests {
         #expect(ours.size == 149_444_708)
         #expect(ours.sha256 == "60400817826a053599193aa290d4e24e97213a743195f4187400bf9c74906887")
         #expect(ours.isPinned && !ours.isPending)
+        #expect(RunnerOffer.recommended(manifest)?.id == ours.id)
     }
 
     @Test("A pending pin decodes and is listed, but install refuses it before any download")

@@ -12,6 +12,7 @@ struct FoundSteam: Equatable, Sendable {
 
 struct FoundRunner: Equatable, Sendable {
     var name: String
+    var ready = true
 }
 
 struct FoundController: Equatable, Sendable {
@@ -143,7 +144,7 @@ extension MacScan {
         var seen: Set<String> = []
         return found.compactMap { runner in
             seen.insert(runner.displayVersion).inserted
-                ? FoundRunner(name: "\(Runner.Kind.portingToolkit.name) \(runner.displayVersion)") : nil
+                ? FoundRunner(name: "\(Runner.Kind.portingToolkit.name) \(runner.displayVersion)", ready: runner.state == .ready) : nil
         }
     }
 
@@ -189,7 +190,7 @@ struct GameFolderScan: Sendable {
             guard fm.fileExists(atPath: folder.path(percentEncoded: false), isDirectory: &isFolder), isFolder.boolValue
             else { continue }
             let real = Self.resolved(folder)
-            guard isSafe(real), seen.insert(real.lowercased()).inserted else { continue }
+            guard isSafe(real), !ScanFence.blocks(root: folder), seen.insert(real.lowercased()).inserted else { continue }
             let counts = count(in: URL(filePath: real, directoryHint: .isDirectory), skipping: offered.map { Self.resolved($0.url) })
             let total = counts.values.reduce(0, +)
             if total > 0 {
@@ -227,12 +228,15 @@ struct GameFolderScan: Sendable {
             if walker.level > maxDepth { walker.skipDescendants() }
             if (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true {
                 let path = Self.resolved(url)
-                if skipping.contains(where: { path == $0 || path.hasPrefix($0 + "/") }) {
+                if ScanFence.blocks(url) || skipping.contains(where: { path == $0 || path.hasPrefix($0 + "/") }) {
                     walker.skipDescendants()
-                    continue
                 }
+                continue
             }
-            if let console = Self.extensions[url.pathExtension.lowercased()] {
+            let ext = url.pathExtension.lowercased()
+            // The extension alone never counts: a header-less .gb is test data,
+            // not a game.
+            if let console = Self.extensions[ext], CartHeader.plausible(url, ext: ext) {
                 counts[console, default: 0] += 1
             }
         }

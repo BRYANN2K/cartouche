@@ -3,10 +3,12 @@ import SwiftUI
 struct SetupDefaultsSection: View {
     let model: LibraryModel
     @State private var defaults = SetupDefaults()
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         // The install runners, CrossOver Wine first: the default also serves installers and store games.
         let runners = model.installRunners
+        let backends = model.graphicsChoices(for: defaults)
         Section {
             Picker("Default runner", selection: Binding(
                 get: { defaults.runnerID ?? "" },
@@ -15,12 +17,31 @@ struct SetupDefaultsSection: View {
                 Text("First Available").tag("")
                 ForEach(runners) { Text(verbatim: "\($0.kind.name) \($0.displayVersion)").tag($0.id) }
             }
-            Picker("Default graphics", selection: Binding(
-                get: { defaults.graphics },
-                set: { defaults.graphics = $0; save() }
-            )) {
-                Text("First Available").tag(GraphicsBackend?.none)
-                ForEach(GraphicsBackend.allCases) { Text(verbatim: $0.label).tag(Optional($0)) }
+            LabeledContent("Default graphics") {
+                Menu {
+                    Picker("Default graphics", selection: Binding(
+                        get: { defaults.graphics.flatMap { backends.contains($0) ? $0 : nil } },
+                        set: { defaults.graphics = $0; save() }
+                    )) {
+                        Text("First Available").tag(GraphicsBackend?.none)
+                        ForEach(backends) { Text(verbatim: $0.label).tag(Optional($0)) }
+                    }
+                    .pickerStyle(.inline)
+                    if backends.count < GraphicsBackend.allCases.count {
+                        Divider()
+                        Button("Get More Graphics Backends…") {
+                            SettingsRoute.shared.tab = .compatibility
+                            openSettings()
+                        }
+                    }
+                } label: {
+                    if let backend = defaults.graphics, backends.contains(backend) {
+                        Text(verbatim: backend.label)
+                    } else {
+                        Text("First Available")
+                    }
+                }
+                .fixedSize()
             }
             // FEX runs only on macOS 26, so macOS 15 shows no choice
             if CompatTool.Flavor.fexAvailable {

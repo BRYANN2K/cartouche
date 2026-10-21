@@ -24,7 +24,7 @@ struct ConsolePanelTests {
 
     @Test("Sections in the documented order: Play or Resume, Continue From, play time and achievements, Setup, Controls, Play Together, More…")
     func order() async throws {
-        let scene = try ConsoleScene("panel-order")
+        let scene = try await ConsoleScene("panel-order")
         defer { scene.remove() }
         let game = try await scene.addGame(console: "snes", name: "Cartouche Homebrew", databaseName: "Cartouche Homebrew (World)")
         let system = try #require(scene.center.console(of: game))
@@ -51,7 +51,7 @@ struct ConsolePanelTests {
 
     @Test("The panel and its More… sheet render in light and dark")
     func snapshots() async throws {
-        let scene = try ConsoleScene("panel-snap")
+        let scene = try await ConsoleScene("panel-snap")
         defer { scene.remove() }
         let game = try await scene.addGame(console: "snes", name: "Cartouche Homebrew", databaseName: "Cartouche Homebrew (World)")
         try await scene.center.store.update(game.id) { $0.playSeconds = 7.5 * 3600; $0.setup.look = .crt }
@@ -84,9 +84,56 @@ struct ConsolePanelTests {
         }
     }
 
+    // The reported mismatch: states and a save exist from days ago, nothing counted
+    // the play, and the panel read "Never played"/"Not yet" under a Resume button.
+    @Test("A state or save from before sessions counted still reads as played, and the labels agree")
+    func playedIsConsistent() async throws {
+        let scene = try await ConsoleScene("panel-played")
+        defer { scene.remove() }
+        let added = try await scene.addGame(console: "snes", name: "Cartouche Homebrew", databaseName: "Cartouche Homebrew (World)")
+        let system = try #require(scene.center.console(of: added))
+
+        // A 7-day-old auto state and an older SRAM save, no session ever counted
+        try scene.writeState(added, slot: nil, picture: try Self.screen("AUTO"), age: 7 * 86400)
+        try scene.writeSave(added, age: 30 * 86400)
+        await scene.center.reload()
+
+        let game = try #require(scene.center.game(added.id))
+        #expect(game.lastPlayed != nil, "the save files' newest date stands in for the uncounted play")
+        let content = ConsolePanelContent(game: game, console: system, states: await scene.center.states(for: game),
+                                        bios: await scene.center.bios(for: game), playing: nil)
+        // The button, the subtitle and the Played row describe the same fact
+        #expect(content.playLabel == "Resume")
+        #expect(content.playedAt != nil)
+        #expect(content.subtitle() == "Super Nintendo. Played 7 days ago.")
+        #expect(content.played == "7 days ago")
+        // So does the library row
+        #expect(scene.library.game(game.id)?.status() == "Played 7 days ago")
+
+        // A save alone, with no state at all, still says the game ran
+        let sramOnly = try await scene.addGame(console: "snes", name: "SRAM Only",
+                                             data: ConsoleFixtures.homebrewSNES(title: "SRAM ONLY", fill: 0x99))
+        try scene.writeSave(sramOnly, age: 3 * 86400)
+        await scene.center.reload()
+        let merged = try #require(scene.center.game(sramOnly.id))
+        let save = ConsolePanelContent(game: merged, console: system, states: [], bios: nil, playing: nil)
+        #expect(save.playLabel == "Play")
+        #expect(save.subtitle() == "Super Nintendo. Played 3 days ago.")
+        #expect(save.played == "3 days ago")
+
+        // A counted session newer than the files wins
+        try await scene.center.store.update(added.id) { $0.lastPlayed = Date() }
+        await scene.center.reload()
+        let now = try #require(scene.center.game(added.id))
+        let today = ConsolePanelContent(game: now, console: system, states: await scene.center.states(for: added),
+                                        bios: await scene.center.bios(for: added), playing: nil)
+        #expect(today.subtitle() == "Super Nintendo. Played today.")
+        #expect(today.played == "today")
+    }
+
     @Test("A multi-disc game offers its discs; Setup changes are kept for the game")
     func setupIsKept() async throws {
-        let scene = try ConsoleScene("panel-setup")
+        let scene = try await ConsoleScene("panel-setup")
         defer { scene.remove() }
         let game = try await scene.addGame(console: "ps1", name: "Saga", discs: 2)
         try Data(repeating: 1, count: 16).write(to: scene.paths.bios.appending(path: "scph5501.bin"))

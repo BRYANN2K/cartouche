@@ -6,6 +6,7 @@ struct LibraryGrid: View {
     let actions: GameActionRunner
     var compat: CompatibilityModel?
 
+    @Environment(ConsoleCenter.self) private var consoles: ConsoleCenter?
     @Environment(ControlsCenter.self) private var controls: ControlsCenter?
     @Environment(StoreCenter.self) private var stores: StoreCenter?
     @State private var droppedCover: (game: Game, image: URL)?
@@ -66,7 +67,7 @@ struct LibraryGrid: View {
             onSelect: { model.select(game.id) },
             onFavorite: { model.toggleFavorite(game.id) },
             onDropCover: { droppedCover = (game, $0) },
-            menu: { GameMenu.items(for: game, in: model, stores: stores) },
+            menu: { GameMenu.items(for: game, in: model, stores: stores, consoles: consoles) },
             perform: { actions.perform($0, on: game) },
             antiCheatBlocked: game.steamAppID.flatMap { compat?.record(appID: $0) }
                 .flatMap(AntiCheatSummary.init(record:))?.level == .blocked

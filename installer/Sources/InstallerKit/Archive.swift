@@ -33,6 +33,14 @@ public struct ArchiveEntry: Sendable, Equatable {
     public var kind: Kind
     public var linkTarget: String?
     public var isEncrypted = false
+
+    public init(path: String, size: Int64, kind: Kind, linkTarget: String? = nil, isEncrypted: Bool = false) {
+        self.path = path
+        self.size = size
+        self.kind = kind
+        self.linkTarget = linkTarget
+        self.isEncrypted = isEncrypted
+    }
 }
 
 public struct ArchiveProbe: Sendable, Equatable {
@@ -45,6 +53,16 @@ public struct ArchiveProbe: Sendable, Equatable {
     public var hasEncryptedEntries: Bool
     // Sum of file sizes; 0 means unknown.
     public var uncompressedSize: Int64
+
+    public init(format: ArchiveFormat, formatName: String, filters: [String], entries: [ArchiveEntry],
+                hasEncryptedEntries: Bool, uncompressedSize: Int64) {
+        self.format = format
+        self.formatName = formatName
+        self.filters = filters
+        self.entries = entries
+        self.hasEncryptedEntries = hasEncryptedEntries
+        self.uncompressedSize = uncompressedSize
+    }
 }
 
 public struct ArchiveProgress: Sendable, Equatable {

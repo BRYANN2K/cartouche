@@ -64,6 +64,9 @@ struct ControlsSheet: View {
     let center: ControlsCenter
     let session: ControlsSession
     @State private var tab: Tab
+    @State private var hoveredButton: PadButton?
+    @State private var selectedButton: PadButton?
+    @FocusState private var focusedButton: PadButton?
 
     init(center: ControlsCenter, session: ControlsSession) {
         self.center = center
@@ -146,14 +149,30 @@ struct ControlsSheet: View {
                      : "The game sees an Xbox controller. Changes apply at the next launch.")
             }
             Section {
+                ControllerDiagram(family: family, state: center.diagramState,
+                                  highlighted: hoveredButton ?? focusedButton ?? selectedButton,
+                                  target: { targetLabel(controls.layout.target(of: $0)) })
+                    .onAppear { center.diagramVisible = true }
+                    .onDisappear { center.diagramVisible = false }
                 ForEach(PadButton.allCases) { button in
                     Picker(selection: Binding(
                         get: { controls.layout.target(of: button) },
-                        set: { target in Task { await center.update(game) { $0.layout.set(button, sends: target) } } }
+                        set: { target in
+                            selectedButton = button
+                            Task { await center.update(game) { $0.layout.set(button, sends: target) } }
+                        }
                     )) {
                         ForEach(PadButton.allCases) { Text(verbatim: targetLabel($0)).tag($0) }
                     } label: {
                         Text(verbatim: button.label(family))
+                    }
+                    .focused($focusedButton, equals: button)
+                    .onHover { hoveredButton = $0 ? button : (hoveredButton == button ? nil : hoveredButton) }
+                    .simultaneousGesture(TapGesture().onEnded { selectedButton = button })
+                    .background {
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(Color.accentColor.opacity(hoveredButton == button || focusedButton == button || selectedButton == button ? 0.08 : 0))
+                            .padding(-4)
                     }
                 }
             } header: {

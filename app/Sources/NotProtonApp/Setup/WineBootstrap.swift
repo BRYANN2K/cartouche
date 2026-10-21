@@ -173,15 +173,23 @@ enum WineServer {
     // or crash handler cannot keep it alive forever. True when the wait timed out.
     @discardableResult
     static func wait(server: URL, env: [String: String], timeout: TimeInterval) async -> Bool {
+        let timedOut = await drain(server: server, env: env, timeout: timeout)
+        if timedOut { await kill(server: server, env: env) }
+        return timedOut
+    }
+
+    // The wait alone: `wineserver -w` returns once every prefix process has exited;
+    // at `timeout` only the waiter is stopped and the session left for the caller
+    // to judge — a store client or a user-opened program may legitimately hold it.
+    // True when the wait timed out.
+    @discardableResult
+    static func drain(server: URL, env: [String: String], timeout: TimeInterval) async -> Bool {
         let waiter = InstallRun(InstallLaunch(executable: server.path(percentEncoded: false), arguments: ["-w"], environment: env))
         guard (try? waiter.start()) != nil else { return false }
         let done = Task { await waiter.exitStatus() }
         let killer = Task {
             try? await Task.sleep(for: .seconds(timeout))
-            if !Task.isCancelled {
-                waiter.stop()
-                await kill(server: server, env: env)
-            }
+            if !Task.isCancelled { waiter.stop() }
         }
         _ = await done.value
         killer.cancel()

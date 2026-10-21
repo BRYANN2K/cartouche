@@ -14,7 +14,19 @@ struct OnboardingDetectionTests {
         for file in files {
             let url = folder.appending(path: file)
             try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-            try Data("rom".utf8).write(to: url)
+            try content(for: file).write(to: url)
+        }
+    }
+
+    // What a count needs per format: the cartridge logo, a cue's FILE line, or
+    // for header-less formats any bytes at all
+    private static func content(for file: String) -> Data {
+        switch (file as NSString).pathExtension.lowercased() {
+        case "gb": return ConsoleFixtures.homebrewGB(title: "QA TEST")
+        case "gbc": return ConsoleFixtures.homebrewGB(title: "QA TEST")
+        case "gba": return ConsoleFixtures.homebrewGBA(title: "QA TEST")
+        case "cue": return Data("FILE \"disc.bin\" BINARY\n".utf8)
+        default: return Data("rom".utf8)
         }
     }
 
@@ -85,6 +97,15 @@ struct OnboardingDetectionTests {
         try Self.touch(["Games/ROMs/Sonic.md", "Games/Arcade/Pong.a26", "Games/Steam/readme.txt"], in: home)
         // A folder with no console game is not offered
         try Self.touch(["Emulation/saves/slot1.txt"], in: home)
+        // A working copy (has .git), a Library, and a header-less .gb name
+        // inside a candidate are never counted
+        try Self.touch(["Games/Projects/clone/roms/Mario.sfc",
+                        "Games/Library/Emu Data/test.sfc"], in: home)
+        try FileManager.default.createDirectory(
+            at: home.appending(path: "Games/Projects/clone/.git"), withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(
+            at: home.appending(path: "Games/NotARom"), withIntermediateDirectories: true)
+        try Data("not a rom".utf8).write(to: home.appending(path: "Games/NotARom/test.gb"))
 
         let found = GameFolderScan(home: home).run()
         #expect(found.map { $0.shortPath(home: home) } == ["~/Games/ROMs", "~/Games"])

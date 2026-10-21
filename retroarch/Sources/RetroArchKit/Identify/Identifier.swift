@@ -45,9 +45,15 @@ public struct Identifier: Sendable {
             var isFolder: ObjCBool = false
             guard FileManager.default.fileExists(atPath: url.path(percentEncoded: false), isDirectory: &isFolder) else { continue }
             if isFolder.boolValue {
+                guard !ScanFence.blocks(root: url) else { continue }
                 let walker = FileManager.default.enumerator(
-                    at: url, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles, .skipsPackageDescendants])
+                    at: url, includingPropertiesForKeys: [.isRegularFileKey, .isDirectoryKey],
+                    options: [.skipsHiddenFiles, .skipsPackageDescendants])
                 while let item = walker?.nextObject() as? URL {
+                    if (try? item.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true {
+                        if ScanFence.blocks(item) { walker?.skipDescendants() }
+                        continue
+                    }
                     if wanted.contains(item.pathExtension.lowercased()),
                        (try? item.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true {
                         found.append(item.standardizedFileURL)
@@ -104,6 +110,11 @@ public struct Identifier: Sendable {
     private func identifyCartridge(_ file: URL, ext: String) async -> Identification {
         let candidates = offered(ext)
         guard !candidates.isEmpty else { return unknown(file, ext: ext) }
+        // Without its format's fixed header a cartridge-named file is not a
+        // game: no console is offered and nothing counts it.
+        guard CartHeader.plausible(file, ext: ext) else {
+            return Identification(file: file, name: GameTitle.fromFile(file))
+        }
         var sums: [UInt32] = []
         if let whole = try? CRC32.checksum(of: file) { sums.append(whole) }
         let size = (try? file.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
@@ -155,6 +166,9 @@ public struct Identifier: Sendable {
 
     private func identifyDisc(_ file: URL) async -> Identification {
         let ext = file.pathExtension.lowercased()
+        guard CartHeader.plausible(file, ext: ext) else {
+            return Identification(file: file, name: GameTitle.fromFile(file))
+        }
         let candidates = offered(ext)
         if ext == "cue", let track = Playlist.cue(file).first {
             if let serial = DiscSerial.playStation(track) {

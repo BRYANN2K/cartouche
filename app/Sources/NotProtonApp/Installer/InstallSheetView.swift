@@ -161,19 +161,25 @@ private struct ReviewStep: View {
                         }
                     }
                     LabeledContent("Install to") { Text(model.installDir).font(.callout.monospaced()) }
-                    Picker("Installer", selection: $model.mode) {
-                        Text("Guided").tag(InnoCommand.Mode.guided)
-                        Text("Automatic").tag(InnoCommand.Mode.automatic)
-                    }
-                    .pickerStyle(.segmented)
-                    .disabled(model.analysis?.unpacker != nil)
-                    if model.analysis?.unpacker != nil {
-                        Text("This installer unpacks its data with its own helper programs. It needs the guided mode and a short install path.")
+                    if model.analysis?.directUnpack != nil {
+                        LabeledContent("Installer") { Text("Direct unpack") }
+                        Text("Game files are unpacked directly. No installer window opens.")
                             .font(.callout).foregroundStyle(.secondary)
                     } else {
-                        Text(model.mode == .guided ? "The installer window opens so you can pick languages and options."
-                                                   : "No windows. Default options are used.")
-                            .font(.callout).foregroundStyle(.secondary)
+                        Picker("Installer", selection: $model.mode) {
+                            Text("Guided").tag(InnoCommand.Mode.guided)
+                            Text("Automatic").tag(InnoCommand.Mode.automatic)
+                        }
+                        .pickerStyle(.segmented)
+                        .disabled(model.analysis?.unpacker != nil)
+                        if model.analysis?.unpacker != nil {
+                            Text("This installer unpacks its data with its own helper programs. It needs the guided mode and a short install path.")
+                                .font(.callout).foregroundStyle(.secondary)
+                        } else {
+                            Text(model.mode == .guided ? "The installer window opens so you can pick languages and options."
+                                                       : "No windows. Default options are used.")
+                                .font(.callout).foregroundStyle(.secondary)
+                        }
                     }
                 }
                 .formStyle(.columns)
@@ -358,11 +364,13 @@ private struct ProgressBody: View {
                     Text("The installer seems stuck.").font(.headline).foregroundStyle(.orange)
                     Text("The folder has not grown for 5 minutes and the installer is idle.").font(.callout).foregroundStyle(.secondary)
                     HStack {
-                        Button("Show Installer Window") { model.showInstallerWindow() }
+                        if job.canShowInstallerWindow {
+                            Button("Show Installer Window") { model.showInstallerWindow() }
+                        }
                         Button("Stop") { model.stop() }
                     }
                 }
-            } else if job.inputs.mode == .guided {
+            } else if job.canShowInstallerWindow {
                 Button("Show Installer Window") { model.showInstallerWindow() }
             }
         }
@@ -381,8 +389,7 @@ private struct ProgressBody: View {
                 }
             }
             Spacer(minLength: 0)
-            if let log = job.folder.map({ $0.root.appending(path: "prefix.log") }),
-               FileManager.default.fileExists(atPath: log.path(percentEncoded: false)) {
+            if let log = job.bootLog {
                 Button("Show Log") { NSWorkspace.shared.open(log) }
             }
         }

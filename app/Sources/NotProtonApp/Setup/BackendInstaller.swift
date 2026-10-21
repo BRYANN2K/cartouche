@@ -109,7 +109,10 @@ enum BackendInstaller {
         defer { try? FileManager.default.removeItem(at: archive) }
         // A swapped archive is checked again before it is unpacked
         let extras = await QAEnvironment.extraHashes(session: session)
-        return try unpack(archive, pin: pin, backends: backends, extraHashes: extras)
+        // tar and the hashing wait on a process: they never run on the caller's actor
+        return try await Task.detached {
+            try unpack(archive, pin: pin, backends: backends, extraHashes: extras)
+        }.value
     }
 
     static func unpack(

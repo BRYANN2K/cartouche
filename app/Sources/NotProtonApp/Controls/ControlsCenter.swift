@@ -26,6 +26,8 @@ final class ControlsCenter {
     private(set) var presented: Game?
     private(set) var session: ControlsSession?
     private(set) var controls: [String: GameControls] = [:]
+    private(set) var diagramState = PadState.idle
+    var diagramVisible = false
     var problem: String?
 
     @ObservationIgnored let store: ControlsStore
@@ -112,6 +114,8 @@ final class ControlsCenter {
     func dismiss() {
         presented = nil
         session = nil
+        diagramVisible = false
+        diagramState = .idle
     }
 
     var route: ScreenRoute? { presented.map { ScreenRoute.controls(game: $0.id, finishing: .inputMonitoring) } }
@@ -165,10 +169,11 @@ final class ControlsCenter {
         controls.filter { wanted($0.value) }.keys.sorted().compactMap { library?.game($0) }
     }
 
-    var needsPolling: Bool { couch.isOn || !keyboardPlayGames.isEmpty || !keyRemapGames.isEmpty }
+    var needsPolling: Bool { diagramVisible || couch.isOn || !keyboardPlayGames.isEmpty || !keyRemapGames.isEmpty }
 
-    // 16 ms only while a game that needs it, or couch mode's window, is in front; else once a second plus frontmost changes.
+    // 16 ms only while a game that needs it, or couch mode's window, is in front, or while the controller diagram shows in the active app; else once a second plus frontmost changes.
     private var wantsFastPoll: Bool {
+        if diagramVisible && isActive() { return true }
         if couch.isOn && isActive() { return true }
         guard let frontmostGame else { return false }
         return keyboardPlayGames.contains { $0.id == frontmostGame.id }
@@ -181,6 +186,8 @@ final class ControlsCenter {
 
     func tick(now: Double) {
         let state = reader.read()
+        let diagram = diagramVisible && isActive() ? state ?? .idle : .idle
+        if diagramState != diagram { diagramState = diagram }
         couch.tick(isActive() ? state : nil, at: now)
 
         let playing = keyboardPlayGames

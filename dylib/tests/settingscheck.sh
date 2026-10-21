@@ -45,7 +45,7 @@ settings() {
 		'[HKEY_LOCAL_MACHINE\Software\Classes\steam\shell\open\command]' \
 		'@="\"C:\\Program Files (x86)\\Steam\\steam.exe\" \"%1\""' ''
 }
-settings '"RetinaMode"=-' > "$work/retina-off"
+settings '"RetinaMode"="n"' > "$work/retina-off"
 settings '"RetinaMode"="y"' > "$work/retina-on"
 
 fails=0
@@ -92,7 +92,7 @@ leftovers() { find "$case_dir/pfx/drive_c" -name 'cartouche-settings.*' | wc -l 
 echo "== one import per launch"
 launch "" 0
 is "Retina unset runs a single import and nothing else" 'reg import C:\cartouche-settings.X' "$(calls)"
-same_file "Retina unset deletes RetinaMode" "$work/retina-off" "$case_dir/imported"
+same_file "Retina unset sets RetinaMode to n" "$work/retina-off" "$case_dir/imported"
 is "the file is gone after the import" 0 "$(leftovers)"
 is "a clean import only logs the controller count" "controllers: 3 kept off hidraw" "$(cat "$case_dir/log")"
 is "the launch carries on" returned "$(cat "$case_dir/out")"
@@ -101,7 +101,7 @@ launch 1 0
 same_file "Retina on sets RetinaMode to y" "$work/retina-on" "$case_dir/imported"
 
 launch 0 0
-same_file "Retina off deletes RetinaMode" "$work/retina-off" "$case_dir/imported"
+same_file "Retina off sets RetinaMode to n" "$work/retina-off" "$case_dir/imported"
 
 echo "== failures"
 launch "" 1

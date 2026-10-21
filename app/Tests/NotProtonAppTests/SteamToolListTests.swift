@@ -57,4 +57,69 @@ struct SteamToolListTests {
 
         #expect(try String(contentsOf: file, encoding: .utf8) == Self.text(Self.withFEX))
     }
+
+    private static func wineReceipt(_ id: String, in runners: URL) throws {
+        let root = runners.appending(path: id)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let receipt = WineRunnerInstaller.Receipt(
+            id: id, archiveSHA256: "aa", files: [:], loader: "bin/wine")
+        try JSONEncoder().encode(receipt).write(to: root.appending(path: WineRunnerInstaller.receiptName))
+    }
+
+    @Test("An installed Cartouche Wine build registers only its manifest flavors after the clones")
+    func wineTools() throws {
+        let work = try scratchDirectory("toollist-wine")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let runners = work.appending(path: "runners")
+        let id = "wine-crossover-26.3.0-1"
+        try Self.wineReceipt(id, in: runners)
+        let file = work.appending(path: "tools")
+
+        try CompatToolList.sync(
+            runners: runners, bridge: work.appending(path: "bridge"), file: file,
+            compatTools: work.appending(path: "compatibilitytools.d"), fexAvailable: true)
+
+        #expect(try String(contentsOf: file, encoding: .utf8) == Self.text([
+            "\(Self.p)-\(id)\t\(id)\trosetta\tWine CrossOver 26.3",
+        ]))
+    }
+
+    @Test("A WineHQ build is not a compatibility tool")
+    func wineHQExcluded() throws {
+        let work = try scratchDirectory("toollist-winehq")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let runners = work.appending(path: "runners")
+        for build in RunnerManifest.current().builds
+        where build.kind == Runner.Kind.wineBuild.rawValue && build.origin != .cartouche {
+            try Self.wineReceipt(build.id, in: runners)
+        }
+        let file = work.appending(path: "tools")
+
+        try CompatToolList.sync(
+            runners: runners, bridge: work.appending(path: "bridge"), file: file,
+            compatTools: work.appending(path: "compatibilitytools.d"), fexAvailable: true)
+
+        #expect(try String(contentsOf: file, encoding: .utf8) == "")
+    }
+
+    @Test("A removed Wine build drops off the list on the next sync")
+    func wineRemoval() throws {
+        let work = try scratchDirectory("toollist-wine-remove")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let runners = work.appending(path: "runners")
+        let id = "wine-crossover-26.3.0-1"
+        try Self.wineReceipt(id, in: runners)
+        let file = work.appending(path: "tools")
+        let compatTools = work.appending(path: "compatibilitytools.d")
+
+        try CompatToolList.sync(
+            runners: runners, bridge: work.appending(path: "bridge"), file: file,
+            compatTools: compatTools, fexAvailable: true)
+        try FileManager.default.removeItem(at: runners.appending(path: id))
+        try CompatToolList.sync(
+            runners: runners, bridge: work.appending(path: "bridge"), file: file,
+            compatTools: compatTools, fexAvailable: true)
+
+        #expect(try String(contentsOf: file, encoding: .utf8) == "")
+    }
 }

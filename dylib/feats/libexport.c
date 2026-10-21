@@ -293,6 +293,31 @@ static int ensure_support_dir(const char *home, char *dir, size_t dsz) {
         : (errno == ENOENT && mkdir(dir, 0755) == 0 ? 0 : -1);
 }
 
+// The page fetches the launch token from the loopback host instead of carrying
+// one baked into the patched JavaScript, so a cached page always presents this
+// launch's token. The bytes are served through a rewound anonymous fd.
+int np_libexport_open_token(void) {
+    const char *home = np_home_dir();
+    if (!home) return -1;
+    char dir[1200], tmpl[1400];
+    if (ensure_support_dir(home, dir, sizeof dir) != 0) return -1;
+    snprintf(tmpl, sizeof tmpl, "%s/libexport-token.XXXXXX", dir);
+    int fd = mkstemp(tmpl);
+    if (fd < 0) return -1;
+    unlink(tmpl);
+
+    const char *token = np_libexport_token();
+    int ok = 1;
+    for (size_t off = 0; ok && off < NP_TOKEN_LEN; ) {
+        ssize_t w = write(fd, token + off, NP_TOKEN_LEN - off);
+        if (w <= 0) ok = 0;
+        else off += (size_t)w;
+    }
+    if (ok) ok = lseek(fd, 0, SEEK_SET) == 0;
+    if (!ok) { close(fd); return -1; }
+    return fd;
+}
+
 // Replaces the export through a temp file in the same directory so a reader
 // never sees a partial file. Refuses a symlinked directory or target.
 static int write_export(const char *home, const char *bytes, size_t len) {
@@ -328,7 +353,15 @@ static int export_owned_games(uintptr_t request, uintptr_t response) {
     }
     if (!data || memcmp(data, np_libexport_token(), NP_TOKEN_LEN) ||
         data[NP_TOKEN_LEN] != '\n') {
-        NP_WARN("libexport: request without this launch's token refused");
+        // A page cached from an earlier launch keeps asking with the old
+        // token; say so once, at warn level, then keep quiet about it.
+        static int refused;
+        if (!refused) {
+            refused = 1;
+            NP_WARN("libexport: request without this launch's token refused");
+        } else {
+            NP_DBG("libexport: request without this launch's token refused");
+        }
         return RESULT_FAIL;
     }
     const char *home = np_home_dir();

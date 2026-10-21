@@ -64,6 +64,12 @@ struct YourPlayTests {
          PlayStatsTests.session(0, setup: dxvk, name: "CrossOver 2026 08 21 FEX · DXVK", hours: 0.5, fps: 40, low: 31, startedAt: 70_000)]
     }
 
+    // The same three setups, with DXMT played a second time so it passes the best-setup sample
+    static var compareSetups: [StoredSession] {
+        threeSetups + [PlayStatsTests.session(0, setup: dxmt, name: "CrossOver 26.3 · DXMT",
+                                              hours: 0.2, fps: 57, low: 42, startedAt: 80_000)]
+    }
+
     @Test("The panel shows the average weighted by play time, the 1% low and the play time, after Play")
     func weightedInPanel() async throws {
         let scene = try await Scene("yourplay-weighted", sessions: Array(Self.threeSetups.prefix(2)))
@@ -89,7 +95,7 @@ struct YourPlayTests {
 
     @Test("Compare Setups lists each setup with average, 1% low and play time, marks the best, and offers to use it")
     func compare() async throws {
-        let scene = try await Scene("yourplay-compare", sessions: Self.threeSetups)
+        let scene = try await Scene("yourplay-compare", sessions: Self.compareSetups)
         defer { scene.fixture.remove() }
         // The game runs DXVK now, so the best setup is not the one in use
         var choice = scene.model.setup(for: scene.game.id)
@@ -101,7 +107,7 @@ struct YourPlayTests {
             "\(YourPlayText.runner($0)) | \(YourPlayText.detail($0.setup)) | \(YourPlayText.fps($0.average)) | \(YourPlayText.fps($0.low1)) | \(YourPlayText.played($0.played))"
         }
         #expect(rows == [
-            "CrossOver 26.3 | DXMT, Rosetta | 56 fps | 41 fps | 14 hr, 12 min",
+            "CrossOver 26.3 | DXMT, Rosetta | 56 fps | 41 fps | 14 hr, 24 min",
             "CrossOver 2026 08 21 FEX | DXVK, FEX | 40 fps | 31 fps | 30 min",
             "CrossOver 26.3 | D3DMetal, Rosetta | 34 fps | 22 fps | 1 hr, 6 min",
         ])

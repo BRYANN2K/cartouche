@@ -56,4 +56,35 @@ public enum SaveStates {
             return a.date > b.date
         }
     }
+
+    // The newest write under states/ and saves/, keyed by content name: proof a game
+    // ran even when no session counted it — a killed app, or play before Cartouche
+    // kept track. The state stem is cut at the last ".state", the save at its extension.
+    public static func latestActivity(in paths: RetroArchPaths) -> [String: Date] {
+        var dates: [String: Date] = [:]
+        merge(into: &dates, from: paths.states) { file in
+            let name = file.lastPathComponent
+            guard let marker = name.range(of: ".state", options: .backwards) else { return nil }
+            let suffix = name[marker.upperBound...]
+            guard suffix.isEmpty || suffix == ".auto" || Int(suffix).map({ $0 > 0 }) == true else { return nil }
+            return String(name[..<marker.lowerBound])
+        }
+        merge(into: &dates, from: paths.saves) { file in
+            let name = file.deletingPathExtension().lastPathComponent
+            return name.isEmpty ? nil : name
+        }
+        return dates
+    }
+
+    private static func merge(into dates: inout [String: Date], from folder: URL, stem: (URL) -> String?) {
+        // The folder is a link into iCloud Drive when saves follow the user
+        let linked = CloudSaves.link(at: folder).map { URL(fileURLWithPath: $0, isDirectory: true) }
+        let walker = FileManager.default.enumerator(at: linked ?? folder, includingPropertiesForKeys: [.contentModificationDateKey, .isRegularFileKey])
+        while let file = walker?.nextObject() as? URL {
+            guard let values = try? file.resourceValues(forKeys: [.contentModificationDateKey, .isRegularFileKey]),
+                  values.isRegularFile == true, let name = stem(file),
+                  let date = values.contentModificationDate else { continue }
+            dates[name] = max(dates[name] ?? .distantPast, date)
+        }
+    }
 }

@@ -532,6 +532,11 @@ final class StoreCenter {
         }
         var env = SetupEnvironment.make(wine: wine, prefix: record.prefix, backend: setup.backend,
                                         environment: setup.environment, backends: backends, base: gameEnvironment)
+        let prefixEnvironment = env
+        let prefix = record.prefix
+        try await Task.detached {
+            try AdvancedPrefixSettings.apply(wine: wine, prefix: prefix, environment: prefixEnvironment)
+        }.value
         // Only allowlisted store variables: legendary JSON must not set DYLD_* or HOME on the native loader.
         env.merge(launch.environment.filter { GameSetupResolver.isAllowed(name: $0.key, value: $0.value) }) { $1 }
         let command = ClientCommand(executable: URL(filePath: WineInstall.rosetta[0]),

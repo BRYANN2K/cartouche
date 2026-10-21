@@ -6,6 +6,8 @@ struct SteamActivitySnapshot: Equatable, Sendable {
     var downloads: [DownloadActivity] = []
     var installed: Set<Int> = []
     var runningAppID: Int?
+    // Live state, not file state: the monitor fills it, so reads straight off disk assume Steam runs
+    var steamRunning = true
     // The processes Steam tracks for the running game, each with the time Steam logged it, still alive and still tracing back to the game
     var trackedPIDs: [pid_t: Date] = [:]
     var names: [Int: String] = [:]

@@ -2,7 +2,7 @@ import Foundation
 import Observation
 import SwiftUI
 
-enum GameVerificationStatus: Equatable, Sendable {
+enum GameVerificationStatus: String, Codable, Equatable, Sendable {
     case notVerified, sizes, full
 
     var title: String {
@@ -41,6 +41,8 @@ protocol GameVerificationPresenting: AnyObject, Observable, Sendable {
     func progress(for gameID: String) -> GameVerificationProgress?
     var mismatch: GameVerificationMismatch? { get }
     func verify(_ game: Game)
+    // A checksum list the user supplied: its paths read against the game dir.
+    func verify(_ game: Game, checksums manifest: URL)
     func stop(gameID: String)
     func retryStandard(gameID: String)
     func keepAnyway(gameID: String)
@@ -71,6 +73,11 @@ final class FixtureGameVerification: GameVerificationPresenting {
     func verify(_ game: Game) {
         statuses[game.id] = .notVerified
         running[game.id] = .init(completed: 0, total: 12, file: "data/game.pak")
+    }
+    private(set) var suppliedManifests: [String: URL] = [:]
+    func verify(_ game: Game, checksums manifest: URL) {
+        suppliedManifests[game.id] = manifest
+        verify(game)
     }
     func stop(gameID: String) {
         running[gameID] = nil

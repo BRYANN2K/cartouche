@@ -186,8 +186,8 @@ struct RunnerPrepareTests {
         #expect(Self.staged(Self.fex, in: bridge).count == Self.fex.patchedNtdll.count)
     }
 
-    @Test("With nothing set up and no list yet, no list is written")
-    func writesNoEmptyList() throws {
+    @Test("With nothing set up, an empty list is written once")
+    func writesEmptyList() throws {
         let runners = try makeRunners(cloning: [])
         defer { try? FileManager.default.removeItem(at: runners) }
         let file = runners.appending(path: "support/tools")
@@ -197,9 +197,11 @@ struct RunnerPrepareTests {
             compatTools: runners.appending(path: "compatibilitytools.d")
         )
 
-        #expect(!changed)
-        #expect(!FileManager.default.fileExists(
-            atPath: file.deletingLastPathComponent().path(percentEncoded: false)))
+        #expect(changed)
+        #expect(try String(contentsOf: file, encoding: .utf8).isEmpty)
+        #expect(try !CompatToolList.sync(
+            runners: runners, bridge: runners.appending(path: "bridge"), file: file,
+            compatTools: runners.appending(path: "compatibilitytools.d")))
     }
 
     private func sync(_ runners: URL) throws {

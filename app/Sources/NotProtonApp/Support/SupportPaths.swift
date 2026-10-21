@@ -53,6 +53,12 @@ enum SupportPaths {
         home.appending(path: "Library/Caches/\(supportDirName)/winetricks")
     }
 
+    // Dropped archives unpack here; the extracted folders stay put so the
+    // install and import flows that follow can read them.
+    static var dropStaging: URL {
+        home.appending(path: "Library/Caches/\(supportDirName)/DropStaging")
+    }
+
     static var deployedVersion: URL { support.appending(path: "dylib.version") }
 
     // The console session on record while a game runs; a killed Cartouche reads it at the next launch to pick the session back up or count it

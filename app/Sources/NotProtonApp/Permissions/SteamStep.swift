@@ -88,7 +88,7 @@ final class SteamStep {
     }
 
     func relaunchCartouche() {
-        relaunch(.onboarding(step: ScreenRoute.pcGamesStep))
+        relaunch(.onboarding(step: ScreenRoute.storesStep))
     }
 
     private func attempt() async -> PermissionState {

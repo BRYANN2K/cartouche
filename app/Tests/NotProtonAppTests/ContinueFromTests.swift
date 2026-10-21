@@ -50,7 +50,7 @@ struct ContinueFromTests {
 
     @Test("Each picture under Continue From starts the game from its state through the player")
     func slotsGoToThePlayer() async throws {
-        let scene = try ConsoleScene("continue")
+        let scene = try await ConsoleScene("continue")
         defer { scene.remove() }
         let runner = scene.useFakeRunner(picture: try ConsolePanelTests.screen("AUTO"))
         let game = try await scene.addGame(console: "snes", name: "Cartouche Homebrew", databaseName: "Cartouche Homebrew (World)")
@@ -73,7 +73,7 @@ struct ContinueFromTests {
     // The whole path on a real RetroArch: play, save slot 3, quit, then click Slot 3
     @Test("Resume from a state on RetroArch", .enabled(if: LiveRetroArch.available, "set CARTOUCHE_RETROARCH and CARTOUCHE_TEST_CORE"))
     func resumeOnRetroArch() async throws {
-        let scene = try ConsoleScene("continue-live")
+        let scene = try await ConsoleScene("continue-live")
         defer { scene.remove() }
         let player = await LiveRetroArch.player(scene)
         scene.center.makeRunner = { _ in player }

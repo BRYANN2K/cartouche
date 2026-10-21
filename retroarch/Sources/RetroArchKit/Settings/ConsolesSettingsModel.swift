@@ -52,6 +52,9 @@ public final class ConsolesSettingsModel {
     public private(set) var working = false
     public var problem: String?
 
+    // The app removes through ConsoleCenter (a Trash confirmation naming what moves); nil removes directly.
+    @ObservationIgnored public var removeConsole: (@MainActor (Console) async -> String?)?
+
     @ObservationIgnored private let cores: CoreManager
     @ObservationIgnored private let shelf: ConsoleShelf
     @ObservationIgnored private let official: OfficialRelease
@@ -160,7 +163,9 @@ public final class ConsolesSettingsModel {
     }
 
     public func remove(_ console: Console) async {
-        await change { try await self.shelf.remove(console.id) }
+        guard let removeConsole else { await change { try await self.shelf.remove(console.id) }; return }
+        problem = await removeConsole(console)
+        await refreshConsoles()
     }
 
     public func updateCore(of console: Console) async {

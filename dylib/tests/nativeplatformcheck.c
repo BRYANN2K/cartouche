@@ -36,7 +36,10 @@ static void expect(const char *what, const char *script, const char *want) {
 }
 
 int main(void) {
-    char home[] = "/tmp/np-nativeplatform-XXXXXX";
+    const char *tmp = getenv("TMPDIR");
+    char home[PATH_MAX];
+    snprintf(home, sizeof home, "%s/np-nativeplatform-XXXXXX",
+             (tmp && tmp[0]) ? tmp : "/tmp");
     if (!mkdtemp(home)) { perror("mkdtemp"); return 1; }
     setenv("HOME", home, 1);
     np_support_path(g_tool, sizeof(g_tool), home, "appinfo");

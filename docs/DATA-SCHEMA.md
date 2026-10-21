@@ -166,11 +166,12 @@ These are merged. Their shapes come from the code named beside them; none of the
 
 ### FPS store (P8)
 
-`~/Library/Application Support/Cartouche/performance/sessions.sqlite`, written by `PerformanceStore` in `app/Sources/NotProtonApp/Performance/PerformanceStore.swift`. `PRAGMA user_version = 1`.
+`~/Library/Application Support/Cartouche/performance/sessions.sqlite`, written by `PerformanceStore` in `app/Sources/NotProtonApp/Performance/PerformanceStore.swift`. `PRAGMA user_version = 2`.
 
 - `sessions`: one row per play session. `folder` (the launch folder it came from, unique), `app_id`, `runner`, `translation`, `backend`, `runner_name`, `settings` (JSON object of the game's Cartouche variables), `started`, `ended` (Unix time), `measurement` (`on` or `refused`), `measured_seconds`, `frames`, `average`, `low1`, `histogram` (`fps:count` pairs), `width`, `height`.
 - `samples`: one row per second of a session, `session` references `sessions.id` with cascade delete. `time`, `frames`, `frontmost`, `counted`.
 - The run script leaves one folder per launch under `performance/incoming/` (`session` plus `samples-*` files); the store folds finished folders into the SQLite file and deletes them.
+- Version 2 migrates records without setup info: tables from before the setup columns are `ALTER`ed on open, `runner` is backfilled from `runner_name` (or `unknown`), `translation` defaults to `rosetta`, a missing `counted` on `samples` is recomputed with the store's filter. Launch folders whose `session` file names no runner ingest the same way instead of being dropped.
 
 ### Library store (P5)
 

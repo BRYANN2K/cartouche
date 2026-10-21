@@ -77,7 +77,7 @@ DEPS := $(OBJS:.o=.d)
         tests-list overlay-shim overlay-shim-install overlay-shim-tests \
         overlay-shim-bench iconmaker icon \
         appinfo helpers-install unarc-driver ntdll-resolve bridge runcheck compatcheck \
-        compatsvc-check libexport-check shortcutcheck scriptcheck envcheck buildcheck settingscheck routecheck bridgecheck gamedrivecheck backendcheck launchercheck launch-shell activatecheck FORCE
+        compatsvc-check libexport-check services-check shortcutcheck scriptcheck envcheck buildcheck settingscheck routecheck bridgecheck gamedrivecheck backendcheck launchercheck launch-shell activatecheck FORCE
 
 APP_PAYLOAD := app/Sources/NotProtonApp/Resources/payload
 
@@ -150,7 +150,7 @@ mincheck:
 l10ncheck:
 	@bin=$$(swift build --package-path app -c release --show-bin-path); \
 	python3 dylib/tests/l10ncheck.py app/Sources/NotProtonApp/Resources/Localization/Localizable.xcstrings \
-		"$$bin/../../Intermediates.noindex/NotProtonApp.build/$$(basename "$$bin")" zh-Hans it
+		"$$bin/../../Intermediates.noindex/NotProtonApp.build/$$(basename "$$bin")" zh-Hans it fr
 
 .PHONY: compat-data-tests
 compat-data-tests:
@@ -196,6 +196,14 @@ libexport-check:
 	mkdir -p $(OUT_DIR) && \
 	$(TEST_CC) -o $(LIBEXPORT_CHECK) dylib/tests/libexport-check.c dylib/util/file.c vendor/cJSON.c && \
 	$(LIBEXPORT_CHECK)
+
+SERVICES_CHECK := $(OUT_DIR)/services-check
+
+services-check:
+	@if [ ! -f dylib/tests/services-check.c ]; then $(call SKIP,services-check,dylib/tests/services-check.c); exit 0; fi; \
+	mkdir -p $(OUT_DIR) && \
+	$(TEST_CC) -o $(SERVICES_CHECK) dylib/tests/services-check.c dylib/feats/compatsvc.c dylib/feats/libexport.c dylib/util/file.c vendor/cJSON.c && \
+	$(SERVICES_CHECK)
 
 SHORTCUT_BUNDLE_CHECK := $(OUT_DIR)/shortcut-bundle-check
 SHORTCUTCHECK         := $(OUT_DIR)/shortcutcheck
@@ -741,6 +749,7 @@ define BUNDLE_APP
 	ditto "$$(swift build --package-path app -c $(1) $(SWIFT_FLAGS) --show-bin-path)/Sparkle.framework" \
 		"$(2)/Contents/Frameworks/Sparkle.framework"
 	install_name_tool -add_rpath @executable_path/../Frameworks \
+		-add_rpath @executable_path/../Helpers \
 		"$(2)/Contents/MacOS/Cartouche"
 	xcrun vtool -set-build-version macos $(MIN_VER) "$$(xcrun --sdk macosx --show-sdk-version)" \
 		-replace -output "$(2)/Contents/MacOS/Cartouche" \
@@ -784,7 +793,7 @@ define BUNDLE_APP
 	@echo "==> Built $(2) ($(APP_VERSION), $(1))"
 endef
 
-app: app-payload $(ICON_CAR)
+app: app-payload $(ICON_CAR) $(INNOEXTRACT)
 	$(call BUNDLE_APP,release,$(APP_BUNDLE))
 
 # The QA app is a debug build on purpose: QAEnvironment honours
@@ -801,13 +810,20 @@ app-zip: app
 # innoextract for the Windows installer analysis, built from pinned sources
 INNOEXTRACT := $(OUT_DIR)/innoextract
 .PHONY: innoextract libarchive installer-tests
-innoextract:
-	sh installer/innoextract/build.sh build/innoextract "$(INNOEXTRACT)"
+innoextract: $(INNOEXTRACT)
+
+$(INNOEXTRACT): installer/innoextract/pins installer/innoextract/build.sh
+	sh installer/innoextract/build.sh build/innoextract "$@"
 
 # libarchive for the built-in decompressor, universal, built from pinned sources
 LIBARCHIVE := $(OUT_DIR)/libarchive.dylib
-libarchive:
+libarchive: $(LIBARCHIVE)
+$(LIBARCHIVE): installer/libarchive/build.sh installer/libarchive/pins
 	sh installer/libarchive/build.sh build/libarchive "$(LIBARCHIVE)"
+
+# The app bundles the dylib in Contents/Helpers and loads it by @rpath; build it
+# rather than ship a bundle whose archive drops can only report detection is off.
+app qa-app: $(LIBARCHIVE)
 
 installer-tests:
 	@cd installer && swift test

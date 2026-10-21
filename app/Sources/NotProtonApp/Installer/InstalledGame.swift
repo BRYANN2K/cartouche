@@ -21,11 +21,40 @@ struct InstalledGame: Codable, Sendable, Equatable, Identifiable {
     var steamShortcut = false
     // The folder of a game imported where it is. Cartouche never deletes it.
     var gameFolder: String?
+    // The output check's state (ADR 0026): nil on records that predate verification.
+    var verification: VerificationRecord?
+    // True once the user named the game themselves; re-identification then leaves name alone.
+    var userNamed: Bool? = nil
 
     var exeURL: URL { URL(filePath: exe) }
     var launcher: URL { URL(filePath: prefix).deletingLastPathComponent().appending(path: "launch") }
 
     var backend: GraphicsBackend { graphics.flatMap(GraphicsBackend.init(rawValue:)) ?? .wined3d }
+
+    // Where the game's files sit: the folder it was imported in, the folder the
+    // install made inside the prefix's drive_c/Games, or the exe's own folder.
+    var gameRoot: URL {
+        if let gameFolder { return URL(filePath: gameFolder) }
+        let games = URL(filePath: prefix).appending(path: "drive_c/Games")
+        let base = games.standardizedFileURL.path(percentEncoded: false) + "/"
+        let path = exeURL.standardizedFileURL.path(percentEncoded: false)
+        if path.hasPrefix(base), let first = path.dropFirst(base.count).split(separator: "/").first {
+            return games.appending(path: String(first))
+        }
+        return exeURL.deletingLastPathComponent()
+    }
+
+    // A record written before gameFolder existed: its exe outside the prefix and inside
+    // the folder it was imported from can only mean the game stayed in place, so removal
+    // is titled "Remove from Library…" and never touches the user's files.
+    var inferredGameFolder: String? {
+        guard gameFolder == nil else { return nil }
+        func inside(_ parent: String, _ child: String) -> Bool {
+            child.hasPrefix(parent.hasSuffix("/") ? parent : parent + "/")
+        }
+        guard !inside(prefix, exe), inside(installerFolder, exe) else { return nil }
+        return installerFolder
+    }
 }
 
 enum InstalledGames {
@@ -63,6 +92,7 @@ enum GameLauncher {
             if let value = env[key] { lines.append("export \(key)=\(quote(value))") }
         }
         lines.append("export PATH=\(quote(wine.root.appending(path: "bin").path(percentEncoded: false))):\"$PATH\"")
+        lines += AdvancedPrefixSettings.launcherLines(environment: env, wine: wine)
         lines += controlsBlock(folder: GameFolder(root: prefix.deletingLastPathComponent()))
         lines.append("cd \(quote(exe.deletingLastPathComponent().path(percentEncoded: false))) || exit 1")
         lines.append("exec \(quote(wine.loader.path(percentEncoded: false))) \(quote(exe.path(percentEncoded: false))) \"$@\"")

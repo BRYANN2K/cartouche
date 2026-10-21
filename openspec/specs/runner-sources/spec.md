@@ -32,15 +32,23 @@ The app SHALL pin the published `wine-crossover-26.3.0-1-x86_64.tar.xz` asset fr
 - **THEN** that game retains its runner choice
 
 ### Requirement: Explain unavailable Graphics choices
-The Graphics menu SHALL explain unmet backend requirements. D3DMetal SHALL require CrossOver-capable Wine, Rosetta and the user’s own D3DMetal files. DXMT SHALL require CrossOver and its backend download. Get More Graphics Backends SHALL open Settings > Compatibility. A WineHQ runner alone or GPTK files without CrossOver Wine SHALL NOT satisfy that combination. Cartouche SHALL NOT redistribute GPTK or D3DMetal files.
+The Graphics menu SHALL list only offered backends and SHALL hide unavailable backends. Neither the panel nor menu SHALL show unavailable-backend reason lines. One Get More Graphics Backends… entry SHALL appear only when something is missing and SHALL lead to installing Wine CrossOver. D3DMetal eligibility still requires CrossOver-capable Wine, Rosetta and user-supplied D3DMetal files; DXMT requires CrossOver and its download. Apple files SHALL NOT be redistributed.
 
 #### Scenario: Missing CrossOver Wine
-- **WHEN** a game uses another Wine variant and the user inspects D3DMetal
-- **THEN** the menu explains that CrossOver Wine is required, rather than implying that GPTK files alone enable it
+- **WHEN** CrossOver Wine is missing and a backend cannot be offered
+- **THEN** that backend is hidden, no reason line is shown, and one Get More Graphics Backends… entry leads to installing Wine CrossOver
 
 #### Scenario: Missing GPTK files
-- **WHEN** a game uses CrossOver Wine but the user’s GPTK files are unavailable
-- **THEN** the menu explains that the user must supply GPTK files and D3DMetal is unavailable
+- **WHEN** D3DMetal cannot be offered because the user’s D3DMetal files are unavailable
+- **THEN** D3DMetal is hidden without a panel/menu reason line and one Get More Graphics Backends… entry is available
+
+#### Scenario: All backends offered
+- **WHEN** all graphics backends are offered
+- **THEN** the menu contains no Get More Graphics Backends… entry
+
+#### Scenario: Onboarding runner choice
+- **WHEN** onboarding presents the initial runner choice
+- **THEN** Wine CrossOver is preselected
 
 ### Requirement: Serialized first boot before launch
 The app SHALL treat fresh-prefix initialization as an explicit setup phase, serialized per prefix. It SHALL await successful boot completion and Wine-server completion before starting an installer or game in that prefix. A registry file or update timestamp alone SHALL NOT prove readiness. Setup SHALL show progress or phase status, logs, cancellation and retry. The Wine CI initialization limit SHALL NOT set the app’s first-boot timeout.

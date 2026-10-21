@@ -1,4 +1,6 @@
+import Darwin
 import Foundation
+import InstallerKit
 
 struct SteamLibrary: Sendable, Hashable {
     let root: URL
@@ -56,6 +58,40 @@ struct PrefixBackup: Sendable, Hashable, Identifiable {
 
     var id: String { url.path(percentEncoded: false) }
     var title: String { prefix.title }
+}
+
+// What holds a busy prefix's session up. The menu labels a Quit with it, and a
+// launcher kills the session only when nothing foreign keeps it alive.
+enum SessionResident: Sendable, Equatable {
+    // A leftover of the game itself: its exe or a process in its install folder.
+    case game
+    // A store client in the same prefix, named for the menu: "Steam", "GOG GALAXY"…
+    case store(String)
+    // Another tracked game or a program the user opened, like winecfg or Explorer.
+    case program(String)
+    // Busy for real, but the probe could not read or name what keeps the session.
+    case unknown
+}
+
+// How busy a prefix's wineserver session is. Both kinds of busy refuse destructive
+// work; sessionOnly alone is the leftover the menu offers to end.
+enum PrefixUse: Sendable, Equatable {
+    // No lock, no server, nothing on it.
+    case free
+    // A wineserver is up but only Wine's own helpers hold it: the game itself is gone.
+    case sessionOnly
+    // The launch lock, a live client process, or an answer the probe could not read.
+    case running(SessionResident)
+
+    // wineserver -k ends the session only when what holds it is known leftovers:
+    // Wine's own services or the exited game's own processes. A store client,
+    // another game or a program the user opened keeps its session.
+    var leftoversOnly: Bool {
+        switch self {
+        case .sessionOnly, .running(.game): true
+        case .free, .running: false
+        }
+    }
 }
 
 enum PrefixStore {
@@ -275,6 +311,83 @@ enum PrefixStore {
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
     }
 
+    /// Keeps both the selected backup and the current prefix until promotion succeeds.
+    @discardableResult
+    static func restoreBackup(
+        _ backup: PrefixBackup,
+        serverRoot: URL = serverRoot,
+        move: (URL, URL) throws -> Void = { try FileManager.default.moveItem(at: $0, to: $1) }
+    ) throws -> URL? {
+        let prefix = backup.prefix
+        let fm = FileManager.default
+        let step = String(localized: "Restore prefix backup")
+        func refuse(_ detail: String) -> StepFailure { StepFailure(step: step, detail: detail) }
+        func ownedDirectory(_ url: URL) -> Bool {
+            var info = stat()
+            return lstat(url.path(percentEncoded: false), &info) == 0
+                && info.st_mode & S_IFMT == S_IFDIR && info.st_uid == getuid()
+        }
+        let name = backup.url.lastPathComponent
+        guard !prefix.appID.isEmpty, prefix.appID.allSatisfy({ $0.isASCII && $0.isNumber }),
+            ownedDirectory(prefix.library.compatdata), ownedDirectory(prefix.root),
+            prefix.root.resolvingSymlinksInPath().path == prefix.library.root.resolvingSymlinksInPath()
+                .appending(path: "steamapps/compatdata").appending(path: prefix.appID).path,
+            backup.url.standardizedFileURL.deletingLastPathComponent().path == prefix.root.standardizedFileURL.path,
+            name == backupPrefix || name.hasPrefix(backupPrefix + "-"),
+            ownedDirectory(backup.url)
+        else { throw refuse(String(localized: "The backup is not an owned prefix backup in this game's folder.")) }
+
+        guard let claim = claim(prefix, root: serverRoot) else {
+            throw refuse(String(localized: "\(prefix.title) is running. Quit the game first."))
+        }
+        defer { claim.release() }
+        guard !serverIsBusy(backup.url, root: serverRoot, lsof: "/usr/sbin/lsof", drainTimeout: .seconds(2)) else {
+            throw refuse(String(localized: "The backup is in use. Quit the game first."))
+        }
+
+        var info = stat()
+        let exists = lstat(prefix.pfx.path(percentEncoded: false), &info) == 0
+        guard !exists || ownedDirectory(prefix.pfx) else {
+            throw refuse(String(localized: "The current prefix is not an owned directory."))
+        }
+        let record = prefix.root.appending(path: PrefixTools.buildRecordName)
+        let hasRecord = lstat(record.path(percentEncoded: false), &info) == 0
+        guard !hasRecord || (info.st_mode & S_IFMT == S_IFREG && info.st_uid == getuid()) else {
+            throw refuse(String(localized: "The prefix build record is not an owned file."))
+        }
+        let token = UUID().uuidString
+        let staging = prefix.root.appending(path: ".pfx.restore-\(token)")
+        let savedRecord = prefix.root.appending(path: ".build.restore-\(token)")
+        let parked = prefix.root.appending(path: "\(backupPrefix)-\(backupClock().string(from: .now))-\(token)")
+        defer { try? fm.removeItem(at: staging) }
+        try fm.copyItem(at: backup.url, to: staging)
+        var parkedCurrent = false
+        var parkedRecord = false
+        do {
+            if exists {
+                try move(prefix.pfx, parked)
+                parkedCurrent = true
+            }
+            if hasRecord {
+                try move(record, savedRecord)
+                parkedRecord = true
+            }
+            try move(staging, prefix.pfx)
+        } catch {
+            do {
+                if parkedCurrent { try move(parked, prefix.pfx) }
+                if parkedRecord { try move(savedRecord, record) }
+            } catch {
+                throw refuse(String(localized: "Restore could not roll back. Your original prefix is kept at \(parked.path(percentEncoded: false))."))
+            }
+            throw error
+        }
+        // A backup does not include the build record beside pfx. Let the restored
+        // prefix's own timestamp identify its runner rather than keeping a stale record.
+        if parkedRecord { try? fm.removeItem(at: savedRecord) }
+        return exists ? parked : nil
+    }
+
     static func usage(of prefix: WinePrefix) -> PrefixUsage {
         let bytes = directoryBytes(prefix.pfx)
 
@@ -400,6 +513,146 @@ enum PrefixStore {
             return true
         }
         return serverIsBusy(pfx, root: serverRoot, lsof: lsof, drainTimeout: drainTimeout)
+    }
+
+    // The same probe with the busy kind told apart: free, or a live wineserver whose
+    // remaining clients are only the session's own services — the game's window is
+    // gone — or real work on the prefix. Both kinds of busy refuse destructive work;
+    // only a session without a foreign client is safe to end with wineserver -k.
+    static func use(
+        root folder: URL, pfx: URL, serverRoot: URL = serverRoot, lsof: String = "/usr/sbin/lsof",
+        drainTimeout: DispatchTimeInterval = .seconds(2),
+        own: (name: String, root: URL)? = nil,
+        siblings: [(name: String, root: URL)] = [],
+        commOf: @Sendable (pid_t) -> String = { comm(of: $0) },
+        infoOf: @Sendable (pid_t) -> GameProcesses.Info? = { GameProcesses.info(of: $0) },
+        childrenOf: @Sendable (pid_t) -> [ProcessGroup.Entry] = {
+            ProcessGroup(root: $0, prefix: nil).entries(environments: false)
+        }
+    ) -> PrefixUse {
+        let lock = open(lockPath(in: folder), O_RDWR | O_NOFOLLOW | O_CLOEXEC)
+        if lock >= 0 {
+            defer { FileLock.release(lock) }
+            guard locked(lock) else { return .running(.game) }
+        } else if errno != ENOENT {
+            return .running(.unknown)
+        }
+        guard let dir = serverDirectory(forPfx: pfx, root: serverRoot),
+              FileManager.default.fileExists(atPath: dir.path(percentEncoded: false))
+        else { return .free }
+        guard let result = try? Shell.run(
+            lsof, ["-t", "+D", dir.path(percentEncoded: false)], drainTimeout: drainTimeout)
+        else { return .running(.unknown) }
+        let text = result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+        if result.outputLost || !result.stderr.isEmpty { return .running(.unknown) }
+        guard !text.isEmpty else { return .free }
+        let pids = text.split(whereSeparator: \.isNewline)
+            .compactMap { pid_t($0.trimmingCharacters(in: .whitespaces)) }
+        // lsof answered but nothing parses to a pid: read that as busy, never as free.
+        guard !pids.isEmpty else { return .running(.unknown) }
+
+        var residents: [SessionResident] = []
+        var servers: [pid_t] = []
+        for pid in pids {
+            let name = commOf(pid)
+            if name.lowercased().hasPrefix("wineserver") {
+                servers.append(pid)
+            } else if !isSessionService(name, argv: infoOf(pid)?.arguments ?? []) {
+                residents.append(resident(comm: name, info: infoOf(pid), own: own, siblings: siblings))
+            }
+        }
+        // A client can hold the session while keeping no fd lsof can name in the
+        // directory, so a services-only answer is not yet "game gone": wineserver
+        // forks every Windows process it serves, and a live one shows under it.
+        for pid in servers {
+            for child in childrenOf(pid) where child.pid != pid
+                    && !isSessionService(child.comm, argv: infoOf(child.pid)?.arguments ?? []) {
+                residents.append(resident(comm: child.comm, info: infoOf(child.pid),
+                                          own: own, siblings: siblings))
+            }
+        }
+        // A named foreign client outranks an unreadable one, which outranks the
+        // game's own leftovers: the label tells the truth and -k stays careful.
+        if let named = residents.first(where: {
+            if case .store = $0 { return true }
+            if case .program = $0 { return true }
+            return false
+        }) { return .running(named) }
+        if residents.contains(.unknown) { return .running(.unknown) }
+        return residents.isEmpty ? .sessionOnly : .running(.game)
+    }
+
+    // The session's own services: they hold wineserver up but do no user work.
+    // explorer counts only for its /desktop window — a user-opened Explorer, like
+    // winecfg, is a real program the session serves, not a leftover.
+    static let sessionServices: Set<String> = [
+        "services.exe", "winedevice.exe", "plugplay.exe", "svchost.exe", "rpcss.exe",
+        "tabtip.exe", "conhost.exe", "wineconsole.exe", "winedbg.exe", "wineboot.exe",
+        "winemenubuilder", "winemenubuilder.exe",
+    ]
+
+    static func isSessionService(_ name: String, argv: [String]) -> Bool {
+        let name = name.lowercased()
+        if name.hasPrefix("wineserver") { return true }
+        if name == "explorer.exe" {
+            return argv.contains { $0.lowercased().hasPrefix("/desktop") }
+        }
+        return sessionServices.contains(name)
+    }
+
+    // A store client running in a game's own prefix keeps its real name in the menu.
+    // The match tolerates pbi_comm cutting a long name at sixteen characters.
+    static let storeClients: [(match: String, name: String)] = [
+        ("steam", "Steam"),
+        ("epicgameslauncher", "Epic Games Launcher"),
+        ("epicwebhelper", "Epic Games Launcher"),
+        ("galaxyclient", "GOG GALAXY"),
+        ("galaxycommunication", "GOG GALAXY"),
+        ("amazon games", "Amazon Games"),
+    ]
+
+    // A live, non-service client of the session: the game's own leftover under its
+    // install folder, another tracked game under its own, a store client under its
+    // real name, or a program the user opened, named by its exe.
+    static func resident(
+        comm: String, info: GameProcesses.Info?,
+        own: (name: String, root: URL)?, siblings: [(name: String, root: URL)]
+    ) -> SessionResident {
+        if let own, let info, belongs(info, to: own.root) { return .game }
+        if let info, let sibling = siblings.first(where: { belongs(info, to: $0.root) }) {
+            return .program(sibling.name)
+        }
+        let name = programName(comm: comm, info: info)
+        guard !name.isEmpty else { return .unknown }
+        if let store = storeClients.first(where: {
+            name.hasPrefix($0.match) || $0.match.hasPrefix(name)
+        }) { return .store(store.name) }
+        return .program(name.hasSuffix(".exe") ? String(name.dropLast(4)) : name)
+    }
+
+    // The client's exe name — pbi_comm first, then the exec path, then argv — split
+    // on both separators since a Wine argv can be a Windows path.
+    private static func programName(comm: String, info: GameProcesses.Info?) -> String {
+        for base in [comm, info?.path ?? "", info?.arguments.first ?? ""] {
+            if let last = base.split(whereSeparator: { $0 == "/" || $0 == "\\" }).last {
+                return String(last).lowercased()
+            }
+        }
+        return ""
+    }
+
+    // A process belongs to an install folder when its exe or an argument lives in it.
+    static func belongs(_ info: GameProcesses.Info, to root: URL) -> Bool {
+        let folder = GameProcesses.folderPrefix(root)
+        return info.path.hasPrefix(folder) || info.arguments.contains { $0.hasPrefix(folder) }
+    }
+
+    // The process's command name — "services.exe", the game's own exe name — as pbi_comm sees it.
+    static func comm(of pid: pid_t) -> String {
+        var info = proc_bsdinfo()
+        guard proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, Int32(MemoryLayout<proc_bsdinfo>.size)) > 0
+        else { return "" }
+        return withUnsafeBytes(of: info.pbi_comm) { String(decoding: $0.prefix { $0 != 0 }, as: UTF8.self) }
     }
 
     // A launch takes this lock while it sets the prefix up. Holding it stops a launch from starting partway through a rebuild/delete.

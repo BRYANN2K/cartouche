@@ -22,7 +22,7 @@ Release [`wine-crossover-26.3.0-1`](https://github.com/BRYANN2K/cartouche-wine/r
 
 The archive was reused without a rebuild. That run built successfully; its old 60-second cold-prefix boot check failed. Later commits changed only the boot check and publication repository name. Publication is not evidence that the new boot check passed. Keep build provenance separate from the release-tag commit.
 
-App integration is merged in main 95b4e47: the asset is pinned in runners.json; CrossOver Wine defaults for new games when installed; Graphics explains unmet requirements; serialized first boot gates launch. Real-hardware checks remain pending. D3DMetal requires CrossOver-capable Wine, Rosetta and the user’s own D3DMetal files; Cartouche does not redistribute those files. Do not mark the app integration or real-game checks complete based on publication alone.
+App integration is merged in main 95b4e47: the asset is pinned in runners.json; CrossOver Wine defaults for new games when installed; the original Graphics reason UI is superseded by ADR 0027 (hide unavailable choices/reasons, conditional Get More entry to install Wine CrossOver); serialized first boot gates launch. Real-hardware checks remain pending. D3DMetal requires CrossOver-capable Wine, Rosetta and the user’s own D3DMetal files; Cartouche does not redistribute those files. Do not mark the app integration or real-game checks complete based on publication alone.
 
 ## Signing certificate
 

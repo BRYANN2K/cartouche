@@ -6,7 +6,7 @@ import Foundation
 public enum Innoextract {
 
     // The pinned release the bundled copy is built from.
-    public static let version = "1.9"
+    public static let version = "1.10-dev-2025-01-07"
 
     // CARTOUCHE_INNOEXTRACT, then the bundled copy, then Homebrew.
     public static func path(

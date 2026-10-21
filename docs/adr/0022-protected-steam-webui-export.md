@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted, 2026-10-20. Extends ADR 0021 with the export transport. Implementation is in progress on `phase/steam-export`.
+Accepted, 2026-10-20. Extends ADR 0021 with the export transport. Implementation merged in de0e6ec; real Steam check pending. Runtime token fetch is in review on `fix/steam-compat-tools`.
 
 ## Context
 

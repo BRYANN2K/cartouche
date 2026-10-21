@@ -16,7 +16,7 @@ struct ConsoleImportTests {
         let cart = folder.appending(path: "my_dump.sfc")
         try ConsoleFixtures.homebrewSNES().write(to: cart)
         let unknown = folder.appending(path: "my_homebrew.gba")
-        try Data(repeating: 0x7E, count: 4096).write(to: unknown)
+        try ConsoleFixtures.homebrewGBA(title: "MY HOMEBREW").write(to: unknown)
         return [cart, unknown]
     }
 
@@ -26,7 +26,7 @@ struct ConsoleImportTests {
 
     @Test("Known cartridge: named from the database, its console and \"checksum match\" within 2 seconds")
     func knownCartridge() async throws {
-        let scene = try ConsoleScene("known")
+        let scene = try await ConsoleScene("known")
         defer { scene.remove() }
         let files = try drop(scene)
         let host = UIHost(sheet(scene), size: CGSize(width: 560, height: 420))
@@ -45,7 +45,7 @@ struct ConsoleImportTests {
 
     @Test("Unknown file: \"Not recognized\" with a console picker, and Add leaves it out until a console is chosen")
     func unknownFile() async throws {
-        let scene = try ConsoleScene("unknown")
+        let scene = try await ConsoleScene("unknown")
         defer { scene.remove() }
         let files = try drop(scene)
         let flow = ConsoleImport(identifier: scene.center.identifier)
@@ -92,7 +92,7 @@ struct ConsoleImportTests {
 
     @Test("Disc image: a .cue with its .bin is known by its disc ID, and an .m3u set is one game")
     func discImage() async throws {
-        let scene = try ConsoleScene("disc")
+        let scene = try await ConsoleScene("disc")
         defer { scene.remove() }
         let folder = scene.work.appending(path: "Discs", directoryHint: .isDirectory)
         try ConsoleFixtures.disc("Test Disc", serial: "SLUS_999.01", in: folder)
@@ -123,7 +123,7 @@ struct ConsoleImportTests {
 
     @Test("Detected console imports support Back without separate game-kind controls")
     func backAndForth() async throws {
-        let scene = try ConsoleScene("switch")
+        let scene = try await ConsoleScene("switch")
         defer { scene.remove() }
         let files = try drop(scene)
         let flow = scene.center.importFlow

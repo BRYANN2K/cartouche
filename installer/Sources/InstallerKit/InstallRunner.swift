@@ -87,6 +87,10 @@ public struct ProcessGroup: Sendable {
         public let comm: String
         // Found through the root's parent chain; false when matched by the prefix environment.
         public let descendant: Bool
+
+        public init(pid: pid_t, comm: String, descendant: Bool) {
+            self.pid = pid; self.comm = comm; self.descendant = descendant
+        }
     }
 
     public init(root: pid_t, prefix: String?) { self.root = root; self.prefix = prefix }

@@ -49,12 +49,16 @@ enum DropFailure: Equatable, Sendable {
     case passwordProtected(URL)
     case unsupportedArchive(URL)
     case damagedArchive(URL)
+    // A multi-volume archive with a gap in the numbering; the missing file's name.
+    case missingVolume(URL, String)
+    case insufficientSpace(URL, needed: Int64, free: Int64)
     case nothingRecognized([URL])
 
     var item: URL? {
         switch self {
         case .detectionUnavailable: nil
-        case .passwordProtected(let url), .unsupportedArchive(let url), .damagedArchive(let url): url
+        case .passwordProtected(let url), .unsupportedArchive(let url), .damagedArchive(let url),
+             .missingVolume(let url, _), .insufficientSpace(let url, needed: _, free: _): url
         case .nothingRecognized(let urls): urls.first
         }
     }
@@ -203,6 +207,9 @@ enum DropFixtures {
         .failed(.passwordProtected(URL(filePath: "/Users/player/Downloads/Game.rar"))),
         .failed(.damagedArchive(URL(filePath: "/Users/player/Downloads/Game.zip"))),
         .failed(.unsupportedArchive(URL(filePath: "/Users/player/Downloads/Game.sit"))),
+        .failed(.missingVolume(URL(filePath: "/Users/player/Downloads/game.part1.rar"), "game.part2.rar")),
+        .failed(.insufficientSpace(URL(filePath: "/Users/player/Downloads/Game.7z"),
+                                   needed: 52_000_000_000, free: 11_000_000_000)),
         .failed(.nothingRecognized([URL(filePath: "/Users/player/Documents/Notes")])),
     ]
 }

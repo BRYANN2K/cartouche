@@ -11,6 +11,12 @@
             "value" : "Cartouche suggests Windows installers you download."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche détecte les programmes d’installation Windows téléchargés et vous propose d’installer les jeux."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -35,6 +41,12 @@
             "value" : "Cartouche finds other players on your network for netplay and LAN games."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche recherche d’autres joueurs sur votre réseau pour les parties en réseau local."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -57,6 +69,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cartouche runs games from folders on external disks."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche accède aux dossiers de vos disques externes pour lancer vos jeux."
           }
         },
         "it" : {

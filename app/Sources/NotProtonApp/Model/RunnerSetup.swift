@@ -80,14 +80,59 @@ enum RunnerSetup {
         outcome.toolsChanged = try CompatToolList.sync(
             runners: runners, bridge: bridge, file: toolList, compatTools: compatTools
         )
+        try deployRunScripts(runners: runners, toolList: toolList, compatTools: compatTools,
+                             runScript: runScript)
+
+        report(.finished)
+        return outcome
+    }
+
+    // A downloaded Wine build needs no license and ships its ntdll already patched:
+    // add the Steam builtins, grant its loaders, register the tools.
+    @discardableResult
+    static func prepareWine(
+        _ build: RunnerManifest.Build,
+        runners: URL = SupportPaths.runners,
+        bridge: URL = SupportPaths.bridge,
+        toolList: URL = SupportPaths.toolList,
+        compatTools: URL = SupportPaths.Steam.compatTools,
+        runScript: () throws -> URL = { try InstallPayload.locate().run },
+        patch: (URL, URL) throws -> RunnerPatcher.Outcome = {
+            try RunnerPatcher.installWine(root: $0, bridge: $1)
+        },
+        report: @Sendable (Phase) -> Void = { _ in }
+    ) throws -> (installed: RunnerPatcher.Outcome, toolsChanged: Bool) {
+        guard let root = WineRunnerInstaller.installedFolder(for: build.id, runners: runners) else {
+            throw StepFailure(
+                step: prepareStep,
+                detail: String(localized: "Build \(build.title) has not been set up."))
+        }
+
+        report(.staging)
+        let installed = try patch(root, bridge)
+        try WineRunnerInstaller.recordPreparedLoader(build.id, runners: runners)
+
+        report(.patching)
+        let changed = try CompatToolList.sync(
+            runners: runners, bridge: bridge, file: toolList, compatTools: compatTools
+        )
+        try deployRunScripts(runners: runners, toolList: toolList, compatTools: compatTools,
+                             runScript: runScript)
+
+        report(.finished)
+        return (installed, changed)
+    }
+
+    // The dylib rewrites each tool's run script on launch; deploying it now lets
+    // Steam pick the tool up before Cartouche runs again.
+    private static func deployRunScripts(
+        runners: URL, toolList: URL, compatTools: URL, runScript: () throws -> URL
+    ) throws {
         for tool in CompatToolList.installed(runners: runners, file: toolList) {
             let run = compatTools.appending(path: "\(tool.name)/run")
             if FileManager.default.fileExists(atPath: run.path(percentEncoded: false)) { continue }
             try SteamInstaller.installIfChanged(DeploymentContent.File(
                 source: try runScript(), destination: run, name: "\(tool.name)/run", executable: true))
         }
-
-        report(.finished)
-        return outcome
     }
 }

@@ -24,6 +24,9 @@ struct PlaySetup: Hashable, Sendable {
     var runnerID: String
     var translation: GameSetupChoice.Translation
     var backend: GraphicsBackend?
+
+    // Sessions recorded before the run script wrote the setup get this runner
+    static let unknownRunnerID = "unknown"
 }
 
 enum PlayStats {
@@ -32,6 +35,9 @@ enum PlayStats {
     static let warmUpSeconds = 30
     // A second with fewer frames is a loading screen or a stall, not play
     static let loadingBelow = 5
+    // A setup is only called the best once it has this much measured play behind it
+    static let minimumSampleSeconds = 10 * 60
+    static let minimumSampleSessions = 2
 
     static func counted(_ samples: [FrameSample]) -> [Bool] {
         guard let start = samples.first?.time else { return [] }
@@ -100,25 +106,38 @@ struct SetupPlay: Equatable, Sendable, Identifiable {
     let measuredSeconds: Int
     let played: TimeInterval
     let sessions: Int
+    let measuredSessions: Int
+    let lastPlayed: Date
+    var width: Int?
+    var height: Int?
 
     var id: PlaySetup { setup }
+
+    // Enough measured play for the average to say something, not just one lucky run
+    var meetsMinimumSample: Bool {
+        measuredSeconds >= PlayStats.minimumSampleSeconds && measuredSessions >= PlayStats.minimumSampleSessions
+    }
 }
 
 struct GamePlay: Equatable, Sendable {
     let average: Double?
     let low1: Double?
     let played: TimeInterval
+    let lastPlayed: Date
     let setups: [SetupPlay]
     let measurementRefused: Bool
 
     var measuredSetups: [SetupPlay] { setups.filter { $0.average != nil } }
-    var best: SetupPlay? { measuredSetups.first }
+    // Setups with too little measured play never get the tag; ties fall to the better
+    // 1% low, then the longer sample and the more recent session
+    var best: SetupPlay? { setups.first { $0.meetsMinimumSample } }
 
     static func summarize(_ sessions: [StoredSession]) -> GamePlay? {
         guard let latest = sessions.max(by: { $0.started < $1.started }) else { return nil }
         let groups = Dictionary(grouping: sessions, by: \.setup)
         let setups = groups.map { setup, runs in
             let measured = runs.filter { $0.measured.seconds > 0 }
+            let latestMeasured = measured.max { $0.started < $1.started }
             return SetupPlay(
                 setup: setup,
                 runnerName: runs.max(by: { $0.started < $1.started })!.runnerName,
@@ -126,14 +145,28 @@ struct GamePlay: Equatable, Sendable {
                 low1: PlayStats.low1(PlayStats.merge(measured.map(\.measured.histogram))),
                 measuredSeconds: measured.reduce(0) { $0 + $1.measured.seconds },
                 played: runs.reduce(0) { $0 + $1.duration },
-                sessions: runs.count)
+                sessions: runs.count,
+                measuredSessions: measured.count,
+                lastPlayed: runs.map(\.ended).max() ?? latest.ended,
+                width: latestMeasured?.measured.width,
+                height: latestMeasured?.measured.height)
         }
-        .sorted { ($0.average ?? -1, $0.played, $0.runnerName) > ($1.average ?? -1, $1.played, $1.runnerName) }
+        .sorted { (a: SetupPlay, b: SetupPlay) in
+            if a.meetsMinimumSample != b.meetsMinimumSample { return a.meetsMinimumSample }
+            let key = { (s: SetupPlay) in
+                (s.average ?? -1, s.low1 ?? -1, s.measuredSeconds, s.lastPlayed.timeIntervalSince1970)
+            }
+            let id = { (s: SetupPlay) in
+                "\(s.setup.runnerID)\(s.setup.backend?.rawValue ?? "")\(s.setup.translation)"
+            }
+            return key(a) == key(b) ? id(a) < id(b) : key(a) > key(b)
+        }
         let measured = sessions.filter { $0.measured.seconds > 0 }
         return GamePlay(
             average: PlayStats.weightedAverage(measured.compactMap { s in s.measured.average.map { ($0, s.measured.seconds) } }),
             low1: PlayStats.low1(PlayStats.merge(measured.map(\.measured.histogram))),
             played: sessions.reduce(0) { $0 + $1.duration },
+            lastPlayed: latest.ended,
             setups: setups,
             measurementRefused: latest.measurement == .refused)
     }

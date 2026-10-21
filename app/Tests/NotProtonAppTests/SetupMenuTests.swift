@@ -49,53 +49,48 @@ struct SetupMenuTests {
         #expect(checked?.title == "D3DMetal")
     }
 
-    @Test("A backend that cannot run stays in the menu disabled, naming the missing part, with the way to get more")
-    func missingReasons() async throws {
+    @Test("Missing backends stay out of Graphics; one final entry opens Compatibility")
+    func missingBackends() async throws {
         let winehq = GameSetupTests.wine("wine-stable-11.0_1")
         let (model, fixture, _) = try await model("setup-missing", runners: [winehq],
                                                   availability: BackendAvailability(hasGamePortingToolkit: true))
         defer { fixture.remove() }
-        let elden = try #require(model.game("steam:1245620"))
-        var choice = model.setup(for: elden.id)
+        var choice = model.setup(for: "steam:1245620")
         choice.runnerID = winehq.id
-        model.setSetup(choice, for: elden.id)
-
-        let items = graphicsItems(try #require(model.game("steam:1245620")), model)
-        let d3dmetal = try #require(items.first { $0.title.hasPrefix("D3DMetal") })
-        #expect(d3dmetal.disabled && d3dmetal.title == "D3DMetal — Needs CrossOver Wine")
-        let dxmt = try #require(items.first { $0.title.hasPrefix("DXMT") })
-        #expect(dxmt.disabled && dxmt.title == "DXMT — Needs CrossOver Wine")
-        #expect(items.contains { $0.action == .moreBackends })
-        #expect(items.contains { $0.disabled && $0.title == "DXVK — Needs the DXVK download" })
+        model.setSetup(choice, for: "steam:1245620")
+        let game = try #require(model.game("steam:1245620"))
+        let items = graphicsItems(game, model)
+        #expect(graphicsTitles(game, model) == ["wined3d"])
+        #expect(!items.contains { $0.disabled })
+        #expect(items.filter { $0.action == .moreBackends }.count == 1)
+        #expect(items.last?.action == .moreBackends)
+        #expect(model.graphicsChoices(for: game) == [.wined3d])
     }
 
-    @Test("Without a Game Porting Toolkit the reason asks for CrossOver Wine and the toolkit together")
-    func missingBoth() async throws {
+    @Test("All backends available: no Get More entry in Graphics")
+    func completeBackends() async throws {
+        let runner = GameSetupTests.release
+        let availability = BackendAvailability(d3dMetalRunners: [runner.id])
+        let (model, fixture, _) = try await model("setup-complete", runners: [runner], availability: availability)
+        defer { fixture.remove() }
+        let game = try #require(model.game("steam:1245620"))
+        #expect(graphicsTitles(game, model) == ["D3DMetal", "DXMT", "DXVK", "wined3d"])
+        #expect(!graphicsItems(game, model).contains { $0.action == .moreBackends })
+    }
+
+    @Test("Default graphics follows its selected runner and translation")
+    func defaultsBackends() async throws {
         let winehq = GameSetupTests.wine("wine-stable-11.0_1")
-        let (model, fixture, _) = try await model("setup-missing-both", runners: [winehq],
-                                                  availability: BackendAvailability())
+        let runner = GameSetupTests.release
+        let (model, fixture, _) = try await model("setup-defaults", runners: [runner, winehq],
+            availability: BackendAvailability(d3dMetalRunners: [runner.id], installed: [.dxvk]))
         defer { fixture.remove() }
-        let elden = try #require(model.game("steam:1245620"))
-        var choice = model.setup(for: elden.id)
-        choice.runnerID = winehq.id
-        model.setSetup(choice, for: elden.id)
-        let items = graphicsItems(try #require(model.game("steam:1245620")), model)
-        #expect(items.contains { $0.disabled && $0.title == "D3DMetal — Needs CrossOver Wine and Game Porting Toolkit" })
-    }
-
-    @Test("On Cartouche's CrossOver Wine with no toolkit files, D3DMetal asks for Game Porting Toolkit")
-    func missingToolkit() async throws {
-        let ours = GameSetupTests.wine("wine-crossover-26.3.0-1")
-        let availability = BackendAvailability(installed: [.dxmt, .dxvk], crossOverWine: [ours.id])
-        let (model, fixture, _) = try await model("setup-missing-gptk", runners: [ours], availability: availability)
-        defer { fixture.remove() }
-        let elden = try #require(model.game("steam:1245620"))
-        var choice = model.setup(for: elden.id)
-        choice.runnerID = ours.id
-        model.setSetup(choice, for: elden.id)
-        let items = graphicsItems(try #require(model.game("steam:1245620")), model)
-        #expect(items.contains { $0.disabled && $0.title == "D3DMetal — Needs Game Porting Toolkit" })
-        #expect(graphicsTitles(try #require(model.game("steam:1245620")), model) == ["DXMT", "DXVK", "wined3d"])
+        #expect(model.graphicsChoices(for: SetupDefaults(runnerID: winehq.id)) == [.dxvk, .wined3d])
+        #expect(model.graphicsChoices(for: SetupDefaults(runnerID: runner.id)) == BackendSupport.preference)
+        model.runners = []
+        #expect(model.graphicsChoices(for: SetupDefaults()).isEmpty)
+        let game = try #require(model.game("steam:1245620"))
+        #expect(graphicsTitles(game, model).isEmpty)
     }
 
     @Test("FEX is offered only by a runner that serves it, so never on macOS 15")

@@ -52,7 +52,7 @@ struct ConsoleExtrasPanelTests {
 
     @Test("Achievements: after one sign-in the panel shows the site's unlocked and total for the game")
     func countsAfterSignIn() async throws {
-        let scene = try ConsoleScene("extras-counts")
+        let scene = try await ConsoleScene("extras-counts")
         defer { scene.remove() }
         let game = try await scene.addGame(console: "snes", name: "Cartouche Homebrew", databaseName: "Cartouche Homebrew (World)")
         #expect(try await content(scene, game).achievements == "Not signed in")
@@ -72,7 +72,7 @@ struct ConsoleExtrasPanelTests {
 
     @Test("Hardcore: Continue From and Resume are off, and the game starts with no state")
     func hardcoreTurnsOffStates() async throws {
-        let scene = try ConsoleScene("extras-hardcore")
+        let scene = try await ConsoleScene("extras-hardcore")
         defer { scene.remove() }
         let runner = scene.useFakeRunner(picture: try ConsolePanelTests.screen("AUTO"))
         let game = try await scene.addGame(console: "snes", name: "Cartouche Homebrew", databaseName: "Cartouche Homebrew (World)")
@@ -100,7 +100,7 @@ struct ConsoleExtrasPanelTests {
 
     @Test("Play Together: Host starts netplay with the nickname; Join lists a friend's game from the lobby and joins it")
     func hostAndJoin() async throws {
-        let scene = try ConsoleScene("extras-netplay")
+        let scene = try await ConsoleScene("extras-netplay")
         defer { scene.remove() }
         let runner = scene.useFakeRunner(picture: try ConsolePanelTests.screen("AUTO"))
         let game = try await scene.addGame(console: "snes", name: "Cartouche Homebrew", databaseName: "Cartouche Homebrew (World)")
@@ -134,7 +134,7 @@ struct ConsoleExtrasPanelTests {
 
     @Test("Translate the screen without a service says what is missing and stays off")
     func translationNotConfigured() async throws {
-        let scene = try ConsoleScene("extras-translate")
+        let scene = try await ConsoleScene("extras-translate")
         defer { scene.remove() }
         let game = try await scene.addGame(console: "snes", name: "Cartouche Homebrew", databaseName: "Cartouche Homebrew (World)")
         #expect(ConsoleOptionsSections.needsService == "Needs a translation service, set in Settings")
@@ -156,7 +156,7 @@ struct ConsoleExtrasPanelTests {
 
     @Test("Settings > Consoles shows the RetroAchievements account, iCloud Drive and the translation service")
     func settingsPane() async throws {
-        let scene = try ConsoleScene("extras-settings")
+        let scene = try await ConsoleScene("extras-settings")
         defer { scene.remove() }
         for dark in [false, true] {
             let texts = try await renderedTexts(ConsolesSettingsView(model: scene.settings, extras: scene.center.extras),
@@ -176,7 +176,7 @@ struct ConsoleExtrasPanelTests {
 
     @Test("Coach mode is off by default; on, the game's relay refuses input in Hardcore and reads values")
     func coachRelay() async throws {
-        let scene = try ConsoleScene("extras-coach")
+        let scene = try await ConsoleScene("extras-coach")
         defer { scene.remove() }
         _ = scene.useFakeRunner(picture: try ConsolePanelTests.screen("AUTO"))
         let game = try await scene.addGame(console: "snes", name: "Cartouche Homebrew", databaseName: "Cartouche Homebrew (World)")

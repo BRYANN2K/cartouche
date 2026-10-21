@@ -135,7 +135,7 @@ struct IdentityTests {
     }
 
     @Test("The app and the dylib use the same data and log folders")
-    func appAndDylibShareTheRoot() throws {
+    @MainActor func appAndDylibShareTheRoot() throws {
         let home = SupportPaths.home.path(percentEncoded: false)
         #expect(SupportPaths.supportDirName == "Cartouche")
         #expect(try Self.headerDefine("CARTOUCHE_DIR_NAME") == SupportPaths.supportDirName)
@@ -147,6 +147,10 @@ struct IdentityTests {
         #expect(SupportPaths.logs.path(percentEncoded: false).hasSuffix("/Library/Logs/Cartouche"))
         #expect(AppLog.file.deletingLastPathComponent().path(percentEncoded: false)
             == SupportPaths.logs.path(percentEncoded: false) + "/")
+        // consoles.json lives in the app's own support folder — never the
+        // user's RetroArch dir or a scratch one
+        #expect(SettingsWindow.retroArchPaths.root.path(percentEncoded: false)
+            .hasPrefix(SupportPaths.support.path(percentEncoded: false) + "/"))
 
         let file = try String(contentsOf: Self.repoRoot.appending(path: "dylib/util/file.c"), encoding: .utf8)
         #expect(file.contains("#include \"cartouche_identity.h\""))

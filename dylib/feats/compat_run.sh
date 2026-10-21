@@ -154,8 +154,21 @@ fi
 case "$np_build" in *[!A-Za-z0-9.-]*) np_build="" ;; esac
 np_display=$(sed -n 's/.*"display_name"[[:space:]]*"\(.*\)".*/\1/p' \
   "$np_tool_dir/compatibilitytool.vdf" 2>/dev/null | head -1) || np_display=""
-[ -n "$np_display" ] || np_display="CrossOver build ${np_build:-unknown}"
+[ -n "$np_display" ] || np_display="runner build ${np_build:-unknown}"
 CX_ROOT="$np_support/runners/crossover-$np_build/CrossOver"
+# A downloaded Wine build keeps an install receipt where it was unpacked, in
+# runners/<id> (older installs added a wine- prefix). A clone still wins when
+# both are present.
+np_wine=""
+for np_wine_dir in "$np_support/runners/$np_build" "$np_support/runners/wine-$np_build"; do
+  if [ -f "$np_wine_dir/.cartouche-runner.json" ]; then
+    np_wine="$np_wine_dir"
+    break
+  fi
+done
+if [ ! -d "$CX_ROOT" ] && [ -n "$np_wine" ]; then
+  CX_ROOT="$np_wine"
+fi
 export CX_ROOT
 # CrossOver initializes Rosetta's Windows thread-state support even without D3DMetal.
 if [ -f "$CX_ROOT/lib64/apple_gptk/external/libd3dshared.dylib" ]; then
@@ -167,9 +180,24 @@ WINELOADER="$wine_unix/wine.app/Contents/MacOS/wine"
 WINESERVER="$CX_ROOT/bin/wineserver-arm64"
 if [ "$np_flavor" = rosetta ] || [ ! -x "$WINELOADER" ] || [ ! -x "$WINESERVER" ]; then
   wine_unix="$CX_ROOT/lib/wine/x86_64-unix"
-  WINELOADER="$wine_unix/wine"
   WINESERVER="$CX_ROOT/bin/wineserver"
   [ -x "$WINESERVER" ] || WINESERVER="$CX_ROOT/bin/wineserver-x86"
+  # A downloaded build names its loader in the install receipt; the guesses
+  # cover receipts written before the field existed.
+  np_loader=""
+  if [ -n "$np_wine" ]; then
+    np_loader=$(sed -n 's/.*"loader"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' \
+      "$np_wine/.cartouche-runner.json" 2>/dev/null | head -1) || np_loader=""
+    case "$np_loader" in /*|*..*|*[!A-Za-z0-9._/-]*) np_loader="" ;; esac
+  fi
+  WINELOADER=""
+  for np_try in "${np_loader:+$CX_ROOT/$np_loader}" "$wine_unix/wine" \
+                "$CX_ROOT/bin/wine" "$CX_ROOT/bin/wine64"; do
+    if [ -n "$np_try" ] && [ -x "$np_try" ]; then
+      WINELOADER="$np_try"
+      break
+    fi
+  done
 fi
 export WINELOADER WINESERVER
 
@@ -314,7 +342,7 @@ read_game_setup() {
     [ "$name" != "$line" ] || continue
     case "$name" in
       *[!A-Z0-9_]*) continue ;;
-      D3DM_?*|DXMT_?*|DXVK_?*|MTL_?*|ROSETTA_?*) ;;
+      D3DM_?*|DXMT_?*|DXVK_?*|MTL_?*|ROSETTA_?*|WINEMSYNC|CARTOUCHE_RETINA) ;;
       *) echo "setup: $name is not a variable Cartouche sets, ignored"; continue ;;
     esac
     if [ "${wine_unix##*/}" = aarch64-unix ]; then
@@ -331,6 +359,9 @@ read_game_setup() {
   done < "$setup_env"
 }
 read_game_setup >> "$log" 2>&1 || true
+if [ "${DXMT_ENABLE_NVEXT:-0}" = 1 ] && [ "$np_backend" = dxmt ]; then
+  export WINEDLLOVERRIDES="${WINEDLLOVERRIDES:+$WINEDLLOVERRIDES;}nvapi64=n;nvngx=b"
+fi
 
 # Steam gives every non-Steam shortcut a game ID ending in 0x02000000.
 shortcut_game_id() {
@@ -421,16 +452,30 @@ last_wine_build() {
   case "$updated" in '' | *[!0-9]*) return 0 ;; esac
   [ "$updated" = "$(stat -f %m "$CX_ROOT/share/wine/wine.inf" 2>/dev/null)" ] && return 0
   had_build=other
-  had_display="another version of CrossOver"
-  for inf in "$np_support"/runners/crossover-*/CrossOver/share/wine/wine.inf; do
+  had_display="another build"
+  for inf in "$np_support"/runners/crossover-*/CrossOver/share/wine/wine.inf \
+             "$np_support"/runners/*/share/wine/wine.inf; do
     [ "$(stat -f %m "$inf" 2>/dev/null)" = "$updated" ] || continue
     if [ "$had_build" != other ]; then
       had_build=other
-      had_display="another version of CrossOver"
+      had_display="another build"
       break
     fi
-    had_build=${inf#"$np_support/runners/crossover-"}
+    case "$inf" in
+      "$np_support"/runners/crossover-*)
+        had_build=${inf#"$np_support/runners/crossover-"} ;;
+      *)
+        had_build=${inf#"$np_support/runners/"} ;;
+    esac
     had_build=${had_build%%/*}
+    # The folder may be the older wine-<id> shape; the receipt names the build.
+    # Keep the folder name when the receipt has none, so an unknown runner still refuses.
+    if [ -f "$np_support/runners/$had_build/.cartouche-runner.json" ]; then
+      found_id=$(sed -n 's/.*"id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' \
+        "$np_support/runners/$had_build/.cartouche-runner.json" 2>/dev/null | head -1) \
+        || found_id=""
+      [ -n "$found_id" ] && had_build="$found_id"
+    fi
     had_display=$(awk -F '\t' -v b="$had_build" '$2 == b { print $4; exit }' \
       "$np_support/tools" 2>/dev/null) || had_display=""
   done
@@ -450,7 +495,7 @@ refuse_other_build() {
   fi
   if [ -n "$had_build" ] && [ "$had_build" != "$np_build" ]; then
     echo "=== prefix was last run by build $had_build and this compatibility tool runs $np_build, rebuild the prefix in Cartouche ===" >> "$log" 2>&1 || true
-    had_display=$(alert_safe "${had_display:-CrossOver build $had_build}")
+    had_display=$(alert_safe "${had_display:-build $had_build}")
     show_alert "This game needs its prefix rebuilt" "This game's prefix was last run by $had_display, and this compatibility tool runs $(alert_safe "$np_display"). Rebuild the prefix in Cartouche to run it here, or pick $had_display again in the game's Compatibility settings. You will not lose game saves by rebuilding the prefix."
     exit 1
   fi
@@ -728,7 +773,7 @@ import_prefix_settings() {
   if [ "$CARTOUCHE_RETINA" = "1" ]; then
     retina_line='"RetinaMode"="y"'
   else
-    retina_line='"RetinaMode"=-'
+    retina_line='"RetinaMode"="n"'
   fi
   controllers_planned=0
   if plan_hidden_controllers 2>/dev/null; then
@@ -774,7 +819,7 @@ import_prefix_settings() {
   if [ "$import_status" -eq 0 ] && [ "$hidraw_planned" -eq 1 ] && [ "$CARTOUCHE_DISABLE_HIDRAW" != "1" ]; then
     rm -f "$hidraw_file"
   fi
-  if [ "$import_status" -eq 0 ] && [ -n "$controllers_add$controllers_remove$hidraw_value" ]; then
+  if [ "$import_status" -eq 0 ] && { [ -n "$controllers_add$controllers_remove$hidraw_value" ] || [ -n "${CARTOUCHE_RETINA:-}" ]; }; then
     # Wine only reads these keys when it starts, so restart Wine to apply them.
     without_lock_fds "$WINESERVER" -k >> "$log" 2>&1 || true
     without_lock_fds "$WINESERVER" -w >> "$log" 2>&1 || true
@@ -811,7 +856,10 @@ fi
 # Each CrossOver build needs its own template.
 # FEX builds need two, one for FEX/arm64 Wine and one for Rosetta/AMD64 Wine
 runner_id=""
-[ -z "$np_build" ] || runner_id="crossover-$np_build-${wine_unix##*/}"
+if [ -n "$np_build" ]; then
+  runner_id="crossover-$np_build-${wine_unix##*/}"
+  [ -z "${np_wine:-}" ] || runner_id="$np_build-${wine_unix##*/}"
+fi
 
 in_template_env() {
   prefix="$1"
@@ -1256,6 +1304,16 @@ if [ -n "$STEAM_COMPAT_DATA_PATH" ]; then
   map_game_drive
   stage_step="prefix settings"
   import_prefix_settings
+  if [ "${DXMT_ENABLE_NVEXT:-0}" = 1 ] && [ "$np_backend" = dxmt ]; then
+    old_ifs=$IFS
+    IFS=:
+    for dir in $WINEDLLPATH; do
+      for dll in nvapi64.dll nvngx.dll; do
+        [ ! -f "$dir/$dll" ] || cp -f "$dir/$dll" "$WINEPREFIX/drive_c/windows/system32/$dll"
+      done
+    done
+    IFS=$old_ifs
+  fi
   stage_step="fonts"
   link_fonts
   # A prefix that Wine built just now only has dosdevices from this point on.
@@ -1279,20 +1337,34 @@ fi
 bridge_src="$np_support/bridge"
 prefix_steam="$WINEPREFIX/drive_c/Program Files (x86)/Steam"
 verify_runner() {
-  if [ ! -d "$bridge_src/wine/$np_build" ]; then
+  if [ -n "${np_wine:-}" ]; then
+    # A downloaded build ships its patched ntdll; the receipt keeps the hashes.
+    for arch in x86_64-windows i386-windows aarch64-windows; do
+      live="$CX_ROOT/lib/wine/$arch/ntdll.dll"
+      want=$(sed -n "s/.*\"lib\/wine\/$arch\/ntdll\.dll\"[[:space:]]*:[[:space:]]*\"\([0-9a-fA-F]*\)\".*/\1/p" \
+        "$np_wine/.cartouche-runner.json" 2>/dev/null | head -1) || want=""
+      [ -n "$want" ] || continue
+      if [ ! -f "$live" ]; then
+        echo "=== runner has no $arch ntdll, set up the runner in Cartouche ===" >> "$log" 2>&1 || true
+      elif [ "$(shasum -a 256 "$live" 2>/dev/null | awk '{print $1}')" != "$want" ]; then
+        echo "=== runner $arch ntdll is not the downloaded copy, set up the runner in Cartouche ===" >> "$log" 2>&1 || true
+      fi
+    done
+  elif [ ! -d "$bridge_src/wine/$np_build" ]; then
     echo "=== no patched ntdll for build $np_build in the bridge, set it up in Cartouche ===" >> "$log" 2>&1 || true
     return
+  else
+    for arch in x86_64-windows i386-windows aarch64-windows; do
+      staged="$bridge_src/wine/$np_build/$arch/ntdll.dll"
+      live="$CX_ROOT/lib/wine/$arch/ntdll.dll"
+      [ -f "$staged" ] || continue
+      if [ ! -f "$live" ]; then
+        echo "=== runner has no $arch ntdll, set up the runner in Cartouche ===" >> "$log" 2>&1 || true
+      elif ! cmp -s "$staged" "$live"; then
+        echo "=== runner $arch ntdll is not the patched copy, set up the runner in Cartouche ===" >> "$log" 2>&1 || true
+      fi
+    done
   fi
-  for arch in x86_64-windows i386-windows aarch64-windows; do
-    staged="$bridge_src/wine/$np_build/$arch/ntdll.dll"
-    live="$CX_ROOT/lib/wine/$arch/ntdll.dll"
-    [ -f "$staged" ] || continue
-    if [ ! -f "$live" ]; then
-      echo "=== runner has no $arch ntdll, set up the runner in Cartouche ===" >> "$log" 2>&1 || true
-    elif ! cmp -s "$staged" "$live"; then
-      echo "=== runner $arch ntdll is not the patched copy, set up the runner in Cartouche ===" >> "$log" 2>&1 || true
-    fi
-  done
   for arch in i386-windows x86_64-windows "${wine_unix##*/}"; do
     case "$arch" in
       *-unix) name="lsteamclient.so" ;;

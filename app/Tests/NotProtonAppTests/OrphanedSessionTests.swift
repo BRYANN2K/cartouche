@@ -33,8 +33,8 @@ struct OrphanedSessionTests {
         }
     }
 
-    private func scene(_ label: String, table: FakeProcesses) throws -> ConsoleScene {
-        let scene = try ConsoleScene(label)
+    private func scene(_ label: String, table: FakeProcesses) async throws -> ConsoleScene {
+        let scene = try await ConsoleScene(label)
         scene.center.sessions = SessionRecords(
             file: scene.work.appending(path: "support/console-session.json"),
             processStart: { pid in table.lookup(pid) })
@@ -55,7 +55,7 @@ struct OrphanedSessionTests {
     @Test("A record is written when the game starts, beat every minute, removed at Quit")
     func recordLifecycle() async throws {
         let table = FakeProcesses([4242: 1_000])
-        let scene = try scene("lifecycle", table: table)
+        let scene = try await scene("lifecycle", table: table)
         defer { scene.remove() }
         scene.center.heartbeatEvery = .milliseconds(40)
         _ = scene.useFakeRunner(picture: try ConsolePanelTests.screen("NO"), pid: 4242)
@@ -78,7 +78,7 @@ struct OrphanedSessionTests {
     @Test("Cartouche quitting ends the record too")
     func recordRemovedAtTermination() async throws {
         let table = FakeProcesses([4242: 1_000])
-        let scene = try scene("terminate", table: table)
+        let scene = try await scene("terminate", table: table)
         defer { scene.remove() }
         _ = scene.useFakeRunner(picture: try ConsolePanelTests.screen("NO"), pid: 4242)
         let game = try await scene.addGame(console: "snes", name: "Cartouche Homebrew")
@@ -92,7 +92,7 @@ struct OrphanedSessionTests {
     @Test("A still-running session is picked up and counted when the process ends")
     func liveReattach() async throws {
         let table = FakeProcesses([4242: 1_000])
-        let scene = try scene("live", table: table)
+        let scene = try await scene("live", table: table)
         defer { scene.remove() }
         scene.center.heartbeatEvery = .milliseconds(40)
         let game = try await scene.addGame(console: "snes", name: "Cartouche Homebrew")
@@ -123,7 +123,7 @@ struct OrphanedSessionTests {
     @Test("A standalone emulator session is picked up under its name")
     func liveReattachStandalone() async throws {
         let table = FakeProcesses([5151: 2_000])
-        let scene = try scene("live-standalone", table: table)
+        let scene = try await scene("live-standalone", table: table)
         defer { scene.remove() }
         let game = try await scene.addGame(console: "snes", name: "Cartouche Homebrew")
         scene.center.sessions.write(record(gameID: game.id, emulator: "Dolphin", pid: 5151,
@@ -143,7 +143,7 @@ struct OrphanedSessionTests {
     @Test("A session whose process is gone is counted to the last heartbeat")
     func deadCountsToHeartbeat() async throws {
         let table = FakeProcesses()
-        let scene = try scene("dead", table: table)
+        let scene = try await scene("dead", table: table)
         defer { scene.remove() }
         let game = try await scene.addGame(console: "snes", name: "Cartouche Homebrew")
         let started = Date().addingTimeInterval(-900)
@@ -164,7 +164,7 @@ struct OrphanedSessionTests {
     func pidReusedIsNotReattached() async throws {
         // The pid answers, but its process started far later than the record's
         let table = FakeProcesses([4242: 9_999])
-        let scene = try scene("reused", table: table)
+        let scene = try await scene("reused", table: table)
         defer { scene.remove() }
         let game = try await scene.addGame(console: "snes", name: "Cartouche Homebrew")
         let started = Date().addingTimeInterval(-600)
@@ -182,7 +182,7 @@ struct OrphanedSessionTests {
     @Test("A corrupt record is ignored and swept away")
     func corruptRecordIgnored() async throws {
         let table = FakeProcesses()
-        let scene = try scene("corrupt", table: table)
+        let scene = try await scene("corrupt", table: table)
         defer { scene.remove() }
         let game = try await scene.addGame(console: "snes", name: "Cartouche Homebrew")
         let file = scene.center.sessions.file

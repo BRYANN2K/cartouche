@@ -31,9 +31,28 @@ struct DownloadActivity: Identifiable, Equatable, Sendable {
     var state: State
     var bytesDone: Int64
     var bytesTotal: Int64
+    // Smoothed over recent reads; 0 means no live rate
+    var bytesPerSecond: Int64 = 0
 
     var id: Int { appID }
     var gameID: String { "steam:\(appID)" }
+
+    var eta: Duration? {
+        guard bytesPerSecond > 0, bytesTotal > bytesDone else { return nil }
+        return .seconds((bytesTotal - bytesDone) / bytesPerSecond)
+    }
+
+    // "8.4 MB/s · 42 min left"; nil until the rate is known, ETA dropped past a day
+    var speedText: String? {
+        guard bytesPerSecond > 0 else { return nil }
+        var text = "\(DownloadSummary.size(bytesPerSecond))/s"
+        if let eta, eta.components.seconds <= 24 * 3600 {
+            text += " · " + (eta.components.seconds < 60
+                ? String(localized: "Less than a minute")
+                : String(localized: "\((eta.components.seconds + 59) / 60) min left"))
+        }
+        return text
+    }
 
     var fraction: Double {
         bytesTotal > 0 ? min(1, max(0, Double(bytesDone) / Double(bytesTotal))) : 0
@@ -72,13 +91,16 @@ enum ActivitySlot: Equatable, Sendable {
     case installing(InstallActivity)
     case store(StoreActivity)
     case downloads([DownloadActivity])
+    // Background work onboarding left running: runner download, prefix boot, cores
+    case setup(SetupActivity)
 
     static func pick(playing: RunningGame?, install: InstallActivity?, store: StoreActivity?,
-                     downloads: [DownloadActivity]) -> ActivitySlot? {
+                     downloads: [DownloadActivity], setup: SetupActivity? = nil) -> ActivitySlot? {
         if let playing { return .playing(playing) }
         if let install { return .installing(install) }
         if let store { return .store(store) }
         if !downloads.isEmpty { return .downloads(downloads) }
+        if let setup { return .setup(setup) }
         return nil
     }
 }
@@ -98,7 +120,8 @@ struct DownloadSummary: Equatable, Sendable {
 
     var mark: Mark {
         if downloads.contains(where: \.isFailed) { return .failed }
-        if !downloads.isEmpty && downloads.allSatisfy(\.isPaused) { return .paused }
+        // Queued counts as still too: nothing is moving, the ring reads paused
+        if !downloads.isEmpty && downloads.allSatisfy({ $0.state != .downloading }) { return .paused }
         return .downloading
     }
 
@@ -132,7 +155,7 @@ struct DownloadSummary: Equatable, Sendable {
 }
 
 struct ActivityMenuSection: Equatable, Sendable {
-    enum Kind: Equatable, Sendable { case playing, installing, store, downloads }
+    enum Kind: Equatable, Sendable { case playing, installing, store, downloads, setup }
 
     struct Line: Equatable, Sendable {
         let title: String
@@ -148,11 +171,12 @@ struct ActivityMenuSection: Equatable, Sendable {
         case .installing: String(localized: "Installing")
         case .store: String(localized: "Store")
         case .downloads: String(localized: "Downloads")
+        case .setup: String(localized: "Setup")
         }
     }
 
     static func all(playing: RunningGame?, install: InstallActivity?, store: StoreActivity?,
-                    downloads: [DownloadActivity]) -> [ActivityMenuSection] {
+                    downloads: [DownloadActivity], setup: SetupActivity? = nil) -> [ActivityMenuSection] {
         var sections: [ActivityMenuSection] = []
         if let playing {
             sections.append(ActivityMenuSection(kind: .playing, lines: [Line(title: playing.name)]))
@@ -167,6 +191,9 @@ struct ActivityMenuSection: Equatable, Sendable {
             sections.append(ActivityMenuSection(kind: .downloads, lines: downloads.map {
                 Line(title: $0.name, detail: Self.detail($0))
             }))
+        }
+        if let setup {
+            sections.append(ActivityMenuSection(kind: .setup, lines: [Line(title: setup.title, detail: setup.label)]))
         }
         return sections
     }

@@ -20,7 +20,12 @@ struct CoreManagerTests {
             base = try await server.start()
             paths = RetroArchPaths(root: work.appending(path: "cartouche"))
             let source = CoreSource(cores: base.appending(path: "nightly/"), info: base.appending(path: "info.zip"))
-            cores = CoreManager(paths: paths, source: source, session: URLSession(configuration: .ephemeral))
+            let bin = work.appending(path: "bin", directoryHint: .isDirectory)
+            // The Trash in a test moves into the scene's own bin/, never the user's real Trash
+            cores = CoreManager(paths: paths, source: source, session: URLSession(configuration: .ephemeral)) { url in
+                try FileManager.default.createDirectory(at: bin, withIntermediateDirectories: true)
+                try FileManager.default.moveItem(at: url, to: bin.appending(path: url.lastPathComponent))
+            }
             try serve("snes9x", build: "1")
             try serve("sameboy", build: "1")
             try serve("swanstation", build: "1")

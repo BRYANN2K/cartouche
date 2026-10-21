@@ -64,15 +64,25 @@ struct ConsolePanelContent {
         route.missingText ?? route.emulator.map { String(localized: "Plays in \($0.title)") }
     }
 
+    // The newest proof the game ran: a counted session or a save state on disk.
+    // The subtitle, the Played row and the Play/Resume button all read it, so they agree.
+    var playedAt: Date? {
+        [game.lastPlayed, states.map(\.date).max()].compactMap { $0 }.max()
+    }
+
     func subtitle(now: Date = Date()) -> String {
-        let state = game.lastPlayed.map { String(localized: "Played \(GameDates.relative($0, now: now))") }
+        let state = playedAt.map { String(localized: "Played \(GameDates.relative($0, now: now))") }
             ?? String(localized: "Never played")
         return String(localized: "\(console.name). \(state).")
     }
 
     var played: String {
         let minutes = Int(game.playSeconds / 60)
-        if minutes < 1 { return game.playSeconds > 0 ? String(localized: "Under a minute") : String(localized: "Not yet") }
+        if minutes < 1 {
+            if game.playSeconds > 0 { return String(localized: "Under a minute") }
+            if let playedAt { return GameDates.relative(playedAt, now: Date()) }
+            return String(localized: "Not yet")
+        }
         if minutes < 60 { return minutes == 1 ? String(localized: "1 minute") : String(localized: "\(minutes) minutes") }
         let hours = game.playSeconds / 3600
         return String(localized: "\(hours.formatted(.number.precision(.fractionLength(0...1)))) hours")

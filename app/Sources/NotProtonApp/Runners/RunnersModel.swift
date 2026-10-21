@@ -53,6 +53,8 @@ final class RunnersModel {
 
     @ObservationIgnored let runnersFolder: URL
     @ObservationIgnored let downloads: URL
+    @ObservationIgnored let prepareWine: @Sendable (RunnerManifest.Build, URL) throws -> Void
+    @ObservationIgnored let syncTools: @Sendable (URL) throws -> Void
     @ObservationIgnored let session: URLSession
     @ObservationIgnored let scan: @Sendable () -> FreeRunnerScan
     @ObservationIgnored let crossOver: @Sendable (URL, FreeRunnerScan) -> RunnerRegistry
@@ -71,6 +73,10 @@ final class RunnersModel {
         runnersFolder: URL = SupportPaths.runners,
         downloads: URL = WineRunnerInstaller.downloads,
         session: URLSession = WineRunnerInstaller.session,
+        prepareWine: @escaping @Sendable (RunnerManifest.Build, URL) throws -> Void = {
+            _ = try RunnerSetup.prepareWine($0, runners: $1)
+        },
+        syncTools: @escaping @Sendable (URL) throws -> Void = { _ = try CompatToolList.sync(runners: $0) },
         scan: @escaping @Sendable () -> FreeRunnerScan = { .standard },
         registry: @escaping @Sendable (URL, FreeRunnerScan) -> RunnerRegistry = { RunnerRegistry.refresh(runners: $0, free: $1) },
         manifestFeed: URL? = CompatibilityClient.feed.map(RunnerManifest.feed(fromCompatibilityFeed:)),
@@ -88,6 +94,8 @@ final class RunnersModel {
         self.runnersFolder = runnersFolder
         self.downloads = downloads
         self.session = session
+        self.prepareWine = prepareWine
+        self.syncTools = syncTools
         self.scan = scan
         self.crossOver = registry
     }
@@ -182,6 +190,12 @@ final class RunnersModel {
         rows = makeRows()
         do {
             try await WineRunnerInstaller.install(build, runners: runnersFolder, downloads: downloads, session: session)
+            if build.origin == .cartouche {
+                let folder = runnersFolder, prepareWine = self.prepareWine
+                try await Task.detached {
+                    try prepareWine(build, folder)
+                }.value
+            }
         } catch let failure as StepFailure {
             message = failure.detail
         } catch {
@@ -196,11 +210,13 @@ final class RunnersModel {
         message = nil
         busy.insert(id)
         rows = makeRows()
-        let folder = runnersFolder
+        let folder = runnersFolder, syncTools = self.syncTools
         do {
             try await Task.detached {
                 switch runner.kind {
-                case .wineBuild: try WineRunnerInstaller.remove(id, runners: folder)
+                case .wineBuild:
+                    try WineRunnerInstaller.remove(id, runners: folder)
+                    try syncTools(folder)
                 case .portingToolkit: try PortingToolkitSource.remove(version: runner.version, runners: folder)
                 case .crossOver: break
                 }

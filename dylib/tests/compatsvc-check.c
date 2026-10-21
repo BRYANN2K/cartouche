@@ -24,7 +24,8 @@ static void *stub_registered_tool_val;
 static uint32_t last_map_appid;
 static const char *last_map_tool;
 
-void *np_compat_manager(void) { return fake_manager; }
+static int stub_manager_off;
+void *np_compat_manager(void) { return stub_manager_off ? NULL : fake_manager; }
 
 uint32_t np_compat_tool_off(uint32_t ref) {
     if (ref < 0x58) return ref;
@@ -96,9 +97,11 @@ const char *np_compat_tool_commandline(void) { return "/fake/run %verb%"; }
 static uint8_t captured_pb[8192];
 static uint32_t captured_pb_len;
 static int parse_into_ok = 1;
+static int parse_into_calls;
 
 int np_webui_parse_into(uintptr_t message, const void *bytes, uint32_t len) {
     (void)message;
+    parse_into_calls++;
     if (len <= sizeof captured_pb) {
         memcpy(captured_pb, bytes, len);
         captured_pb_len = len;
@@ -108,9 +111,21 @@ int np_webui_parse_into(uintptr_t message, const void *bytes, uint32_t len) {
 
 uintptr_t np_webui_registry(void) { return 1; }
 
+#define REG_MAX 8
+static char      reg_names[REG_MAX][64];
+static uintptr_t reg_reqs[REG_MAX], reg_resps[REG_MAX];
+static int     (*reg_handlers[REG_MAX])(uintptr_t, uintptr_t);
+static int       reg_count;
+
 int np_webui_register_route(const char *name, uintptr_t req, uintptr_t resp,
                             int (*handler)(uintptr_t, uintptr_t)) {
-    (void)name; (void)req; (void)resp; (void)handler;
+    if (reg_count < REG_MAX) {
+        snprintf(reg_names[reg_count], sizeof reg_names[0], "%s", name);
+        reg_reqs[reg_count] = req;
+        reg_resps[reg_count] = resp;
+        reg_handlers[reg_count] = handler;
+        reg_count++;
+    }
     return 1;
 }
 
@@ -282,6 +297,9 @@ static void reset(void) {
     last_map_appid = 0;
     last_map_tool = NULL;
     parse_into_ok = 1;
+    parse_into_calls = 0;
+    stub_manager_off = 0;
+    reg_count = 0;
     captured_pb_len = 0;
     memset(captured_pb, 0, sizeof captured_pb);
 }
@@ -626,6 +644,40 @@ static void no_manager_cases(void) {
     parse_into_ok = 1;
 }
 
+static void empty_manager_cases(void) {
+    reset();
+
+    // A manager that holds nothing (no Cartouche tool file written yet) is a real
+    // answer, not a corrupt one: the page gets an empty list rather than a failure
+    // it will retry.
+    *(uint8_t **)(fake_manager + COMPAT_MANAGER_TOOL_ARRAY_OFF) = NULL;
+    *(uint32_t *)(fake_manager + COMPAT_MANAGER_TOOL_COUNT_OFF) = 0;
+    int rc = get_compat_tools(build_request(REQ_HAS_APPID, 7), (uintptr_t)response_buf);
+    check(rc == RESULT_OK, "an empty manager is answered, not refused");
+    reply_t r;
+    decode_reply(&r);
+    check(r.count == 0, "an empty manager offers no tools");
+    check(r.selected[0] == '\0', "an empty manager selects nothing");
+
+    // Entries claimed with no array to read them from stays a failure.
+    *(uint32_t *)(fake_manager + COMPAT_MANAGER_TOOL_COUNT_OFF) = 3;
+    rc = get_compat_tools(build_request(REQ_HAS_APPID, 7), (uintptr_t)response_buf);
+    check(rc == RESULT_FAIL, "a nonzero count with no array is still refused");
+
+    // A count past the cap is still refused.
+    *(uint8_t **)(fake_manager + COMPAT_MANAGER_TOOL_ARRAY_OFF) = fake_entries;
+    *(uint32_t *)(fake_manager + COMPAT_MANAGER_TOOL_COUNT_OFF) = 41;
+    rc = get_compat_tools(build_request(REQ_HAS_APPID, 7), (uintptr_t)response_buf);
+    check(rc == RESULT_FAIL, "a count past the cap is still refused");
+
+    // No manager at all answers ok and builds no reply body.
+    stub_manager_off = 1;
+    parse_into_calls = 0;
+    rc = get_compat_tools(build_request(REQ_HAS_APPID, 7), (uintptr_t)response_buf);
+    check(rc == RESULT_OK && parse_into_calls == 0,
+          "no manager answers ok without building a reply");
+}
+
 // hook_webpatch reads these to decide whether an absent service matters, so untried has to
 // stay apart from absent: folding them puts an error on a launch where nothing is wrong.
 static void routes_state_cases(void) {
@@ -637,6 +689,12 @@ static void routes_state_cases(void) {
     np_compatsvc_register(NULL, 0, 0, 0);
     check(np_compatsvc_routes() == NP_COMPATSVC_READY,
           "a client carrying every message type registers and reads as ready");
+    check(reg_count == 2
+          && strcmp(reg_names[0], "CompatManager.GetCompatTools#1") == 0
+          && strcmp(reg_names[1], "CompatManager.SpecifyCompatTool#1") == 0,
+          "both compat routes register under their interface names");
+    check(reg_handlers[0] == get_compat_tools && reg_handlers[1] == specify_compat_tool,
+          "each route points at its handler");
 
     // The stable client: the page specifies the tool directly and the build carries no
     // CompatManager types at all.
@@ -647,11 +705,14 @@ static void routes_state_cases(void) {
           "a client with no GetCompatTools types reads as absent");
 
     // Half a CompatManager, which is the shape that stays an error.
+    reg_count = 0;
     g_routes = NP_COMPATSVC_UNTRIED;
     stub_absent_type = "CCompatManager_SpecifyCompatTool";
     np_compatsvc_register(NULL, 0, 0, 0);
     check(np_compatsvc_routes() == NP_COMPATSVC_ABSENT,
           "a client that can list but not specify reads as absent");
+    check(reg_count == 1 && strcmp(reg_names[0], "CompatManager.GetCompatTools#1") == 0,
+          "the list route still registers when specify cannot");
 
     // Settled state is also the once-only guard, so a second lookup is not a second
     // registration that could overwrite what the first one found.
@@ -714,6 +775,7 @@ int main(void) {
     active_flag_cases();
     specify_cases();
     no_manager_cases();
+    empty_manager_cases();
     routes_state_cases();
     string_field_cases();
 

@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 import Testing
 
@@ -72,6 +73,12 @@ final class RecordingControl: SteamDownloadControlling {
     func resume(appID: Int) throws { calls.append("resume \(appID)") }
     func cancel(appID: Int) throws { calls.append("cancel \(appID)") }
     func retry(appID: Int) throws { calls.append("retry \(appID)") }
+}
+
+// A value @Sendable closures can read and the test can still move, for injected clocks and probes
+final class Probe<T>: @unchecked Sendable {
+    var value: T
+    init(_ value: T) { self.value = value }
 }
 
 let godOfWar = DownloadActivity(appID: 1_593_500, name: "God of War", state: .downloading,
@@ -149,9 +156,11 @@ struct ActivitySlotTests {
 struct ActivityCenterTests {
 
     func center(_ fixture: DownloadFixture, notifier: RecordingActivityNotifier = RecordingActivityNotifier(),
-                control: RecordingControl = RecordingControl()) -> ActivityCenter {
+                control: RecordingControl = RecordingControl(),
+                steamRunning: (@Sendable () -> Bool)? = nil) -> ActivityCenter {
+        // Tests that do not care probe no live system: Steam reads as running
         let center = ActivityCenter(installs: InstallCenter(notifier: RecordingNotifier()), reader: fixture.reader,
-                                    control: control, notifier: notifier)
+                                    control: control, notifier: notifier, steamRunning: steamRunning ?? { true })
         center.isAppActive = { false }
         return center
     }
@@ -354,6 +363,57 @@ struct ActivityCenterTests {
         center.retry(1_593_500)
         #expect(control.calls == ["cancel 1593500", "retry 1593500"])
     }
+
+    @Test("Steam closed: the game stops counting, downloads read as paused, the reveal stills, and it all comes back when Steam reopens")
+    func steamClosed() async throws {
+        let fixture = try DownloadFixture("closed-center")
+        defer { fixture.remove() }
+        try fixture.manifest(1_593_500, "God of War", flags: 1026, done: 40, total: 100)
+        try fixture.manifest(870_780, "Control", flags: 2, total: 1000)
+        try fixture.manifest(1_245_620, "Elden Ring", flags: 4)
+        try fixture.registry(running: 1_245_620)
+        let running = Probe(true)
+        let notifier = RecordingActivityNotifier()
+        let center = center(fixture, notifier: notifier, steamRunning: { running.value })
+        await center.refresh()
+        #expect(center.steamRunning)
+        guard case .playing = center.slot else { Issue.record("expected the playing slot"); return }
+        #expect(center.downloads.first { $0.appID == 1_593_500 }?.state == .downloading)
+
+        running.value = false
+        await center.refresh()
+        #expect(!center.steamRunning)
+        #expect(center.playing == nil)
+        #expect(center.downloads.first { $0.appID == 1_593_500 }?.state == .paused)
+        // Queued stays queued and nothing was announced
+        #expect(center.downloads.first { $0.appID == 870_780 }?.state == .queued)
+        #expect(notifier.posted.isEmpty)
+        #expect(DownloadSummary(downloads: center.downloads).mark == .paused)
+        let game = Game.steam(1_593_500, name: "God of War", installed: true)
+        #expect(center.reveal(for: game)?.animating == false)
+
+        running.value = true
+        await center.refresh()
+        #expect(center.steamRunning)
+        #expect(center.downloads.first { $0.appID == 1_593_500 }?.state == .downloading)
+        #expect(center.reveal(for: game)?.animating == true)
+    }
+
+    @Test("A pending resume cannot un-pause a download while Steam is closed")
+    func askedWhileClosed() async throws {
+        let fixture = try DownloadFixture("asked-closed")
+        defer { fixture.remove() }
+        try fixture.manifest(1_593_500, "God of War", flags: 1538, done: 40, total: 100)
+        let running = Probe(true)
+        let center = center(fixture, steamRunning: { running.value })
+        await center.refresh()
+        center.resume(1_593_500)
+        #expect(center.downloads.first?.state == .downloading)
+        // Steam quits before its files catch up: the download shows paused again
+        running.value = false
+        await center.refresh()
+        #expect(center.downloads.first?.state == .paused)
+    }
 }
 
 @Suite("Steam download state")
@@ -553,3 +613,119 @@ struct GameProcessTests {
             path: "/bin/sleep", arguments: ["sleep", "30"], environment: ["SteamGameId": "12", "A": "b=c"]))
     }
 }
+
+@Suite("Steam download monitor")
+struct SteamDownloadMonitorTests {
+
+    @Test("The rate is bytes over the window, the ETA the rest over the rate; pausing clears both")
+    func rates() async throws {
+        let fixture = try DownloadFixture("rate")
+        defer { fixture.remove() }
+        try fixture.manifest(1_593_500, "God of War", flags: 1026, done: 1_000_000, total: 100_000_000)
+        let now = Probe(Date(timeIntervalSince1970: 1_800_000_000))
+        let monitor = SteamDownloadMonitor(reader: fixture.reader, isSteamRunning: { true }, now: { now.value })
+
+        var reading = await monitor.poll()
+        #expect(reading.snapshot.downloads.first?.bytesPerSecond == 0)
+        #expect(reading.snapshot.downloads.first?.speedText == nil)
+
+        now.value += 10
+        try fixture.manifest(1_593_500, "God of War", flags: 1026, done: 3_000_000, total: 100_000_000)
+        reading = await monitor.poll()
+        var download = try #require(reading.snapshot.downloads.first)
+        #expect(download.bytesPerSecond == 200_000)
+        #expect(download.eta == .seconds(485))
+        #expect(download.speedText?.hasSuffix("9 min left") == true)
+        #expect(download.speedText?.contains("/s") == true)
+
+        // Paused downloads move nothing and hold no history, so a resume starts clean
+        now.value += 1
+        try fixture.manifest(1_593_500, "God of War", flags: 1538, done: 3_000_000, total: 100_000_000)
+        reading = await monitor.poll()
+        download = try #require(reading.snapshot.downloads.first)
+        #expect(download.bytesPerSecond == 0)
+        #expect(download.eta == nil)
+
+        // A manifest going backwards never reads as a negative rate
+        now.value += 10
+        try fixture.manifest(1_593_500, "God of War", flags: 1026, done: 500, total: 100_000_000)
+        reading = await monitor.poll()
+        #expect(reading.snapshot.downloads.first?.bytesPerSecond == 0)
+    }
+
+    @Test("Polls sooner while downloading, later when idle, slowest while Steam is closed")
+    func intervals() {
+        var snapshot = SteamActivitySnapshot()
+        #expect(SteamDownloadMonitor.interval(after: snapshot) == SteamDownloadMonitor.idleInterval)
+        snapshot.downloads = [godOfWar]
+        #expect(SteamDownloadMonitor.interval(after: snapshot) == SteamDownloadMonitor.activeInterval)
+        var paused = godOfWar
+        paused.state = .paused
+        snapshot.downloads = [paused]
+        #expect(SteamDownloadMonitor.interval(after: snapshot) == SteamDownloadMonitor.waitingInterval)
+        snapshot.steamRunning = false
+        snapshot.downloads = [godOfWar]
+        #expect(SteamDownloadMonitor.interval(after: snapshot) == SteamDownloadMonitor.closedInterval)
+    }
+
+    @Test("While Steam is closed the running game clears and downloads read as paused")
+    func steamClosed() async throws {
+        let fixture = try DownloadFixture("closed")
+        defer { fixture.remove() }
+        try fixture.manifest(1_593_500, "God of War", flags: 1026, done: 40, total: 100)
+        try fixture.manifest(870_780, "Control", flags: 2, total: 1000)
+        try fixture.manifest(1_245_620, "Elden Ring", flags: 4)
+        try fixture.registry(running: 1_245_620)
+        let running = Probe(false)
+        let monitor = SteamDownloadMonitor(reader: fixture.reader, isSteamRunning: { running.value })
+
+        var snapshot = await monitor.poll().snapshot
+        #expect(!snapshot.steamRunning)
+        #expect(snapshot.runningAppID == nil)
+        #expect(snapshot.trackedPIDs.isEmpty)
+        #expect(snapshot.downloads.first { $0.appID == 1_593_500 }?.state == .paused)
+        // Queued still reads queued
+        #expect(snapshot.downloads.first { $0.appID == 870_780 }?.state == .queued)
+
+        running.value = true
+        snapshot = await monitor.poll().snapshot
+        #expect(snapshot.steamRunning)
+        #expect(snapshot.runningAppID == 1_245_620)
+        #expect(snapshot.downloads.first { $0.appID == 1_593_500 }?.state == .downloading)
+    }
+
+    @Test("A write in a watched folder lands one poke per burst")
+    func watches() async throws {
+        let fixture = try DownloadFixture("watch")
+        defer { fixture.remove() }
+        let monitor = SteamDownloadMonitor(reader: fixture.reader)
+        let pokes = Probe(0)
+        await monitor.watchFiles { pokes.value += 1 }
+        try fixture.manifest(1_593_500, "God of War", flags: 4)
+        try await Task.sleep(for: .seconds(1))
+        #expect(pokes.value == 1)
+        try fixture.manifest(1_172_470, "Apex Legends", flags: 4)
+        try fixture.manifest(870_780, "Control", flags: 4)
+        try await Task.sleep(for: .seconds(1))
+        #expect(pokes.value == 2)
+        await monitor.quiet()
+        try fixture.manifest(1_245_620, "Elden Ring", flags: 4)
+        try await Task.sleep(for: .seconds(1))
+        #expect(pokes.value == 2)
+    }
+
+    @Test("A process named like Steam counts; anything else does not")
+    func processNamed() throws {
+        // The test runner itself is the live process; a copied system binary can be
+        // refused at exec (platform binaries may only run from system paths)
+        var mib: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid()]
+        var kp = kinfo_proc()
+        var size = MemoryLayout<kinfo_proc>.stride
+        try #require(sysctl(&mib, 4, &kp, &size, nil, 0) == 0)
+        var comm = kp.kp_proc.p_comm
+        let own = withUnsafeBytes(of: &comm) { String(decoding: $0.prefix { $0 != 0 }, as: UTF8.self) }
+        #expect(GameProcesses.processExists(named: [own]))
+        #expect(!GameProcesses.processExists(named: ["cartouche-steam-absent"]))
+    }
+}
+

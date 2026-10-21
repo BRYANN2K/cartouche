@@ -152,6 +152,22 @@ is "other backends stay" "CX_GRAPHICS_BACKEND DXMT_CONFIG " "$(seen)"
 is "nothing to ignore logs nothing" "" "$np_dropped"
 unset -v CX_GRAPHICS_BACKEND DXMT_CONFIG
 
+echo "== Advanced per-game setup variables =="
+read_setup=$(sed -n '/^read_game_setup() {/,/^}/p' "$SRC")
+eval "$read_setup"
+mkdir -p "$np_support/setups"
+app_id=42
+wine_unix=/R/lib/wine/x86_64-unix
+printf '%s\n' 'WINEMSYNC=1' 'CARTOUCHE_RETINA=1' 'DXMT_METALFX_SPATIAL_SWAPCHAIN=1' 'WINESERVER=refused' > "$np_support/setups/42.env"
+unset WINEMSYNC CARTOUCHE_RETINA DXMT_METALFX_SPATIAL_SWAPCHAIN
+WINESERVER=/fixture/server
+read_game_setup >/dev/null
+is "MSync is read from the game setup" 1 "$WINEMSYNC"
+is "Retina is read from the game setup" 1 "$CARTOUCHE_RETINA"
+is "DXMT spatial is read from the game setup" 1 "$DXMT_METALFX_SPATIAL_SWAPCHAIN"
+is "server override is refused" /fixture/server "$WINESERVER"
+unset WINEMSYNC CARTOUCHE_RETINA DXMT_METALFX_SPATIAL_SWAPCHAIN
+
 if [ "$fails" -eq 0 ]; then
 	echo "==> envcheck: all assertions hold"
 else

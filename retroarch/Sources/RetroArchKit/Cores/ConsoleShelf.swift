@@ -24,6 +24,13 @@ public actor ConsoleShelf {
         try save(Set(added().map(\.id)).union([id]))
     }
 
+    // The files remove(id) would take out of Cartouche's folders — empty when the core stays for another console.
+    public func filesToRemove(_ id: String) async -> [URL] {
+        guard let console = ConsoleCatalog.console(id), console.hasCore,
+              !added().contains(where: { $0.id != id && $0.core == console.core }) else { return [] }
+        return cores.filesOf(console.core)
+    }
+
     public func remove(_ id: String) async throws {
         guard let console = ConsoleCatalog.console(id) else { return }
         let remaining = added().filter { $0.id != id }

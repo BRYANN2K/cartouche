@@ -17,6 +17,15 @@ public enum GameName {
         s = s.replacing(/(?i)\b(multi\d*|setup|installer|gog|steam|gamesite|portable|pre\s?installed|x64|x86|win64|win32|64bit|32bit|deluxe edition)\b/, with: "")
         return s.split(whereSeparator: \.isWhitespace).joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines.union(.init(charactersIn: "-–")))
     }
+
+    // Still a folder name: clean() would drop real junk — a version tail, a site
+    // name, bracketed tags — while "Half-Life" only loses a hyphen, which says nothing.
+    public static func looksRaw(_ name: String) -> Bool {
+        let cleaned = clean(name)
+        guard cleaned != name else { return false }
+        let squashed = { (s: String) in s.replacing(/[\s._\-]+/, with: " ").lowercased() }
+        return squashed(cleaned) != squashed(name)
+    }
 }
 
 public struct SpaceEstimate: Sendable, Equatable {

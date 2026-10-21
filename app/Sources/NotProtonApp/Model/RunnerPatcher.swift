@@ -5,6 +5,7 @@ enum RunnerPatcher {
     static let step = String(localized: "Patch the compatibility tool")
 
     private static let dyldEntitlement = "com.apple.security.cs.allow-dyld-environment-variables"
+    private static let libraryEntitlement = "com.apple.security.cs.disable-library-validation"
 
     static let windowsBuiltins = [
         (arch: "i386-windows", name: "lsteamclient.dll"),
@@ -42,6 +43,15 @@ enum RunnerPatcher {
         outcome.ntdll = try installNtdll(build: build, root: root, bridge: bridge)
         outcome.builtins = try installBuiltins(root: root, bridge: bridge)
         outcome.loaders = try grantLoaderEntitlement(root: root)
+        return outcome
+    }
+
+    // A downloaded Wine build ships its ntdll already patched; only the Steam
+    // builtins and the loader entitlement are ours to add.
+    static func installWine(root: URL, bridge: URL = SupportPaths.bridge) throws -> Outcome {
+        var outcome = Outcome()
+        outcome.builtins = try installBuiltins(root: root, bridge: bridge)
+        outcome.loaders = try grantLoaderEntitlement(root: root, fresh: true)
         return outcome
     }
 
@@ -138,24 +148,37 @@ enum RunnerPatcher {
         return installed
     }
 
-    private static func grantLoaderEntitlement(root: URL) throws -> [String] {
+    private static func grantLoaderEntitlement(root: URL, fresh: Bool = false) throws -> [String] {
         var signed: [String] = []
 
         for loader in unixLoaders(in: root) {
             let existing = entitlements(of: loader)
             if existing?.contains(restrictedEntitlement) == true { continue }
             if existing?.contains(dyldEntitlement) == true,
+               (!fresh || existing?.contains(libraryEntitlement) == true),
                signatureIsValid(signingTarget(for: loader)) { continue }
 
             guard let existing, !existing.isEmpty else {
-                throw StepFailure(
-                    step: step,
-                    detail: String(localized: "\(name(of: loader)) carries no entitlements to extend.")
-                )
+                // A downloaded build's loader ships unsigned; sign it with the
+                // set an injection needs instead of asking for a base.
+                guard fresh else {
+                    throw StepFailure(
+                        step: step,
+                        detail: String(localized: "\(name(of: loader)) carries no entitlements to extend.")
+                    )
+                }
+                do {
+                    try sign(loader, addingTo: Self.freshEntitlements, libraryValidationOff: true)
+                } catch {
+                    restoreClean(loader)
+                    throw error
+                }
+                signed.append(name(of: loader))
+                continue
             }
 
             do {
-                try sign(loader, addingTo: existing)
+                try sign(loader, addingTo: existing, libraryValidationOff: fresh)
             } catch {
                 restoreClean(loader)
                 throw error
@@ -193,15 +216,21 @@ enum RunnerPatcher {
         return result.stdout
     }
 
-    private static func sign(_ loader: URL, addingTo existing: String) throws {
+    private static func sign(_ loader: URL, addingTo existing: String, libraryValidationOff: Bool = false) throws {
         let plist = FileManager.default.temporaryDirectory
             .appending(path: "np-entitlements-\(UUID().uuidString).plist")
         defer { try? FileManager.default.removeItem(at: plist) }
 
         try Data(existing.utf8).write(to: plist)
-        _ = try Shell.run("/usr/libexec/PlistBuddy", [
-            "-c", "Add :\(dyldEntitlement) bool true", plist.path(percentEncoded: false),
-        ])
+        let required = [dyldEntitlement] + (libraryValidationOff ? [libraryEntitlement] : [])
+        for key in required {
+            _ = try Shell.run("/usr/libexec/PlistBuddy", [
+                "-c", "Delete :\(key)", plist.path(percentEncoded: false),
+            ])
+            try Shell.check("/usr/libexec/PlistBuddy", [
+                "-c", "Add :\(key) bool true", plist.path(percentEncoded: false),
+            ])
+        }
 
         try keepClean(loader)
         let target = signingTarget(for: loader)
@@ -218,7 +247,8 @@ enum RunnerPatcher {
         }
 
 
-        guard entitlements(of: loader)?.contains(dyldEntitlement) == true else {
+        let granted = entitlements(of: loader)
+        guard required.allSatisfy({ granted?.contains($0) == true }) else {
             throw StepFailure(
                 step: step,
                 detail: String(localized: "\(name(of: loader)) was re-signed without the dyld entitlement.")
@@ -240,6 +270,16 @@ enum RunnerPatcher {
     }
 
     static let restrictedEntitlement = "com.apple.developer.cross-architecture-support"
+
+    // Base entitlements for a loader that ships none: library validation off so
+    // Steam's and Cartouche's injected dylibs load, the dyld one is added by sign.
+    private static let freshEntitlements = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0"><dict>\
+        <key>com.apple.security.cs.disable-library-validation</key><true/>\
+        </dict></plist>
+        """
 
     private static func signatureIsValid(_ target: URL) -> Bool {
         guard let result = try? Shell.run(

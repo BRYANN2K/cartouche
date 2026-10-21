@@ -20,7 +20,7 @@ struct ConsoleSidebarTests {
 
     @Test("Add two consoles: + opens Add Consoles, NES and Game Boy join the sidebar with their two cores and no other")
     func addTwoConsoles() async throws {
-        let scene = try ConsoleScene("add")
+        let scene = try await ConsoleScene("add")
         defer { scene.remove() }
         await scene.library.load()
         await scene.center.reload()
@@ -67,7 +67,7 @@ struct ConsoleSidebarTests {
 
     @Test("Remove a console: right-click PlayStation, Remove; it leaves the sidebar, its core goes, its games stay on disk")
     func removeConsole() async throws {
-        let scene = try ConsoleScene("remove")
+        let scene = try await ConsoleScene("remove")
         defer { scene.remove() }
         await scene.library.load()
         await scene.center.add(["ps1", "snes"])
@@ -90,11 +90,18 @@ struct ConsoleSidebarTests {
         #expect(scene.library.games(in: .source(.console("ps1"))).count == 2)
 
         let menu = scene.center.menu(for: "ps1")
-        #expect(menu.map(\.title) == ["Add PlayStation Games…", "Remove PlayStation (2 games stay on disk)"])
+        #expect(menu.map(\.title) == ["Add PlayStation Games…", "Remove PlayStation (2 games stay on disk)…"])
         #expect(menu.last?.destructive == true)
+        #expect(menu.last?.disabled == false)
+        // The confirmation names the core files that move to the Trash; the test Trash is the scene's bin/
+        let removals = Box<[ConsoleRemoval]>([])
+        scene.center.confirmRemoval = { removals.value.append($0); return true }
         scene.library.selection = .source(.console("ps1"))
         await scene.center.perform(.remove, on: "ps1")
 
+        #expect(removals.value.first?.games == 2)
+        #expect(removals.value.first?.files.map(\.lastPathComponent).sorted() == ["swanstation_libretro.dylib", "swanstation_libretro.info"])
+        #expect(FileManager.default.fileExists(atPath: scene.work.appending(path: "bin/swanstation_libretro.dylib").path(percentEncoded: false)))
         #expect(scene.library.consoles == ["snes"])
         #expect(scene.library.selection == .all)
         #expect(scene.coresFolder == ["snes9x_libretro.dylib"])
@@ -113,15 +120,15 @@ struct ConsoleSidebarTests {
 
     @Test("The Remove item names how many games stay on disk")
     func removeWording() async throws {
-        let scene = try ConsoleScene("wording")
+        let scene = try await ConsoleScene("wording")
         defer { scene.remove() }
         await scene.center.add(["gba"])
-        #expect(scene.center.menu(for: "gba").last?.title == "Remove Game Boy Advance")
+        #expect(scene.center.menu(for: "gba").last?.title == "Remove Game Boy Advance…")
         let file = scene.work.appending(path: "a.gba")
         try Data([1, 2, 3]).write(to: file)
         try await scene.center.store.add([ConsoleGame(console: "gba", name: "A", databaseName: nil, file: file, identifiedBy: .chosen)])
         await scene.center.reload()
-        #expect(scene.center.menu(for: "gba").last?.title == "Remove Game Boy Advance (its game stays on disk)")
+        #expect(scene.center.menu(for: "gba").last?.title == "Remove Game Boy Advance (its game stays on disk)…")
         #expect(scene.center.menu(for: "gba").first?.title == "Add Game Boy Advance Games…")
         await scene.center.perform(.addGames, on: "gba")
         #expect(scene.library.showAddGames)

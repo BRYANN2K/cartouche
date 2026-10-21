@@ -152,12 +152,16 @@ struct KeyboardPlayTests {
         defer { try? FileManager.default.removeItem(at: work) }
         let source = work.appending(path: "game.c"), binary = work.appending(path: "game")
         try "#include <unistd.h>\nint main(void) { sleep(5); return 0; }\n".write(to: source, atomically: true, encoding: .utf8)
-        let cc = Process()
-        cc.executableURL = URL(filePath: "/usr/bin/cc")
-        cc.arguments = [source.path, "-o", binary.path]
-        try cc.run()
-        cc.waitUntilExit()
-        try #require(cc.terminationStatus == 0)
+        // The compile is waited on, so it runs off this suite's main actor
+        let compiled = try await offMain {
+            let cc = Process()
+            cc.executableURL = URL(filePath: "/usr/bin/cc")
+            cc.arguments = [source.path, "-o", binary.path]
+            try cc.run()
+            cc.waitUntilExit()
+            return cc.terminationStatus
+        }
+        try #require(compiled == 0)
         let sleeper = Process()
         sleeper.executableURL = binary
         // An empty argument still counts in argv; it must not shift the environment

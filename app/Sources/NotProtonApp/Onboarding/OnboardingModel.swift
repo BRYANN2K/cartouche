@@ -1,5 +1,7 @@
-// Only the PC games step may ask macOS for anything (App Management, via the Steam step), only when the user sets Steam up.
+// The Stores step's Steam row may ask macOS for App Management; the Permissions
+// step asks only what earlier choices made necessary, one sentence each.
 
+import AppKit
 import Foundation
 import Observation
 import RetroArchKit
@@ -18,7 +20,7 @@ struct RunnerOffer: Sendable {
 
     // A pending pin is never offered: its download could only fail.
     static func recommended(_ manifest: RunnerManifest) -> RunnerManifest.Build? {
-        manifest.builds.first { $0.origin == .cartouche && $0.isPinned } ?? manifest.builds.first(where: \.isPinned)
+        manifest.builds.first { $0.origin == .cartouche && $0.name == "Wine CrossOver" && $0.isPinned }
     }
 }
 
@@ -38,6 +40,29 @@ struct ConsoleSetup: Sendable {
     }
 }
 
+// Restarting Steam waits for the client to quit; it never runs on the main actor.
+struct SteamControl: Sendable {
+    var isRunning: @Sendable () -> Bool
+    var restart: @Sendable () async -> Bool
+
+    static var inert: SteamControl {
+        SteamControl(isRunning: { false }, restart: { false })
+    }
+
+    static var live: SteamControl {
+        SteamControl(
+            isRunning: { SteamBundle.isRunning },
+            restart: {
+                let stopped = await Task.detached {
+                    try? SteamBundle.stopClient(step: String(localized: "Restart Steam"))
+                }.value
+                guard stopped != nil else { return false }
+                _ = try? Shell.run("/usr/bin/open", [SupportPaths.Steam.app.path(percentEncoded: false)])
+                return true
+            })
+    }
+}
+
 @MainActor
 @Observable
 final class OnboardingModel {
@@ -54,11 +79,14 @@ final class OnboardingModel {
     private(set) var resumed = false
     var isPresented = false
     private(set) var findings: MacFindings?
+    private(set) var machine: PerformanceReport.Mac?
     private(set) var runner: RunnerManifest.Build?
-    private(set) var runnerPhase: RunnerPhase = .none
     private(set) var shelf: [String] = []
-    private(set) var addingConsoles = false
     private(set) var consoleProblem: String?
+    private(set) var restartingSteam = false
+    private(set) var steamRestarted: Bool?
+    private(set) var movingStorage = false
+    private(set) var storageProblem: String?
 
     let steamStep: SteamStep
     @ObservationIgnored let store: OnboardingStore
@@ -68,6 +96,13 @@ final class OnboardingModel {
     @ObservationIgnored let folders: GameFolders
     @ObservationIgnored let privacy: PrivacyChoices
     @ObservationIgnored let library: LibraryModel
+    @ObservationIgnored let setup: SetupTasks
+    @ObservationIgnored let permissionFlow: PermissionFlow?
+    @ObservationIgnored let stores: StoreCenter?
+    @ObservationIgnored let controls: ControlsCenter?
+    @ObservationIgnored var steam: SteamControl
+    @ObservationIgnored var isRemovable: @Sendable (URL) -> Bool
+    @ObservationIgnored var openURL: @MainActor (URL) -> Void
     @ObservationIgnored var play: @MainActor (Game) -> Void = { _ in }
 
     init(
@@ -78,7 +113,15 @@ final class OnboardingModel {
         steamStep: SteamStep,
         folders: GameFolders,
         privacy: PrivacyChoices,
-        library: LibraryModel
+        library: LibraryModel,
+        setup: SetupTasks = SetupTasks(),
+        permissions: PermissionCenter? = nil,
+        stores: StoreCenter? = nil,
+        controls: ControlsCenter? = nil,
+        steam: SteamControl = .inert,
+        isRemovable: @escaping @Sendable (URL) -> Bool = { url in
+            (try? url.resourceValues(forKeys: [.volumeIsRemovableKey]))?.volumeIsRemovable ?? false
+        }
     ) {
         self.store = store
         self.scan = scan
@@ -88,7 +131,24 @@ final class OnboardingModel {
         self.folders = folders
         self.privacy = privacy
         self.library = library
+        self.setup = setup
+        permissionFlow = permissions.map { PermissionFlow(center: $0) }
+        self.stores = stores
+        self.controls = controls
+        self.steam = steam
+        self.isRemovable = isRemovable
+        openURL = { NSWorkspace.shared.open($0) }
         state = store.load() ?? OnboardingState()
+        setup.didFinish = { [weak self] task in
+            guard let self else { return }
+            if task == "runner" { self.state.runnerRequested = false }
+            if task == "toolkit" { self.state.toolkitImage = nil }
+            if task.hasPrefix("core:") {
+                let id = String(task.dropFirst(5))
+                self.state.coreRequests.removeAll { $0 == id }
+            }
+            self.save()
+        }
     }
 
     var step: OnboardingStep { state.step }
@@ -102,7 +162,7 @@ final class OnboardingModel {
     }
 
     func reopen(on route: ScreenRoute) {
-        guard route.screen == "onboarding", let step = route.detail.flatMap(OnboardingStep.init(rawValue:)) else { return }
+        guard route.screen == "onboarding", let step = route.detail.flatMap({ OnboardingStep.route($0) }) else { return }
         state.finished = false
         state.step = step
         save()
@@ -116,27 +176,61 @@ final class OnboardingModel {
     }
 
     func startOver() {
-        let added = state.addedConsoles
+        let previous = state
         state = OnboardingState()
-        state.addedConsoles = added
+        state.addedConsoles = previous.addedConsoles
+        state.runnerRequested = previous.runnerRequested
+        state.coreRequests = previous.coreRequests
+        state.toolkitImage = previous.toolkitImage
         resumed = false
         save()
         Task { await prepare() }
     }
 
+    func retrySetup() {
+        if setup.runner.problem != nil { startRunnerIfNeeded(force: true) }
+        for (id, status) in setup.cores where status.problem != nil { setup.retryCore(id) }
+        if let path = state.toolkitImage, setup.toolkit.problem != nil {
+            importToolkitImage(URL(filePath: path))
+        }
+    }
+
     func prepare() async {
+        if machine == nil { machine = await Task.detached { PerformanceReport.Mac.current() }.value }
         if findings == nil { findings = await scan.run() }
         prepareRunner()
         shelf = await consoles.added()
         pickFoundConsoles()
         offerFoundFolders()
+        restoreSetupTasks()
+    }
+
+    func restoreSetupTasks() {
+        prepareRunner()
+        if state.runnerRequested { startRunnerIfNeeded(force: true) }
+        setup.startCores(state.coreRequests)
+        if let image = state.toolkitImage, !toolkitDetected {
+            setup.importToolkitImage(URL(filePath: image))
+        }
     }
 
     // MARK: Moving between steps
 
     func next() {
-        guard let next = state.step.next else { return finish() }
-        if state.step == .folders { applyFolders() }
+        let current = state.step
+        guard let next = current.next else { return finish() }
+        switch current {
+        case .windowsGames:
+            startRunnerIfNeeded()
+        case .consoles:
+            applyConsoles()
+        case .permissions:
+            applyStorage()
+        case .ready:
+            break
+        default:
+            break
+        }
         go(to: next)
     }
 
@@ -145,7 +239,7 @@ final class OnboardingModel {
     }
 
     func skip() {
-        guard let next = state.step.next else { return finish() }
+        guard state.step.skippable, let next = state.step.next else { return }
         go(to: next)
     }
 
@@ -164,41 +258,114 @@ final class OnboardingModel {
         state.step = step
         resumed = false
         save()
+        if step == .ready { Task { await refreshShelf() } }
     }
 
     private func save() {
         store.save(state)
     }
 
-    // MARK: PC games
+    private func refreshShelf() async {
+        shelf = await consoles.added()
+    }
+
+    // MARK: Windows games
 
     var canContinue: Bool {
         switch state.step {
-        case .pcGames: steamStep.canContinue
-        case .consoles: !addingConsoles
+        case .stores: steamStep.canContinue
         default: true
         }
     }
 
+    var runnerPhase: RunnerPhase {
+        guard let build = runner else { return .none }
+        let status = setup.runner
+        if status.working { return .downloading }
+        if status.done { return .installed }
+        if let problem = status.problem { return .failed(problem) }
+        return runners.isInstalled(build.id) ? .installed : .notInstalled
+    }
+
+    var wantsRunner: Bool {
+        get { state.wantsRunner }
+        set { state.wantsRunner = newValue; save() }
+    }
+
     func prepareRunner() {
-        let build = runners.build()
-        runner = build
-        if runnerPhase != .downloading {
-            runnerPhase = build.map { runners.isInstalled($0.id) ? .installed : .notInstalled } ?? .none
-        }
+        runner = runners.build()
+    }
+
+    // The runner row or Continue may start it; the download + first boot run in
+    // SetupTasks and keep going after the sheet closes.
+    func startRunnerIfNeeded(force: Bool = false) {
+        guard let build = runner, force || state.wantsRunner else { return }
+        state.runnerRequested = true
+        save()
+        setup.startRunner(build, alreadyInstalled: runners.isInstalled(build.id))
     }
 
     func downloadRunner() async {
-        guard let build = runner, runnerPhase != .downloading else { return }
-        runnerPhase = .downloading
-        do {
-            try await runners.install(build)
-            runnerPhase = runners.isInstalled(build.id) ? .installed : .failed(String(localized: "The download did not install."))
-        } catch let failure as StepFailure {
-            runnerPhase = .failed(failure.detail)
-        } catch {
-            runnerPhase = .failed(error.localizedDescription)
+        startRunnerIfNeeded(force: true)
+        while setup.runner.working { try? await Task.sleep(for: .milliseconds(10)) }
+    }
+
+    // MARK: D3DMetal / Game Porting Toolkit
+
+    // Detected at the scan or already copied into the runners folder
+    var toolkitDetected: Bool {
+        setup.toolkit.done || !(findings?.portingToolkit.isEmpty ?? true)
+    }
+
+    var toolkitReady: Bool {
+        (setup.toolkit.done || findings?.portingToolkit.contains(where: \.ready) == true) && !setup.toolkit.working
+    }
+
+    var toolkitStatus: String {
+        if setup.toolkit.working { return setup.toolkit.detail ?? String(localized: "Working") }
+        if let problem = setup.toolkit.problem { return problem }
+        if let version = setup.toolkitVersion {
+            return String(localized: "D3DMetal ready — Game Porting Toolkit \(version)")
         }
+        if let found = findings?.portingToolkit.first {
+            return found.ready ? String(localized: "D3DMetal ready — \(found.name)") : found.name
+        }
+        return String(localized: "D3DMetal needs Apple's Game Porting Toolkit")
+    }
+
+    func importToolkitImage(_ url: URL) {
+        state.toolkitImage = url.plainPath
+        save()
+        setup.importToolkitImage(url)
+    }
+
+    func openToolkitHelp() {
+        openURL(PortingToolkitSource.howToGetIt)
+    }
+
+    // MARK: Stores
+
+    var steamRunning: Bool { steam.isRunning() }
+
+    func restartSteamNow() async {
+        guard !restartingSteam else { return }
+        restartingSteam = true
+        steamRestarted = nil
+        steamRestarted = await steam.restart()
+        restartingSteam = false
+    }
+
+    var steamLibraryGames: Int { library.steam.games.count }
+
+    var storeTiles: [GameSource] { StoreCenter.stores }
+
+    func connection(_ store: GameSource) -> StoreConnection {
+        stores?.connection(store) ?? .notConnected
+    }
+
+    func beginSignIn(_ store: GameSource) {
+        guard let stores else { return }
+        Task { await stores.beginSignIn(store) }
     }
 
     // MARK: Consoles
@@ -207,7 +374,7 @@ final class OnboardingModel {
 
     func isPicked(_ console: Console) -> Bool { picked.contains(console.id) || shelf.contains(console.id) }
 
-    func isAdded(_ console: Console) -> Bool { shelf.contains(console.id) || state.addedConsoles.contains(console.id) }
+    func isAdded(_ console: Console) -> Bool { shelf.contains(console.id) || setup.cores[console.id]?.done == true || (state.addedConsoles.contains(console.id) && !state.coreRequests.contains(console.id)) }
 
     func toggle(_ console: Console) {
         guard !shelf.contains(console.id) else { return }
@@ -232,22 +399,28 @@ final class OnboardingModel {
 
     func foundGames(_ console: Console) -> Int { findings?.consoleGames[console.id] ?? 0 }
 
-    func addConsoles() async {
-        guard !addingConsoles else { return }
-        addingConsoles = true
-        consoleProblem = nil
-        for console in consolesToAdd {
-            do {
-                try await consoles.add(console.id)
-                state.addedConsoles.append(console.id)
-                save()
-            } catch {
-                consoleProblem = error.localizedDescription
-                break
-            }
+    // Continue on Consoles: picks are kept, cores download in the background.
+    private func applyConsoles() {
+        let ids = consolesToAdd.map(\.id)
+        for id in ids where !state.addedConsoles.contains(id) {
+            state.addedConsoles.append(id)
         }
+        state.coreRequests = Array(Set(state.coreRequests + ids)).sorted()
+        setup.startCores(ids)
+        applyFolders()
+        save()
+    }
+
+    // The old footer button: start the downloads and wait for them before moving on.
+    func addConsoles() async {
+        let ids = consolesToAdd.map(\.id)
+        applyConsoles()
+        consoleProblem = nil
+        while setup.cores.values.contains(where: \.working) {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        consoleProblem = ids.lazy.compactMap { self.setup.cores[$0]?.problem }.first
         shelf = await consoles.added()
-        addingConsoles = false
         if consoleProblem == nil { next() }
     }
 
@@ -257,7 +430,7 @@ final class OnboardingModel {
         save()
     }
 
-    // MARK: Folders and privacy
+    // MARK: Watched folders
 
     struct FolderRow: Identifiable, Equatable {
         let url: URL
@@ -268,8 +441,12 @@ final class OnboardingModel {
     var folderRows: [FolderRow] {
         let found = findings?.folders ?? []
         let added = state.folders.keys.sorted().filter { path in !found.contains { $0.id == path } }
-        return found.map { FolderRow(url: $0.url, found: $0) }
+        var rows = found.map { FolderRow(url: $0.url, found: $0) }
             + added.map { FolderRow(url: URL(filePath: $0, directoryHint: .isDirectory), found: nil) }
+        if let rom = state.romFolder, !rows.contains(where: { $0.id == rom }) {
+            rows.append(FolderRow(url: URL(filePath: rom, directoryHint: .isDirectory), found: nil))
+        }
+        return rows
     }
 
     func keepsFolder(_ id: String) -> Bool { state.folders[id] ?? true }
@@ -281,6 +458,13 @@ final class OnboardingModel {
 
     func addFolder(_ folder: URL) {
         state.folders[folder.plainPath] = true
+        save()
+    }
+
+    var romFolder: String? { state.romFolder }
+
+    func chooseRomFolder(_ folder: URL) {
+        state.romFolder = folder.plainPath
         save()
     }
 
@@ -297,9 +481,180 @@ final class OnboardingModel {
         for (path, keep) in state.folders.sorted(by: { $0.key < $1.key }) where keep {
             folders.add(URL(filePath: path, directoryHint: .isDirectory))
         }
+        if let rom = state.romFolder {
+            folders.add(URL(filePath: rom, directoryHint: .isDirectory))
+        }
+    }
+
+    // MARK: Controller
+
+    var controllerConnected: Bool {
+        if let controls { return !controls.monitor.controllers.isEmpty }
+        return !(findings?.controllers.isEmpty ?? true)
+    }
+
+    var padDiagramState: PadState { controls?.diagramState ?? .idle }
+
+    var padFamily: PadFamily {
+        state.padGlyphs.flatMap(PadFamily.init(rawValue:))
+            ?? controls?.monitor.primary?.family
+            ?? .playStation
+    }
+
+    func setPadGlyphs(_ family: PadFamily?) {
+        state.padGlyphs = family?.rawValue
+        save()
+    }
+
+    var padPreset: ControllerLayout.Preset {
+        state.padPreset.flatMap(ControllerLayout.Preset.init(rawValue:)) ?? .standard
+    }
+
+    var padPresets: [ControllerLayout.Preset] { [.standard, .southpaw, .swapAB] }
+
+    func setPadPreset(_ preset: ControllerLayout.Preset) {
+        state.padPreset = preset.rawValue
+        save()
+    }
+
+    var controllerKeys: Bool {
+        get { state.controllerKeys }
+        set { state.controllerKeys = newValue; save() }
+    }
+
+    // The live diagram reads input while the Controller step is up
+    func setDiagramVisible(_ visible: Bool) {
+        controls?.diagramVisible = visible
+    }
+
+    // MARK: Permissions, storage, privacy
+
+    // Only what earlier choices made necessary — never the whole list.
+    var neededPermissions: [Permission] {
+        var list: [Permission] = []
+        if setup.runner.started || !setup.cores.isEmpty {
+            list.append(.notifications)
+        }
+        if controllerConnected && state.controllerKeys {
+            list.append(.accessibility)
+        }
+        if state.watchDownloads {
+            list.append(.downloads)
+        }
+        if let folder = state.gamesFolder,
+           isRemovable(URL(filePath: folder, directoryHint: .isDirectory)) {
+            list.append(.removableVolumes)
+        }
+        return list
+    }
+
+    var watchDownloads: Bool {
+        get { state.watchDownloads }
+        set { state.watchDownloads = newValue; save() }
+    }
+
+    func permissionState(_ permission: Permission) -> PermissionState {
+        permissionFlow?.center.state(permission) ?? .notAsked
+    }
+
+    func ask(_ permission: Permission) {
+        permissionFlow?.start(permission, context: .onboarding) { _ in }
+    }
+
+    // MARK: Games location
+
+    var gamesLocation: URL {
+        state.gamesFolder.map { URL(filePath: $0, directoryHint: .isDirectory) } ?? GameFolder.installs
+    }
+
+    var gamesLocationIsExternal: Bool {
+        state.gamesFolder != nil && isRemovable(gamesLocation)
+    }
+
+    func chooseGamesFolder(_ folder: URL) {
+        state.gamesFolder = folder.plainPath
+        save()
+    }
+
+    // Existing games keep their paths; only new installs use the chosen folder.
+    private func applyStorage() {
+        guard let path = state.gamesFolder else { return }
+        let target = URL(filePath: path, directoryHint: .isDirectory)
+        movingStorage = true
+        storageProblem = nil
+        Task { [weak self] in
+            do {
+                try await Task.detached {
+                    try FileManager.default.createDirectory(at: target, withIntermediateDirectories: true)
+                }.value
+                self?.store.defaults.set(target.plainPath, forKey: GameFolder.installsKey)
+                self?.movingStorage = false
+            } catch {
+                self?.movingStorage = false
+                self?.storageProblem = error.localizedDescription
+            }
+        }
     }
 
     // MARK: Ready
+
+    struct ReadyTask: Identifiable, Equatable {
+        enum State: Equatable { case working, done, failed }
+        let id: String
+        let title: String
+        var detail: String
+        var state: State
+    }
+
+    var readyTasks: [ReadyTask] {
+        var list: [ReadyTask] = []
+        if let build = runner, setup.runner.started || runners.isInstalled(build.id) {
+            let status = setup.runner
+            list.append(ReadyTask(
+                id: "runner",
+                title: build.title,
+                detail: status.done || (!status.started && runners.isInstalled(build.id))
+                    ? String(localized: "Ready")
+                    : status.problem ?? status.detail ?? String(localized: "Waiting"),
+                state: status.done || (!status.started && runners.isInstalled(build.id)) ? .done : (status.problem != nil ? .failed : .working)))
+        }
+        for console in ConsoleCatalog.all where isAdded(console) || setup.cores[console.id] != nil {
+            if let status = setup.cores[console.id] {
+                list.append(ReadyTask(
+                    id: "core-\(console.id)",
+                    title: console.name,
+                    detail: status.done
+                        ? String(localized: "Core ready")
+                        : status.problem ?? status.detail ?? String(localized: "Waiting"),
+                    state: status.done ? .done : (status.problem != nil ? .failed : .working)))
+            } else {
+                list.append(ReadyTask(
+                    id: "core-\(console.id)",
+                    title: console.name,
+                    detail: String(localized: "Core ready"),
+                    state: .done))
+            }
+        }
+        if setup.toolkit.started || toolkitDetected {
+            let status = setup.toolkit
+            let ready = toolkitReady
+            list.append(ReadyTask(
+                id: "d3dmetal",
+                title: "D3DMetal",
+                detail: toolkitStatus,
+                state: status.working ? .working : (ready ? .done : (status.problem != nil ? .failed : .working))))
+        }
+        if findings?.steam != nil || steamLibraryGames > 0 {
+            list.append(ReadyTask(
+                id: "steam-library",
+                title: String(localized: "Steam library"),
+                detail: steamLibraryGames == 1
+                    ? String(localized: "1 game in the library")
+                    : String(localized: "\(steamLibraryGames) games in the library"),
+                state: .done))
+        }
+        return list
+    }
 
     var readyGame: Game? {
         let installed = library.allGames.filter { $0.installed && !library.isHidden($0.id) }

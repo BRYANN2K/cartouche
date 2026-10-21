@@ -21,7 +21,7 @@ final class BackendInstallerTests {
     deinit { try? FileManager.default.removeItem(at: work) }
 
     // dxmt-v0.80/x86_64-windows/... as the builtin tarball holds it; DXVK's older layout uses x64/x32
-    func archive(_ name: String, top: String, files: [String: String]) throws -> URL {
+    static func archive(in work: URL, _ name: String, top: String, files: [String: String]) throws -> URL {
         let tree = work.appending(path: "tree-\(UUID().uuidString)")
         let fm = FileManager.default
         for (path, text) in files {
@@ -34,6 +34,10 @@ final class BackendInstallerTests {
         let out = host.appending(path: name)
         try Shell.check("/usr/bin/tar", ["-czf", out.path(percentEncoded: false), "-C", tree.path(percentEncoded: false), top])
         return out
+    }
+
+    func archive(_ name: String, top: String, files: [String: String]) throws -> URL {
+        try Self.archive(in: work, name, top: top, files: files)
     }
 
     static let dxmtFiles = [
@@ -162,6 +166,21 @@ final class BackendInstallerTests {
         #expect(Digest.sha256IfPresent(dxgi) != receipt.files["x86_64-windows/dxgi.dll"])
         try await BackendInstaller.install(pin, backends: backends, downloads: downloads)
         #expect(Digest.sha256IfPresent(dxgi) == receipt.files["x86_64-windows/dxgi.dll"])
+    }
+
+    // The settings screen awaits install on the main actor: tar's wait must not run
+    // there. In a debug build Shell traps the moment it does, so a pass proves it.
+    @MainActor
+    @Test("Awaited on the main actor, the unpack's waits stay off it")
+    func installNeverWaitsOnMain() async throws {
+        let work = work
+        let archive = try await offMain {
+            try BackendInstallerTests.archive(in: work, "dxmt-v0.80-builtin.tar.gz", top: "dxmt-v0.80", files: BackendInstallerTests.dxmtFiles)
+        }
+        let receipt = try await BackendInstaller.install(
+            pin(.dxmt, for: archive), backends: backends, downloads: downloads)
+        #expect(receipt.backend == .dxmt)
+        #expect(BackendInstaller.installed(in: backends).map(\.backend) == [.dxmt])
     }
 
     @Test("An install that cannot write its folder leaves the old one working")

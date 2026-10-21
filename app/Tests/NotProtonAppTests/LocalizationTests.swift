@@ -10,7 +10,7 @@ struct LocalizationTests {
     @Test("Chinese text is looked up with interpolated values in place")
     func chineseLookup() throws {
         let zh = try #require(chinese)
-        #expect(String(localized: "Status", bundle: zh) == "状态")
+        #expect(String(localized: "Ready", bundle: zh) == "就绪")
         #expect(String(localized: "Delete \(3) prefixes?", bundle: zh) == "删除 3 个游戏容器？")
     }
 
@@ -26,7 +26,7 @@ struct LocalizationTests {
     @Test("Italian text is looked up with interpolated values in place")
     func italianLookup() throws {
         let it = try #require(italian)
-        #expect(String(localized: "Status", bundle: it) == "Stato")
+        #expect(String(localized: "Ready", bundle: it) == "Pronto")
         #expect(String(localized: "Delete \(3) prefixes?", bundle: it) == "Eliminare 3 prefissi?")
         #expect(String(localized: "Opened \("Wine Configuration") in \("Zuma Deluxe").", bundle: it)
             == "Aperto Wine Configuration in Zuma Deluxe.")
@@ -40,5 +40,15 @@ struct LocalizationTests {
             == "The trial version is not supported.")
         #expect(String(localized: "The trial version is not supported.", bundle: it)
             == "La versione di prova non è supportata.")
+    }
+
+    @Test("The session and rename strings read in Chinese and Italian")
+    func sessionStrings() throws {
+        let zh = try #require(chinese)
+        let it = try #require(italian)
+        #expect(String(localized: "End Wine Session", bundle: zh) == "结束 Wine 会话")
+        #expect(String(localized: "Identified as \("Hollow Knight")?", bundle: zh) == "识别为 Hollow Knight？")
+        #expect(String(localized: "End Wine Session", bundle: it) == "Termina sessione Wine")
+        #expect(String(localized: "Rename…", bundle: it) == "Rinomina…")
     }
 }

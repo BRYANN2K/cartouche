@@ -73,3 +73,5 @@ Plain definitions of the terms used in Cartouche docs and specs. Read by contrib
 **OpenSpec.** The spec format used here: a change has a proposal, specs with scenarios, tasks, and sometimes a design.
 
 **Scenario.** One WHEN and THEN example in a spec. It is an acceptance criterion.
+
+**Translation glossary.** French UI terms follow `docs/l10n/glossary-fr.md`.

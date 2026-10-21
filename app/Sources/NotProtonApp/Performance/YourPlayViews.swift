@@ -26,6 +26,14 @@ enum YourPlayText {
         let shared = setups.filter { $0.setup.backend == best.setup.backend }.count > 1
         return shared ? "\(runner(best)) · \(label)" : label
     }
+
+    // "2 sessions · 2560×1440 · today", under a setup's name in Compare Setups
+    static func summary(_ play: SetupPlay, now: Date = Date()) -> String {
+        var parts = [play.sessions == 1 ? String(localized: "1 session") : String(localized: "\(play.sessions) sessions")]
+        if let width = play.width, let height = play.height { parts.append("\(width)×\(height)") }
+        parts.append(GameDates.relative(play.lastPlayed, now: now))
+        return parts.joined(separator: " · ")
+    }
 }
 
 struct YourPlayRows: View {
@@ -38,10 +46,14 @@ struct YourPlayRows: View {
             cell(Text("1% low"), YourPlayText.fps(play.low1))
             cell(Text("Played"), YourPlayText.played(play.played))
         }
-        if play.setups.count > 1, let best = play.best {
+        if play.setups.count > 1 {
             Divider()
             HStack {
-                Text("Best with \(YourPlayText.best(best, among: play.setups))")
+                if let best = play.best {
+                    Text("Best with \(YourPlayText.best(best, among: play.setups))")
+                } else {
+                    Text("No best setup yet")
+                }
                 Spacer()
                 Button("Compare \(play.setups.count) Setups", action: compare).buttonStyle(.pill)
             }
@@ -91,6 +103,7 @@ struct CompareSetupsSheet: View {
                         VStack(alignment: .leading, spacing: 1) {
                             Text(verbatim: YourPlayText.runner(row))
                             Text(verbatim: YourPlayText.detail(row.setup)).font(.callout).foregroundStyle(.secondary)
+                            Text(verbatim: YourPlayText.summary(row)).font(.caption).foregroundStyle(.tertiary)
                         }
                         HStack(spacing: 6) {
                             Text(YourPlayText.fps(row.average)).monospacedDigit()

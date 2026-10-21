@@ -55,7 +55,14 @@ enum Permission: String, CaseIterable, Identifiable, Codable, Sendable {
     // macOS applies Input Monitoring to a running app only after it restarts
     var needsRelaunch: Bool { self == .inputMonitoring }
 
-    var askedInOnboarding: Bool { self == .appManagement || self == .downloads }
+    // Onboarding v2 asks only the permissions earlier choices made necessary,
+    // each with a one-sentence reason. App Management stays with the Steam row.
+    var askedInOnboarding: Bool {
+        switch self {
+        case .appManagement, .downloads, .accessibility, .removableVolumes, .notifications: true
+        default: false
+        }
+    }
 
     // Cartouche shows its own macOS prompt for these. App Management has none:
     // macOS blocks the first write and notifies.

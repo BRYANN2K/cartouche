@@ -22,31 +22,31 @@ struct BackupsView: View {
         }
         .navigationTitle("Prefix Backups")
         .navigationSubtitle(summary)
-        .safeAreaInset(edge: .bottom) {
-            if let failed = model.report {
-                report(
-                    StatusRow(
-                        title: String(localized: "Failed"),
-                        value: failed.message,
-                        tone: .bad,
-                        action: failed.settingsPane.map { pane in
-                            StatusAction(label: Remedy.settingsButton) { Remedy.openSettings(pane) }
-                        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            VStack(spacing: 0) {
+                Divider()
+                HStack(spacing: 12) { strip }
+                    .buttonStyle(.bordered)
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                if let failed = model.report {
+                    report(
+                        StatusRow(
+                            title: String(localized: "Failed"),
+                            value: failed.message,
+                            tone: .bad,
+                            action: failed.settingsPane.map { pane in
+                                StatusAction(label: Remedy.settingsButton) { Remedy.openSettings(pane) }
+                            }
+                        )
                     )
-                )
-            } else if let outcome = model.outcome {
-                report(StatusRow(title: String(localized: "Done"), value: outcome, tone: .ok))
+                } else if let outcome = model.outcome {
+                    report(StatusRow(title: String(localized: "Done"), value: outcome, tone: .ok))
+                }
             }
+            .background(.bar)
         }
-        .toolbar {
-            if #available(macOS 26.1, *) {
-                ToolbarItemGroup(placement: .primaryAction) { strip }
-                    .visibilityPriority(.high)
-            } else {
-                ToolbarItemGroup(placement: .primaryAction) { strip }
-            }
-        }
-        .task { if model.prefixes.isEmpty { await model.load() } }
+        .task { if !model.hasLoaded { await model.load() } }
         .onChange(of: model.backups) { _, kept in
             selection = selection.filter { id in kept.contains { $0.id == id } }
         }
@@ -65,6 +65,29 @@ struct BackupsView: View {
         } message: {
             Text(PrefixPrompt.deleteBackupsMessage(clearing))
         }
+        .confirmationDialog("Restore selected backup?", isPresented: askingToRestore, titleVisibility: .visible) {
+            Button("Restore") {
+                guard let backup = restoring else { return }
+                model.pendingConfirmation = nil
+                Task { await model.restoreBackup(backup) }
+            }
+            Button("Cancel", role: .cancel) { model.pendingConfirmation = nil }
+                .keyboardShortcut(.defaultAction)
+        } message: {
+            Text("This replaces the game's prefix with the selected backup. The current prefix and the selected backup will both be kept. Quit the game before restoring.")
+        }
+    }
+
+    private var restoring: PrefixBackup? {
+        if case .restoreBackup(let backup) = model.pendingConfirmation { return backup }
+        return nil
+    }
+
+    private var askingToRestore: Binding<Bool> {
+        Binding(
+            get: { restoring != nil },
+            set: { if !$0, restoring != nil { model.pendingConfirmation = nil } }
+        )
     }
 
     private var summary: String {
@@ -99,6 +122,11 @@ struct BackupsView: View {
 
     @ViewBuilder
     private var strip: some View {
+        Button("Restore selected", systemImage: "arrow.uturn.backward") {
+            if let backup = selected.first, selected.count == 1 { askToRestore(backup) }
+        }
+        .disabled(selected.count != 1 || model.isLoading || model.isBusy)
+
         Button("Reveal in Finder", systemImage: "folder") {
             if let backup = selected.first, selected.count == 1 { model.reveal(backup) }
         }
@@ -116,6 +144,8 @@ struct BackupsView: View {
         }
         .disabled(model.backups.isEmpty || model.isLoading)
         .help("Delete every backup that rebuilds have kept.")
+
+        Spacer(minLength: 0)
 
         Button("Refresh", systemImage: "arrow.clockwise") {
             Task { await model.load() }
@@ -182,6 +212,7 @@ struct BackupsView: View {
         let targets = model.backups.filter { ids.contains($0.id) }
         Group {
             if targets.count == 1, let backup = targets.first {
+                Button("Restore") { askToRestore(backup) }
                 Button("Reveal in Finder") { model.reveal(backup) }
                 Divider()
             }
@@ -197,6 +228,11 @@ struct BackupsView: View {
     private func taken(_ backup: PrefixBackup) -> String {
         guard let taken = backup.taken else { return String(localized: "Unknown") }
         return taken.formatted(date: .abbreviated, time: .shortened)
+    }
+
+    private func askToRestore(_ backup: PrefixBackup) {
+        guard !model.isLoading, !model.isBusy else { return }
+        model.pendingConfirmation = .restoreBackup(backup)
     }
 
     private func ask(_ targets: [PrefixBackup]) {

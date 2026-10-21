@@ -124,7 +124,6 @@ static int open_patched(const char *path) {
     np_webpatch_set_fallback_tool(np_compat_fallback_tool_name());
     const char *fex[NP_WEBPATCH_FEX_TOOLS_MAX];
     np_webpatch_set_fex_tools(fex, np_compat_fex_tools(fex, NP_WEBPATCH_FEX_TOOLS_MAX));
-    np_webpatch_set_export_token(np_libexport_token());
     size_t patched_len = 0;
     const char *shape = NULL;
     char *patched = np_webpatch_transform((const uint8_t *)raw, raw_len, &patched_len,
@@ -171,6 +170,8 @@ static int try_serve(const char *path, int oflag) {
         return -1;
     if (np_webpatch_is_download_commands(path))
         return open_download_commands();
+    if (np_webpatch_is_export_token(path))
+        return np_libexport_open_token();
     if (!np_webpatch_should_patch(path))
         return -1;
     return open_patched(path);

@@ -154,7 +154,7 @@ static int get_compat_tools(uintptr_t request, uintptr_t response) {
 
     const uint8_t *array = *(const uint8_t **)(mgr + COMPAT_MANAGER_TOOL_ARRAY_OFF);
     uint32_t count       = *(const uint32_t *)(mgr + COMPAT_MANAGER_TOOL_COUNT_OFF);
-    if (!array || count > np_compat_manager_tools_max()) {
+    if ((count && !array) || count > np_compat_manager_tools_max()) {
         NP_ERR("compatsvc: the manager reports %u tool(s) at %p, which is not a list "
                "this reads", count, (const void *)array);
         return RESULT_FAIL;

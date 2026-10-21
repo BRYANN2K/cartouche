@@ -92,7 +92,7 @@ struct ConsolePanel: View {
                     .couchRing(controls?.couch.ringsPlay == true, radius: 19)
                     .disabled(!content.canPlay)
                     Menu {
-                        GameMenuContent(items: GameMenu.items(for: game, in: model)) { actions.perform($0, on: game) }
+                        GameMenuContent(items: GameMenu.items(for: game, in: model, consoles: center)) { actions.perform($0, on: game) }
                     } label: {
                         Image(systemName: "ellipsis")
                     }

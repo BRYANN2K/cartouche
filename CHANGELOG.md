@@ -6,6 +6,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 
 ## [Unreleased]
 
+- French localization across the app, guided by `docs/l10n/glossary-fr.md` (vouvoiement, Apple terminology).
+- Local crash reports: a post-crash prompt offers Show Report and Copy Summary, and a Collect Diagnostics command builds a zip locally; nothing is sent over the network.
+- The Controls sheet shows a live controller diagram.
+- Graphics menus and the game panel hide backends the game's setup can't use, with a single Get More Graphics Backends entry that leads to Wine CrossOver installation.
+- innoextract is updated to 1.10 and covers Inno Setup installers up to version 6.4.0.
+- Your Play compares a game's measured performance across its setups (Compare Setups).
+- The install review shown for installers that unpack directly stays accurate through the run.
+
 - Fix a release-app crash caused by blocking process probes during SwiftUI updates; game menus use cached busy state.
 - Fix Sparkle startup by enabling update verification before extraction; a release-feed test guards the setting.
 

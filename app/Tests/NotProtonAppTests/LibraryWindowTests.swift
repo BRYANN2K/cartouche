@@ -183,9 +183,11 @@ struct LibraryWindowTests {
 @MainActor
 struct SettingsWindowTests {
 
-    @Test("Tabs: General, Library, Accounts, Compatibility, Privacy, Consoles, Controllers and Agents")
+    @Test("Sidebar: General, Library, Accounts, Steam, Wine Prefixes, Runners, Privacy, Consoles, Controllers and Agents")
     func tabs() {
-        #expect(SettingsTab.allCases.map(\.title) == ["General", "Library", "Accounts", "Compatibility", "Privacy", "Consoles", "Controllers", "Agents"])
+        #expect(SettingsTab.allCases.map(\.title) == ["General", "Library", "Accounts", "Steam", "Wine Prefixes", "Runners", "Privacy", "Consoles", "Controllers", "Agents", "Advanced"])
+        #expect(SettingsTab(rawValue: "compatibility") == .compatibility)
+        #expect(SettingsTab.compatibility.title == "Runners")
     }
 
     @Test("Each tab renders in light and dark")
@@ -208,14 +210,27 @@ struct SettingsWindowTests {
         let agentService = AgentService(backend: agentBackend, level: .standard, home: fixture.root)
         agentService.notify = { _ in }
         let agents = AgentControlModel(service: agentService, defaults: scratch.defaults)
+        let status = SystemStatus()
+        status.snapshot = StatusSnapshot(
+            steam: .notInstalled, steamRunning: false, updateBlocked: false,
+            crossOver: [], runner: .none,
+            payload: PayloadState(expected: 0, present: 0, missing: [],
+                overlayShimPresent: true, iconmakerPresent: true, appinfoPresent: true,
+                signatureDatabase: "fixture.json", legacyCompatPresent: 0,
+                legacyCompatExpected: 0, manifestProblem: nil))
+        let prefixes = PrefixesModel(libraries: { [] }, installedTools: { [] })
+        await prefixes.load()
         let panes: [(SettingsTab, AnyView)] = [
             (.general, AnyView(GeneralSettingsView())),
             (.library, AnyView(LibrarySettingsView(model: model))),
             (.accounts, AnyView(AccountsSettingsView(model: model))),
+            (.steam, AnyView(StatusView().environment(status))),
+            (.prefixes, AnyView(WinePrefixesSettingsView().environment(prefixes))),
             (.compatibility, AnyView(CompatibilitySettingsView(model: model))),
             (.privacy, AnyView(PrivacySettingsView(center: center, choices: PrivacyChoices(defaults: scratch.defaults)))),
             (.consoles, AnyView(ConsolesSettingsView(model: consoles, chooseApp: { nil }))),
             (.agents, AnyView(AgentsSettingsView(model: agents))),
+            (.advanced, AnyView(AdvancedSettingsView())),
         ]
         for (tab, view) in panes {
             for dark in [false, true] {

@@ -78,6 +78,7 @@ struct GameMenuTests {
     func everyActionInTheMenuBar() async throws {
         let (model, runner, opened, fixture) = try await setUp("menubar")
         defer { fixture.remove() }
+        model.runners = [GameSetupTests.release]
         let game = try #require(model.game("steam:730"))
         let actions = GameMenu.items(for: game, in: model).flatMap(\.flatActions)
         #expect(actions.contains(.play) && actions.contains(.toggleFavorite) && actions.contains(.getInfo))
@@ -86,8 +87,8 @@ struct GameMenuTests {
 
         let app = try String(contentsOf: IdentityTests.repoRoot.appending(path: "app/Sources/NotProtonApp/App/AppCommands.swift"), encoding: .utf8)
         let grid = try String(contentsOf: IdentityTests.repoRoot.appending(path: "app/Sources/NotProtonApp/Library/Views/LibraryGrid.swift"), encoding: .utf8)
-        #expect(app.contains("GameMenuContent(items: GameMenu.items(for: game, in: model, stores: stores))"))
-        #expect(grid.contains("menu: { GameMenu.items(for: game, in: model, stores: stores) }"))
+        #expect(app.contains("GameMenuContent(items: GameMenu.items(for: game, in: model, stores: stores, consoles: consoles))"))
+        #expect(grid.contains("menu: { GameMenu.items(for: game, in: model, stores: stores, consoles: consoles) }"))
 
         runner.perform(.graphics(.dxmt), on: game)
         #expect(model.setup(for: game.id).graphics == .dxmt)

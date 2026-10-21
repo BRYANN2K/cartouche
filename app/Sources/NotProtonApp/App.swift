@@ -5,12 +5,10 @@ import SwiftUI
 struct CartoucheApp: App {
 
     static let mainWindow = "main"
-    static let setupWindow = "setup"
     static let signInWindow = "store-sign-in"
 
     @State var status = SystemStatus()
     @State var prefixes = PrefixesModel()
-    @State var pane: Pane = .status
     @State var library: LibraryModel
     @State var compat: CompatibilityModel
     @State var steamSetup = SteamSetup()
@@ -26,6 +24,8 @@ struct CartoucheApp: App {
     @State var performance = PerformanceModel()
     @State var runners: RunnersModel
     @State var stores: StoreCenter
+    @State var verification = GameVerificationCenter()
+    @State var crashReports = CrashReportCenter()
     @State private var agents: AgentControlModel
     @AppStorage(GeneralSettings.showInMenuBarKey) private var showInMenuBar = true
     @AppStorage(AfterLaunch.key) var afterLaunch = AfterLaunch.hide
@@ -74,8 +74,10 @@ struct CartoucheApp: App {
     var body: some Scene {
         Window("Cartouche", id: Self.mainWindow) {
             LibraryWindow(model: library, compat: compat, steamSetup: steamSetup, actions: actions)
+                .environment(\.gameVerification, verification)
                 .environment(consoleCenter)
                 .environment(controls)
+                .environment(crashReports)
                 .controlsSheet(controls)
                 .frame(minWidth: 800, minHeight: 560)
                 .permissionExplanations(permissionFlow)
@@ -83,11 +85,14 @@ struct CartoucheApp: App {
                                             set: { onboarding?.isPresented = $0 })) {
                     if let onboarding { OnboardingView(model: onboarding).interactiveDismissDisabled() }
                 }
+                .environment(status)
                 .environment(performance)
                 .environment(stores)
+                .environment(\.dropClassifier, InstallerKitDropClassifier())
                 .storeSignIn(stores)
                 .agentApprovals(agents)
                 .task { await start() }
+                .task { await status.refresh() }
                 .onChange(of: onboarding?.isPresented ?? false) { _, shown in
                     if shown == false { Task { await consoleCenter.reload(); await consoleCenter.rescanFolders() } }
                 }
@@ -97,19 +102,6 @@ struct CartoucheApp: App {
         }
         .defaultSize(width: 1280, height: 820)
         .commands { menus }
-
-        Window("Steam Play Setup", id: Self.setupWindow) {
-            RootView(pane: $pane)
-                .environment(status)
-                .environment(prefixes)
-                .frame(minWidth: 720, minHeight: 460)
-                .onChange(of: pane) { prefixes.forgetOutcome() }
-                .onChange(of: status.snapshot?.installedRunners.map(\.id)) {
-                    if prefixes.hasLoaded { Task { await prefixes.load() } }
-                    Task { await loadRunners() }
-                }
-        }
-        .defaultSize(width: 900, height: 760)
 
         Window("Sign In", id: Self.signInWindow) {
             StoreSignInWindow(center: stores)
@@ -126,7 +118,18 @@ struct CartoucheApp: App {
                 .environment(controls)
                 .storeSignIn(stores)
                 .environment(agents)
-                .onChange(of: runners.registry.runners) { _, _ in Task { await syncRunnerList() } }
+                .environment(status)
+                .environment(prefixes)
+                .onChange(of: status.snapshot?.installedRunners.map(\.id)) {
+                    if prefixes.hasLoaded { Task { await prefixes.load() } }
+                    Task { await loadRunners() }
+                }
+                .onChange(of: runners.registry.runners) { _, _ in
+                    Task {
+                        await syncRunnerList()
+                        if status.isIdle { await status.refresh() }
+                    }
+                }
         }
 
         // AppKit re-reports the item's visibility on every update; writing the same value back

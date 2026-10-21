@@ -25,9 +25,22 @@ clone() {
 }
 clone 26.3.0.39832 202607151200
 clone 27.0.0.40921-fex 202608211200
-printf 'cartouche-proton\t27.0.0.40921-fex\tfex\tCrossOver Preview (FEX)\ncartouche-proton-26.3\t26.3.0.39832\trosetta\tCrossOver 26.3\n' \
+# A downloaded Wine build: runners/<id> or the older wine-<id> shape, marked by
+# an install receipt. Its wine.inf sits one level up from a clone's.
+wine_clone() {
+	inf="$np_support/runners/$1/share/wine/wine.inf"
+	mkdir -p "$(dirname "$inf")"
+	: > "$inf"
+	touch -t "$3" "$inf"
+	printf '{"id":"%s","archiveSHA256":"aa","files":{},"loader":"bin/wine"}\n' "$2" \
+		> "$np_support/runners/$1/.cartouche-runner.json"
+}
+wine_clone wine-crossover-26.3.0-1 wine-crossover-26.3.0-1 202608011200
+wine_clone wine-older-9.0 older-9.0 202605011200
+printf 'cartouche-proton\t27.0.0.40921-fex\tfex\tCrossOver Preview (FEX)\ncartouche-proton-26.3\t26.3.0.39832\trosetta\tCrossOver 26.3\ncartouche-proton-wine-crossover-26.3.0-1\twine-crossover-26.3.0-1\trosetta\tWine CrossOver 26.3\ncartouche-proton-older-9.0\tolder-9.0\trosetta\tWine 9.0\n' \
 	> "$np_support/tools"
 mtime() { stat -f %m "$np_support/runners/crossover-$1/CrossOver/share/wine/wine.inf"; }
+wine_mtime() { stat -f %m "$np_support/runners/$1/share/wine/wine.inf"; }
 
 fails=0
 ok() { printf '  ok    %s\n' "$1"; }
@@ -65,13 +78,19 @@ is "a prefix this build last updated is claimed" "status=0
 is "a prefix another clone updated is refused and named" "status=1
 last run by CrossOver Preview (FEX)" "$(launch 26.3.0.39832 "$(mtime 27.0.0.40921-fex)" "")"
 is "a prefix no clone updated is refused" "status=1
-last run by another version of CrossOver" "$(launch 26.3.0.39832 1 "")"
+last run by another build" "$(launch 26.3.0.39832 1 "")"
 is "updates the user disabled say nothing, so the prefix is claimed" "status=0
 26.3.0.39832" "$(launch 26.3.0.39832 disable "")"
 
 clone 27.0.0.40921 202608211200
 is "a prefix either of two clones updated names neither" "status=1
-last run by another version of CrossOver" "$(launch 26.3.0.39832 "$(mtime 27.0.0.40921)" "")"
+last run by another build" "$(launch 26.3.0.39832 "$(mtime 27.0.0.40921)" "")"
+
+echo "== prefixes a downloaded build updated =="
+is "a prefix the downloaded build updated names it" "status=1
+last run by Wine CrossOver 26.3" "$(launch 26.3.0.39832 "$(wine_mtime wine-crossover-26.3.0-1)" "")"
+is "the older wine- folder shape resolves through its receipt" "status=1
+last run by Wine 9.0" "$(launch 26.3.0.39832 "$(wine_mtime wine-older-9.0)" "")"
 
 echo "== prefixes with a record =="
 is "the record wins over the Wine that updated the prefix" "status=0
@@ -83,6 +102,46 @@ last run by CrossOver Preview (FEX)
 27.0.0.40921-fex" "$(launch 26.3.0.39832 "" "27.0.0.40921-fex
 CrossOver Preview (FEX)
 ")"
+
+echo "== runner root and loader =="
+# The resolution blocks run top to bottom exactly as the launch does.
+init=$(sed -n '/^CX_ROOT=/,/^wine_unix=/p' "$SRC")
+loader=$(sed -n '/^wine_unix=/,/^export WINELOADER/p' "$SRC")
+[ -n "$init" ] && [ -n "$loader" ] || { echo "FAIL: runner resolution blocks not found"; exit 1; }
+resolve() {
+	(
+		np_build=$1
+		np_flavor=$2
+		eval "$init"
+		eval "$loader"
+		printf '%s\n%s\n' "$CX_ROOT" "$WINELOADER"
+	)
+}
+clone_bin="$np_support/runners/crossover-26.3.0.39832/CrossOver"
+mkdir -p "$clone_bin/lib/wine/x86_64-unix" "$clone_bin/bin"
+: > "$clone_bin/lib/wine/x86_64-unix/wine"
+chmod +x "$clone_bin/lib/wine/x86_64-unix/wine"
+is "a clone keeps its own loader" "$clone_bin
+$clone_bin/lib/wine/x86_64-unix/wine" "$(resolve 26.3.0.39832 rosetta)"
+
+wine_bin="$np_support/runners/wine-crossover-26.3.0-1"
+mkdir -p "$wine_bin/lib/wine/x86_64-unix" "$wine_bin/bin"
+: > "$wine_bin/bin/wine"
+: > "$wine_bin/lib/wine/x86_64-unix/wine"
+chmod +x "$wine_bin/bin/wine" "$wine_bin/lib/wine/x86_64-unix/wine"
+is "a downloaded build resolves to its folder" "$wine_bin
+$wine_bin/bin/wine" "$(resolve wine-crossover-26.3.0-1 rosetta)"
+printf '{"id":"wine-crossover-26.3.0-1","archiveSHA256":"aa","files":{}}\n' \
+	> "$wine_bin/.cartouche-runner.json"
+is "a receipt without a loader falls back to the unix loader" "$wine_bin
+$wine_bin/lib/wine/x86_64-unix/wine" "$(resolve wine-crossover-26.3.0-1 rosetta)"
+is "the older wine- folder shape resolves too" "$np_support/runners/wine-older-9.0
+$np_support/runners/wine-older-9.0/bin/wine64" "$(
+	mkdir -p "$np_support/runners/wine-older-9.0/lib/wine/x86_64-unix" \
+		"$np_support/runners/wine-older-9.0/bin"
+	: > "$np_support/runners/wine-older-9.0/bin/wine64"
+	chmod +x "$np_support/runners/wine-older-9.0/bin/wine64"
+	resolve older-9.0 rosetta)"
 
 echo "== alerts =="
 alert=$(extract show_alert)

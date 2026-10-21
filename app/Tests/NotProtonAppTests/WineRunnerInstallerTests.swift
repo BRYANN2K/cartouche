@@ -21,7 +21,7 @@ final class WineRunnerInstallerTests {
 
     deinit { try? FileManager.default.removeItem(at: work) }
 
-    // An archive laid out like the CI build, with a shell script standing in for wine
+    // An archive laid out like the CI build, with a real Mach-O loader.
     static func archive(id: String, in work: URL, named name: String = "wine-crossover-26.3.0-1-x86_64.tar.xz", version: String = "wine-11.0 (fixture)") throws -> URL {
         let tree = work.appending(path: "tree-\(UUID().uuidString)")
         let root = tree.appending(path: id)
@@ -30,8 +30,10 @@ final class WineRunnerInstallerTests {
             try fm.createDirectory(at: root.appending(path: dir), withIntermediateDirectories: true)
         }
         let loader = root.appending(path: "lib/wine/x86_64-unix/wine")
-        try Data("#!/bin/sh\necho '\(version)'\n".utf8).write(to: loader)
-        try fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: loader.path(percentEncoded: false))
+        let source = tree.appending(path: "wine.c")
+        let literal = String(decoding: try JSONEncoder().encode(version), as: UTF8.self)
+        try Data("#include <stdio.h>\nint main(void) { puts(\(literal)); return 0; }\n".utf8).write(to: source)
+        try Shell.check("/usr/bin/clang", ["-o", loader.path(percentEncoded: false), source.path(percentEncoded: false)])
         try fm.createSymbolicLink(atPath: root.appending(path: "bin/wine").path(percentEncoded: false),
                                   withDestinationPath: "../lib/wine/x86_64-unix/wine")
         try Data("#!/bin/sh\n".utf8).write(to: root.appending(path: "bin/wineserver"))

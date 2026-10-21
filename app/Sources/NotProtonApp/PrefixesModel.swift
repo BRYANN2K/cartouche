@@ -49,6 +49,7 @@ final class PrefixesModel {
         case rebuild([WinePrefix], InstalledTool)
         case backUp([WinePrefix])
         case deleteBackups([PrefixBackup])
+        case restoreBackup(PrefixBackup)
     }
 
     var selectedPrefix: WinePrefix? {
@@ -198,6 +199,17 @@ final class PrefixesModel {
     func forgetOutcome() {
         report = nil
         outcome = nil
+    }
+
+    func restoreBackup(_ backup: PrefixBackup) async {
+        guard !isLoading, !isBusy else { return }
+        await eachInTurn([backup.prefix], { _ in try PrefixStore.restoreBackup(backup) }) { restored in
+            guard let result = restored.first else { return nil }
+            if let kept = result.made {
+                return String(localized: "Restored the backup for \(backup.title). The previous prefix is kept at \(kept.path(percentEncoded: false)).")
+            }
+            return String(localized: "Restored the backup for \(backup.title).")
+        }
     }
 
     func deleteBackups(_ targets: [PrefixBackup]) async {

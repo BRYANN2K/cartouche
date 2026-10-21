@@ -26,6 +26,9 @@ enum SetupEnvironment {
         for (name, value) in environment where GameSetupResolver.isAllowed(name: name, value: value) {
             env[name] = value
         }
+        if env["DXMT_ENABLE_NVEXT"] == "1" {
+            env["WINEDLLOVERRIDES"] = (env["WINEDLLOVERRIDES"].map { $0 + ";" } ?? "") + "nvapi64=n;nvngx=b"
+        }
         return env
     }
 
@@ -63,6 +66,18 @@ enum SetupEnvironment {
         guard !folders.isEmpty else { return nil }
         let overrides = backend == .dxmt ? "d3d11,dxgi,d3d10core=b" : "d3d9,d3d10core,d3d11,dxgi=b"
         return (folders.map { $0.path(percentEncoded: false) }.joined(separator: ":"), overrides)
+    }
+
+    static func prepareNVExtensions(wine: WineRunner, prefix: URL, environment: [String: String]) throws {
+        guard environment["DXMT_ENABLE_NVEXT"] == "1",
+              let path = environment["WINEDLLPATH"] else { return }
+        for name in ["nvapi64.dll", "nvngx.dll"] {
+            guard let source = path.split(separator: ":").map({ URL(filePath: String($0)).appending(path: name) })
+                .first(where: { FileManager.default.fileExists(atPath: $0.path(percentEncoded: false)) }) else { continue }
+            let target = prefix.appending(path: "drive_c/windows/system32/\(name)")
+            try? FileManager.default.removeItem(at: target)
+            try FileManager.default.copyItem(at: source, to: target)
+        }
     }
 
     // DXMT's guide puts winemetal.dll in the prefix as well

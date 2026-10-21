@@ -122,10 +122,12 @@ int  np_compat_apply_requests(void *compat_mgr);
 // CCompatManager::YldRegisterTool, resolved at install time.
 void np_compat_set_register_fn(uintptr_t yld_register_tool);
 
-// Registers every tool in the app's list into the given manager once. The local
-// compatibilitytools.d scan uses a different instance than the dropdown reads
-// and does not run on every launch, so this registers into the right one.
-void np_compat_register_crossover(void *compat_mgr);
+// Registers every tool in the app's list the given manager does not already hold
+// and returns how many it added. The local compatibilitytools.d scan uses a
+// different instance than the dropdown reads and does not run on every launch,
+// so this registers into the right one. Called on every compat query, because
+// the app can extend the list while Steam runs.
+int  np_compat_register_crossover(void *compat_mgr);
 
 // The manager the properties page enumerates, or NULL before the first compat
 // query. Captured at registration, not construction (the compatibilitytools.d

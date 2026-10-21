@@ -37,6 +37,13 @@ extension LibraryModel {
         return BackendSupport.backends(for: runner, translation: setup.translation, availability: backendAvailability)
     }
 
+    func graphicsChoices(for defaults: SetupDefaults) -> [GraphicsBackend] {
+        let setup = GameSetupResolver.resolve(GameSetupChoice(), defaults: defaults, runners: runners,
+                                             availability: backendAvailability, offered: installRunners).setup
+        guard let runner = setup.runner else { return [] }
+        return BackendSupport.backends(for: runner, translation: setup.translation, availability: backendAvailability)
+    }
+
     // FEX only where the runner serves it, so never on macOS 15; store and installer games run under Rosetta, as Windows installs do.
     func translationChoices(for game: Game) -> [GameSetupChoice.Translation] {
         if game.source.isStore || game.source == .installer { return [.rosetta] }

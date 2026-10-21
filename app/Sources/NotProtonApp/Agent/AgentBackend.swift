@@ -175,7 +175,8 @@ final class AgentLiveBackend: AgentBackend {
     // MARK: Installs
 
     func analyze(_ path: URL) async throws -> InstallerAnalysis {
-        try await Analyzer.analyze(path, tool: Innoextract.path())
+        // innoextract waits on a process: it never runs on the main actor
+        try await Task.detached { try await Analyzer.analyze(path, tool: Innoextract.path()) }.value
     }
 
     func startInstall(_ request: InstallRequest, inputs: InstallInputs) -> UUID {

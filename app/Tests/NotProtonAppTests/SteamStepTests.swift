@@ -83,7 +83,7 @@ final class SteamStepTests {
         #expect(FileManager.default.fileExists(atPath: contents.appending(path: "MacOS/cartouche.dylib").path))
     }
 
-    @Test("Allowed but still refused: the step offers Relaunch Cartouche, which reopens on PC games")
+    @Test("Allowed but still refused: the step offers Relaunch Cartouche, which reopens on Stores")
     func notYetApplied() async {
         let tcc = FakeTCC([.appManagement: .granted])
         let step = makeStep(tcc)
@@ -99,7 +99,7 @@ final class SteamStepTests {
         #expect(step.phase == .notApplied)
         #expect(step.detail.contains("relaunch Cartouche to finish"))
         step.relaunchCartouche()
-        #expect(routes == [ScreenRoute(screen: "onboarding", detail: "pcGames")])
+        #expect(routes == [ScreenRoute(screen: "onboarding", detail: "stores")])
     }
 
     @Test("A failure that is not a write refusal shows its message, and onboarding can go on")

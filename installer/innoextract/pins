@@ -1,7 +1,10 @@
 # innoextract for Cartouche.app/Contents/Helpers. zlib license.
-# The three patches let 1.9 build with CMake 4 and current Boost; they are the
-# ones Homebrew's formula applies. Each line: kind url sha256
-source  https://constexpr.org/innoextract/files/innoextract-1.9.tar.gz 6344a69fc1ed847d4ed3e272e0da5998948c6b828cb7af39c6321aba6cf88126
-patch   https://github.com/dscharrer/innoextract/commit/83d0bf4365b09ddd17dddb400ba5d262ddf16fb8.patch?full_index=1 fe5299d1fdea5c66287aef2f70fee41d86aedc460c5b165da621d699353db07d
-patch   https://github.com/dscharrer/innoextract/commit/264c2fe6b84f90f6290c670e5f676660ec7b2387.patch?full_index=1 f968a9c0521083dd4076ce5eed56127099a9c9888113fc50f476b914396045cc
-patch   https://github.com/dscharrer/innoextract/commit/882796e0e9b134b02deeaae4bbfe92920adb6fe2.patch?full_index=1 d5af3e86eb2b74bff559885440d330678e5dbb028ce165bb836ddb14224af201
+# 1.10 has no stable tag upstream: the pin is the signed 1.10-dev-2025-01-07
+# snapshot (Inno Setup through 6.3.3) plus the upstream commits through
+# 6e9e34e applied as one patch (released Inno 6.4.0 and GOG Galaxy fixes).
+# Boost and xz are pinned too: build.sh compiles them universal and static.
+# Each line: kind url sha256
+source  https://constexpr.org/innoextract/files/snapshots/innoextract-1.10-dev-2025-01-07/innoextract-1.10-dev-2025-01-07.tar.gz c884fa64d8b16166098e3e4f661c0f105d89f9e6fd27ccc7269aadf8de1096b7
+patch   https://github.com/dscharrer/innoextract/compare/7bced1d2084533c5df323beaa0f0cc055956bb28...6e9e34ed0876014fdb46e684103ef8c3605e382e.diff ff214b57669a4b1320f00a9a43073a4c9147a5bdb1271d9bfe90de616abb1929
+boost   https://archives.boost.io/release/1.88.0/source/boost_1_88_0.tar.gz 3621533e820dcab1e8012afd583c0c73cf0f77694952b81352bf38c1488f9cb4
+xz      https://github.com/tukaani-project/xz/releases/download/v5.8.4/xz-5.8.4.tar.gz 0014c7886930454fe8bd4228665b51af55eeae560ea135c9c4cd33f55b2591d9

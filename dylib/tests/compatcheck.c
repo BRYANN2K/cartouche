@@ -34,12 +34,14 @@ int np_log_first_hit(const void *anchor, unsigned long tag) {
     return 1;
 }
 
+static char test_home[768];
+
 const char *np_home_dir(void) {
     if (atomic_fetch_add(&home_calls, 1) == 0) {
         usleep(50000);
         atomic_store(&home_ready, 1);
     }
-    return "/nonexistent";
+    return test_home[0] ? test_home : "/nonexistent";
 }
 
 int np_get_section_containing(const struct mach_header_64 *mh, intptr_t slide,
@@ -347,12 +349,20 @@ static void registration_case(int shift, int mode) {
     np_compat_register_crossover(manager);
     check(buffer_allocations == 0, "registration waits for a manager and function");
     np_compat_set_register_fn((uintptr_t)stub_register_tool);
-    np_compat_register_crossover(manager);
+    int added = np_compat_register_crossover(manager);
     int expected = fail_calloc ? 0 : g_tool_count - existing;
+    check(added == expected, "registration reports the tools it added");
     check(registration_calls == expected, "only missing tools are registered");
     check(registration_buffer == NULL, "the temporary entry buffer is freed");
     check(buffer_frees == buffer_successes, "each successful allocation is freed once");
     check(path_frees == (missing_allocator ? 0 : path_count), "every owned path uses Plat_Free");
+    // The manager's copies are still live here, so a repeat pass finds every tool it
+    // already holds: nothing registers twice, and only a failed allocation is retried.
+    int attempts = buffer_allocations;
+    check(np_compat_register_crossover(manager) == 0
+          && registration_calls == expected
+          && buffer_allocations == attempts + (fail_calloc ? 1 : 0),
+          "repeated queries register nothing twice, retrying only a failed allocation");
     for (int i = existing; i < existing + expected; i++) {
         uint8_t *copy = entries + i * np_compat_tool_stride();
         check(!strcmp(*(char **)(copy + COMPAT_TOOL_NAME_OFF), tools[i].name),
@@ -366,10 +376,6 @@ static void registration_case(int shift, int mode) {
             free(str);
         }
     }
-    int attempts = buffer_allocations;
-    np_compat_register_crossover(manager);
-    check(buffer_allocations == attempts && registration_calls == expected,
-          "repeated queries neither allocate nor register again");
     for (int i = 0; i < path_count; i++) free(path_allocations[i]);
     free(registration_buffer);
 }
@@ -1012,7 +1018,89 @@ static void request_cases(void) {
     np_compat_set_mapping_fn(0);
 }
 
+static void mkdirs(const char *path) {
+    char tmp[768];
+    snprintf(tmp, sizeof tmp, "%s", path);
+    for (char *p = tmp + 1; *p; p++) {
+        if (*p == '/') { *p = '\0'; mkdir(tmp, 0755); *p = '/'; }
+    }
+    mkdir(tmp, 0755);
+}
+
+// The app writes and extends its tool list while Steam runs; a list that appears or
+// grows mid-session has to reach the live manager, not just the next launch.
+static void reload_cases(void) {
+    if (!test_home[0]) {
+        check(0, "a scratch HOME exists for the reload checks");
+        return;
+    }
+
+    char support[768], steam[768];
+    snprintf(support, sizeof support,
+             "%s/Library/Application Support/Cartouche", test_home);
+    snprintf(steam, sizeof steam,
+             "%s/Library/Application Support/Steam", test_home);
+    mkdirs(support);
+    mkdirs(steam);
+
+    // With no list on disk the refresh keeps reporting none.
+    np_compat_load_tool_list("out/compatcheck-missing", "/tools");
+    atomic_store(&g_tools_next_check, 0);
+    check(np_compat_registered_tool(build_manager(3, -1)) == NULL,
+          "no list still answers no registered tool");
+    check(g_tool_count == 0 && !g_tool_list_present,
+          "an absent list stays absent until the file exists");
+
+    put(support, "tools",
+        "cartouche-proton-26.3\t26.3.0.39832\trosetta\tCrossOver 26.3\n");
+    atomic_store(&g_tools_next_check, 0);
+    check(g_tool_count == 0, "the stale answer holds until the next poll");
+    check(strcmp(np_compat_fallback_tool_name(), "cartouche-proton-26.3") == 0
+          && g_tool_count == 1 && g_tool_list_present,
+          "a list appearing mid session is picked up");
+
+    char rundir[768];
+    snprintf(rundir, sizeof rundir,
+             "%s/compatibilitytools.d/cartouche-proton-26.3/run", steam);
+    check(exists(rundir), "a tool appearing late gets its manifest directory written");
+
+    // Extending the list registers only the new tool into a live manager.
+    put(support, "tools",
+        "cartouche-proton-26.3\t26.3.0.39832\trosetta\tCrossOver 26.3\n"
+        "cartouche-proton-fex\t27.0.0.40921-fex\tfex\tCrossOver 2026 FEX\n");
+    g_tool_shift = 0;
+    uint8_t *mgr = build_manager(1, -1);
+    *(const char **)(entries + COMPAT_TOOL_NAME_OFF) = "cartouche-proton-26.3";
+    registration_calls = 0;
+    np_compat_set_register_fn((uintptr_t)stub_register_tool);
+    atomic_store(&g_tools_next_check, 0);
+    int added = np_compat_register_crossover(mgr);
+    check(added == 1 && registration_calls == 1,
+          "a tool added mid session registers into the live manager");
+    check(*(uint32_t *)(mgr + COMPAT_MANAGER_TOOL_COUNT_OFF) == 2,
+          "the manager now holds both tools");
+    check(np_compat_register_crossover(mgr) == 0 && registration_calls == 1,
+          "a second pass registers nothing twice");
+
+    // Removing the list unlists the tools.
+    char tools_path[768];
+    snprintf(tools_path, sizeof tools_path, "%s/tools", support);
+    remove(tools_path);
+    atomic_store(&g_tools_next_check, 0);
+    (void)np_compat_fallback_tool_name();
+    check(g_tool_count == 0 && !g_tool_list_present,
+          "a list removed mid session unlists the tools");
+
+    for (int i = 0; i < path_count; i++) free(path_allocations[i]);
+    path_count = 0;
+    np_compat_set_register_fn(0);
+}
+
 int main(void) {
+    char home_tmpl[] = "out/compatcheck-home.XXXXXX";
+    if (mkdtemp(home_tmpl))
+        snprintf(test_home, sizeof(test_home), "%s", home_tmpl);
+
     concurrent_fallback_cases();
     probe_cases();
     oslist_cases();
@@ -1027,6 +1115,7 @@ int main(void) {
     installed_fn_cases();
     shortcut_probe_cases();
     shortcut_exe_cases();
+    reload_cases();
 
     if (failures) {
         printf("==> compat: %d check(s) failed\n", failures);

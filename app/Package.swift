@@ -78,7 +78,9 @@ let package = Package(
     ] + (hasTests ? [
         .testTarget(
             name: "NotProtonAppTests",
-            dependencies: ["NotProtonApp", "CartoucheMCP", .product(name: "RetroArchKit", package: "retroarch")],
+            dependencies: ["NotProtonApp", "CartoucheMCP",
+                           .product(name: "RetroArchKit", package: "retroarch"),
+                           .product(name: "InstallerKit", package: "installer")],
             path: testsPath
         ),
     ] : [])

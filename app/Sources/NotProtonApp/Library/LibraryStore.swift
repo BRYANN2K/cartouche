@@ -8,6 +8,7 @@ struct GameSetupChoice: Codable, Equatable, Sendable {
     var metalHUD: Bool?
     var version: GameVersion?
     var environment: [String: String]?
+    var advanced: AdvancedGameOptions?
 
     enum Translation: String, Codable, Sendable, CaseIterable {
         case rosetta, fex

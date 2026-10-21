@@ -285,6 +285,72 @@ struct CloudSavesTests {
     }
 }
 
+// The newest file under states/ and saves/ is evidence a game ran, even when
+// no play session counted it; lastPlayed is merged from these dates.
+@Suite("Played evidence", .serialized)
+struct SaveActivityTests {
+
+    @Test func theNewestStateOrSaveStampsTheGame() throws {
+        let work = try scratchFolder("activity")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let paths = RetroArchPaths(root: work.appending(path: "cartouche"))
+        let day: TimeInterval = 24 * 3600
+
+        let states = paths.states.appending(path: "Snes9x", directoryHint: .isDirectory)
+        let saves = paths.saves.appending(path: "Snes9x", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: states, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: saves, withIntermediateDirectories: true)
+
+        let stateDate = Date(timeIntervalSinceNow: -7 * day)
+        try Data("s".utf8).write(to: states.appending(path: "Cartouche Homebrew.state.auto"))
+        try FileManager.default.setAttributes([.modificationDate: stateDate], ofItemAtPath: states.appending(path: "Cartouche Homebrew.state.auto").path)
+        let saveDate = Date(timeIntervalSinceNow: -30 * day)
+        try Data("s".utf8).write(to: saves.appending(path: "SRAM Only.srm"))
+        try FileManager.default.setAttributes([.modificationDate: saveDate], ofItemAtPath: saves.appending(path: "SRAM Only.srm").path)
+
+        try Data("thumbnail".utf8).write(to: states.appending(path: "Cartouche Homebrew.state.auto.png"))
+        try FileManager.default.createDirectory(at: saves.appending(path: "Empty Core"), withIntermediateDirectories: true)
+        let activity = SaveStates.latestActivity(in: paths)
+        #expect(activity.count == 2)
+        #expect(activity["Cartouche Homebrew"] == stateDate)
+        #expect(activity["SRAM Only"] == saveDate)
+    }
+
+    @Test func whicheverFileIsNewerWins() throws {
+        let work = try scratchFolder("activity-newest")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let paths = RetroArchPaths(root: work.appending(path: "cartouche"))
+        let day: TimeInterval = 24 * 3600
+        let states = paths.states.appending(path: "Snes9x", directoryHint: .isDirectory)
+        let saves = paths.saves.appending(path: "Snes9x", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: states, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: saves, withIntermediateDirectories: true)
+
+        let older = Date(timeIntervalSinceNow: -9 * day)
+        let newer = Date(timeIntervalSinceNow: -2 * day)
+        // State newer than the save
+        try Data("s".utf8).write(to: states.appending(path: "State Wins.state1"))
+        try FileManager.default.setAttributes([.modificationDate: newer], ofItemAtPath: states.appending(path: "State Wins.state1").path)
+        try Data("s".utf8).write(to: saves.appending(path: "State Wins.srm"))
+        try FileManager.default.setAttributes([.modificationDate: older], ofItemAtPath: saves.appending(path: "State Wins.srm").path)
+        // Save newer than the state
+        try Data("s".utf8).write(to: states.appending(path: "Save Wins.state.auto"))
+        try FileManager.default.setAttributes([.modificationDate: older], ofItemAtPath: states.appending(path: "Save Wins.state.auto").path)
+        try Data("s".utf8).write(to: saves.appending(path: "Save Wins.srm"))
+        try FileManager.default.setAttributes([.modificationDate: newer], ofItemAtPath: saves.appending(path: "Save Wins.srm").path)
+
+        let activity = SaveStates.latestActivity(in: paths)
+        #expect(activity["State Wins"] == newer)
+        #expect(activity["Save Wins"] == newer)
+    }
+
+    @Test func nothingOnDiskMeansNoActivity() throws {
+        let work = try scratchFolder("activity-none")
+        defer { try? FileManager.default.removeItem(at: work) }
+        #expect(SaveStates.latestActivity(in: RetroArchPaths(root: work.appending(path: "cartouche"))).isEmpty)
+    }
+}
+
 @Suite("Coach mode")
 struct CoachTests {
 

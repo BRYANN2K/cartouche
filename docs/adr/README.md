@@ -26,8 +26,14 @@ Format: Status, Context, Decision, Alternatives rejected, Consequences. Files ar
 | [0019](0019-ranked-game-identification.md) | Ranked game identification | Accepted, 2026-10-20; implemented in main 307ad2c |
 | [0020](0020-pe-based-runtime-installation.md) | PE-based runtime installation | Accepted, 2026-10-20; implemented in main 307ad2c |
 | [0021](0021-steam-library-with-steam-closed.md) | Steam library with Steam closed | Accepted, 2026-10-20; implemented in main 307ad2c |
-| [0022](0022-protected-steam-webui-export.md) | Steam library export through a protected WebUI route | Accepted, 2026-10-20; implementation merged in de0e6ec, real Steam check pending |
+| [0022](0022-protected-steam-webui-export.md) | Steam library export through a protected WebUI route | Accepted, 2026-10-20; implementation merged in de0e6ec, real Steam check pending; runtime token fetch in review on fix/steam-compat-tools |
 | [0023](0023-bundled-libarchive-drop-classification.md) | Bundled libarchive and shared drop classification | Accepted, 2026-10-20; backend merged in 95b4e47; app wiring and real archive pending |
 | [0024](0024-unified-add-games.md) | One Add Games entry point | Accepted, 2026-10-20; UI merged in 51a8ece, backend pending |
 | [0025](0025-verify-installation-or-fall-back.md) | Verify installation output or fall back | Accepted, 2026-10-21; implementation pending |
 | [0026](0026-verification-levels-and-failure-choices.md) | Verification levels and explicit failure choices (amends 0025) | Accepted, 2026-10-21; UI merged in 7f8773b; engine pending |
+| [0027](0027-hide-unavailable-graphics-backends.md) | Hide unavailable graphics backends | Accepted, 2026-10-21; UI merged in 522d4fa |
+| [0028](0028-static-inspection-detection-tree.md) | Detect installers by static inspection, with evidence and confidence (approves the tree left proposed by 0025–0026) | Accepted, 2026-10-21 |
+| [0029](0029-local-crash-reports.md) | Crash reports stay local | Accepted, 2026-10-21; implemented in main 1c25236 |
+| [0030](0030-advanced-windows-game-options.md) | Advanced Windows-game options in the game panel | Accepted, 2026-10-21; amended by 0031; pending research-upscaling |
+| [0031](0031-advanced-options-gating.md) | Advanced options gated per runner and backend, no frame generation (amends 0030) | Accepted, 2026-10-21; pending research-upscaling |
+| [0032](0032-onboarding-v2.md) | Onboarding v2: seven steps with background tasks | Accepted, 2026-10-21; implementation pending |

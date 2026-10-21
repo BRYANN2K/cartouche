@@ -38,7 +38,8 @@ struct GameUninstall: Sendable {
     }
 
     static func inPlace(_ folder: GameFolder) -> Bool {
-        InstalledGames.record(in: folder)?.gameFolder != nil
+        guard let record = InstalledGames.record(in: folder) else { return false }
+        return record.gameFolder != nil || record.inferredGameFolder != nil
     }
 
     func plan(for game: Game, installs: URL = GameFolder.installs) -> RemovalPlan? {
