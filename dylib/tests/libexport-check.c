@@ -30,10 +30,15 @@ uintptr_t np_webui_registry(void) { return 1; }
 
 static uintptr_t registered_req, registered_resp;
 static int (*registered_handler)(uintptr_t, uintptr_t);
+static int (*token_handler)(uintptr_t, uintptr_t);
 static char registered_name[128];
 
 int np_webui_register_route(const char *name, uintptr_t req, uintptr_t resp,
                             int (*handler)(uintptr_t, uintptr_t)) {
+    if (strcmp(name, "Cartouche.GetExportToken#1") == 0) {
+        token_handler = handler;
+        return 1;
+    }
     registered_req = req;
     registered_resp = resp;
     registered_handler = handler;
@@ -153,7 +158,7 @@ static cJSON *parse_file(void) {
     return j;
 }
 
-int main(void) {
+int main(int argc, char **argv) {
     const char *tmp = getenv("TMPDIR");
     snprintf(scratch, sizeof scratch, "%s/np-libexport-XXXXXX",
              (tmp && tmp[0]) ? tmp : "/tmp");
@@ -170,26 +175,6 @@ int main(void) {
     CHECK(hex, "token is hexadecimal");
     CHECK(strcmp(tok, np_libexport_token()) == 0, "token is stable for the launch");
 
-    // The loopback host serves the same launch token through an anonymous fd.
-    int tfd = np_libexport_open_token();
-    CHECK(tfd >= 0, "token is served");
-    char served[NP_TOKEN_LEN + 1];
-    memset(served, 0, sizeof served);
-    CHECK(read(tfd, served, NP_TOKEN_LEN) == NP_TOKEN_LEN &&
-          memcmp(served, tok, NP_TOKEN_LEN) == 0,
-          "served bytes are this launch's token");
-    CHECK(read(tfd, served, 1) == 0, "the served token is exactly the token");
-    close(tfd);
-    int tfd2 = np_libexport_open_token();
-    CHECK(tfd2 >= 0, "the token is served again");
-    if (tfd2 >= 0) {
-        memset(served, 0, sizeof served);
-        CHECK(read(tfd2, served, NP_TOKEN_LEN) == NP_TOKEN_LEN &&
-              memcmp(served, tok, NP_TOKEN_LEN) == 0,
-              "a re-served token matches the launch token");
-        close(tfd2);
-    }
-
     // Registration: name is routed to the TransportValidation message types.
     np_libexport_register(NULL, 0, 0, 0);
     CHECK(np_libexport_routes() == NP_LIBEXPORT_READY,
@@ -197,6 +182,32 @@ int main(void) {
     CHECK(strcmp(registered_name, "Cartouche.ExportOwnedGames#1") == 0,
           "route name carries the interface version");
     CHECK(registered_handler != NULL, "handler recorded");
+
+    if (argc == 2 && strcmp(argv[1], "--bridge") == 0) {
+        char *line = NULL;
+        size_t cap = 0;
+        while (getline(&line, &cap, stdin) > 0) {
+            captured_pb_len = 0;
+            int result;
+            if (strncmp(line, "token", 5) == 0) {
+                result = token_handler(0, 1);
+            } else {
+                size_t n = strcspn(line, "\n") / 2;
+                for (size_t i = 0; i < n; i++) {
+                    unsigned byte;
+                    sscanf(line + 2 * i, "%2x", &byte);
+                    payload_buf[i] = (char)byte;
+                }
+                result = registered_handler(make_request(payload_buf, n), 1);
+            }
+            printf("%d ", result);
+            for (uint32_t i = 0; i < captured_pb_len; i++) printf("%02x", captured_pb[i]);
+            printf("\n");
+            fflush(stdout);
+        }
+        free(line);
+        return 0;
+    }
 
     const char *sid = "76561198123456789";
     const char *good =

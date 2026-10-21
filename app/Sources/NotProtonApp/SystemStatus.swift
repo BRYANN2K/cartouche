@@ -24,6 +24,7 @@ struct StatusSnapshot: Sendable {
     var damagedRunners: [String] = []
     var installContent: DeploymentContent.Status = .unchecked
     var runners: [Runner] = []
+    var compatibilityTools: [InstalledTool] = []
 
     static func capture(bundledVersion: String) -> StatusSnapshot {
         let registry = RunnerRegistry.refresh()
@@ -44,7 +45,8 @@ struct StatusSnapshot: Sendable {
             orphanedRunners: registry.orphaned,
             damagedRunners: registry.damaged,
             installContent: DeploymentContent.current(version: bundledVersion),
-            runners: registry.runners
+            runners: registry.runners,
+            compatibilityTools: CompatToolList.installed()
         )
     }
 }

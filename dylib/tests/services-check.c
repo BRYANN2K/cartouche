@@ -120,10 +120,11 @@ int main(void) {
     check(np_libexport_routes() == NP_LIBEXPORT_READY,
           "libexport settles ready after compatsvc");
 
-    check(reg_count == 3, "the two services register three routes in total");
+    check(reg_count == 4, "the two services register four routes in total");
 
     int get = route_at("CompatManager.GetCompatTools#1");
     int set = route_at("CompatManager.SpecifyCompatTool#1");
+    check(route_at("Cartouche.GetExportToken#1") >= 0, "token route lands beside export");
     int exp = route_at("Cartouche.ExportOwnedGames#1");
     check(get >= 0 && set >= 0 && exp >= 0,
           "compat tools, specify and owned-export routes all land");
@@ -142,12 +143,12 @@ int main(void) {
     // A second pass does not duplicate either service's routes.
     np_compatsvc_register(NULL, 0, 0, 0);
     np_libexport_register(NULL, 0, 0, 0);
-    check(reg_count == 3, "a second registration pass adds nothing");
+    check(reg_count == 4, "a second registration pass adds nothing");
 
     if (failures) {
         printf("==> services: %d check(s) failed\n", failures);
         return 1;
     }
-    printf("==> services: compatsvc and libexport register all three routes side by side\n");
+    printf("==> services: compatsvc and libexport register all four routes side by side\n");
     return 0;
 }

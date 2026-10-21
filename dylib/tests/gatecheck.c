@@ -199,24 +199,7 @@ static void check_paths(void) {
         wrong("the command file is patched as a chunk");
     printf("%zu command file paths checked\n", m + 1);
 
-    // The export token is served the same way, read-only and never patched
-    static const struct { const char *path; int want; } tokens[] = {
-        { "/Steam.AppBundle/Steam/Contents/MacOS/steamui/cartouche/steam-export-token",   1 },
-        { "steamui/cartouche/steam-export-token",                                         1 },
-        { "/Steam.AppBundle/Steam/Contents/MacOS/steamui/steam-export-token",             0 },
-        { "/Steam.AppBundle/Steam/Contents/MacOS/steamui/cartouche/steam-export-token.x", 0 },
-        { "/Steam.AppBundle/Steam/Contents/MacOS/steamui/cartouche/../steam-export-token", 0 },
-        { "/Steam.AppBundle/Steam/Contents/MacOS/steamui/cartouche/steam-downloads.json", 0 },
-    };
-    size_t k = sizeof(tokens) / sizeof(tokens[0]);
-    for (size_t i = 0; i < k; i++)
-        if (!np_webpatch_is_export_token(tokens[i].path) != !tokens[i].want)
-            wrong("is_export_token(%s), wanted %d", tokens[i].path, tokens[i].want);
-    if (np_webpatch_is_export_token(NULL))
-        wrong("is_export_token(NULL) answered yes");
-    if (np_webpatch_should_patch(tokens[0].path))
-        wrong("the token file is patched as a chunk");
-    printf("%zu token file paths checked\n", k + 1);
+
 }
 
 static void selfcheck(void) {

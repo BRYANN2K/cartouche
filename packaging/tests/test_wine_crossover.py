@@ -66,6 +66,13 @@ class WineCrossOverScripts(unittest.TestCase):
         write(install / "share/wine/wine.inf", "[Version]\n")
         for arch in ("x86_64-windows", "i386-windows"):
             write(install / "lib/wine" / arch / "ntdll.dll", f"MZ {arch}\n")
+        stub = self.work / "sdl.c"
+        stub.write_text('int SDL_Init(unsigned f) { return 0; }\n'
+                        'const char *SDL_GetError(void) { return ""; }\n'
+                        'void SDL_Quit(void) {}\n')
+        for name in ("libSDL2-2.0.0.dylib", "libSDL3.dylib"):
+            run("cc", "-arch", "x86_64", "-dynamiclib", stub, "-install_name", "@rpath/" + name,
+                "-o", install / "lib" / name, check=True)
         return install
 
     def package(self):
@@ -98,30 +105,30 @@ class WineCrossOverScripts(unittest.TestCase):
 
     def test_package_has_the_notices_source_offer_and_a_matching_entry(self):
         out = self.package()
-        asset = out / "wine-crossover-26.3.0-1-x86_64.tar.xz"
+        asset = out / "wine-crossover-26.3.0-2-x86_64.tar.xz"
         self.assertTrue(asset.is_file())
-        self.assertEqual((out / "tag").read_text().strip(), "wine-crossover-26.3.0-1")
+        self.assertEqual((out / "tag").read_text().strip(), "wine-crossover-26.3.0-2")
         self.assertEqual((out / f"{asset.name}.sha256").read_text().split()[0], sha256(asset))
 
         listing = run("tar", "-tJf", asset, check=True).stdout.split()
-        self.assertTrue(all(p.startswith("wine-crossover-26.3.0-1") for p in listing))
+        self.assertTrue(all(p.startswith("wine-crossover-26.3.0-2") for p in listing))
         for f in ("LICENSE", "COPYING.LIB", "AUTHORS", "SOURCE.md", "BUILDINFO.txt", "bin/wine",
                   "lib/wine/x86_64-unix/wine", "lib/wine/i386-windows/ntdll.dll"):
-            self.assertIn(f"wine-crossover-26.3.0-1/{f}", listing)
-        offer = run("tar", "-xJOf", asset, "wine-crossover-26.3.0-1/SOURCE.md", check=True).stdout
+            self.assertIn(f"wine-crossover-26.3.0-2/{f}", listing)
+        offer = run("tar", "-xJOf", asset, "wine-crossover-26.3.0-2/SOURCE.md", check=True).stdout
         self.assertIn("https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz", offer)
-        self.assertIn("https://github.com/owner/repo/releases/tag/wine-crossover-26.3.0-1", offer)
+        self.assertIn("https://github.com/owner/repo/releases/tag/wine-crossover-26.3.0-2", offer)
         self.assertIn("tree/abc123/packaging/wine-crossover", offer)
         self.assertIn("Lesser General Public", offer)
 
         entry = json.loads((out / "manifest-entry.json").read_text())
         self.assertEqual(entry, {
-            "id": "wine-crossover-26.3.0-1", "kind": "wineBuild", "origin": "cartouche",
+            "id": "wine-crossover-26.3.0-2", "kind": "wineBuild", "origin": "cartouche",
             "name": "Wine CrossOver", "version": "26.3.0", "displayVersion": "26.3",
-            "url": "https://github.com/owner/repo/releases/download/wine-crossover-26.3.0-1/"
-                   "wine-crossover-26.3.0-1-x86_64.tar.xz",
+            "url": "https://github.com/owner/repo/releases/download/wine-crossover-26.3.0-2/"
+                   "wine-crossover-26.3.0-2-x86_64.tar.xz",
             "size": asset.stat().st_size, "sha256": sha256(asset),
-            "root": "wine-crossover-26.3.0-1", "loader": "bin/wine", "flavors": ["rosetta"],
+            "root": "wine-crossover-26.3.0-2", "loader": "bin/wine", "flavors": ["rosetta"],
         })
 
     def test_package_refuses_sources_that_are_not_the_pinned_tarball(self):
@@ -135,13 +142,20 @@ class WineCrossOverScripts(unittest.TestCase):
 
     def test_verify_runs_wine_from_the_archive(self):
         out = self.package()
-        r = run("sh", SCRIPTS / "verify.sh", out / "wine-crossover-26.3.0-1-x86_64.tar.xz")
+        r = run("sh", SCRIPTS / "verify.sh", out / "wine-crossover-26.3.0-2-x86_64.tar.xz")
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(r.stdout.strip().splitlines()[-1], "wine-11.0 (fake)")
 
+    def test_sdl_check_requires_the_runtime_loaded_sdl3(self):
+        install = self.fake_install()
+        (install / "lib/libSDL3.dylib").unlink()
+        r = run("sh", SCRIPTS / "check-sdl.sh", install)
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("missing libSDL3.dylib", r.stderr)
+
     def test_verify_refuses_an_archive_that_does_not_match_its_hash(self):
         out = self.package()
-        asset = out / "wine-crossover-26.3.0-1-x86_64.tar.xz"
+        asset = out / "wine-crossover-26.3.0-2-x86_64.tar.xz"
         (out / f"{asset.name}.sha256").write_text(f"{'0' * 64}  {asset.name}\n")
         r = run("sh", SCRIPTS / "verify.sh", asset)
         self.assertEqual(r.returncode, 1)

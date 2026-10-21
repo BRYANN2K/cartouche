@@ -438,20 +438,21 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     "else if(w===1){if(f===11){let v=0;for(let i=0;i<8;i++)v+=h[p+i]*2**(8*i);jt=v}p+=8}" \
     "else if(w===2){const l=rv();p+=l}" \
     "else if(w===5)p+=4;else return null}" \
-    "return{jt,er}}catch(e){return null}};" \
+    "return{jt,er,body:new Uint8Array(ab,8+L)}}catch(e){return null}};" \
     "let ws=0,seq=0,pend={},max=4e6,key=\"\",big=0,last=\"\",fails=0,warned=0;" \
     "const call=(name,body)=>new Promise(r=>{const s=++seq,h=[...f1(10,s),...f2(12,name),...f2(40,key)]," \
     "m=new Uint8Array(8+h.length+body.length),d=new DataView(m.buffer);" \
     "d.setUint32(0,2147483794,true);d.setUint32(4,h.length,true);m.set(h,8);m.set(body,8+h.length);" \
-    "pend[s]=r;ws.send(m);setTimeout(()=>{if(pend[s]){delete pend[s];r(2)}},8e3)})," \
+    "pend[s]=r;ws.send(m);setTimeout(()=>{if(pend[s]){delete pend[s];r({er:2})}},8e3)})," \
     "open=async()=>{try{if(ws&&ws.readyState===1)return 1;" \
     "const i=await SteamClient.WebUITransport.GetTransportInfo();if(!i||!i.portClientdll)return 0;" \
     "key=i.authKeyClientdll||\"\";max=i.nMaximumMsgSizeBytes||4e6;" \
     "ws=new WebSocket(\"ws://localhost:\"+i.portClientdll+\"/transportsocket/\");" \
     "ws.binaryType=\"arraybuffer\";ws.onclose=()=>{ws=0};" \
-    "ws.onmessage=e=>{try{const r=rd(e.data);if(r&&pend[r.jt]){pend[r.jt](r.er);delete pend[r.jt]}}catch(x){}};" \
+    "ws.onmessage=e=>{try{const r=rd(e.data);if(r&&pend[r.jt]){pend[r.jt](r);delete pend[r.jt]}}catch(x){}};" \
     "await new Promise((ok,no)=>{ws.onopen=ok;ws.onerror=no;setTimeout(no,8e3)});" \
-    "return await call(\"TransportAuth.Authenticate#1\",new Uint8Array(0))===1}catch(e){ws=0;return 0}}," \
+    "if((await call(\"TransportAuth.Authenticate#1\",new Uint8Array(0))).er===1)return 1;" \
+    "ws.close();return 0}catch(e){ws=0;return 0}}," \
     "collect=()=>{const S=window.appStore;if(!S||!S.m_mapApps||!S.m_mapApps.size)return null;" \
     "const cm=(this&&this.m_cm)||S.m_cm||(window.collectionStore&&window.collectionStore.m_cm)," \
     "sid=cm&&cm.steamid&&(cm.steamid.ConvertTo64BitString?cm.steamid.ConvertTo64BitString():String(cm.steamid));" \
@@ -475,10 +476,10 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     "cols.push({id:String(c.id),name:String(c.displayName||c.id).slice(0,256),apps:as})}" \
     "if(cols.length)e.collections=cols}}catch(x){}" \
     "return e}," \
-    "tok=async()=>{try{" \
-    "const r=await fetch(\"/cartouche/" NP_EXPORT_TOKEN_FILE "\",{cache:\"no-store\"});" \
-    "if(!r.ok)return\"\";" \
-    "const t=(await r.text()).trim();" \
+    "tok=async()=>{try{if(!await open())return\"\";" \
+    "const r=await call(\"Cartouche.GetExportToken#1\",new Uint8Array(0)),b=r.body;" \
+    "if(r.er!==1||!b||b.length!==34||b[0]!==10||b[1]!==32)return\"\";" \
+    "const t=new TextDecoder().decode(b.slice(2));" \
     "return/^[0-9a-f]{32}$/i.test(t)?t:\"\"}catch(x){return\"\"}}," \
     "requeue=n=>setTimeout(tick,Math.min(15e3*Math.pow(2,n||0),3e5))," \
     "refuse=why=>{fails+=1;if(!warned){warned=1;console.warn(\"Cartouche: \"+why)}requeue(fails)}," \
@@ -487,10 +488,9 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     "if(fp===last)return requeue(0);" \
     "const T=await tok();" \
     "if(!T)return refuse(\"the owned-games export token is not being served; retrying in the background\");" \
-    "if(!await open())return requeue(0);" \
     "const body=te.encode(T+\"\\n\"+JSON.stringify(e));" \
     "if(body.length>max){if(!big){big=1;console.warn(\"Cartouche: owned-games export is \"+body.length+\" bytes, over the transport limit\")}return requeue(0)}" \
-    "if(await call(\"Cartouche.ExportOwnedGames#1\",new Uint8Array(f2(1,body)))!==1)" \
+    "if((await call(\"Cartouche.ExportOwnedGames#1\",new Uint8Array(f2(1,body)))).er!==1)" \
     "return refuse(\"the owned-games export was refused; retrying in the background\");" \
     "last=fp;big=0;fails=0;warned=0;" \
     "console.log(\"Cartouche: exported \"+e.apps.length+\" owned games\");requeue(0)" \
@@ -743,13 +743,6 @@ int np_webpatch_is_download_commands(const char *path) {
         return 0;
     const char *rest = inside_steamui(path);
     return rest && strcmp(rest, "cartouche/" NP_DOWNLOAD_COMMANDS_FILE) == 0;
-}
-
-int np_webpatch_is_export_token(const char *path) {
-    if (!path)
-        return 0;
-    const char *rest = inside_steamui(path);
-    return rest && strcmp(rest, "cartouche/" NP_EXPORT_TOKEN_FILE) == 0;
 }
 
 int np_webpatch_should_patch(const char *path) {

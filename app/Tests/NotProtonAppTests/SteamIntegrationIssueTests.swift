@@ -88,6 +88,19 @@ struct SteamIntegrationIssueTests {
         #expect(SteamIntegrationIssue.current(in: state) == nil)
     }
 
+    @Test("Wine compatibility tools count without CrossOver clones")
+    func wineTools() {
+        var state = snapshot()
+        state.runner = .none
+        state.compatibilityTools = [InstalledTool(
+            tool: CompatTool(name: "cartouche-proton-wine-crossover-26.3.0-1",
+                             flavor: .rosetta, display: "Wine CrossOver 26.3"),
+            build: "wine-crossover-26.3.0-1")]
+        #expect(SteamIntegrationIssue.current(in: state) == nil)
+        state.compatibilityTools = []
+        #expect(SteamIntegrationIssue.current(in: state) == .missingTools)
+    }
+
     @Test("Damaged and unpatched tools offer repair, not a fresh setup")
     func damagedTools() {
         var state = snapshot()

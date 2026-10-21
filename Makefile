@@ -410,7 +410,8 @@ panel-behavior:
 	node $(PANEL_TESTS)/shell.js $(OUT_DIR)/panel-emit && \
 	node $(PANEL_TESTS)/migration.js $(OUT_DIR)/panel-emit && \
 	node $(PANEL_TESTS)/downloads.js $(OUT_DIR)/panel-emit && \
-	node $(PANEL_TESTS)/library-export.js $(OUT_DIR)/panel-emit && \
+	$(TEST_CC) -o $(LIBEXPORT_CHECK) dylib/tests/libexport-check.c dylib/util/file.c vendor/cJSON.c && \
+	node $(PANEL_TESTS)/library-export.js $(OUT_DIR)/panel-emit $(LIBEXPORT_CHECK) && \
 	node $(PANEL_TESTS)/localization.js $(OUT_DIR)/panel-emit && \
 	node $(PANEL_TESTS)/fex.js $(OUT_DIR)/panel-emit && \
 	echo "==> panel behavior: renders as expected, no stale arguments"

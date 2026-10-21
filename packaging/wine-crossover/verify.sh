@@ -32,6 +32,7 @@ for arch in x86_64-windows i386-windows; do
     [ -f "$root/lib/wine/$arch/ntdll.dll" ] || fail "$roots/lib/wine/$arch/ntdll.dll is missing"
 done
 sh "$here/check-deps.sh" "$root"
+sh "$here/check-sdl.sh" "$root"
 
 # A scratch home, so nothing from this machine's Wine setup is read
 home="$work/home"

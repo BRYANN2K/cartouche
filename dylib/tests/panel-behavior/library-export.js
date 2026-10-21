@@ -1,13 +1,13 @@
 'use strict';
 // Runs the injected library exporter against a fake transport socket, app store,
-// collection store and loopback fetch, so the checks exercise the payload the
+// collection store and token route, so the checks exercise the payload the
 // gate writes — the packet format, the auth handshake, the route name, the
 // token framing, the debounce, and the refusal backoff.
-const { execFileSync } = require('child_process');
+const { execFileSync, spawn } = require('child_process');
 const { runner } = require('./harness');
 
 const emit = process.argv[2];
-if (!emit) { console.error('usage: library-export.js <emit>'); process.exit(2); }
+if (!emit || !process.argv[3]) { console.error('usage: library-export.js <emit> <libexport-check>'); process.exit(2); }
 const emitWith = (...a) => execFileSync(emit, a, { encoding: 'utf8' }).trim();
 
 const TOKEN = 'a1b2c3d4e5f60718293a4b5c6d7e8f9a';
@@ -89,12 +89,22 @@ function page(opts) {
       sockets.push(this);
       queueMicrotask(() => { this.readyState = 1; this.onopen && this.onopen(); });
     }
-    send(m) {
+    async send(m) {
       const msg = decode(m);
       this.frames.push(msg);
       const er = msg.route === 'Cartouche.ExportOwnedGames#1'
         ? (opts.exportResult === undefined ? 1 : opts.exportResult) : 1;
-      const reply = frame([f1(11, msg.hdr[10]), f0(13, er)]);
+      let result = er, body = [];
+      if (msg.route === 'Cartouche.GetExportToken#1') {
+        fetched.push({ url: msg.route });
+        result = token ? 1 : 2;
+        body = token ? f2(1, token) : [];
+      }
+      if (opts.route && msg.route.startsWith('Cartouche.')) {
+        const real = await opts.route(msg);
+        result = real.result; body = real.body;
+      }
+      const reply = frame([f1(11, msg.hdr[10]), f0(13, result)], body);
       queueMicrotask(() => this.onmessage && this.onmessage({ data: reply.buffer }));
     }
     close() { this.readyState = 3; this.onclose && this.onclose(); }
@@ -109,13 +119,7 @@ function page(opts) {
     appStore: opts.noStore ? undefined : store,
     collectionStore: opts.collections,
   };
-  // The loopback host answers with the current launch token, or refuses.
-  const fetch = async (url, init) => {
-    fetched.push({ url, cache: init && init.cache });
-    return token
-      ? { ok: true, text: async () => token }
-      : { ok: false, status: 403, text: async () => '' };
-  };
+  const fetch = () => { throw new Error('export must not fetch a helper token'); };
   // Requeue and the call's own timeouts all land here; the last push of a poll
   // is always the next tick.
   const setTimeout = (f, ms) => { timeouts.push({ f, ms }); return timeouts.length; };
@@ -181,9 +185,8 @@ const payload_json = f => {
   };
   const p = page({ store: { m_mapApps: apps }, collections });
   await p.flush();
-  t.ok(p.fetched.length === 1 && p.fetched[0].url === '/cartouche/steam-export-token'
-       && p.fetched[0].cache === 'no-store',
-       'the launch token is fetched from the loopback host, uncached');
+  t.ok(p.fetched.length === 1 && p.fetched[0].url === 'Cartouche.GetExportToken#1',
+       'the launch token comes from the authenticated export process');
   t.ok(p.ms === 15000, 'polls every 15 seconds, no tight loop');
   t.ok(p.sockets.length === 1, 'one transport socket');
   const ws = p.sockets[0];
@@ -232,15 +235,15 @@ const payload_json = f => {
   t.ok(export_msgs(p2.sockets[0]).length === 2, 'a refused export retries on the next poll');
   t.ok(p2.warnings.length === 1 && p2.ms === 60000, 'refusals stay quiet and keep backing off');
 
-  // A launch that does not serve the token (an older dylib, or a 403) is
-  // refused the same way: one warning, exponential backoff, no socket.
+  // A launch that does not serve the token (an older dylib, or a refusal) is
+  // refused the same way: one warning, exponential backoff, no export.
   const p3 = page({ store: { m_mapApps: apps }, token: '' });
   await p3.flush();
-  t.ok(p3.fetched[0].url === '/cartouche/steam-export-token' && p3.sockets.length === 0,
-       'an unanswered token fetch never opens a socket');
+  t.ok(p3.fetched[0].url === 'Cartouche.GetExportToken#1' && export_msgs(p3.sockets[0]).length === 0,
+       'an unanswered token route never exports');
   t.ok(p3.warnings.length === 1 && p3.ms === 30000, 'a refused token backs off quietly');
   await p3.poll();
-  t.ok(p3.warnings.length === 1 && p3.ms === 60000 && p3.sockets.length === 0,
+  t.ok(p3.warnings.length === 1 && p3.ms === 60000 && export_msgs(p3.sockets[0]).length === 0,
        'a launch without the token keeps backing off without logging again');
   p3.token = TOKEN;
   await p3.poll();
@@ -251,6 +254,43 @@ const payload_json = f => {
   const p4 = page({ store: { m_mapApps: apps }, info: {} });
   await p4.flush();
   t.ok(p4.sockets.length === 0, 'no transport info means no socket');
+
+  // Run these exact injected bytes through the C token and export handlers in
+  // one process, rather than replacing both ends with matching fake tokens.
+  if (process.argv[3]) {
+    const child = spawn(process.argv[3], ['--bridge']);
+    const lines = require('readline').createInterface({ input: child.stdout });
+    const waiting = [];
+    lines.on('line', line => {
+      const [result, hex] = line.split(' ');
+      waiting.shift()({ result: Number(result), body: Buffer.from(hex || '', 'hex') });
+    });
+    const route = msg => new Promise(resolve => {
+      waiting.push(resolve);
+      child.stdin.write(msg.route === 'Cartouche.GetExportToken#1'
+        ? 'token\n' : Buffer.from(bytes_field(msg.body)).toString('hex') + '\n');
+    });
+    const live = page({ store: { m_mapApps: apps }, collections, route });
+    const done = new Promise((resolve, reject) => {
+      const timer = global.setTimeout(() => reject(new Error('C route test timed out')), 5000);
+      const check = () => {
+        if (live.ms === 15000 || live.warnings.length) {
+          clearTimeout(timer); resolve();
+        } else setImmediate(check);
+      };
+      check();
+    });
+    try {
+      await done;
+      t.ok(live.warnings.length === 0 && live.ms === 15000,
+           'exact injected JS obtains a token and real C export route accepts it');
+      const accepted = export_msgs(live.sockets[0])[0];
+      const raw = Buffer.from(bytes_field(accepted.body));
+      raw.fill(48, 0, 32);
+      const refused = await route({ route: 'Cartouche.ExportOwnedGames#1', body: f2(1, raw) });
+      t.ok(refused.result === 2, 'real export route rejects a different process token');
+    } finally { child.stdin.end(); }
+  }
 
   if (t.failed) { console.error(`library-export: ${t.failed} failed`); process.exit(1); }
   console.log('==> library export: live token, authed socket, owned games only, backed-off refusals');

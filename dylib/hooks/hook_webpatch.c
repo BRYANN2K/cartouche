@@ -5,7 +5,6 @@
 #include "../feats/webpatch.h"
 #include "../feats/compat.h"
 #include "../feats/compatsvc.h"
-#include "../feats/libexport.h"
 #include "../util/file.h"
 #include "../util/log.h"
 
@@ -170,8 +169,6 @@ static int try_serve(const char *path, int oflag) {
         return -1;
     if (np_webpatch_is_download_commands(path))
         return open_download_commands();
-    if (np_webpatch_is_export_token(path))
-        return np_libexport_open_token();
     if (!np_webpatch_should_patch(path))
         return -1;
     return open_patched(path);

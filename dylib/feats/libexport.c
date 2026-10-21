@@ -1,7 +1,7 @@
 // Owned-library export WebUI service. The page sends its owned-games list and
 // this writes steam-library.json into the app's support folder. The route is
 // only reachable through the client's own WebUI transport, and the request has
-// to carry the per-launch token only the injected library page knows.
+// to carry the per-launch token obtained over that authenticated transport.
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
@@ -20,6 +20,9 @@
 
 // Route names carry the interface version the page asks for.
 #define ROUTE_EXPORT_OWNED "Cartouche.ExportOwnedGames#1"
+#define ROUTE_EXPORT_TOKEN "Cartouche.GetExportToken#1"
+#define TYPE_TOKEN_REQUEST "45CTransportValidation_GetLargeResponse_Request"
+#define TYPE_TOKEN_RESPONSE "46CTransportValidation_GetLargeResponse_Response"
 
 // The client's transport self-check messages carry an arbitrary bytes field, so
 // the export payload borrows them instead of needing a new message type.
@@ -293,29 +296,14 @@ static int ensure_support_dir(const char *home, char *dir, size_t dsz) {
         : (errno == ENOENT && mkdir(dir, 0755) == 0 ? 0 : -1);
 }
 
-// The page fetches the launch token from the loopback host instead of carrying
-// one baked into the patched JavaScript, so a cached page always presents this
-// launch's token. The bytes are served through a rewound anonymous fd.
-int np_libexport_open_token(void) {
-    const char *home = np_home_dir();
-    if (!home) return -1;
-    char dir[1200], tmpl[1400];
-    if (ensure_support_dir(home, dir, sizeof dir) != 0) return -1;
-    snprintf(tmpl, sizeof tmpl, "%s/libexport-token.XXXXXX", dir);
-    int fd = mkstemp(tmpl);
-    if (fd < 0) return -1;
-    unlink(tmpl);
-
-    const char *token = np_libexport_token();
-    int ok = 1;
-    for (size_t off = 0; ok && off < NP_TOKEN_LEN; ) {
-        ssize_t w = write(fd, token + off, NP_TOKEN_LEN - off);
-        if (w <= 0) ok = 0;
-        else off += (size_t)w;
-    }
-    if (ok) ok = lseek(fd, 0, SEEK_SET) == 0;
-    if (!ok) { close(fd); return -1; }
-    return fd;
+// The CEF helper and steam_osx load separate copies of this dylib. Fetching a
+// token through the helper's file interpose returns the helper's random token,
+// not the one the export handler checks. Both routes must run in steam_osx.
+static int get_export_token(uintptr_t request, uintptr_t response) {
+    (void)request;
+    uint8_t body[NP_TOKEN_LEN + 2] = { 0x0a, NP_TOKEN_LEN };
+    memcpy(body + 2, np_libexport_token(), NP_TOKEN_LEN);
+    return np_webui_parse_into(response, body, sizeof body) ? RESULT_OK : RESULT_FAIL;
 }
 
 // Replaces the export through a temp file in the same directory so a reader
@@ -404,7 +392,20 @@ void np_libexport_register(const struct mach_header_64 *mh, intptr_t slide,
                ROUTE_EXPORT_OWNED);
         return;
     }
-    np_webui_register_route(ROUTE_EXPORT_OWNED, request, response,
-                            export_owned_games);
+    uintptr_t token_request = np_rtti_vptr(mh, slide, text_base, text_size,
+                                           TYPE_TOKEN_REQUEST);
+    uintptr_t token_response = np_rtti_vptr(mh, slide, text_base, text_size,
+                                            TYPE_TOKEN_RESPONSE);
+    if (!token_request || !token_response) {
+        g_routes = NP_LIBEXPORT_ABSENT;
+        return;
+    }
+    if (!np_webui_register_route(ROUTE_EXPORT_TOKEN, token_request, token_response,
+                                 get_export_token) ||
+        !np_webui_register_route(ROUTE_EXPORT_OWNED, request, response,
+                                 export_owned_games)) {
+        g_routes = NP_LIBEXPORT_ABSENT;
+        return;
+    }
     g_routes = NP_LIBEXPORT_READY;
 }

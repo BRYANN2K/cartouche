@@ -2335,9 +2335,21 @@
     "%lld games in the library" : {
       "localizations" : {
         "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld jeux dans la bibliothèque"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld jeu dans la bibliothèque"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld jeux dans la bibliothèque"
+                }
+              }
+            }
           }
         },
         "it" : {
@@ -2559,9 +2571,21 @@
     "%lld other installed games" : {
       "localizations" : {
         "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld autres jeux installés"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld autre jeu installé"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld autres jeux installés"
+                }
+              }
+            }
           }
         },
         "it" : {
@@ -3295,7 +3319,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un outil de compatibilité Steam doit être réparé. Vérifiez-le dans les Réglages."
+            "value" : "Un outil de compatibilité Steam doit être réparé. Consultez Réglages > Steam dans Cartouche."
           }
         },
         "it" : {
@@ -3537,7 +3561,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un foyer pour vos classiques."
+            "value" : "Retrouvez vos classiques."
           }
         },
         "it" : {
@@ -4867,7 +4891,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Une autre intégration est installée dans Steam. Vérifiez-la dans les Réglages avant d’installer Cartouche."
+            "value" : "Un autre outil modifie déjà Steam. Consultez Réglages > Steam dans Cartouche avant de poursuivre l’installation."
           }
         },
         "it" : {
@@ -6005,7 +6029,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Emportez votre bibliothèque."
+            "value" : "Retrouvez toute votre bibliothèque."
           }
         },
         "it" : {
@@ -6649,7 +6673,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cartouche n’a pas pu vérifier ses fichiers installés. Vérifiez les réglages Steam avant de continuer."
+            "value" : "Cartouche n’a pas pu vérifier ses fichiers installés. Ouvrez Réglages > Steam dans Cartouche avant de continuer."
           }
         },
         "it" : {
@@ -7177,7 +7201,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cartouche n’est pas installé dans Steam. Configurez-le dans les Réglages."
+            "value" : "Cartouche n’est pas installé dans Steam. Configurez-le dans Réglages > Steam."
           }
         },
         "it" : {
@@ -7991,7 +8015,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Choisissez un runner. Les téléchargements ne vous retiendront pas."
+            "value" : "Choisissez une version de Wine. Vous pouvez continuer pendant les téléchargements."
           }
         },
         "it" : {
@@ -8057,7 +8081,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Choisissez uniquement les systèmes auxquels vous jouez."
+            "value" : "Choisissez les consoles qui vous intéressent."
           }
         },
         "it" : {
@@ -8895,7 +8919,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Connectez votre manette par Bluetooth ou USB. Aucune configuration nécessaire."
+            "value" : "Connectez votre manette en Bluetooth ou en USB. Aucune configuration nécessaire."
           }
         },
         "it" : {
@@ -8917,7 +8941,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Connectez-vous maintenant, ou revenez dans Réglages."
+            "value" : "Connectez-vous maintenant ou plus tard dans les Réglages."
           }
         },
         "it" : {
@@ -9269,7 +9293,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Se poursuit dans Activité"
+            "value" : "Suivez la progression dans Activité"
           }
         },
         "it" : {
@@ -9709,7 +9733,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Copie de D3DMetal depuis l’image"
+            "value" : "Copie de D3DMetal depuis l’image disque"
           }
         },
         "it" : {
@@ -10243,7 +10267,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "D3DMetal nécessite le Game Porting Toolkit d’Apple. Utilisez votre propre image disque obtenue auprès d’Apple."
+            "value" : "D3DMetal nécessite le Game Porting Toolkit d’Apple. Utilisez l’image disque téléchargée sur le site d’Apple."
           }
         },
         "it" : {
@@ -10331,7 +10355,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "DXMT et DXVK sont inclus avec le runner, sans choix à faire."
+            "value" : "DXMT et DXVK sont inclus avec cette version de Wine. Rien à choisir."
           }
         },
         "it" : {
@@ -11779,7 +11803,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Les téléchargements s’affichent ici et dans Activité"
+            "value" : "Suivez les téléchargements ici et dans Activité"
           }
         },
         "it" : {
@@ -11955,7 +11979,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Déposez le .dmg du Game Porting Toolkit ici"
+            "value" : "Déposez le fichier .dmg du Game Porting Toolkit ici"
           }
         },
         "it" : {
@@ -12241,7 +12265,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tous ces choix sont disponibles dans Réglages."
+            "value" : "Vous pouvez modifier tous ces choix dans les Réglages."
           }
         },
         "it" : {
@@ -12769,7 +12793,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Recherchez des jaquettes et des rapports de compatibilité par nom de jeu."
+            "value" : "Rechercher des jaquettes et des avis de compatibilité à partir du nom du jeu."
           }
         },
         "it" : {
@@ -13517,7 +13541,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Télécharger"
+            "value" : "Installer"
           }
         },
         "it" : {
@@ -13539,7 +13563,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Télécharger chez Apple"
+            "value" : "Télécharger sur le site d’Apple"
           }
         },
         "it" : {
@@ -15615,7 +15639,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Continuez à explorer pendant que la configuration se termine en arrière-plan."
+            "value" : "Découvrez Cartouche pendant que la configuration se termine en arrière-plan."
           }
         },
         "it" : {
@@ -16715,7 +16739,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Faites place au jeu."
+            "value" : "Place au jeu."
           }
         },
         "it" : {
@@ -17903,7 +17927,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aucun outil de compatibilité n’est configuré pour Steam. Configurez-en un dans les Réglages."
+            "value" : "Aucun outil de compatibilité n’est configuré pour Steam. Configurez-en un dans Réglages > Steam."
           }
         },
         "it" : {
@@ -17991,7 +18015,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aucune manette connectée. Vos choix s’appliqueront lorsque vous en brancherez une."
+            "value" : "Aucune manette connectée. Vos choix s’appliqueront dès que vous en connecterez une."
           }
         },
         "it" : {
@@ -19587,7 +19611,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Uniquement les accès nécessaires, au bon moment."
+            "value" : "Les autorisations nécessaires, au moment où vous en avez besoin."
           }
         },
         "it" : {
@@ -20445,7 +20469,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Jouer aux jeux au clavier avec la manette"
+            "value" : "Jouer à la manette aux jeux prévus pour le clavier"
           }
         },
         "it" : {
@@ -20467,7 +20491,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Jouez-y à la manette. L’autorisation Accessibilité sera nécessaire plus tard."
+            "value" : "Jouez-y à la manette. L’autorisation Accessibilité vous sera demandée au premier usage."
           }
         },
         "it" : {
@@ -20555,7 +20579,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "PlayStation affiche ○△□×, Xbox affiche ABXY."
+            "value" : "Symboles PlayStation : ○△□×. Symboles Xbox : ABXY."
           }
         },
         "it" : {
@@ -20907,7 +20931,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Prévisualisez la disposition. Personnalisez chaque jeu dans Commandes."
+            "value" : "Visualisez la configuration ci-dessus. Personnalisez les commandes de chaque jeu dans Commandes."
           }
         },
         "it" : {
@@ -21759,7 +21783,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Recevoir les bêtas"
+            "value" : "Recevoir les versions bêta"
           }
         },
         "it" : {
@@ -21847,7 +21871,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Recommandé — active D3DMetal et DXMT"
+            "value" : "Recommandé pour utiliser D3DMetal et DXMT"
           }
         },
         "it" : {
@@ -23031,7 +23055,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Restaurer le préfixe sauvegardé"
+            "value" : "Restaurer une sauvegarde du préfixe"
           }
         },
         "it" : {
@@ -23053,7 +23077,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Restaurer la sélection"
+            "value" : "Restaurer la sauvegarde"
           }
         },
         "it" : {
@@ -23075,7 +23099,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Restaurer la sauvegarde sélectionnée ?"
+            "value" : "Restaurer la sauvegarde sélectionnée ?"
           }
         },
         "it" : {
@@ -23647,7 +23671,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Runners…"
+            "value" : "Versions de Wine…"
           }
         },
         "it" : {
@@ -23867,7 +23891,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Enregistré sur ce Mac"
+            "value" : "Choix enregistrés sur ce Mac"
           }
         },
         "it" : {
@@ -24109,7 +24133,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Configurez une version de Wine dans Réglages > Compatibilité pour jouer à %@."
+            "value" : "Configurez une version de Wine dans Réglages > Versions de Wine pour jouer à %@."
           }
         },
         "it" : {
@@ -25589,7 +25613,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Réglages Steam…"
+            "value" : "Réglages > Steam…"
           }
         },
         "it" : {
@@ -25831,7 +25855,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Steam est introuvable. Choisissez ou installez Steam dans les Réglages."
+            "value" : "Steam est introuvable. Choisissez son emplacement ou installez-le dans Réglages > Steam."
           }
         },
         "it" : {
@@ -26579,7 +26603,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Des fichiers de l’intégration de Cartouche à Steam sont manquants ou modifiés. Réparez-la dans les Réglages."
+            "value" : "Certains fichiers de l’intégration de Cartouche à Steam sont manquants ou ont été modifiés. Réparez l’installation dans Réglages > Steam."
           }
         },
         "it" : {
@@ -27437,7 +27461,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La sauvegarde est utilisée. Quittez d’abord le jeu."
+            "value" : "La sauvegarde est en cours d’utilisation. Quittez d’abord le jeu."
           }
         },
         "it" : {
@@ -28497,7 +28521,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "L’image ne contient pas de Game Porting Toolkit."
+            "value" : "L’image disque ne contient pas de Game Porting Toolkit."
           }
         },
         "it" : {
@@ -28915,7 +28939,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Le runner n’est pas encore prêt."
+            "value" : "Cette version de Wine n’est pas encore prête."
           }
         },
         "it" : {
@@ -31293,7 +31317,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Quand vous ouvrez un jeu, Cartouche demande ses rapports Mac à MacGamingDB. Quand un jeu Windows n’a pas de jaquette, son nom peut être recherché dans la boutique Steam. Aucun des deux services ne reçoit d’identifiant de compte ou de Mac."
+            "value" : "Quand vous ouvrez un jeu, Cartouche consulte les avis Mac de MacGamingDB. Si un jeu Windows n’a pas de jaquette, son nom peut être recherché dans la boutique Steam. Aucun identifiant de compte ou de Mac n’est transmis à ces services."
           }
         },
         "it" : {
@@ -32034,7 +32058,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vos comptes et votre historique de jeu restent sur ce Mac. Rien n’est partagé automatiquement."
+            "value" : "Vos comptes et votre historique de jeu restent sur ce Mac. Aucune donnée n’est partagée automatiquement."
           }
         },
         "it" : {
@@ -32254,7 +32278,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vous pouvez jouer."
+            "value" : "À vous de jouer."
           }
         },
         "it" : {
@@ -32848,7 +32872,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "macOS peut demander l’accès aux volumes amovibles à la première lecture par Cartouche."
+            "value" : "Au premier accès à ce disque, macOS peut vous demander d’autoriser l’accès aux volumes amovibles."
           }
         },
         "it" : {

@@ -38,7 +38,7 @@ enum SteamIntegrationIssue: Equatable {
         // A discovered source (.available) is not a configured compatibility tool.
         let hasReadyRunner = snapshot.runners.contains { $0.isInstalled && $0.state == .ready }
         let hasInstalledBuild = !snapshot.installedRunners.isEmpty || !snapshot.runner.builds.isEmpty
-        return hasReadyRunner || hasInstalledBuild ? nil : .missingTools
+        return hasReadyRunner || hasInstalledBuild || !snapshot.compatibilityTools.isEmpty ? nil : .missingTools
     }
 
     var message: String {

@@ -60,6 +60,7 @@ lib_of() {
         gnutls) echo "$(brew --prefix gnutls)/lib/libgnutls.30.dylib" ;;
         molten-vk) echo "$(brew --prefix molten-vk)/lib/libMoltenVK.dylib" ;;
         sdl2) echo "$(brew --prefix sdl2)/lib/libSDL2-2.0.0.dylib" ;;
+        sdl3) echo "$(brew --prefix sdl3)/lib/libSDL3.dylib" ;;
         *) echo "build.sh: no library known for $1" >&2; return 1 ;;
     esac
 }
@@ -94,4 +95,5 @@ run make -j"$(sysctl -n hw.ncpu)"
 run make install-lib
 run cp -R "$deps/lib/." "$install/lib/"
 run sh "$here/check-deps.sh" "$install"
+run sh "$here/check-sdl.sh" "$install"
 [ -n "$dry" ] || "$install/bin/wine" --version

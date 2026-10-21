@@ -17,13 +17,6 @@ void np_webpatch_set_fallback_tool(const char *name);
 // fallback would drop are skipped, as is anything past NP_WEBPATCH_FEX_TOOLS_MAX.
 void np_webpatch_set_fex_tools(const char *const *names, size_t count);
 
-// The per-launch export token, served read-only from memory so a page learns
-// it at run time; never written to the app's support folder.
-#define NP_EXPORT_TOKEN_FILE "steam-export-token"
-
-// 1 when `path` is where the loopback host looks for the export token.
-int np_webpatch_is_export_token(const char *path);
-
 // The compat UIs, named so a caller can compare against the table rather than a literal
 // of its own that a rename would leave behind. forcetool calls SpecifyCompatTool straight
 // out; selecttool reads its list from the CompatManager routes.
