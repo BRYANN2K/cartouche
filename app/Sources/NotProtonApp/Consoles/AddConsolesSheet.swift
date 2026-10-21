@@ -23,20 +23,21 @@ struct AddConsolesSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Add Consoles").font(.title2.weight(.bold))
-            Text("Pick the systems you play. Cartouche downloads only their cores, from libretro.")
-                .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 0) {
+            SheetHeader(title: Text("Add Consoles"),
+                        message: Text("Pick the systems you play. Cartouche downloads only their cores, from libretro."))
+                .padding(.bottom, 10)
             ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 0) {
                     ForEach(ConsoleMaker.allCases, id: \.self) { maker in
                         let consoles = ConsoleCatalog.made(by: maker)
                         if !consoles.isEmpty {
                             Text(verbatim: maker.title)
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                                .accessibilityAddTraits(.isHeader)
-                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)], spacing: 10) {
+                                .groupHeader()
+                                .padding(.horizontal, 5)
+                                .padding(.top, 14)
+                                .padding(.bottom, 6)
+                            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
                                 ForEach(consoles) { console in
                                     AddConsoleTile(console: console, added: center.isAdded(console.id),
                                                 picked: choice.picked.contains(console.id),
@@ -48,22 +49,27 @@ struct AddConsolesSheet: View {
                         }
                     }
                 }
-                .padding(.vertical, 4)
+                .padding(.vertical, 8)
             }
-            HStack {
+            .softScrollEdges()
+            HStack(spacing: 8) {
                 Spacer()
-                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button("Cancel") { dismiss() }
+                    .buttonStyle(.sheet)
+                    .keyboardShortcut(.cancelAction)
                 Button(choice.addTitle) {
                     let ids = choice.picked
                     dismiss()
                     Task { await center.add(ids) }
                 }
+                .buttonStyle(.sheetProminent)
                 .keyboardShortcut(.defaultAction)
                 .disabled(choice.picked.isEmpty)
             }
+            .padding(.top, 14)
         }
         .padding(22)
-        .frame(width: 660, height: 560)
+        .frame(width: 660, height: 600)
     }
 }
 
@@ -74,61 +80,63 @@ struct AddConsoleTile: View {
     let found: Int
     let toggle: () -> Void
 
+    @State private var hovering = false
+
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
         Button(action: toggle) {
-            VStack(alignment: .leading, spacing: 3) {
-                ConsoleGlyphView(glyph: console.glyph)
-                    .foregroundStyle(picked ? Color.accentColor : Color.secondary)
-                Text(verbatim: console.name).font(.callout.weight(.semibold)).lineLimit(2)
+            VStack(alignment: .leading, spacing: 2) {
+                ConsoleMarkView(id: console.id, size: 20)
+                    .foregroundStyle(Color.accentColor)
+                    .frame(height: 20)
+                    .padding(.bottom, 4)
+                Text(verbatim: console.name)
+                    .font(.system(size: 13, weight: .semibold))
+                    .lineLimit(1)
                 Text(added ? String(localized: "Added") : console.coreName)
-                    .font(.caption).foregroundStyle(.secondary)
-                HStack(spacing: 6) {
-                    if console.bios != .none && !added {
-                        Text("Needs BIOS")
-                            .font(.caption2.weight(.semibold))
-                            .padding(.horizontal, 5).padding(.vertical, 1)
-                            .background(.orange.opacity(0.18), in: Capsule())
-                    }
-                    if found > 0 && !added {
-                        Text(found == 1 ? String(localized: "1 game found") : String(localized: "\(found) games found"))
-                            .font(.caption2)
-                            .foregroundStyle(Color.accentColor)
-                    }
+                    .font(.system(size: 11))
+                    .foregroundStyle(Glass.label2)
+                    .lineLimit(1)
+                if console.bios != .none && !added {
+                    Text("Needs BIOS")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Color.orange)
+                }
+                if found > 0 && !added {
+                    Text(found == 1 ? String(localized: "1 game found") : String(localized: "\(found) games found"))
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(Color.green)
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: 74, alignment: .topLeading)
-            .padding(10)
-            .background {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(picked ? Color.accentColor.opacity(0.12) : Color.primary.opacity(0.04))
-            }
+            .frame(maxWidth: .infinity, minHeight: 82, alignment: .topLeading)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(picked ? Color.accentColor.opacity(0.12) : hovering && !added ? Glass.fill2 : Glass.fill, in: shape)
             .overlay {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(picked ? Color.accentColor : Color.primary.opacity(0.08), lineWidth: picked ? 2 : 0.5)
+                if picked { shape.strokeBorder(Color.accentColor, lineWidth: 2) }
             }
-            .contentShape(Rectangle())
+            .contentShape(shape)
         }
         .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .animation(.easeOut(duration: 0.15), value: hovering)
         .disabled(added)
-        .opacity(added ? 0.55 : 1)
+        .opacity(added ? 0.5 : 1)
         .accessibilityAddTraits(picked ? .isSelected : [])
     }
 }
 
 struct ConsoleSidebarRow: View {
     let id: String
-    let model: LibraryModel
+    @Bindable var model: LibraryModel
     @Environment(ConsoleCenter.self) private var consoles: ConsoleCenter?
 
     var body: some View {
         let item = SidebarItem.source(.console(id))
-        Label {
-            Text(verbatim: LibraryModel.title(item))
-        } icon: {
-            ConsoleGlyphView(glyph: ConsoleCatalog.console(id)?.glyph ?? .cartridge)
+        SidebarRow(title: LibraryModel.title(item), badge: model.badge(item), selected: model.selection == item,
+                   icon: { ConsoleMarkView(id: id) }) {
+            model.selection = item
         }
-        .badge(model.badge(item).map { Text(verbatim: $0) })
-        .tag(item)
         .contextMenu {
             if let consoles {
                 ForEach(consoles.menu(for: id)) { entry in

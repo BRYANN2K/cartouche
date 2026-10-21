@@ -148,11 +148,11 @@ public enum WineInstall {
             at: prefix.appending(path: "drive_c/T"), withIntermediateDirectories: true)
     }
 
-    // wineboot --init makes the new prefix without the Mono and Gecko prompts.
+    // wineboot -u creates or updates the prefix. Mono and Gecko stays enabled: a game may ask for them.
     public static func createPrefix(runner: WineRunner, prefix: URL, base: [String: String]) -> InstallLaunch {
         var env = environment(runner: runner, prefix: prefix, inputs: nil, base: base)
-        env["WINEDLLOVERRIDES"] = "winemenubuilder.exe=d;mscoree,mshtml="
-        return InstallLaunch(executable: rosetta[0], arguments: Array(rosetta.dropFirst()) + [runner.loader.path(percentEncoded: false), "wineboot", "--init"], environment: env)
+        env["WINEDLLOVERRIDES"] = "winemenubuilder.exe=d"
+        return InstallLaunch(executable: rosetta[0], arguments: Array(rosetta.dropFirst()) + [runner.loader.path(percentEncoded: false), "wineboot", "-u"], environment: env)
     }
 
     public static func setupPath(_ setup: URL, inputs: InstallInputs) -> String {
@@ -173,6 +173,30 @@ public enum WineInstall {
             arguments: Array(rosetta.dropFirst()) + [runner.loader.path(percentEncoded: false), setupPath(setup, inputs: inputs)] + inputs.innoArguments,
             environment: env,
             currentDirectory: setup.deletingLastPathComponent()
+        )
+    }
+
+    // The driver's run for one part: from the helpers dir, over the mapped source drive, with the
+    // helpers' scratch dir as TEMP/TMP and Wine's own log channels off — the helpers write enough
+    // output themselves and a WINEDEBUG trace slows the decompression measurably.
+    public static func runUnpackDriver(
+        part: URL, plan: DirectUnpackPlan, installDir: String,
+        runner: WineRunner, prefix: URL, inputs: InstallInputs?, base: [String: String]
+    ) -> InstallLaunch {
+        var env = environment(runner: runner, prefix: prefix, inputs: inputs, base: base)
+        env["WINEDEBUG"] = "-all"
+        env["TEMP"] = shortTemp
+        env["TMP"] = shortTemp
+        env["MVK_CONFIG_LOG_LEVEL"] = "0"
+        let config = DirectUnpack.helperDir + "\\" + plan.arcConfig
+        return InstallLaunch(
+            executable: rosetta[0],
+            arguments: Array(rosetta.dropFirst()) + [runner.loader.path(percentEncoded: false),
+                DirectUnpack.helperDir + "\\" + DirectUnpack.driverName]
+                + DirectUnpack.arguments(installDir: installDir, tempDir: shortTemp, config: config)
+                + ["--", sourceDrive.uppercased() + "\\" + part.lastPathComponent],
+            environment: env,
+            currentDirectory: prefix.appending(path: DirectUnpack.helperUnixDir)
         )
     }
 

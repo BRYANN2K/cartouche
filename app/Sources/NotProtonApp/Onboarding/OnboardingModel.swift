@@ -16,8 +16,9 @@ struct RunnerOffer: Sendable {
             install: { _ = try await WineRunnerInstaller.install($0) })
     }
 
+    // A pending pin is never offered: its download could only fail.
     static func recommended(_ manifest: RunnerManifest) -> RunnerManifest.Build? {
-        manifest.builds.first { $0.origin == .cartouche } ?? manifest.builds.first
+        manifest.builds.first { $0.origin == .cartouche && $0.isPinned } ?? manifest.builds.first(where: \.isPinned)
     }
 }
 

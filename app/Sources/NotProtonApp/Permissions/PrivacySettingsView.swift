@@ -34,7 +34,7 @@ struct PrivacySettingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 Toggle("Fetch Mac reports from MacGamingDB", isOn: $choices.fetchMacReports)
-                Text("When you open a game, Cartouche asks MacGamingDB for its Mac reports. MacGamingDB sees which game, but no account or Mac identifier.")
+                Text("When you open a game, Cartouche asks MacGamingDB for its Mac reports. When a Windows game has no cover, its name may be looked up in the Steam store. Neither service receives an account or a Mac identifier.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 Divider()

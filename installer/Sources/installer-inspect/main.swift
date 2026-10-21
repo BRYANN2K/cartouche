@@ -23,17 +23,18 @@ var report: [String: Any] = [
 
 var heavy = false
 var language: String?
+var inno: InnoReport?
 if let setup = scan.setup {
     do {
-        let inno = try InnoInspector.inspect(setup)
-        heavy = inno.heavyDecompression
+        inno = try InnoInspector.inspect(setup)
+        heavy = inno!.heavyDecompression
         // /LANG takes the installer's own language id, which is "en" here, not "english".
-        language = inno.languages.first { $0.hasPrefix("en") } ?? inno.languages.first
+        language = inno!.languages.first { $0.hasPrefix("en") } ?? inno!.languages.first
         report["inno"] = [
-            "title": inno.title ?? "", "version": inno.version ?? "", "languages": inno.languages,
-            "passworded": inno.passworded, "heavyDecompression": inno.heavyDecompression,
-            "decompressors": inno.decompressors, "customInterface": inno.customInterface,
-            "downloadsDuringInstall": inno.downloadsDuringInstall, "redistributables": inno.redistributables,
+            "title": inno!.title ?? "", "version": inno!.version ?? "", "languages": inno!.languages,
+            "passworded": inno!.passworded, "heavyDecompression": inno!.heavyDecompression,
+            "decompressors": inno!.decompressors, "customInterface": inno!.customInterface,
+            "downloadsDuringInstall": inno!.downloadsDuringInstall, "redistributables": inno!.redistributables,
         ]
     } catch {
         report["inno"] = ["error": "\(error)"]
@@ -42,6 +43,14 @@ if let setup = scan.setup {
 let space = SpaceEstimate.from(compressed: scan.totalSize, heavy: heavy)
 report["space"] = ["installed": space.installed, "temporary": space.temporary]
 report["command"] = InnoCommand(installDir: #"C:\Games\\#(report["name"]!)"#, mode: .guided, language: language).arguments
+
+if let plan = DirectUnpack.plan(inno: inno, scan: scan) {
+    report["directUnpack"] = [
+        "parts": plan.parts.map(\.lastPathComponent),
+        "helpers": plan.helpers,
+        "manifest": plan.manifestPath.map { $0 as Any } ?? NSNull(),
+    ]
+}
 
 if let manifest = Checksums.findManifest(in: folder), let parsed = try? Checksums.parse(manifest) {
     var m: [String: Any] = ["file": manifest.resolvingSymlinksInPath().path(percentEncoded: false).replacingOccurrences(of: (folder.resolvingSymlinksInPath().path(percentEncoded: false) as NSString).appendingPathComponent(""), with: ""),
@@ -75,6 +84,9 @@ if args.contains("--json") {
             print("Interface:   \((inno["customInterface"] as! Bool) ? "custom window" : "standard"), downloads during install: \(inno["downloadsDuringInstall"]!)")
             print("Redist:      \((inno["redistributables"] as! [String]).joined(separator: ", "))")
         }
+    }
+    if let direct = report["directUnpack"] as? [String: Any] {
+        print("Direct:      unpacked by the driver (\((direct["parts"] as! [String]).count) parts, manifest \(direct["manifest"]!))")
     }
     print("Space:       \(gb(space.installed)) installed + \(gb(space.temporary)) temporary (estimate)")
     print("Command:     setup.exe \((report["command"] as! [String]).joined(separator: " "))")

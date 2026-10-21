@@ -301,14 +301,17 @@ final class PrefixesModel {
         }
     }
 
-    private func act(on prefix: WinePrefix, _ body: () throws -> String) {
+    private func act(on prefix: WinePrefix, _ body: @escaping @Sendable () throws -> String) {
         forgetOutcome()
         busy = [prefix.id]
-        defer { busy = [] }
-        do {
-            outcome = try body()
-        } catch {
-            report = FailureReport([error])
+        // claim() probes lsof and the launch spawns a process: neither waits on the main actor.
+        Task {
+            do {
+                outcome = try await Task.detached { try body() }.value
+            } catch {
+                report = FailureReport([error])
+            }
+            busy = []
         }
     }
 }

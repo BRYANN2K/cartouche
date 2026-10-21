@@ -121,62 +121,26 @@ struct ConsoleImportTests {
         print("evidence: \(found.map { "\($0.file.lastPathComponent) -> \($0.name), \(ConsoleImport.line($0)), \($0.discs.count) discs" })")
     }
 
-    @Test("Back and forth: Windows Game and Console Games each show their first step, Back leaves nothing running")
+    @Test("Detected console imports support Back without separate game-kind controls")
     func backAndForth() async throws {
         let scene = try ConsoleScene("switch")
         defer { scene.remove() }
         let files = try drop(scene)
         let flow = scene.center.importFlow
-        scene.library.addGames = .consoles
         let host = UIHost(sheet(scene), size: CGSize(width: 560, height: 460))
+        defer { host.close() }
         await host.settle()
-        #expect(seen(try host.texts(named: "add-games-console-first"), "Drop files or a folder here"))
-
-        // Into the identification step, as a drop does, then Back (what the button calls)
+        let texts = try host.texts(named: "add-games-console-first")
+        #expect(seen(texts, "Drop files or a folder here"))
+        #expect(!seen(texts, "Windows Game"))
         flow.start(files)
         #expect(try await host.wait(for: "game identified"))
-        #expect(flow.step == .identify)
         flow.reset()
         await host.settle()
-        var texts = try host.texts()
-        #expect(seen(texts, "Drop files or a folder here"))
-        #expect(!seen(texts, "identified"))
         #expect(flow.step == .drop && flow.rows.isEmpty && !flow.checking)
-
-        // Windows Game, with the sheet's own segmented control: this sheet closes,
-        // the Windows install sheet opens on its first step
         flow.start(files)
-        #expect(await host.select(segment: "Windows Game"))
-        #expect(!flow.checking && flow.rows.isEmpty)
-        #expect(scene.library.addGames == nil)
-        await host.settle(0.5)
-        #expect(scene.library.addGames == .windows)
-        host.close()
-
-        let install = InstallCenter(notifier: RecordingNotifier())
-        install.showConsoleGames = { scene.library.addGames = .consoles }
-        scene.library.addGames = nil
-        let windows = UIHost(InstallSheet(center: install), size: CGSize(width: 560, height: 420))
-        defer { windows.close() }
-        await windows.settle()
-        texts = try windows.texts(named: "add-games-windows-first")
-        #expect(seen(texts, "Install a Windows Game"))
-        #expect(seen(texts, "Console Games"))
-
-        // And back: Console Games in that sheet's picker opens this one on its drop step
-        #expect(await windows.select(segment: "Console Games"))
-        #expect(scene.library.addGames == .consoles)
-        let again = UIHost(sheet(scene), size: CGSize(width: 560, height: 460))
-        defer { again.close() }
-        await again.settle()
-        texts = try again.texts()
-        #expect(seen(texts, "Drop files or a folder here"))
-        #expect(!seen(texts, "Checking"))
-
-        // Nothing stuck: a new drop works at once
-        flow.start(files)
-        #expect(try await again.wait(for: "1 game identified"))
+        #expect(try await host.wait(for: "1 game identified"))
         #expect(flow.done && flow.games.count == 1)
-        print("evidence: Console Games -> identify -> Back -> Windows Game (install sheet opens) -> Console Games (Add Games opens) -> identify, each first step drawn")
     }
+
 }

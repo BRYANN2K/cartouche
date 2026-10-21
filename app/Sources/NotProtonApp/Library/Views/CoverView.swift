@@ -62,6 +62,27 @@ enum CoverImages {
         guard let rendered = context.createCGImage(output, from: input.extent) else { return nil }
         return NSImage(cgImage: rendered, size: image.size)
     }
+
+    // The window backdrop: the art downscaled, saturated and blurred once, then cached.
+    // The blur is the mockup's ~70 px on a full-size render, so ~5 px on the 64-px step.
+    static func backdrop(_ url: URL) -> NSImage? {
+        let key = "backdrop:\(url.path(percentEncoded: false))" as NSString
+        if let hit = cache.object(forKey: key) { return hit }
+        guard let image = image(url),
+              let cg = image.cgImage(forProposedRect: nil, context: nil, hints: nil), cg.width > 0 else { return nil }
+        var output = CIImage(cgImage: cg)
+            .applyingFilter("CILanczosScaleTransform",
+                            parameters: [kCIInputScaleKey: 64.0 / CGFloat(cg.width), kCIInputAspectRatioKey: 1])
+            .applyingFilter("CIColorControls", parameters: [kCIInputSaturationKey: 1.5])
+        let extent = output.extent
+        output = output.clampedToExtent()
+            .applyingFilter("CIGaussianBlur", parameters: [kCIInputRadiusKey: 5])
+            .cropped(to: extent)
+        guard let rendered = context.createCGImage(output, from: extent) else { return image }
+        let result = NSImage(cgImage: rendered, size: NSSize(width: extent.width, height: extent.height))
+        cache.setObject(result, forKey: key, cost: Int(extent.width * extent.height * 4))
+        return result
+    }
 }
 
 // A cover or a hero picture. Never a broken image: anything unreadable is drawn.
@@ -74,7 +95,18 @@ struct CoverView: View {
     @Environment(\.covers) private var covers
     @State private var loaded: CoverLoader.Loaded?
 
+    // Drawn in an overlay so a filled picture never grows the cover past the size it was given
     var body: some View {
+        Color.clear.overlay {
+            art
+        }
+        .task(id: "\(game.id)|\(game.steamAppID ?? 0)|\(override?.path ?? "")|\(kind.rawValue)|\(game.artwork?.absoluteString ?? "")|\(gray)") {
+            loaded = nil
+            loaded = await CoverLoader.load(game, kind: kind, override: override, covers: covers, gray: gray)
+        }
+    }
+
+    private var art: some View {
         ZStack {
             if game.coverShape == .square && kind == .cover {
                 Rectangle().fill(Color.primary.opacity(0.06))
@@ -91,12 +123,8 @@ struct CoverView: View {
             case .drawn:
                 DrawnCover(game: game, compact: kind == .hero)
             case nil:
-                Rectangle().fill(.quaternary)
+                Rectangle().fill(Glass.fill)
             }
-        }
-        .task(id: "\(game.id)|\(override?.path ?? "")|\(kind.rawValue)|\(game.artwork?.absoluteString ?? "")|\(gray)") {
-            loaded = nil
-            loaded = await CoverLoader.load(game, kind: kind, override: override, covers: covers, gray: gray)
         }
     }
 }

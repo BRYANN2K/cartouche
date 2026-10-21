@@ -47,7 +47,7 @@ protocol AgentBackend {
     func installJob(_ id: UUID) -> InstallJob?
     func retryInstall(_ job: InstallJob, fixes: [RetryFix]) throws
     func stopInstall(_ job: InstallJob) throws
-    func finishInstall(_ job: InstallJob, exe: URL) throws
+    func finishInstall(_ job: InstallJob, exe: URL) async throws
     func cleanupInstaller(_ request: InstallRequest) throws -> Int64
     func copyInstallerToInternal(_ source: URL) async throws -> URL
 

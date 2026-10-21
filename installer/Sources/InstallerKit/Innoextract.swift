@@ -33,6 +33,26 @@ public enum Innoextract {
         }
         return urls
     }
+
+    public struct SectionMissing: Error, Sendable, Equatable {
+        public let section: String
+        public let detail: String
+    }
+
+    // `innoextract -s -I <section>` unpacks only that section's tree, landing at <dir>/<section>.
+    // Silent mode prints nothing on success, so the produced directory is the success signal.
+    public static func extract(
+        setup: URL, section: String, into dir: URL, tool: String, runner: any ToolRunning
+    ) throws {
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let out = try runner.run(tool, ["-s", "-I", section, "-d", dir.path(percentEncoded: false), setup.path(percentEncoded: false)])
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: dir.appending(path: section).path(percentEncoded: false), isDirectory: &isDirectory),
+              isDirectory.boolValue else {
+            let tail = out.split(whereSeparator: \.isNewline).suffix(5).joined(separator: " ").trimmingCharacters(in: .whitespaces)
+            throw SectionMissing(section: section, detail: tail)
+        }
+    }
 }
 
 public protocol ToolRunning: Sendable {

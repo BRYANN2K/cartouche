@@ -96,6 +96,11 @@ func tempFolder(_ files: [String: String]) throws -> URL {
     ("CarX Street [Offline Installer]", "CarX Street"),
     ("The Witcher 3 Wild Hunt GOTY (Offline Installer) v4.04 + 2 DLCs", "The Witcher 3 Wild Hunt GOTY"),
     ("Hollow_Knight_v1.5.78-GOG", "Hollow Knight"),
+    ("Hollow-Knight-Silksong-GameSite.com", "Hollow Knight Silksong"),
+    ("Some_Game.v1.2.3-[Multi5]", "Some Game"),
+    ("Game Name Build 12345 (x64)", "Game Name"),
+    ("The-Game-www.example.net-MULTi9", "The Game"),
+    ("A.Game.Portable", "A Game"),
 ])
 func cleansGameNames(folder: String, expected: String) {
     #expect(GameName.clean(folder) == expected)

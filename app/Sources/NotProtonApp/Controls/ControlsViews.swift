@@ -26,9 +26,9 @@ struct ControlsRow: View {
             .accessibilityElement(children: .combine)
             Divider()
             HStack {
-                Text(handler.hint).font(.callout).foregroundStyle(.secondary)
+                Text(handler.hint).font(.system(size: 12)).foregroundStyle(Glass.label2)
                 Spacer()
-                Button("Customize…") { center.present(game) }.controlSize(.small)
+                Button("Customize…") { center.present(game) }.buttonStyle(.pill)
             }
         }
         .onAppear { center.monitor.batteryShown(true) }
@@ -77,7 +77,7 @@ struct ControlsSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Controls for \(game.name)").font(.title2.weight(.bold))
+            SheetHeader(title: Text("Controls for \(game.name)"))
                 .padding([.horizontal, .top], 22)
             if let relaunch = center.relaunch, let route = center.route {
                 RelaunchBanner(service: relaunch, route: route).padding(.horizontal, 22)
@@ -100,12 +100,13 @@ struct ControlsSheet: View {
                 }
             }
             .formStyle(.grouped)
+            .scrollContentBackground(.hidden)
             if let problem = center.problem {
                 Text(problem).font(.callout).foregroundStyle(.red).padding(.horizontal, 22)
             }
             HStack {
                 Spacer()
-                Button("Done") { center.dismiss() }.keyboardShortcut(.defaultAction)
+                Button("Done") { center.dismiss() }.keyboardShortcut(.defaultAction).buttonStyle(.sheetProminent)
             }
             .padding([.horizontal, .bottom], 22)
         }
@@ -121,7 +122,7 @@ struct ControlsSheet: View {
         if handler == .steamInput {
             Section {
                 LabeledContent {
-                    Button("Open in Steam") { center.openInSteam(game) }
+                    Button("Open in Steam") { center.openInSteam(game) }.buttonStyle(.pill)
                 } label: {
                     Text("Steam Input handles this game")
                     Text("Layouts, gyro and community configurations live in Steam.")

@@ -7,22 +7,25 @@ import Testing
 @testable import NotProtonApp
 
 // innoextract's recorded answers for an Inno Setup 5.5 installer with heavy decompression.
-private let innoInfo = """
-Inspecting "Disco Elysium" - setup data version 5.5.0.1 (unicode)
+private func innoInfo(_ title: String) -> String {
+    """
+    Inspecting "\(title)" - setup data version 5.5.0.1 (unicode)
 
-Languages:
- - en: English
- - russian: Русский
+    Languages:
+     - en: English
+     - russian: Русский
 
-Setup is not passworded!
-"""
+    Setup is not passworded!
+    """
+}
 private let innoList = "tmp/unarc.dll\ntmp/ISDone.dll\ntmp/cls-srep_x64.exe\napp/game.exe\napp/_Redist/dxwebsetup.exe\n"
 
 // md5 of "a" and "b"
 private let sums = "; some parts are optional downloads\r\n0cc175b9c0f1b6a831c399e269772661 *..\\data-01.bin\r\n92eb5ffee6ae2fec3ad71c777531578f *..\\data-02.bin\r\n"
 
 @MainActor
-func sheetFixture(_ label: String, manifest: String = sums.replacingOccurrences(of: "some parts are optional downloads", with: "checksums"),
+func sheetFixture(_ label: String, title: String = "Disco Elysium",
+                  manifest: String = sums.replacingOccurrences(of: "some parts are optional downloads", with: "checksums"),
                   parts: [String: String] = ["data-01.bin": "a", "data-02.bin": "b"]) throws -> (InstallCenter, URL) {
     let work = try scratchDirectory(label)
     let folder = work.appending(path: "Sample Game Installer")
@@ -32,7 +35,7 @@ func sheetFixture(_ label: String, manifest: String = sums.replacingOccurrences(
     try Data(manifest.utf8).write(to: folder.appending(path: "MD5/checksums.md5"))
 
     let tool = work.appending(path: "innoextract")
-    try Data("#!/bin/sh\nif [ \"$1\" = --info ]; then cat <<'EOF'\n\(innoInfo)\nEOF\nelse cat <<'EOF'\n\(innoList)EOF\nfi\n".utf8).write(to: tool)
+    try Data("#!/bin/sh\nif [ \"$1\" = --info ]; then cat <<'EOF'\n\(innoInfo(title))\nEOF\nelse cat <<'EOF'\n\(innoList)EOF\nfi\n".utf8).write(to: tool)
     try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: tool.path)
 
     let center = InstallCenter(engine: InstallEngine(installs: work.appending(path: "installs"), runners: work.appending(path: "runners"),
@@ -160,6 +163,109 @@ struct InstallSheetTests {
         #expect(!center.sheet.canInstall)
     }
 
+    @Test("The compatibility data has no CarX Street: the Steam store search supplies the app ID and says so")
+    func steamFallback() async throws {
+        let (center, folder) = try sheetFixture("sheet-steam", title: "CarX Street")
+        let asked = Box<[URL]>([])
+        var lookup = SteamLookup(directory: folder.deletingLastPathComponent().appending(path: "lookup"))
+        lookup.fetch = { url in
+            asked.value.append(url)
+            let body = try JSONSerialization.data(withJSONObject: [
+                "total": 1, "items": [["id": 1_118_860, "type": "app", "name": "CarX Street"]],
+            ])
+            return (body, 200)
+        }
+        center.lookup = lookup
+        center.lookupsAllowed = { true }
+        center.open([folder])
+        #expect(await waitFor { !center.sheet.isAnalyzing })
+        #expect(center.sheet.appID == 1_118_860)
+        #expect(center.sheet.identificationViaSteam)
+        let item = try #require(center.sheet.items.first { $0.id == "game" })
+        #expect(item.title == "Identified as CarX Street")
+        #expect(item.detail == "Identified via Steam")
+        #expect(item.cover == 1_118_860)
+        #expect(asked.value.count == 1)
+    }
+
+    @Test("The same fallback fires when the compatibility data could not be fetched at all")
+    func steamFallbackNoData() async throws {
+        let (center, folder) = try sheetFixture("sheet-steam-nodata", title: "CarX Street")
+        center.compat = { nil }
+        var lookup = SteamLookup(directory: folder.deletingLastPathComponent().appending(path: "lookup"))
+        lookup.fetch = { _ in
+            let body = try JSONSerialization.data(withJSONObject: [
+                "total": 1, "items": [["id": 1_118_860, "type": "app", "name": "CarX Street"]],
+            ])
+            return (body, 200)
+        }
+        center.lookup = lookup
+        center.lookupsAllowed = { true }
+        center.open([folder])
+        #expect(await waitFor { !center.sheet.isAnalyzing })
+        #expect(center.sheet.appID == 1_118_860)
+        #expect(center.sheet.identificationViaSteam)
+    }
+
+    @Test("A name Steam already answered comes from the cache: no second request")
+    func steamFallbackCacheHit() async throws {
+        let (center, folder) = try sheetFixture("sheet-steam-cache", title: "CarX Street")
+        let asked = Box<[URL]>([])
+        var lookup = SteamLookup(directory: folder.deletingLastPathComponent().appending(path: "lookup"))
+        lookup.fetch = { url in
+            asked.value.append(url)
+            let body = try JSONSerialization.data(withJSONObject: [
+                "total": 1, "items": [["id": 1_118_860, "type": "app", "name": "CarX Street"]],
+            ])
+            return (body, 200)
+        }
+        // An earlier lookup asked Steam once; the sheet must not ask again
+        #expect(await lookup.match(for: "CarX Street")?.appID == 1_118_860)
+        #expect(asked.value.count == 1)
+        lookup.fetch = { url in asked.value.append(url); return (Data(), 500) }
+        center.lookup = lookup
+        center.lookupsAllowed = { true }
+        center.open([folder])
+        #expect(await waitFor { !center.sheet.isAnalyzing })
+        #expect(center.sheet.appID == 1_118_860)
+        #expect(center.sheet.identificationViaSteam)
+        #expect(asked.value.count == 1)
+    }
+
+    @Test("Index and Steam both miss: the warning does not blame missing data")
+    func steamBothFail() async throws {
+        let (center, folder) = try sheetFixture("sheet-steam-miss", title: "CarX Street")
+        center.compat = { nil }
+        var lookup = SteamLookup(directory: folder.deletingLastPathComponent().appending(path: "lookup"))
+        lookup.fetch = { _ in
+            (try JSONSerialization.data(withJSONObject: ["total": 0, "items": [Any]()]), 200)
+        }
+        center.lookup = lookup
+        center.lookupsAllowed = { true }
+        center.open([folder])
+        #expect(await waitFor { !center.sheet.isAnalyzing })
+        #expect(center.sheet.appID == nil)
+        #expect(!center.sheet.identificationViaSteam)
+        let item = try #require(center.sheet.items.first { $0.id == "game" })
+        #expect(item.title == "CarX Street wasn't recognized automatically. You can pick the game in the next step.")
+        #expect(item.check == .warning)
+    }
+
+    @Test("With online lookups off, no name goes to Steam and the game stays unmatched")
+    func steamFallbackOff() async throws {
+        let (center, folder) = try sheetFixture("sheet-steam-off", title: "CarX Street")
+        let asked = Box<[URL]>([])
+        var lookup = SteamLookup(directory: folder.deletingLastPathComponent().appending(path: "lookup"))
+        lookup.fetch = { url in asked.value.append(url); return (Data(), 200) }
+        center.lookup = lookup
+        center.lookupsAllowed = { false }
+        center.open([folder])
+        #expect(await waitFor { !center.sheet.isAnalyzing })
+        #expect(center.sheet.appID == nil)
+        #expect(!center.sheet.identificationViaSteam)
+        #expect(asked.value.isEmpty)
+    }
+
     @Test("The sheet renders every step in light and dark")
     func snapshots() async throws {
         _ = NSApplication.shared
@@ -213,8 +319,8 @@ struct InstallSheetTests {
         job.installFolder = URL(filePath: "/G")
         job.candidates = ExeDetector.rank(exes: [("/G/game.exe", 60_000_000), ("/G/GameLauncher.exe", 5_000_000), ("/G/unins000.exe", 1)],
                                          shortcuts: ["/G/game.exe"])
-        job.redistributables = [Redistributables.identify("_Redist/dxwebsetup.exe")!, Redistributables.identify("_Redist/VC_redist.x64.exe")!]
-        job.redistributablesInstalled = true
+        job.runtimeSteps = [RuntimeStep(verb: "d3dx9", label: "DirectX 9", status: .installed),
+                            RuntimeStep(verb: "vcrun2022", label: "Visual C++ 2015–2022", status: .installed)]
         center.sheet.chosenExe = job.candidates.first?.path
         try shoot("5-exe")
         job.phase = .ready

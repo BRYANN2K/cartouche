@@ -1,6 +1,7 @@
 // Cover order: the user's own image, Steam's library art (its cache first, then Cartouche's copy of the CDN art),
-// the store's art, then a cover drawn from the name.
+// the store's art, a Windows game's own exe icon on a generated background, then a cover drawn from the name.
 
+import AppKit
 import Foundation
 import RetroArchKit
 
@@ -23,6 +24,10 @@ struct CoverStore: Sendable {
     var fetch: Fetch = HTTPFetch.download(timeout: 15)
     // libretro-thumbnails for console games; nil uses the project's server
     var thumbnails: Thumbnails?
+    // The exe icon for a placeholder cover (iconmaker through PlaceholderCover); overridable in tests
+    var exeIcon: @Sendable (URL, URL) -> NSImage? = { exe, folder in
+        PlaceholderCover.icon(exe, into: folder).flatMap { NSImage(contentsOf: $0) }
+    }
 
     var consoleThumbnails: Thumbnails {
         var chosen = thumbnails ?? Thumbnails(cache: cache.appending(path: "consoles", directoryHint: .isDirectory), fetch: fetch)
@@ -58,6 +63,7 @@ struct CoverStore: Sendable {
                 if !consoleThumbnails.isMissing(system: system, kind: art, name: name) { return nil }
             }
         }
+        if let file = placeholderFile(game, kind: kind), exists(file) { return .image(file) }
         return nil
     }
 
@@ -71,7 +77,54 @@ struct CoverStore: Sendable {
                 if let saved = await consoleThumbnails.image(system: system, kind: art, name: name) { return .image(saved) }
             }
         }
+        if let file = placeholder(game, kind: kind) { return .image(file) }
         return .drawn
+    }
+
+    // MARK: Exe-icon placeholder
+
+    // Only Windows installer games: consoles are out of scope, stores and Steam
+    // have their own art or a drawn cover.
+    private func placeholderFile(_ game: Game, kind: ArtKind) -> URL? {
+        guard game.source == .installer, let exe = game.executable else { return nil }
+        let name = Digest.sha256(of: Data(exe.path(percentEncoded: false).utf8)).prefix(16)
+        return cache.appending(path: "placeholders/\(name)-\(kind.rawValue).png")
+    }
+
+    private func placeholder(_ game: Game, kind: ArtKind) -> URL? {
+        guard let exe = game.executable, let file = placeholderFile(game, kind: kind), exists(exe) else { return nil }
+        let mark = file.appendingPathExtension("missing")
+        if fresh(mark) { return nil }
+        if exists(file), modified(file) >= modified(exe) { return file }
+        guard let image = exeIcon(exe, file.deletingLastPathComponent()),
+              let data = PlaceholderCover.png(name: game.name, icon: image, size: PlaceholderCover.size(kind)) else {
+            touch(mark)
+            return nil
+        }
+        try? FileManager.default.removeItem(at: mark)
+        do {
+            try atomicReplace(file, with: data, step: "cover")
+            return file
+        } catch {
+            return nil
+        }
+    }
+
+    static let placeholderMissingTTL: TimeInterval = 86400
+
+    // A recent "no icon" is remembered: without it every redraw reruns iconmaker on an exe that has none
+    private func fresh(_ mark: URL) -> Bool {
+        Date().timeIntervalSince(modified(mark)) < Self.placeholderMissingTTL
+    }
+
+    private func modified(_ url: URL) -> Date {
+        ((try? FileManager.default.attributesOfItem(atPath: url.path(percentEncoded: false)))?[.modificationDate] as? Date)
+            ?? .distantPast
+    }
+
+    private func touch(_ url: URL) {
+        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? Data().write(to: url)
     }
 
     // Steam keeps library art as <appid>_library_600x900.jpg in older clients, and in a folder per app, sometimes one level deeper, in newer ones
@@ -98,7 +151,7 @@ struct CoverStore: Sendable {
         return cache.appending(path: "store/\(game.source.id)/\(StoreFolders.safe(game.id)).img")
     }
 
-    private func download(_ appID: Int, _ kind: ArtKind) async -> URL? {
+    func download(_ appID: Int, _ kind: ArtKind) async -> URL? {
         await download(Self.cdn(appID, kind), to: cached(appID, kind))
     }
 

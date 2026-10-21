@@ -32,18 +32,31 @@ struct GamePanel: View {
         let content = content
         return ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                CoverView(game: game, kind: .hero)
-                    .frame(height: 150)
-                    .frame(maxWidth: .infinity)
-                    .clipped()
-                    .accessibilityLabel(Text("\(game.name) artwork"))
-                VStack(alignment: .leading, spacing: 14) {
+                if let appID = game.steamAppID ?? game.compatAppID {
+                    GameMediaCarousel(game: game, appID: appID, online: !model.isOffline)
+                } else {
+                    PanelHero(game: game)
+                }
+                VStack(alignment: .leading, spacing: 0) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(game.name).font(.title2.weight(.bold)).textSelection(.enabled)
-                        Text(content.subtitle()).foregroundStyle(.secondary)
+                        Text(game.name)
+                            .font(.system(size: 22, weight: .bold))
+                            .tracking(-0.44)
+                            .textSelection(.enabled)
+                        Text(content.subtitle())
+                            .font(.system(size: 12))
+                            .foregroundStyle(Glass.label2)
                         if let notice = content.compat.ageNotice {
-                            Text(notice).font(.callout).foregroundStyle(.orange)
+                            Text(notice)
+                                .font(.system(size: 11))
+                                .foregroundStyle(Color.orange)
+                                .padding(.top, 4)
                         }
+                    }
+                    .padding(.top, 4)
+                    .padding(.bottom, 14)
+                    if game.source == .installer && game.installed {
+                        GameVerificationRow(game: game)
                     }
                     ForEach(content.sections, id: \.self) { section in
                         block(section, content)
@@ -52,12 +65,15 @@ struct GamePanel: View {
                         group(String(localized: "Controls")) { ControlsRow(game: game, center: controls) }
                     }
                 }
-                .padding(16)
+                .padding(EdgeInsets(top: 6, leading: 16, bottom: 20, trailing: 16))
             }
         }
+        .scrollIndicators(.never)
+        .softScrollEdges(top: 24, bottom: 32)
         .id(game.id)
-        .transition(Motion(reduceMotion: reduceMotion).entrance)
+        .transition(.opacity)
         .task(id: game.id) {
+            InstallCenter.shared.refreshBusy(for: [game], in: model.installsFolder)
             if let appID = game.steamAppID ?? game.compatAppID { await compat.openGame(appID: appID) }
             await performance?.refresh()
         }
@@ -75,17 +91,17 @@ struct GamePanel: View {
         case .play:
             if let download = activity.download(for: game) {
                 DownloadBlock(download: download, center: activity)
+            } else if let stores, let boot = stores.boots[game.id] {
+                BootBlock(game: game, boot: boot, stores: stores)
             } else {
                 HStack(spacing: 8) {
                     Button {
                         actions.perform(game.installed ? .play : .install, on: game)
                     } label: {
                         Label(content.playLabel, systemImage: game.installed ? "play.fill" : "arrow.down")
-                            .frame(maxWidth: .infinity)
                     }
-                    .controlSize(.large)
-                    .prominentButton()
-                    .couchRing(controls?.couch.ringsPlay == true)
+                    .buttonStyle(PlayCapsuleStyle())
+                    .couchRing(controls?.couch.ringsPlay == true, radius: 19)
                     .disabled(!game.installed && model.isOffline)
                     .help(!game.installed && model.isOffline ? Text("Connect to the internet to download") : Text(verbatim: ""))
                     Menu {
@@ -93,11 +109,13 @@ struct GamePanel: View {
                     } label: {
                         Image(systemName: "ellipsis")
                     }
+                    .menuStyle(.button)
                     .menuIndicator(.hidden)
+                    .buttonStyle(RoundFillStyle())
                     .fixedSize()
-                    .controlSize(.large)
                     .accessibilityLabel(Text("More"))
                 }
+                .padding(.bottom, 22)
             }
         case .yourPlay:
             if let play = content.play {
@@ -113,9 +131,9 @@ struct GamePanel: View {
                     Divider()
                 }
                 HStack {
-                    Text(estimate?.note ?? line ?? "").font(.callout).foregroundStyle(.secondary)
+                    Text(estimate?.note ?? line ?? "").font(.system(size: 12)).foregroundStyle(Glass.label2)
                     Spacer()
-                    Button("Details") { showingDetails = true }.controlSize(.small)
+                    Button("Details") { showingDetails = true }.buttonStyle(.pill)
                 }
             }
         case .antiCheat:
@@ -142,15 +160,51 @@ struct GamePanel: View {
         }
     }
 
-    private func group<Content: View>(_ title: String, @ViewBuilder _ body: () -> Content) -> some View {
+    private func group<Content: View>(_ title: String, @ViewBuilder _ body: @escaping () -> Content) -> some View {
+        PanelGroup(title: title, content: body)
+    }
+}
+
+// The panel's hero: the art inset by 8, its radius concentric with the panel's
+struct PanelHero<Overlay: View>: View {
+    let game: Game
+    var overlay: Overlay
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: Glass.panelRadius - Glass.inset, style: .continuous)
+        // Steam's hero art is about 3:1; at 172 pt the panel's widths keep it near 2:1, centered on the subject
+        Color.clear
+            .frame(height: 172)
+            .overlay { CoverView(game: game, kind: .hero) }
+            .overlay { overlay }
+            .clipShape(shape)
+            .overlay { shape.strokeBorder(Glass.edge, lineWidth: 0.5) }
+            .padding(Glass.inset)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text("\(game.name) artwork"))
+    }
+}
+
+extension PanelHero where Overlay == EmptyView {
+    init(game: Game) {
+        self.init(game: game, overlay: EmptyView())
+    }
+}
+
+// A titled card in the panel: the mockup's .group-h over a .form
+struct PanelGroup<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
-                .accessibilityAddTraits(.isHeader)
-            VStack(alignment: .leading, spacing: 8, content: body)
+            Text(verbatim: title).groupHeader()
+            VStack(alignment: .leading, spacing: 8, content: content)
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .groupBackground()
         }
+        .padding(.bottom, 18)
     }
 }
 
@@ -158,20 +212,11 @@ struct EstimateRow: View {
     let estimate: GamePanelContent.Estimate
 
     var body: some View {
-        HStack(alignment: .top) {
-            cell(Text("Rating"), estimate.rating)
-            cell(Text("Average"), estimate.fps)
-            cell(Text("Settings"), estimate.settings)
+        WeightedHStack(weights: [1.3, 1, 1]) {
+            StatCell(title: Text("Rating"), value: estimate.rating)
+            StatCell(title: Text("Average"), value: estimate.fps)
+            StatCell(title: Text("Settings"), value: estimate.settings)
         }
-    }
-
-    private func cell(_ title: Text, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            title.font(.caption).foregroundStyle(.secondary)
-            Text(value).font(.title3.weight(.semibold)).monospacedDigit()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
     }
 }
 
@@ -188,8 +233,9 @@ struct LayerRow: View {
                 .tint(isBest ? .green : .secondary)
                 .accessibilityLabel(Text("\(layer.layer.label) average"))
             Text(GamePanelContent.reportCount(layer.count))
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(.system(size: 11))
+                .monospacedDigit()
+                .foregroundStyle(Glass.label3)
                 .frame(width: 70, alignment: .trailing)
         }
         .opacity(layer.count < 5 ? 0.6 : 1)
@@ -201,26 +247,38 @@ struct SetupRows: View {
     @Bindable var model: LibraryModel
     let suggestion: GraphicsBackend?
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         let setup = model.setup(for: game.id)
         let resolved = model.resolution(for: game).setup
         let runners = game.source == .installer ? model.installRunners : model.runners.filter(\.isOffered)
-        if model.hasMacBuild(game) {
-            Picker("Run", selection: Binding(
-                get: { resolved.version },
-                set: { var s = setup; s.version = $0; model.setSetup(s, for: game.id) }
-            )) {
-                ForEach(GameVersion.allCases) { Text($0.label).tag($0) }
+        VStack(alignment: .leading, spacing: 8) {
+            if model.hasMacBuild(game) {
+                PanelRow(title: Text("Run")) {
+                    Picker("Run", selection: Binding(
+                        get: { resolved.version },
+                        set: { var s = setup; s.version = $0; model.setSetup(s, for: game.id) }
+                    )) {
+                        ForEach(GameVersion.allCases) { Text($0.label).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                }
+                Text(resolved.version == .windows
+                     ? "Steam downloads the Windows version and runs it with Steam Play. Useful when the Mac port lags behind."
+                     : "The Mac build, with no translation. Usually the fastest.")
+                    .font(.system(size: 12)).foregroundStyle(Glass.label2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .pickerStyle(.segmented)
-            Text(resolved.version == .windows
-                 ? "Steam downloads the Windows version and runs it with Steam Play. Useful when the Mac port lags behind."
-                 : "The Mac build, with no translation. Usually the fastest.")
-                .font(.callout).foregroundStyle(.secondary)
+            if resolved.version == .windows {
+                VStack(alignment: .leading, spacing: 8) {
+                    windowsRows(setup, resolved, runners)
+                }
+                .transition(.opacity)
+            }
         }
-        if resolved.version == .windows {
-            windowsRows(setup, resolved, runners)
-        }
+        .transaction(value: resolved.version) { $0.animation = nil }
     }
 
     // Only pairs this Mac can run are offered: no D3DMetal without a copy of it, no FEX before macOS 26
@@ -228,44 +286,110 @@ struct SetupRows: View {
     private func windowsRows(_ setup: GameSetupChoice, _ resolved: GameSetup, _ runners: [Runner]) -> some View {
         let backends = resolved.runner == nil ? GraphicsBackend.allCases : model.graphicsChoices(for: game)
         let translations = model.translationChoices(for: game)
-        Picker("Runner", selection: Binding(
-            get: { resolved.runner?.id ?? "" },
-            set: { var s = setup; s.runnerID = $0; model.setSetup(s, for: game.id) }
-        )) {
-            if runners.isEmpty { Text("No runner set up").tag("") }
-            ForEach(runners) { runner in
-                Text(verbatim: "\(runner.kind.name) \(runner.displayVersion)").tag(runner.id)
+        PanelRow(title: Text("Runner")) {
+            if runners.isEmpty {
+                SetupWindowButton(title: String(localized: "Set Up a Runner…"))
+                    .buttonStyle(.pill)
+            } else {
+                Picker("Runner", selection: Binding(
+                    get: { resolved.runner?.id ?? "" },
+                    set: { var s = setup; s.runnerID = $0; model.setSetup(s, for: game.id) }
+                )) {
+                    ForEach(runners) { runner in
+                        Text(verbatim: "\(runner.kind.name) \(runner.displayVersion)").tag(runner.id)
+                    }
+                }
+                .labelsHidden()
+                .fixedSize()
             }
         }
-        .disabled(runners.isEmpty)
-        Picker("Graphics", selection: Binding(
-            get: { resolved.backend ?? backends.first ?? .d3dmetal },
-            set: { var s = setup; s.graphics = $0; model.setSetup(s, for: game.id) }
-        )) {
-            ForEach(backends) { Text(verbatim: $0.label).tag($0) }
+        PanelRow(title: Text("Graphics")) {
+            GraphicsMenu(selected: resolved.backend ?? backends.first ?? .d3dmetal,
+                         offered: resolved.runner == nil ? [] : backends, runner: resolved.runner,
+                         availability: model.backendAvailability) { backend in
+                var s = setup; s.graphics = backend; model.setSetup(s, for: game.id)
+            }
+            .accessibilityLabel(Text("Graphics"))
         }
-        .disabled(resolved.runner == nil)
         // An older Wine than the one that last ran the prefix: noted, still allowed
         if let notice = model.setupNotices[game.id] {
             Label(notice, systemImage: "exclamationmark.triangle")
-                .font(.callout).foregroundStyle(.secondary)
+                .font(.system(size: 12)).foregroundStyle(Glass.label2)
         }
         if translations.count > 1 {
-            Picker("Translation", selection: Binding(
-                get: { resolved.translation },
-                set: { var s = setup; s.translation = $0; model.setSetup(s, for: game.id) }
-            )) {
-                ForEach(translations, id: \.self) { Text(verbatim: $0.label).tag($0) }
+            PanelRow(title: Text("Translation")) {
+                Picker("Translation", selection: Binding(
+                    get: { resolved.translation },
+                    set: { var s = setup; s.translation = $0; model.setSetup(s, for: game.id) }
+                )) {
+                    ForEach(translations, id: \.self) { Text(verbatim: $0.label).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
             }
-            .pickerStyle(.segmented)
         }
         if let suggestion, suggestion != resolved.backend, backends.contains(suggestion), resolved.runner != nil {
             HStack {
-                Text("Most players use \(suggestion.label)").foregroundStyle(.secondary)
+                Text("Most players use \(suggestion.label)").font(.system(size: 12)).foregroundStyle(Glass.label2)
                 Spacer()
                 Button("Use") { var s = setup; s.graphics = suggestion; model.setSetup(s, for: game.id) }
+                    .buttonStyle(.pill)
                     .controlSize(.small)
             }
         }
+        // The backends the picker cannot offer, with what each is missing.
+        if let runner = resolved.runner {
+            let missing = GraphicsBackend.allCases.compactMap { backend -> String? in
+                BackendSupport.missing(backend, for: runner, translation: resolved.translation,
+                                       availability: model.backendAvailability)
+                    .map { "\(backend.label) — \($0)" }
+            }
+            if !missing.isEmpty {
+                Text(missing.joined(separator: "\n")).font(.callout).foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+// The "Preparing Windows environment" phase of a store game's first launch, or its failure.
+private struct BootBlock: View {
+    let game: Game
+    let boot: StoreBoot
+    let stores: StoreCenter
+
+    var body: some View {
+        HStack(spacing: 10) {
+            if boot.problem == nil {
+                ProgressView().controlSize(.small)
+            } else {
+                Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange)
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Preparing Windows environment").font(.callout.weight(.medium))
+                if let problem = boot.problem {
+                    Text(problem).font(.caption).foregroundStyle(.secondary)
+                } else {
+                    TimelineView(.periodic(from: boot.boot.started, by: 1)) { context in
+                        Text(InstallElapsed.format(from: boot.boot.started, to: context.date))
+                            .font(.caption).monospacedDigit().foregroundStyle(.secondary)
+                    }
+                }
+            }
+            Spacer()
+            if boot.problem != nil {
+                Button("Try Again") { stores.retryBoot(game) }
+                Button("Recreate Prefix") { stores.recreateBoot(game) }
+            } else {
+                if let log = boot.boot.log,
+                   FileManager.default.fileExists(atPath: log.path(percentEncoded: false)) {
+                    Button("Show Log") { NSWorkspace.shared.open(log) }
+                }
+                Button("Stop") { stores.stopPlaying(game) }
+            }
+        }
+        .controlSize(.small)
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .groupBackground()
     }
 }

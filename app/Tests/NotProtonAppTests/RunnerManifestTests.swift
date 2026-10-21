@@ -87,6 +87,60 @@ struct RunnerManifestTests {
         }
     }
 
+    @Test("The bundled manifest lists Cartouche's CrossOver Wine with its release archive pinned")
+    func shippedCrossOver() throws {
+        let manifest = try RunnerManifest.bundled()
+        let ours = try #require(manifest.build(id: "wine-crossover-26.3.0-1"))
+        #expect(ours.origin == .cartouche)
+        #expect(ours.name == "Wine CrossOver" && ours.displayVersion == "26.3")
+        #expect(ours.root == "wine-crossover-26.3.0-1" && ours.loader == "bin/wine")
+        #expect(ours.cpuFlavors == [.rosetta])
+        #expect(ours.size == 149_444_708)
+        #expect(ours.sha256 == "60400817826a053599193aa290d4e24e97213a743195f4187400bf9c74906887")
+        #expect(ours.isPinned && !ours.isPending)
+    }
+
+    @Test("A pending pin decodes and is listed, but install refuses it before any download")
+    func pendingPin() async throws {
+        let manifest = try RunnerManifest.read(Self.manifest([
+            Self.entry(size: 0, sha256: RunnerManifest.pendingSHA256)]))
+        let build = try #require(manifest.builds.first)
+        #expect(build.isPending && !build.isPinned)
+        #expect(RunnerOffer.recommended(manifest) == nil, "an unpinned build is never the onboarding offer")
+
+        let work = try scratchDirectory("manifest-pending")
+        defer { try? FileManager.default.removeItem(at: work) }
+        await #expect(throws: StepFailure.self) {
+            try await WineRunnerInstaller.install(
+                build, runners: work.appending(path: "runners"),
+                downloads: work.appending(path: "downloads"))
+        }
+        #expect((try? FileManager.default.contentsOfDirectory(atPath: work.appending(path: "downloads").path)) == nil,
+                "the placeholder was refused before the downloads folder existed")
+    }
+
+    @Test("A pending pin with a size is malformed; other placeholder breaks are refused as before")
+    func pendingMalformed() throws {
+        #expect(throws: RunnerManifest.Invalid.self) {
+            try RunnerManifest.read(Self.manifest([Self.entry(size: 1, sha256: RunnerManifest.pendingSHA256)]))
+        }
+        #expect(throws: RunnerManifest.Invalid.self) {
+            try RunnerManifest.read(Self.manifest([Self.entry(url: "https://example.com/x.tar.xz",
+                                                            size: 0, sha256: RunnerManifest.pendingSHA256)]))
+        }
+    }
+
+    @Test("A refreshed manifest may fill a pending pin, never rewrite or revoke a shipped one")
+    func pendingMerge() throws {
+        let pending = try RunnerManifest.read(Self.manifest(
+            [Self.entry(size: 0, sha256: RunnerManifest.pendingSHA256)], revision: 1))
+        let pinned = try RunnerManifest.read(Self.manifest([Self.entry()], revision: 2))
+        #expect(RunnerManifest.merged(bundled: pending, refreshed: pinned) == pinned)
+        let reverted = try RunnerManifest.read(Self.manifest(
+            [Self.entry(size: 0, sha256: RunnerManifest.pendingSHA256)], revision: 3))
+        #expect(RunnerManifest.merged(bundled: pinned, refreshed: reverted) == pinned)
+    }
+
     @Test("A newer refreshed manifest adds builds; an older one or one that changes a pin is ignored")
     func merge() throws {
         let shipped = try RunnerManifest.read(Self.manifest([Self.entry()], revision: 1))
@@ -116,7 +170,11 @@ struct RunnerManifestTests {
         let cache = work.appending(path: "runners.json")
         let url = URL(string: "https://github.com/BRYANN2K/cartouche/releases/download/compat-data/runners.json")!
         let shipped = try RunnerManifest.bundled()
-        let newer = try Self.manifest([Self.entry()], revision: shipped.revision + 1)
+        // The refreshed copy must carry the shipped pin verbatim: rewriting it is refused.
+        let pinned = try #require(shipped.build(id: "wine-crossover-26.3.0-1"))
+        let newer = try Self.manifest(
+            [Self.entry(url: pinned.url.absoluteString, size: pinned.size, sha256: pinned.sha256)],
+            revision: shipped.revision + 1)
         let signing = Curve25519.Signing.PrivateKey()
         let (key, feed) = try Self.feed(manifest: newer, key: signing)
 
@@ -176,7 +234,11 @@ struct RunnerManifestTests {
         defer { try? FileManager.default.removeItem(at: work) }
         let cache = work.appending(path: "runners.json")
         let shipped = try RunnerManifest.bundled()
-        let newer = try Self.manifest([Self.entry()], revision: shipped.revision + 1)
+        // The refreshed copy must carry the shipped pin verbatim: rewriting it is refused.
+        let pinned = try #require(shipped.build(id: "wine-crossover-26.3.0-1"))
+        let newer = try Self.manifest(
+            [Self.entry(url: pinned.url.absoluteString, size: pinned.size, sha256: pinned.sha256)],
+            revision: shipped.revision + 1)
 
         // A cache written before signatures were kept is not trusted
         try newer.write(to: cache)
@@ -188,9 +250,9 @@ struct RunnerManifestTests {
         try Data(signature.base64EncodedString().utf8)
             .write(to: RunnerManifest.signatureFile(for: cache))
         #expect(RunnerManifest.current(cache: cache, key: key) == shipped)
-        #expect(
-            RunnerManifest.current(cache: cache, key: signing.publicKey)
-                .build(id: "wine-crossover-26.3.0-1") != nil)
+        let accepted = RunnerManifest.current(cache: cache, key: signing.publicKey)
+        #expect(accepted.revision == shipped.revision + 1)
+        #expect(accepted.build(id: "wine-crossover-26.3.0-1") != nil)
     }
 
     @Test("The signature file sits beside the manifest and parses base64 or sign_update output")

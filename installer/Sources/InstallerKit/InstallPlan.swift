@@ -7,11 +7,14 @@ public enum GameName {
     public static func clean(_ folder: String) -> String {
         // "Stardew.Valley.1.6.8": a dotted version ends the name, before dots become spaces
         var s = folder.replacing(/[\s._-]v?\d+(\.\d+)+\b.*$/, with: "")
-        s = s.replacingOccurrences(of: "_", with: " ").replacingOccurrences(of: ".", with: " ")
+        // Site names dropped with the folder: "www.site.com" or a bare "GameSite.com"
+        s = s.replacing(/(?i)\bwww\.[\w.\-]+\.[a-z]{2,}\b/, with: "")
+        s = s.replacing(/(?i)\b\w+\.(com|net|org|io|ru|to|me|gg|biz|info|site)\b/, with: "")
+        s = s.replacingOccurrences(of: "_", with: " ").replacingOccurrences(of: ".", with: " ").replacingOccurrences(of: "-", with: " ")
         s = s.replacing(/\[[^\]]*\]|\([^)]*\)|\{[^}]*\}/, with: "")
         s = s.replacing(/(?i)\s[-–]?\s*(v|build|update|b)\s?\d[\w.\-]*.*$/, with: "")
         s = s.replacing(/(?i)\s\+\s.*$/, with: "")
-        s = s.replacing(/(?i)\b(multi\d*|setup|installer|gog|steam|deluxe edition)\b/, with: "")
+        s = s.replacing(/(?i)\b(multi\d*|setup|installer|gog|steam|gamesite|portable|pre\s?installed|x64|x86|win64|win32|64bit|32bit|deluxe edition)\b/, with: "")
         return s.split(whereSeparator: \.isWhitespace).joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines.union(.init(charactersIn: "-–")))
     }
 }

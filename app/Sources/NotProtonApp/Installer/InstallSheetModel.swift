@@ -40,6 +40,8 @@ final class InstallSheetModel {
     private(set) var isAnalyzing = false
     private(set) var verifyFraction: Double?
     private(set) var identification: GameIdentification?
+    // The match came from the Steam store search, not the compatibility data
+    private(set) var identificationViaSteam = false
     private(set) var index = GameIndex([])
     var search = "" { didSet { results = search.count < 2 ? [] : index.search(search, limit: 8) } }
     private(set) var results: [GameIndex.Entry] = []
@@ -78,7 +80,7 @@ final class InstallSheetModel {
         analysisTask?.cancel()
         baseStep = .drop
         dropped = nil; analysis = nil; readProblem = nil; isAnalyzing = false; verifyFraction = nil
-        identification = nil; search = ""; job = nil; chosenExe = nil; showInSteam = true
+        identification = nil; identificationViaSteam = false; search = ""; job = nil; chosenExe = nil; showInSteam = true
         steamOutcome = nil; finishProblem = nil; cleanup = .idle
         programs = nil; gameBytes = 0; onExternalDrive = false; storage = .inPlace
     }
@@ -161,12 +163,36 @@ final class InstallSheetModel {
         let data = await center?.compat()
         index = await center?.titles.index(for: data) ?? GameIndex([])
         let main = found.scan.setup ?? programs?.candidates.first.map { URL(filePath: $0.path) }
-        let product = main.flatMap(PEVersion.productName)
-        identification = GameIdentification.identify(
-            gog: found.isInstalledGame ? GOGInfo.find(in: found.folder)?.info : nil,
-            gogID: GOGInfo.id(inFileList: found.inno?.files ?? []), installerTitle: found.inno?.title,
-            productName: product, folderName: found.folder.lastPathComponent, index: index
+        let hints = found.isInstalledGame ? EngineMetadata.hints(in: found.folder, exe: main) : nil
+        let gog = found.isInstalledGame ? GOGInfo.find(in: found.folder)?.info : nil
+        let product = hints?.productName ?? main.flatMap(PEVersion.productName)
+        var id = GameIdentification.identify(
+            gog: gog, gogID: GOGInfo.id(inFileList: found.inno?.files ?? []), steamAppID: hints?.steamAppID,
+            installerTitle: found.inno?.title, engineInfo: hints?.name, productName: product,
+            exeName: hints?.exeName, innerFolder: hints?.innerFolder,
+            folderName: found.folder.lastPathComponent, index: index
         )
+        identificationViaSteam = false
+        // The compatibility data found nothing (or could not be fetched): ask Steam's
+        // store search about the same name candidates, in order — the first hit wins,
+        // so the cover can still come down.
+        if id.match == nil, let center, center.lookupsAllowed() {
+            for (source, name) in GameIdentification.orderedCandidates(
+                gog: gog, installerTitle: found.inno?.title, engineInfo: hints?.name, productName: product,
+                exeName: hints?.exeName, innerFolder: hints?.innerFolder,
+                folderName: found.folder.lastPathComponent
+            ) {
+                if let hit = await center.lookup.match(for: name) {
+                    id = GameIdentification(
+                        name: hit.name, source: source,
+                        match: GameIndex.Entry(appID: hit.appID, name: hit.name), gogID: id.gogID
+                    )
+                    identificationViaSteam = true
+                    break
+                }
+            }
+        }
+        identification = id
     }
 
     func checkAgain() {
@@ -189,7 +215,9 @@ final class InstallSheetModel {
             let version = inno.version.map { String($0.split(separator: ".").prefix(2).joined(separator: ".")) } ?? ""
             let detail: String
             if let unpacker = analysis.unpacker {
-                detail = String(localized: "Uses an external unpacker (\(unpacker.helpers.joined(separator: ", ")))")
+                detail = analysis.directUnpack != nil
+                    ? String(localized: "Uses an external unpacker (\(unpacker.helpers.joined(separator: ", "))); the files are unpacked directly")
+                    : String(localized: "Uses an external unpacker (\(unpacker.helpers.joined(separator: ", ")))")
             } else {
                 detail = inno.heavyDecompression ? String(localized: "With heavy decompression (\(inno.decompressors.joined(separator: ", ")))") : String(localized: "Standard decompression")
             }
@@ -245,9 +273,13 @@ final class InstallSheetModel {
         guard let id = identification else { return nil }
         if let match = id.match {
             return Item(id: "game", title: String(localized: "Identified as \(match.name)"),
-                        detail: String(localized: "Matched in the compatibility data"), check: .ok, cover: match.appID)
+                        detail: identificationViaSteam
+                            ? String(localized: "Identified via Steam")
+                            : String(localized: "Matched in the compatibility data"),
+                        check: .ok, cover: match.appID)
         }
-        return Item(id: "game", title: id.name, detail: String(localized: "Not found in the compatibility data. You can pick the game in the next step."), check: .warning)
+        return Item(id: "game", title: String(localized: "\(id.name) wasn't recognized automatically. You can pick the game in the next step."),
+                    detail: "", check: .warning)
     }
 
     private var ready: Bool {
@@ -276,6 +308,7 @@ final class InstallSheetModel {
     func pick(_ entry: GameIndex.Entry) {
         identification = identification?.corrected(to: entry)
             ?? GameIdentification(name: entry.name, source: .user, match: entry)
+        identificationViaSteam = false
         search = ""
     }
 
@@ -308,6 +341,7 @@ final class InstallSheetModel {
             installerFiles: files, manifest: analysis.manifest
         )
         request.unpacker = analysis.unpacker
+        request.directUnpack = analysis.directUnpack
         var inputs = InstallInputs(runnerID: runnerID, gameName: gameName, mode: mode, language: language)
         if analysis.unpacker != nil { inputs.applyUnpackerProfile() }
         let job = InstallJob(request: request, inputs: inputs)
@@ -335,9 +369,29 @@ final class InstallSheetModel {
         center?.stop(job)
     }
 
+    // Drops the runtime being installed: its processes are killed and the next verb runs.
+    func skipRuntime() {
+        guard let job, job.phase == .redistributables else { return }
+        job.skipRuntime = true
+        job.run?.stop()
+    }
+
     func retry(_ fix: RetryFix) {
         guard let job else { return }
         center?.retry(job, with: fix)
+    }
+
+    // Same job, same inputs: the unfinished attempt's folder is rebuilt anyway.
+    func tryAgain() {
+        guard let job else { return }
+        center?.requeue(job)
+    }
+
+    // The attempt's folder — prefix included — is wiped first, then queued again.
+    func recreatePrefix() {
+        guard let job, let folder = job.folder else { return }
+        try? FileManager.default.removeItem(at: folder.root)
+        center?.requeue(job)
     }
 
     var fixes: [RetryFix] {
@@ -356,11 +410,13 @@ final class InstallSheetModel {
 
     func confirmExe() {
         guard let job, let path = chosenExe ?? job.candidates.first?.path, let center else { return }
-        do {
-            steamOutcome = try center.finish(job, exe: URL(filePath: path), showInSteam: showInSteam)
-            finishProblem = nil
-        } catch {
-            finishProblem = error.localizedDescription
+        Task {
+            do {
+                steamOutcome = try await center.finish(job, exe: URL(filePath: path), showInSteam: showInSteam)
+                finishProblem = nil
+            } catch {
+                finishProblem = error.localizedDescription
+            }
         }
     }
 

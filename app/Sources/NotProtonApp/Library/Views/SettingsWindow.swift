@@ -59,7 +59,10 @@ struct SettingsWindow: View {
     let consoles: ConsolesSettingsModel
     let choices: PrivacyChoices
 
-    @State private var tab: SettingsTab = .general
+    // Kept across opens so "Get More Graphics Backends…" lands on Compatibility.
+    static let tabKey = "settings.tab"
+
+    @AppStorage(tabKey) private var tab: SettingsTab = .general
     @Environment(ControlsCenter.self) private var controls: ControlsCenter?
     @Environment(ConsoleCenter.self) private var consoleCenter: ConsoleCenter?
     @Environment(AgentControlModel.self) private var agents: AgentControlModel?
@@ -73,6 +76,15 @@ struct SettingsWindow: View {
             }
         }
         .frame(width: 640, height: 560)
+        .onAppear(perform: followRoute)
+        .onChange(of: SettingsRoute.shared.tab) { followRoute() }
+        .scrollBounceBehavior(.basedOnSize, axes: [.vertical, .horizontal])
+    }
+
+    private func followRoute() {
+        guard let next = SettingsRoute.shared.tab else { return }
+        tab = next
+        SettingsRoute.shared.tab = nil
     }
 
     @ViewBuilder

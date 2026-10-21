@@ -9,17 +9,21 @@ struct EmulatorRows: View {
     var body: some View {
         let options = center.emulators.options(for: console)
         if options.count > 1 || route != .retroArch {
-            Picker("Emulator", selection: Binding(
-                get: { center.emulators.selected(for: console) },
-                set: { center.chooseEmulator($0, for: console) }
-            )) {
-                ForEach(options) { Text(verbatim: $0.title).tag($0.id) }
+            PanelRow(title: Text("Emulator")) {
+                Picker("Emulator", selection: Binding(
+                    get: { center.emulators.selected(for: console) },
+                    set: { center.chooseEmulator($0, for: console) }
+                )) {
+                    ForEach(options) { Text(verbatim: $0.title).tag($0.id) }
+                }
+                .labelsHidden()
+                .fixedSize()
             }
-            Text("For every \(console.name) game.").font(.caption).foregroundStyle(.secondary)
+            Text("For every \(console.name) game.").font(.system(size: 11)).foregroundStyle(Glass.label2)
         }
         if let installed = route.emulator {
             Text("\(installed.emulator.name) uses its own settings, controls and saves.")
-                .font(.callout).foregroundStyle(.secondary)
+                .font(.system(size: 12)).foregroundStyle(Glass.label2)
         }
     }
 }

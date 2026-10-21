@@ -275,10 +275,13 @@ enum PrefixTools {
             step: step,
             from: "GitHub"
         )
-        return try winetricks(
-            verbs, in: prefix, script: script,
-            runner: SupportPaths.clonedRoot(forBuild: chosen.build), flavor: chosen.tool.flavor
-        )
+        // Winetricks can run for minutes; the wait never happens on the caller's actor.
+        return try await Task.detached {
+            try winetricks(
+                verbs, in: prefix, script: script,
+                runner: SupportPaths.clonedRoot(forBuild: chosen.build), flavor: chosen.tool.flavor
+            )
+        }.value
     }
 
     static func winetricks(

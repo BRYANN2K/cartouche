@@ -88,6 +88,8 @@ struct StoreExpiryTests {
                                      actions: GameActionRunner(model: scene.model, open: { _ in }, stores: scene.center))
                 .environment(scene.center)
                 .environment(\.covers, scene.steam.covers())
+                // An offscreen capture cannot draw Liquid Glass, so the text is read off the macOS 15 look
+                .environment(\.glassMode, .classic)
             let texts = try await renderedTexts(view, size: CGSize(width: 1280, height: 800), named: "store-expired-session",
                                                 dark: dark, settle: 1.0)
             for wanted in ["Your Epic Games session expired", "Sign In Again", "Your games still play", "Sample Free Game", "Play"] {

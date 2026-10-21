@@ -8,6 +8,9 @@ struct RunnerManifest: PinnedManifest {
     typealias Invalid = ManifestInvalid
     static let format = 1
     static let resource = "runners"
+    // A build CI has listed before its archive exists: shown in Runners, but nothing installs from
+    // it — no file hashes to the placeholder, and the installer refuses it before any download.
+    static let pendingSHA256 = "TODO-FILL-AFTER-RELEASE"
 
     struct Build: Sendable, Equatable, Codable, Identifiable {
         enum Origin: String, Sendable, Codable {
@@ -33,6 +36,12 @@ struct RunnerManifest: PinnedManifest {
         var title: String { "\(name) \(displayVersion)" }
 
         var archiveName: String { url.lastPathComponent }
+
+        // A real pin: size and SHA-256 an archive can match. A pending placeholder fails every
+        // check it goes through, so it can never install.
+        var isPinned: Bool { size > 0 && RunnerManifest.isSHA256(sha256) }
+
+        var isPending: Bool { sha256 == RunnerManifest.pendingSHA256 }
 
         var cpuFlavors: [CompatTool.Flavor] { flavors.compactMap(CompatTool.Flavor.init(rawValue:)) }
     }
@@ -63,8 +72,12 @@ struct RunnerManifest: PinnedManifest {
             if build.url.scheme != "https" || !Self.allowedHosts.contains(build.url.host() ?? "") {
                 found.append("\(at): \(build.url.absoluteString) is not an https URL on \(Self.allowedHosts.sorted().joined(separator: ", "))")
             }
-            if build.size <= 0 { found.append("\(at): size \(build.size)") }
-            if !Self.isSHA256(build.sha256) { found.append("\(at): \(build.sha256) is not a SHA-256") }
+            if build.isPending {
+                if build.size != 0 { found.append("\(at): a pending pin keeps size 0") }
+            } else {
+                if build.size <= 0 { found.append("\(at): size \(build.size)") }
+                if !Self.isSHA256(build.sha256) { found.append("\(at): \(build.sha256) is not a SHA-256") }
+            }
             for (label, path) in [("root", build.root), ("loader", build.loader)] where !Self.isInside(path) {
                 found.append("\(at): \(label) \(path) leaves the runner folder")
             }
@@ -84,7 +97,8 @@ extension RunnerManifest {
     static func merged(bundled: RunnerManifest, refreshed: RunnerManifest?) -> RunnerManifest {
         guard let refreshed, refreshed.revision > bundled.revision else { return bundled }
         for build in refreshed.builds {
-            if let shipped = bundled.build(id: build.id), shipped != build {
+            // A pending placeholder pins nothing yet, so the refreshed copy may fill it.
+            if let shipped = bundled.build(id: build.id), shipped != build, shipped.isPinned {
                 AppLog.note("runner manifest revision \(refreshed.revision) changes the pin of \(build.id), ignored")
                 return bundled
             }

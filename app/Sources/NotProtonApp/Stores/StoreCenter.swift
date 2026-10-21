@@ -41,6 +41,12 @@ final class StoreJob: Identifiable {
     }
 }
 
+// A running or failed "Preparing Windows environment" boot for one store game.
+struct StoreBoot {
+    let boot: WineBootstrap.Boot
+    var problem: String?
+}
+
 struct StoreActivity: Equatable, Sendable {
     let gameID: String
     let title: String
@@ -73,6 +79,8 @@ final class StoreCenter {
     private(set) var jobs: [StoreJob] = []
     private(set) var refreshing: Set<GameSource> = []
     private(set) var playing: Set<String> = []
+    // A game's "Preparing Windows environment" boot, running or failed — the panel shows it.
+    private(set) var boots: [String: StoreBoot] = [:]
     var signIn: SignInSession?
     var problem: String?
 
@@ -484,9 +492,20 @@ final class StoreCenter {
     private func run(_ game: Game, record: StoreInstalledGame, adapter: any StoreAdapter, setup: GameSetup, wine: WineRunner,
                      offline: Bool) async throws {
         var record = record
-        if let create = try WineBootstrap.createRun(wine: wine, prefix: record.prefix, base: gameEnvironment) {
-            guard (try? create.start()) != nil, await create.exitStatus() == 0 else {
-                throw StoreError.failed(String(localized: "The prefix could not be created."))
+        // Preparing Windows environment: the prefix's first boot finishes before anything launches.
+        let boot = WineBootstrap.begin(wine: wine, prefix: record.prefix, base: gameEnvironment,
+                                       log: record.folder.appending(path: "prefix.log"))
+        if boot.prepares {
+            boots[game.id] = StoreBoot(boot: boot)
+            switch await boot.outcome.value {
+            case .ready:
+                boots[game.id] = nil
+            case .stopped:
+                boots[game.id] = nil
+                return
+            case .failed(let detail):
+                boots[game.id]?.problem = detail
+                return
             }
         }
         SetupEnvironment.prepare(setup.backend, prefix: record.prefix, backends: backends)
@@ -562,8 +581,24 @@ final class StoreCenter {
         await WineServer.wait(server: wine.server, env: environment, timeout: 300)
     }
 
+    // A failed boot's second chance: Play prepares the prefix again (the booting marker is still there).
+    func retryBoot(_ game: Game) {
+        boots[game.id] = nil
+        play(game)
+    }
+
+    // A failed boot's last resort: the prefix is wiped, then made from scratch.
+    func recreateBoot(_ game: Game) {
+        guard let record = installed[game.id] else { return }
+        boots[game.id] = nil
+        try? FileManager.default.removeItem(at: record.prefix)
+        play(game)
+    }
+
     // wineserver -k whatever stayed in the prefix, so the session and its token files close.
     func stopPlaying(_ game: Game) {
+        if let record = installed[game.id] { WineBootstrap.stop(record.prefix) }
+        boots[game.id] = nil
         guard playing.contains(game.id) else { return }
         for process in processes[game.id] ?? [] { process.stop() }
         guard let record = installed[game.id], let setup = setup(for: game), let runner = setup.runner,

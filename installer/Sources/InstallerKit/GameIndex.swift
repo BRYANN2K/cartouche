@@ -10,13 +10,16 @@ public struct GameIndex: Sendable {
     }
 
     private let byKey: [String: Entry]
+    private let byID: [Int: Entry]
     private let tokenized: [(tokens: [String], entry: Entry)]
 
     public init(_ entries: [Entry]) {
         var byKey: [String: Entry] = [:]
+        var byID: [Int: Entry] = [:]
         var tokenized: [([String], Entry)] = []
         // Lowest App ID first, so a name shared by a game and its later re-release keeps the original.
         for entry in entries.sorted(by: { $0.appID < $1.appID }) {
+            if byID[entry.appID] == nil { byID[entry.appID] = entry }
             let tokens = Self.tokens(entry.name)
             guard !tokens.isEmpty else { continue }
             tokenized.append((tokens, entry))
@@ -24,6 +27,7 @@ public struct GameIndex: Sendable {
             if byKey[key] == nil { byKey[key] = entry }
         }
         self.byKey = byKey
+        self.byID = byID
         self.tokenized = tokenized
     }
 
@@ -41,15 +45,17 @@ public struct GameIndex: Sendable {
         return out
     }
 
-    static let noise: Set<String> = [
+    public static let noise: Set<String> = [
         "goty", "game", "of", "the", "year", "edition", "complete", "definitive", "deluxe", "ultimate",
         "enhanced", "remastered", "digital", "gold", "premium", "collectors", "directors", "anniversary",
         "special", "standard", "gog", "multi", "build", "offline", "installer", "dlc", "dlcs", "and", "all",
     ]
 
-    static func isNoise(_ token: String) -> Bool {
+    public static func isNoise(_ token: String) -> Bool {
         noise.contains(token) || (try? /^(v|multi)\d+[a-z]?$/.wholeMatch(in: token)) != nil
     }
+
+    public func entry(appID: Int) -> Entry? { byID[appID] }
 
     // Exact name, or longest known prefix when the rest is only edition words; bare numbers are not noise ("Portal 2" is not "Portal").
     public func match(_ query: String) -> Entry? {
@@ -147,7 +153,9 @@ public struct GOGInfo: Sendable, Equatable {
 }
 
 public struct GameIdentification: Sendable, Equatable {
-    public enum Source: String, Sendable { case gog, installerTitle, productName, folderName, user }
+    public enum Source: String, Sendable {
+        case gog, steamAppID, installerTitle, engineInfo, productName, exeName, folderName, user
+    }
 
     public let name: String
     public let source: Source
@@ -158,24 +166,58 @@ public struct GameIdentification: Sendable, Equatable {
         self.name = name; self.source = source; self.match = match; self.gogID = gogID
     }
 
-    // First match wins in order: GOG info, installer title, exe product name, cleaned folder name; with none the first name is kept.
+    // First match wins in order: GOG info, a Steam app ID the folder carries, installer title, engine
+    // metadata, exe product name, exe file name, the folder holding the exe, cleaned folder name.
+    // With no match the best plain name is kept — the exe's or its folder's, never raw junk.
     public static func identify(
-        gog: GOGInfo? = nil, gogID: String? = nil, installerTitle: String? = nil, productName: String? = nil,
+        gog: GOGInfo? = nil, gogID: String? = nil, steamAppID: Int? = nil,
+        installerTitle: String? = nil, engineInfo: String? = nil, productName: String? = nil,
+        exeName: String? = nil, innerFolder: String? = nil,
         folderName: String, index: GameIndex
     ) -> GameIdentification {
         let id = gog?.id ?? gogID
-        let candidates: [(Source, String?)] = [
-            (.gog, gog?.name), (.installerTitle, installerTitle), (.productName, productName),
-            (.folderName, GameName.clean(folderName)),
-        ]
-        let named = candidates.compactMap { source, name in
-            name.flatMap { $0.trimmingCharacters(in: .whitespaces).isEmpty ? nil : (source, $0) }
+        let named = Self.orderedCandidates(gog: gog, installerTitle: installerTitle, engineInfo: engineInfo,
+                                           productName: productName, exeName: exeName, innerFolder: innerFolder,
+                                           folderName: folderName)
+        if let entry = gog?.name.flatMap({ index.match($0) }) {
+            return GameIdentification(name: entry.name, source: .gog, match: entry, gogID: id)
+        }
+        if let appID = steamAppID {
+            let entry = index.entry(appID: appID)
+            let title = entry?.name ?? best(named: named, folderName: folderName).1
+            return GameIdentification(name: entry?.name ?? title, source: .steamAppID,
+                                      match: entry ?? GameIndex.Entry(appID: appID, name: title), gogID: id)
         }
         for (source, name) in named {
             if let entry = index.match(name) { return GameIdentification(name: entry.name, source: source, match: entry, gogID: id) }
         }
-        let first = named.first ?? (.folderName, folderName)
-        return GameIdentification(name: first.1, source: id != nil ? .gog : first.0, match: nil, gogID: id)
+        let (source, title) = best(named: named, folderName: folderName)
+        return GameIdentification(name: title, source: id != nil ? .gog : source, match: nil, gogID: id)
+    }
+
+    // The name candidates in the order they are tried, so a store-search fallback asks about the
+    // same names in the same order.
+    public static func orderedCandidates(
+        gog: GOGInfo? = nil, installerTitle: String? = nil, engineInfo: String? = nil,
+        productName: String? = nil, exeName: String? = nil, innerFolder: String? = nil,
+        folderName: String
+    ) -> [(Source, String)] {
+        [
+            (.gog, gog?.name), (.installerTitle, installerTitle), (.engineInfo, engineInfo),
+            (.productName, productName), (.exeName, exeName.map(GameName.clean)),
+            (.folderName, innerFolder.map(GameName.clean)), (.folderName, GameName.clean(folderName)),
+        ].compactMap { source, name in
+            name.flatMap { $0.trimmingCharacters(in: .whitespaces).isEmpty ? nil : (source, $0) }
+        }
+    }
+
+    // The title when nothing matched: installer/GOG names first, then the exe's or its folder's
+    // cleaned name, the metadata names, and only the raw folder name when everything else failed.
+    static func best(named: [(Source, String)], folderName: String) -> (Source, String) {
+        for source in [Source.gog, .installerTitle, .exeName, .folderName, .productName, .engineInfo] {
+            if let name = named.first(where: { $0.0 == source })?.1 { return (source, name) }
+        }
+        return (.folderName, folderName)
     }
 
     public func corrected(to entry: GameIndex.Entry) -> GameIdentification {

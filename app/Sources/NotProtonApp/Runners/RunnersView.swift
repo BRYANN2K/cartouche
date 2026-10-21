@@ -73,10 +73,11 @@ private struct RunnerRow: View {
                     ProgressView().controlSize(.small)
                 }
                 Text(verbatim: row.status)
-                    .foregroundStyle(damaged ? AnyShapeStyle(.red) : AnyShapeStyle(.secondary))
+                    .foregroundStyle(damaged ? AnyShapeStyle(.red) : AnyShapeStyle(Glass.label2))
                 switch row.action {
                 case .download:
                     Button("Download") { Task { await model.perform(.download, on: row.id) } }
+                        .buttonStyle(.pillProminent)
                 case .setUp:
                     Button("Set Up") { Task { await model.perform(.setUp, on: row.id) } }
                 case .repair:
@@ -96,9 +97,10 @@ private struct RunnerRow: View {
                     Button(link.title) { NSWorkspace.shared.open(link.url) }
                 }
             }
+            .buttonStyle(.pill)
         } label: {
             Text(verbatim: row.title)
-            Text(verbatim: row.detail).foregroundStyle(.secondary)
+            Text(verbatim: row.detail).foregroundStyle(Glass.label2)
         }
     }
 }
@@ -110,7 +112,7 @@ struct ToolkitQuestionSheet: View {
     var body: some View {
         VStack(spacing: 18) {
             Text(String(localized: "Set Up Game Porting Toolkit \(question.install.version)?"))
-                .font(.title2.weight(.bold))
+                .font(.system(size: 17, weight: .bold))
             VStack(spacing: 4) {
                 Text(String(localized: "Found in \(path)")).multilineTextAlignment(.center)
                 Text(question.install.mountedImage

@@ -124,6 +124,6 @@ struct ConsoleSidebarTests {
         #expect(scene.center.menu(for: "gba").last?.title == "Remove Game Boy Advance (its game stays on disk)")
         #expect(scene.center.menu(for: "gba").first?.title == "Add Game Boy Advance Games…")
         await scene.center.perform(.addGames, on: "gba")
-        #expect(scene.library.addGames == .consoles)
+        #expect(scene.library.showAddGames)
     }
 }

@@ -82,18 +82,26 @@ P0–P18 have code on main. Merged does not mean all real-machine checks passed.
 4. For a game with a Mac build, the user chooses Mac version or Windows version.
 5. After a crash, the panel suggests another backend to try.
 
+### Add Games
+
+The toolbar + opens one Add Games sheet with a drop zone and Choose… for files or folders of any type. A drop on the library window opens the same sheet. Automatic detection routes to the installer, installed-game import, console ROM import or other matching flow. There are no separate Windows Games… or Console Games… entries. The UI is merged in a47ffd3 / 51a8ece. The backend classifier is pending; without it the sheet says “Game detection is unavailable” (ADR 0024).
+
 ### Windows installer
 
-1. The user drops an installer, folder, archive or ROM. Cartouche detects its type. Built-in zip, rar and 7z extraction is planned (ADR 0016). Already-installed Windows games can be used in place by default or copied (ADR 0018).
+1. The user drops an installer, folder, archive or ROM. Cartouche detects its type. Built-in extraction uses bundled pinned universal libarchive behind InstallerKit (ADR 0023; backend merged in 95b4e47, app adapter not wired). Target zip/zip64, 7z, tar.* and RAR4/RAR5; multi-volume and solid support require verification. Encrypted archives are refused. Already-installed Windows games can be used in place by default or copied (ADR 0018).
 2. Cartouche analyses it without running anything: parts, missing parts, checksums, installer type, game name, space needed.
 3. The user reviews the result. A missing required part blocks Install. A part the manifest calls optional only warns.
 4. Cartouche installs in a fresh prefix under Rosetta, with real progress. The user can continue in the background.
 5. On failure, Cartouche names the likely cause and offers retries (verify files, fewer threads, less memory, short path, other runner).
-6. The user confirms which exe starts the game. Planned runtime detection reads PE imports, runs one winetricks verb at a time with a timeout and Skip, and uses Wine Mono for .NET (ADR 0020). Main currently finds redistributable files and runs a batch of verbs.
+6. The user confirms which exe starts the game. Runtime detection reads PE imports, runs one winetricks verb at a time with a timeout and Skip, and uses Wine Mono for .NET (ADR 0020; merged in 307ad2c).
 7. Installer files are deleted only when the user asks, and go to the Trash.
-8. Planned: Cartouche directly extracts supported parts for installers with external unpackers (ADR 0017). Current code prepares their prefix and runs setup.
-9. Planned: uninstall of a managed game moves it to the Trash and offers Keep save files. Removing an in-place import never deletes its source files.
-10. Planned: identify by store IDs, engine metadata, exe version info, exe name, then folder names. Steam store search is a fallback gated by the online-lookups privacy choice (ADR 0019).
+8. Cartouche’s direct-unpack app implementation for supported external-unpacker parts is merged in 3bb5921 (ADR 0017). Unsupported selection uses setup. Automatic recovery from a missing driver or failed part and end-to-end app verification remain pending.
+9. Merged: uninstall of a managed game moves it to the Trash and offers Keep save files. Removing an in-place import never deletes its source files.
+10. Merged: identify by store IDs, engine metadata, exe version info, exe name, then folder names. Steam store search is a fallback gated by the online-lookups privacy choice (ADR 0019).
+
+### Installation verification (accepted policy, implementation pending)
+
+Track installed state separately from verification (ADR 0026; UI merged in 7f8773b, engine pending). A shipped checksum list or archive CRC always triggers full verification; Stop marks not verified and there is no skip checkbox. Script presence/sizes alone gives “verified (sizes)”. Without evidence, allow “Installed, not verified” with a discreet badge and panel line. Verify Files… permits later checks. Mismatch offers Retry with the standard method (default), Keep Anyway (advanced; not verified, mismatches logged), and Cancel. Retry uses shipped helpers/original settings, then guided real-installer execution under Wine last. Output-equivalence and local-corpus rules from ADR 0025 stand; the detection tree remains proposed.
 
 ### Stores
 
@@ -104,7 +112,7 @@ P0–P18 have code on main. Merged does not mean all real-machine checks passed.
 
 ### Consoles through RetroArch
 
-1. The user opens Add Consoles, or drops game files or a folder in the + sheet. Cartouche identifies each file by checksum. Folders set in Settings > Library are watched and new games are added automatically.
+1. The user configures consoles in Add Consoles. Game files and folders enter through the common Add Games sheet; automatic detection routes ROMs to console import. Cartouche identifies each file by checksum. Folders set in Settings > Library are watched and new games are added automatically.
 2. Cartouche downloads only the core for each console the user added, and checks the BIOS files the user must supply.
 3. The library has a Consoles section with one entry per console, and covers from the libretro thumbnails.
 4. The console game panel shows Continue From (save states with pictures), the achievements count, the look (Original, CRT, LCD), input lag, hardcore mode, discs and BIOS status.

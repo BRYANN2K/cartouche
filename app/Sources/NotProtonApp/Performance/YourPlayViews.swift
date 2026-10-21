@@ -33,7 +33,7 @@ struct YourPlayRows: View {
     let compare: () -> Void
 
     var body: some View {
-        HStack(alignment: .top) {
+        WeightedHStack(weights: [1.3, 1, 1]) {
             cell(Text("Average"), YourPlayText.fps(play.average))
             cell(Text("1% low"), YourPlayText.fps(play.low1))
             cell(Text("Played"), YourPlayText.played(play.played))
@@ -41,13 +41,13 @@ struct YourPlayRows: View {
         if play.setups.count > 1, let best = play.best {
             Divider()
             HStack {
-                Text("Best with \(YourPlayText.best(best, among: play.setups))").foregroundStyle(.secondary)
+                Text("Best with \(YourPlayText.best(best, among: play.setups))")
                 Spacer()
-                Button("Compare \(play.setups.count) Setups", action: compare).controlSize(.small)
+                Button("Compare \(play.setups.count) Setups", action: compare).buttonStyle(.pill)
             }
         }
         if let note = Self.note(play) {
-            Text(note).font(.callout).foregroundStyle(.secondary)
+            Text(note).font(.system(size: 12)).foregroundStyle(Glass.label2)
         }
     }
 
@@ -58,12 +58,7 @@ struct YourPlayRows: View {
     }
 
     private func cell(_ title: Text, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            title.font(.caption).foregroundStyle(.secondary)
-            Text(value).font(.title3.weight(.semibold)).monospacedDigit()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
+        StatCell(title: title, value: value)
     }
 }
 
@@ -77,7 +72,7 @@ struct CompareSetupsSheet: View {
         let current = model.resolution(for: game).setup
         VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Compare Setups").font(.title2.weight(.bold)).accessibilityAddTraits(.isHeader)
+                Text("Compare Setups").font(.system(size: 17, weight: .bold)).accessibilityAddTraits(.isHeader)
                 Text(game.name).foregroundStyle(.secondary)
             }
             Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 10) {

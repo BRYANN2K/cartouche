@@ -6,6 +6,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 
 ## [Unreleased]
 
+- Fix a release-app crash caused by blocking process probes during SwiftUI updates; game menus use cached busy state.
+- Fix Sparkle startup by enabling update verification before extraction; a release-feed test guards the setting.
+
 - Import already-installed Windows games in place or copy them. In-place source files remain user-owned.
 - Detect installers with external unpackers and prepare their Wine environment before setup. Direct extraction is still in progress.
 - MCP agent control, console extras, controls, store integrations and performance tracking are merged. Real-machine and service checks remain before release.

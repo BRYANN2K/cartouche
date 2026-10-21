@@ -5,7 +5,7 @@ extension CartoucheApp {
     @CommandsBuilder
     var menus: some Commands {
         CommandGroup(replacing: .newItem) {
-            Button("Add Games…") { library.addGames = .windows }
+            Button("Add Games…") { library.showAddGames = true }
                 .keyboardShortcut("o", modifiers: .command)
         }
 
@@ -23,6 +23,8 @@ extension CartoucheApp {
         }
 
         CommandGroup(after: .sidebar) {
+            Button(library.showSidebar ? "Hide Sidebar" : "Show Sidebar") { library.showSidebar.toggle() }
+                .keyboardShortcut("s", modifiers: [.control, .command])
             Toggle("Show Games That Are Not Installed", isOn: $library.showNotInstalled)
             Button(library.showPanel ? "Hide Game Panel" : "Show Game Panel") { library.showPanel.toggle() }
                 .keyboardShortcut("i", modifiers: [.command, .option])

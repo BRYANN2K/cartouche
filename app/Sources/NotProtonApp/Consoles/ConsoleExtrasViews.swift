@@ -21,7 +21,7 @@ struct PlayTogetherRow: View {
                 Button("Join…") { showingJoin = true }
                     .disabled(center.playing != nil)
             }
-            .controlSize(.small)
+            .buttonStyle(.pill)
         }
         if hosting {
             Group {
@@ -44,7 +44,7 @@ struct NetplayJoinSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Join a Game").font(.title2.weight(.bold))
+            Text("Join a Game").font(.system(size: 17, weight: .bold))
             Text("Games your friends host in RetroArch's lobby, and on your network, that you have too.")
                 .foregroundStyle(.secondary)
             Group {

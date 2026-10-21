@@ -31,6 +31,8 @@ enum SupportPaths {
     static var runners: URL { support.appending(path: "runners") }
     static var backups: URL { support.appending(path: "backups") }
     static var launchers: URL { support.appending(path: "launchers") }
+    // Saves copied out of a Wine prefix before the prefix moves to the Trash.
+    static var saves: URL { support.appending(path: "saves") }
 
     static var signatures: URL {
         support.appending(path: "signatures/macos.arm64")

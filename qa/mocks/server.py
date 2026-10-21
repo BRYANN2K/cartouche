@@ -341,6 +341,24 @@ class Handler(BaseHTTPRequestHandler):
                     return fixtures.cover_png(int(parts[0]), kind), "image/png", 200
             return b"not found\n", "text/plain", 404
 
+        # Steam store search (SteamLookup.searchURL) and the result capsules
+        if "/api/storesearch" in low:
+            if "empty-library" in self.state.armed:
+                return b'{"total": 0, "items": []}', "application/json", 200
+            term = (query.get("term") or [""])[0].lower()
+            base = f"http://127.0.0.1:{self.server.server_port}"
+            items = [{"type": kind, "name": name, "id": appid,
+                      "tiny_image": f"{base}/steam/apps/{appid}/capsule_231x87.jpg"}
+                     for appid, name, kind in fixtures.SEARCH_ROWS
+                     if term and (term in name.lower() or name.lower() in term)]
+            return json.dumps({"total": len(items), "items": items}).encode(), \
+                "application/json", 200
+        if "/steam/apps/" in low and low.endswith("/capsule_231x87.jpg"):
+            parts = path.strip("/").split("/")
+            if len(parts) == 4 and parts[2].isdigit():
+                return fixtures.cover_png(int(parts[2]), "capsule_231x87"), "image/png", 200
+            return b"not found\n", "text/plain", 404
+
         # Valve's Steam installer (SteamSetup.valveInstaller)
         if low.endswith("/client/installer/steam.dmg"):
             return (b"QA stub steam.dmg: not mountable; the QA world plants Steam.app "

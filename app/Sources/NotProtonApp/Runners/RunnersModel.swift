@@ -174,7 +174,7 @@ final class RunnersModel {
     }
 
     func download(_ id: String) async {
-        guard let build = manifest.build(id: id), !busy.contains(id) else { return }
+        guard let build = manifest.build(id: id), build.isPinned, !busy.contains(id) else { return }
         message = nil
         busy.insert(id)
         refreshGeneration += 1
@@ -290,7 +290,7 @@ final class RunnersModel {
             let build = manifest.build(id: runner.id)
             title = build?.title ?? "\(Runner.Kind.wineBuild.name) \(runner.displayVersion)"
             detail = switch build?.origin {
-            case .cartouche: String(localized: "Built by Cartouche from CodeWeavers’ open-source code")
+            case .cartouche: String(localized: "Built by Cartouche from CodeWeavers’ open-source code. Best for games: D3DMetal and DXMT.")
             case .winehq: String(localized: "Official WineHQ build, less tuned for games")
             case nil: String(localized: "No longer offered")
             }
@@ -307,7 +307,7 @@ final class RunnersModel {
             detail = String(localized: "Your licensed copy")
         }
 
-        let status: String
+        var status: String
         var action = Row.Action.none
         var removable = false
         var shown = detail
@@ -316,7 +316,14 @@ final class RunnersModel {
             status = busy
                 ? (runner.kind == .wineBuild ? String(localized: "Downloading") : String(localized: "Copying"))
                 : String(localized: "Not installed")
-            if runner.kind == .wineBuild { action = .download }
+            if runner.kind == .wineBuild {
+                let build = manifest.build(id: runner.id)
+                if build?.isPinned == false {
+                    status = String(localized: "Awaiting release")
+                } else {
+                    action = .download
+                }
+            }
             if runner.kind == .portingToolkit { action = .setUp }
         case .installing:
             status = runner.kind == .wineBuild ? String(localized: "Downloading") : String(localized: "Copying")

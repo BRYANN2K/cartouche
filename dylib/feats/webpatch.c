@@ -25,11 +25,15 @@
 #define NP_FALLBACK_TOOL "\021"
 // Stands for the JS array set by np_webpatch_set_fex_tools.
 #define NP_FEX_TOOLS "\022"
+// Stands for the export token set by np_webpatch_set_export_token.
+#define NP_EXPORT_TOKEN "\027"
 
 #define NP_TOOL_NAME_MAX 128
+#define NP_EXPORT_TOKEN_MAX 64
 
 static _Thread_local char g_fallback_tool[NP_TOOL_NAME_MAX];
 static _Thread_local char g_fex_tools[NP_WEBPATCH_FEX_TOOLS_MAX * (NP_TOOL_NAME_MAX + 3) + 3] = "[]";
+static _Thread_local char g_export_token[NP_EXPORT_TOKEN_MAX + 1];
 
 typedef struct {
     const char *find;
@@ -84,9 +88,24 @@ void np_webpatch_set_fex_tools(const char *const *names, size_t count) {
     g_fex_tools[n] = '\0';
 }
 
+void np_webpatch_set_export_token(const char *token) {
+    g_export_token[0] = '\0';
+    if (!token) return;
+    size_t n = strlen(token);
+    if (n > NP_EXPORT_TOKEN_MAX) return;
+    for (size_t i = 0; i < n; i++) {
+        unsigned char c = (unsigned char)token[i];
+        if (!(c >= '0' && c <= '9') && !(c >= 'a' && c <= 'f') &&
+            !(c >= 'A' && c <= 'F'))
+            return;
+    }
+    memcpy(g_export_token, token, n + 1);
+}
+
 static const char *marker_text(char c) {
     if (c == NP_FALLBACK_TOOL[0]) return g_fallback_tool;
     if (c == NP_FEX_TOOLS[0]) return g_fex_tools;
+    if (c == NP_EXPORT_TOKEN[0]) return g_export_token;
     return NULL;
 }
 
@@ -416,6 +435,71 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     "last=c.id;localStorage.setItem(K,String(last));run(c)}" \
     "}catch(e){}},1e3)})()"
 
+// Owned-library export (steam-library.json): every 15 seconds the page rebuilds the
+// owned-games list from the app store and, when it changed, sends it through the
+// client's own transport socket to the dylib's Cartouche.ExportOwnedGames#1 route.
+// The socket authenticates like any WebUI connection and the payload carries the
+// per-launch token the route requires; nothing else on the page can know it.
+#define NP_LIBRARY_EXPORT \
+    "(()=>{const T=\"" NP_EXPORT_TOKEN "\";if(T.length!==32||!window.appStore)return;" \
+    "const te=new TextEncoder()," \
+    "vn=n=>{const b=[];do{let x=n%128;n=(n-x)/128;if(n)x|=128;b.push(x)}while(n);return b}," \
+    "f2=(n,v)=>{const b=typeof v===\"string\"?te.encode(v):v;return[...vn(n*8+2),...vn(b.length),...b]}," \
+    "f1=(n,v)=>[...vn(n*8+1),v&255,v>>>8&255,v>>>16&255,v>>>24&255,0,0,0,0]," \
+    "rd=ab=>{try{const d=new DataView(ab),L=d.getUint32(4,true),h=new Uint8Array(ab,8,L);" \
+    "let p=0,jt=0,er=0;" \
+    "const rv=()=>{let v=0,s=0,b;do{b=h[p++];v+=(b&127)*2**s;s+=7}while(b&128&&s<64);return v};" \
+    "while(p<h.length){const t=rv(),f=t>>3,w=t&7;" \
+    "if(w===0){const v=rv();if(f===13)er=v}" \
+    "else if(w===1){if(f===11){let v=0;for(let i=0;i<8;i++)v+=h[p+i]*2**(8*i);jt=v}p+=8}" \
+    "else if(w===2){const l=rv();p+=l}" \
+    "else if(w===5)p+=4;else return null}" \
+    "return{jt,er}}catch(e){return null}};" \
+    "let ws=0,seq=0,pend={},max=4e6,key=\"\",big=0,last=\"\";" \
+    "const call=(name,body)=>new Promise(r=>{const s=++seq,h=[...f1(10,s),...f2(12,name),...f2(40,key)]," \
+    "m=new Uint8Array(8+h.length+body.length),d=new DataView(m.buffer);" \
+    "d.setUint32(0,2147483794,true);d.setUint32(4,h.length,true);m.set(h,8);m.set(body,8+h.length);" \
+    "pend[s]=r;ws.send(m);setTimeout(()=>{if(pend[s]){delete pend[s];r(2)}},8e3)})," \
+    "open=async()=>{try{if(ws&&ws.readyState===1)return 1;" \
+    "const i=await SteamClient.WebUITransport.GetTransportInfo();if(!i||!i.portClientdll)return 0;" \
+    "key=i.authKeyClientdll||\"\";max=i.nMaximumMsgSizeBytes||4e6;" \
+    "ws=new WebSocket(\"ws://localhost:\"+i.portClientdll+\"/transportsocket/\");" \
+    "ws.binaryType=\"arraybuffer\";ws.onclose=()=>{ws=0};" \
+    "ws.onmessage=e=>{try{const r=rd(e.data);if(r&&pend[r.jt]){pend[r.jt](r.er);delete pend[r.jt]}}catch(x){}};" \
+    "await new Promise((ok,no)=>{ws.onopen=ok;ws.onerror=no;setTimeout(no,8e3)});" \
+    "return await call(\"TransportAuth.Authenticate#1\",new Uint8Array(0))===1}catch(e){ws=0;return 0}}," \
+    "collect=()=>{const S=window.appStore;if(!S||!S.m_mapApps||!S.m_mapApps.size)return null;" \
+    "const cm=(this&&this.m_cm)||S.m_cm||(window.collectionStore&&window.collectionStore.m_cm)," \
+    "sid=cm&&cm.steamid&&(cm.steamid.ConvertTo64BitString?cm.steamid.ConvertTo64BitString():String(cm.steamid));" \
+    "if(!sid)return null;" \
+    "const CS=window.collectionStore,hc=CS&&CS.collectionsFromStorage&&CS.collectionsFromStorage.get(\"hidden\")," \
+    "ha=hc&&hc.apps,apps=[];" \
+    "for(const a of S.m_mapApps.values()){" \
+    "if(!a||!Number.isInteger(a.appid)||a.appid<=0||!a.BIsOwned||!a.BIsOwned()||" \
+    "a.BIsBorrowed&&a.BIsBorrowed()||a.BIsShortcut&&a.BIsShortcut())continue;" \
+    "const t=a.canonicalAppType===void 0?a.app_type:a.canonicalAppType;if(t!==void 0&&t!==1)continue;" \
+    "const o={appid:a.appid,name:String(a.display_name||\"\").slice(0,256),installed:!!a.installed};" \
+    "if(a.rt_last_time_played)o.last_played=Math.floor(a.rt_last_time_played);" \
+    "if(a.minutes_playtime_forever)o.playtime=Math.floor(a.minutes_playtime_forever);" \
+    "if(ha&&(ha.has?ha.has(o.appid):ha.indexOf&&ha.indexOf(o.appid)>=0))o.hidden=true;" \
+    "apps.push(o)}" \
+    "apps.sort((x,y)=>x.appid-y.appid);" \
+    "const e={version:1,generated:Math.floor(Date.now()/1e3),steamid:String(sid),apps};" \
+    "try{if(CS&&CS.userCollections){const cols=[];" \
+    "for(const c of CS.userCollections){if(!c||!c.id||c.id===\"favorite\"||c.id===\"hidden\")continue;" \
+    "const as=[...(c.apps||[])].filter(x=>Number.isInteger(x)&&x>0);" \
+    "cols.push({id:String(c.id),name:String(c.displayName||c.id).slice(0,256),apps:as})}" \
+    "if(cols.length)e.collections=cols}}catch(x){}" \
+    "return e}," \
+    "tick=async()=>{try{const e=collect();if(!e)return;" \
+    "const fp=JSON.stringify(e.apps)+(e.collections?JSON.stringify(e.collections):\"\");" \
+    "if(fp===last||!await open())return;" \
+    "const body=te.encode(T+\"\\n\"+JSON.stringify(e));" \
+    "if(body.length>max){if(!big){big=1;console.warn(\"Cartouche: owned-games export is \"+body.length+\" bytes, over the transport limit\")}return}" \
+    "if(await call(\"Cartouche.ExportOwnedGames#1\",new Uint8Array(f2(1,body)))===1){" \
+    "last=fp;big=0;console.log(\"Cartouche: exported \"+e.apps.length+\" owned games\")}}catch(x){}};" \
+    "tick();setInterval(tick,15e3)})()"
+
 static const np_gate_t g_gates_forcetool[] = {
     // SteamPlay settings section
     { "function " NP_C1 "(" NP_C2 "){return(0," NP_C3 ".CI)()?",
@@ -544,7 +628,7 @@ static const np_gate_t g_fixes[] = {
       1, 0 },
     { "this.m_bServicesInitialized=!0,SteamClient.UI.NotifyAppInitialized()",
       "this.m_bServicesInitialized=!0," NP_LAUNCH_MIGRATION "," NP_DOWNLOAD_COMMANDS
-      ",SteamClient.UI.NotifyAppInitialized()", 1, 0 },
+      "," NP_LIBRARY_EXPORT ",SteamClient.UI.NotifyAppInitialized()", 1, 0 },
     // Pr means macOS, td means Windows.
     // Steam Play makes every game count as available, so the Apple filter goes by oslist.
     // Games missing from appinfo.vdf, and other platforms, keep Steam's check.

@@ -16,6 +16,8 @@ struct InstallRequest: Sendable {
     var manifest: ChecksumManifest?
     // Set when the analysis found an installer that uses an external unpacker.
     var unpacker: ExternalUnpacker? = nil
+    // Set when the parts can be unpacked directly by the driver, without the setup running.
+    var directUnpack: DirectUnpackPlan? = nil
     // Set for a game that is already installed: nothing from its folder runs, the folder is used in place or copied.
     var importing: GameImport? = nil
 }
@@ -53,13 +55,16 @@ final class InstallJob: Identifiable {
     var folder: GameFolder?
     var installFolder: URL?
     var candidates: [ExeDetector.Candidate] = []
-    var redistributables: [Redistributable] = []
-    var redistributablesInstalled: Bool?
+    // The runtimes to install, one winetricks verb each; skipRuntime asks the engine to abandon the current one.
+    var runtimeSteps: [RuntimeStep] = []
+    var skipRuntime = false
     // Nil until the external-unpacker preparation ran, then whether it succeeded.
     var unpackerPrepInstalled: Bool?
     var game: InstalledGame?
     var steamOutcome: SteamShortcuts.Outcome?
     var tried: [RetryFix] = []
+    // When the prefix's first boot started — the "Preparing Windows environment" phase's elapsed time.
+    var bootStarted: Date?
 
     @ObservationIgnored var run: InstallRun?
     @ObservationIgnored var task: Task<Void, Never>?

@@ -1,5 +1,6 @@
 
 import Foundation
+import InstallerKit
 
 enum InstallPayload {
     static let step = String(localized: "Find Cartouche's components")
@@ -26,6 +27,14 @@ enum InstallPayload {
             )
         }
         return url
+    }
+
+    // The Win32 driver for direct unpacking of installers with external unpackers. Optional like
+    // the FPS counter: a build without it only loses the direct-unpack path.
+    static func unpackerDriver(in bundle: Bundle = .module) -> URL? {
+        guard let root = try? root(in: bundle) else { return nil }
+        let driver = root.appending(path: DirectUnpack.driverName)
+        return FileManager.default.fileExists(atPath: driver.path(percentEncoded: false)) ? driver : nil
     }
 
     static func locate(in bundle: Bundle = .module) throws -> Located {

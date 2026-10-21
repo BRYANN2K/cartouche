@@ -30,19 +30,19 @@ Each phase is one OpenSpec change in `openspec/changes/`. A phase is done when e
 
 ## Current status (2026-10-20)
 
-P0–P18 have code on main. P10 remains in `openspec/changes/`; the other phase changes are archived. Archival is not proof that every original criterion passed. P5 still lacks the Steam-side full-library export writer. Real-service, real-game and clean-machine checks remain in phase evidence.
+P0–P18 have code on main. P10 remains in `openspec/changes/`; the other phase changes are archived. Archival is not proof that every original criterion passed. The old P5 Steam export-writer gap is closed by 451e393 / de0e6ec; real Steam verification remains pending. Real-service, real-game and clean-machine checks remain in phase evidence.
 
 Merged follow-ups include review fixes, already-installed Windows-game import (in place by default or copied), external-unpacker detection and prefix preparation, NotProton replacement, and Wine publication from BRYANN2K/cartouche-wine.
 
-Before v0.1.0, these accepted follow-ups remain planned or in progress:
+Accepted follow-up status before v0.1.0:
 
-- CrossOver Wine as default, with serialized explicit first boot and no launch until completion (ADR 0015).
-- Shared built-in zip, rar and 7z decompression and dropped-item classification (ADR 0016).
-- Direct extraction for supported installers with external unpackers (ADR 0017, in progress; main still runs setup).
-- Managed-game uninstall to the Trash, optional save copy, and safe in-place removal (ADR 0018).
-- Ranked local identification and privacy-gated Steam search (ADR 0019).
-- PE-based runtimes, one winetricks verb at a time, timeout, Skip, Wine Mono for .NET (ADR 0020).
-- Full Steam library export through a token-protected WebUI route and cached/stale presentation when Steam is closed (ADRs 0021–0022; in progress on `phase/steam-export`).
+- Merged in 95b4e47: CrossOver Wine default for new games when installed, backend reasons and serialized first boot before launch (ADR 0015); real-hardware checks pending.
+- Shared archive import with bundled pinned universal libarchive and DropClassifier (ADRs 0016, 0023; backend merged in 95b4e47, app wiring pending). Verify zip/zip64, 7z, tar.*, RAR4/RAR5 and conditional multi-volume/solid coverage; encrypted archives are refused.
+- Direct extraction for supported installers with external unpackers (ADR 0017; app implementation merged in 3bb5921, missing-driver/failed-part fallback and app end-to-end verification pending).
+- Merged in 307ad2c: Managed-game uninstall to the Trash, optional save copy, and safe in-place removal (ADR 0018).
+- Merged in 307ad2c: Ranked local identification and privacy-gated Steam search (ADR 0019).
+- Merged in 307ad2c: PE-based runtimes, one winetricks verb at a time, timeout, Skip, Wine Mono for .NET (ADR 0020).
+- Full Steam library export through a token-protected WebUI route and cached/stale presentation when Steam is closed (ADRs 0021–0022; merged in 451e393 / de0e6ec, real Steam check pending).
 
 The app repository stays private until v0.1.0. Wine build recipes and assets are public in BRYANN2K/cartouche-wine. The landing page is https://cartouche.bryann2k.dev, linked from About.
 

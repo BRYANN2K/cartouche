@@ -339,7 +339,6 @@ enum PrefixStore {
         }
     }
 
-
     static func arch(of prefix: WinePrefix) -> PrefixArch? {
         let dll = prefix.pfx.appending(path: "drive_c/windows/system32/ntdll.dll")
         guard let handle = try? FileHandle(forReadingFrom: dll) else { return nil }
@@ -365,9 +364,13 @@ enum PrefixStore {
     static var serverRoot: URL { URL(filePath: "/tmp/.wine-\(getuid())") }
 
     static func serverDirectory(of prefix: WinePrefix, root: URL = serverRoot) -> URL? {
+        serverDirectory(forPfx: prefix.pfx, root: root)
+    }
+
+    static func serverDirectory(forPfx pfx: URL, root: URL = serverRoot) -> URL? {
         guard
             let attributes = try? FileManager.default.attributesOfItem(
-                atPath: prefix.pfx.path(percentEncoded: false)
+                atPath: pfx.path(percentEncoded: false)
             ),
             let device = attributes[.systemNumber] as? Int,
             let inode = attributes[.systemFileNumber] as? Int
@@ -381,14 +384,22 @@ enum PrefixStore {
         _ prefix: WinePrefix, root: URL = serverRoot, lsof: String = "/usr/sbin/lsof",
         drainTimeout: DispatchTimeInterval = .seconds(2)
     ) -> Bool {
-        let lock = open(lockPath(of: prefix), O_RDWR | O_NOFOLLOW | O_CLOEXEC)
+        isInUse(root: prefix.root, pfx: prefix.pfx, serverRoot: root, lsof: lsof, drainTimeout: drainTimeout)
+    }
+
+    // The same check for any folder/prefix pair, like an installer game's installs/<slug>.
+    static func isInUse(
+        root folder: URL, pfx: URL, serverRoot: URL = serverRoot, lsof: String = "/usr/sbin/lsof",
+        drainTimeout: DispatchTimeInterval = .seconds(2)
+    ) -> Bool {
+        let lock = open(lockPath(in: folder), O_RDWR | O_NOFOLLOW | O_CLOEXEC)
         if lock >= 0 {
             defer { FileLock.release(lock) }
             guard locked(lock) else { return true }
         } else if errno != ENOENT {
             return true
         }
-        return serverIsBusy(prefix, root: root, lsof: lsof, drainTimeout: drainTimeout)
+        return serverIsBusy(pfx, root: serverRoot, lsof: lsof, drainTimeout: drainTimeout)
     }
 
     // A launch takes this lock while it sets the prefix up. Holding it stops a launch from starting partway through a rebuild/delete.
@@ -399,11 +410,11 @@ enum PrefixStore {
         let lock = open(lockPath(of: prefix), O_RDWR | O_CREAT | O_NOFOLLOW | O_CLOEXEC, 0o600)
         guard lock >= 0 else {
             guard errno == ENOENT,
-                !serverIsBusy(prefix, root: root, lsof: lsof, drainTimeout: drainTimeout)
+                !serverIsBusy(prefix.pfx, root: root, lsof: lsof, drainTimeout: drainTimeout)
             else { return nil }
             return PrefixClaim(fd: -1)
         }
-        guard locked(lock), !serverIsBusy(prefix, root: root, lsof: lsof, drainTimeout: drainTimeout)
+        guard locked(lock), !serverIsBusy(prefix.pfx, root: root, lsof: lsof, drainTimeout: drainTimeout)
         else {
             FileLock.release(lock)
             return nil
@@ -412,7 +423,11 @@ enum PrefixStore {
     }
 
     private static func lockPath(of prefix: WinePrefix) -> String {
-        prefix.root.appending(path: ".cartouche-prefix.lock").path(percentEncoded: false)
+        lockPath(in: prefix.root)
+    }
+
+    private static func lockPath(in folder: URL) -> String {
+        folder.appending(path: ".cartouche-prefix.lock").path(percentEncoded: false)
     }
 
     private static func locked(_ fd: Int32) -> Bool {
@@ -422,9 +437,9 @@ enum PrefixStore {
     }
 
     private static func serverIsBusy(
-        _ prefix: WinePrefix, root: URL, lsof: String, drainTimeout: DispatchTimeInterval
+        _ pfx: URL, root: URL, lsof: String, drainTimeout: DispatchTimeInterval
     ) -> Bool {
-        guard let dir = serverDirectory(of: prefix, root: root),
+        guard let dir = serverDirectory(forPfx: pfx, root: root),
             FileManager.default.fileExists(atPath: dir.path(percentEncoded: false))
         else { return false }
 

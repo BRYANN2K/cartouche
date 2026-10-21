@@ -116,3 +116,34 @@ struct GamePanelTests {
         }
     }
 }
+
+@Suite("Game panel widths", .serialized)
+@MainActor
+struct GamePanelWidthTests {
+
+    @Test("At 300, 340 and 400 pt nothing is cut: title, Play and the Setup rows are all drawn whole")
+    func widths() async throws {
+        let fixture = try SteamFixture("panel-widths")
+        defer { fixture.remove() }
+        try fixture.writeExport()
+        try fixture.addArt(SteamFixture.apps.map(\.id))
+        let scratch = ScratchDefaults()
+        let compat = try await fixtureCompat(fixture.root, defaults: scratch)
+        await compat.openGame(appID: 1_245_620)
+        let model = libraryModel(fixture, defaults: scratch)
+        await model.load()
+        let game = try #require(model.game("steam:1245620"))
+        for width in [300.0, 340, 400] {
+            let panel = GamePanel(game: game, model: model, compat: compat,
+                                  actions: GameActionRunner(model: model, open: { _ in }))
+                .environment(\.covers, fixture.covers())
+                .environment(\.glassMode, .classic)
+                .frame(width: width, height: 900)
+            let texts = try await renderedTexts(panel, size: CGSize(width: width, height: 900),
+                                                named: "panel-\(Int(width))", dark: true, settle: 0.8)
+            #expect(seen(texts, "Elden Ring"), "title cut at \(width): \(texts)")
+            #expect(seen(texts, "Play"), "Play cut at \(width): \(texts)")
+            #expect(seen(texts, "Runner"), "Setup cut at \(width): \(texts)")
+        }
+    }
+}

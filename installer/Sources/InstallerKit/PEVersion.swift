@@ -7,6 +7,29 @@ public enum PEVersion {
         string("ProductName", in: exe)
     }
 
+    public static func fileDescription(of exe: URL) -> String? {
+        string("FileDescription", in: exe)
+    }
+
+    public static func companyName(of exe: URL) -> String? {
+        string("CompanyName", in: exe)
+    }
+
+    // Engine defaults say nothing about the game: "Unity Player", "UnrealEngine", a bare "Launcher".
+    private static let generic: Set<String> = [
+        "unity player", "unityplayer", "unity editor", "unrealengine", "unreal engine", "unrealeditor",
+        "ue4", "ue5", "launcher", "game launcher", "bootstrapper", "crashreporter", "crash report",
+        "crashreportclient", "unitycrashhandler", "windows application", "application", "setup",
+    ]
+
+    // The game's own name from its version info: product name, then the file description.
+    public static func gameName(of exe: URL) -> String? {
+        for key in ["ProductName", "FileDescription"] {
+            if let value = string(key, in: exe), !generic.contains(value.lowercased()) { return value }
+        }
+        return nil
+    }
+
     public static func string(_ key: String, in exe: URL) -> String? {
         guard let file = try? FileHandle(forReadingFrom: exe) else { return nil }
         defer { try? file.close() }

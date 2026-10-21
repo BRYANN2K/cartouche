@@ -78,8 +78,13 @@ final class LibraryModel {
     }
     var selectedGameID: String?
     var showPanel = true
+    var showSidebar = true
     var addGames: AddGamesKind?
+    var showAddGames = false
+    var verificationRequest: Game?
     var showAddConsoles = false
+    // The game whose Change Cover sheet searches Steam; nil keeps the sheet closed
+    var coverSearch: Game?
     var searchFocusRequests = 0
     var searchText = ""
     var isOffline = false
@@ -132,10 +137,11 @@ final class LibraryModel {
     func watch(every interval: Duration = .seconds(2)) {
         watcher?.cancel()
         let importer = importer
-        // Read now so a change between this call and the task's start is not missed.
-        var stamp = importer.exportStamp()
-        var running = importer.isRunning()
         watcher = Task { [weak self] in
+            // The baseline (a file stat and a process probe) never runs on the main actor.
+            var (stamp, running) = await Task.detached {
+                (importer.exportStamp(), importer.isRunning())
+            }.value
             var tick = 0
             while !Task.isCancelled {
                 try? await Task.sleep(for: interval)
@@ -295,10 +301,19 @@ final class LibraryModel {
         default: break
         }
         let count = Self.count(games(in: selection).count, result: false)
+        var subtitle = count
         if case .source(let source) = selection, let account = account(for: source) {
-            return String(localized: "\(count). Signed in as \(account)")
+            subtitle = String(localized: "\(count). Signed in as \(account)")
         }
-        return count
+        if steam.presence == .closed && steam.exported != nil {
+            switch selection {
+            case .all, .source(.steam):
+                subtitle += (subtitle.hasSuffix(".") ? " " : ". ")
+                    + String(localized: "Steam is closed. Some details may be out of date.")
+            default: break
+            }
+        }
+        return subtitle
     }
 
     static func count(_ n: Int, result: Bool) -> String {
@@ -383,6 +398,52 @@ final class LibraryModel {
 
     func coverOverride(for id: String) -> URL? {
         choices.covers[id].map(store.coverURL)
+    }
+
+    // MARK: Steam app IDs
+
+    // Installer games whose record has no app ID ask Steam once each, so their
+    // covers can come down and the ID is kept on the record for later lookups.
+    // Callers gate this on the online-lookups privacy choice.
+    func resolveInstallerAppIDs(lookup: SteamLookup, allowed: Bool) async {
+        guard allowed else { return }
+        var changed = false
+        for var record in InstalledGames.all(in: installsFolder) where record.appID == nil {
+            guard let found = await lookup.match(for: record.name) else { continue }
+            record.appID = found.appID
+            do {
+                try InstalledGames.save(record, in: GameFolder(root: installsFolder.appending(path: record.id)))
+                changed = true
+            } catch {
+                AppLog.note("could not save the app ID for \(record.id): \(error.localizedDescription)")
+            }
+        }
+        if changed { showInstalledGames(InstalledGames.all(in: installsFolder)) }
+    }
+
+    // A Steam cover pick fills a missing app ID on the install record; a known one stays.
+    func adoptAppID(_ appID: Int, for game: Game) {
+        guard game.source == .installer, game.id.hasPrefix("installer:") else { return }
+        let folder = GameFolder(root: installsFolder.appending(path: String(game.id.dropFirst("installer:".count))))
+        guard var record = InstalledGames.record(in: folder), record.appID == nil else { return }
+        record.appID = appID
+        do {
+            try InstalledGames.save(record, in: folder)
+        } catch {
+            AppLog.note("could not save the app ID for \(record.id): \(error.localizedDescription)")
+            return
+        }
+        showInstalledGames(InstalledGames.all(in: installsFolder))
+    }
+
+    // The Steam pick's CDN cover becomes the game's stored override, so it wins
+    // over every other source until the user clears it.
+    @discardableResult
+    func useSteamCover(_ item: SteamLookup.Item, for game: Game, covers: CoverStore) async -> Bool {
+        guard let file = await covers.download(item.appID, .cover) else { return false }
+        setCover(file, for: game.id)
+        adoptAppID(item.appID, for: game)
+        return true
     }
 
     func setup(for id: String) -> GameSetupChoice { choices.setups[id] ?? GameSetupChoice() }

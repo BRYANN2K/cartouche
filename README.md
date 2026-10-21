@@ -38,7 +38,7 @@ Cartouche is free and signed with its own certificate. It is not notarized by Ap
 
 Drop an already-installed Windows game folder to use it in place (the default) or copy it. An in-place import never gives Cartouche ownership of the source files. Removing it from the library must not delete them.
 
-Planned before v0.1.0: built-in zip, rar and 7z extraction, direct extraction for supported installers with external unpackers, ranked local identification, and runtime setup based on PE imports. CrossOver Wine becomes the default runner with an explicit first-boot step. Fresh initialization can take several minutes; games must wait until it finishes. See [the roadmap](docs/ROADMAP.md).
+Planned before v0.1.0: built-in zip, rar and 7z extraction, and direct extraction for supported installers with external unpackers. Ranked identification, privacy-gated Steam cover search, PE-based runtime setup and managed-game uninstall are merged. CrossOver Wine becomes the default runner with an explicit first-boot step. Fresh initialization can take several minutes; games must wait until it finishes. See [the roadmap](docs/ROADMAP.md).
 
 ## What it does today
 
@@ -84,4 +84,4 @@ And everyone who has positively contributed to macOS gaming.
 
 Cartouche is free software, licensed under the GNU General Public License version 3 (GPL-3.0), like NotProton. See LICENSE. Some parts carry the licenses of their original authors (Valve, the Steamworks SDK, Sparkle, fonts and others); NOTICE and THIRD-PARTY-LICENSES list them. What Cartouche asks macOS for and what it sends over the network is in docs/PRIVACY.md.
 
-Cartouche is now its own project, not built on NotProton. It is not affiliated with NotProton, Valve, Apple or CodeWeavers.
+Cartouche is now its own project, not built on NotProton. It is not affiliated with NotProton, Valve, Apple or CodeWeavers. Platform names and logos shown in the app belong to their owners and are only used to identify the platforms.

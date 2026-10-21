@@ -15,6 +15,15 @@ struct ReleaseFeedTests {
         #expect(plist["SURequireSignedFeed"] as? Bool == true)
     }
 
+    // Sparkle 2.9+ fails the updater at launch (fatal error 5) when a signed feed
+    // is required without pre-extraction verification.
+    @Test("A required signed feed verifies the update before extraction")
+    func signedFeedNeedsVerifyBeforeExtraction() throws {
+        let plist = try IdentityTests.infoPlist()
+        #expect(plist["SURequireSignedFeed"] as? Bool != true
+                || plist["SUVerifyUpdateBeforeExtraction"] as? Bool == true)
+    }
+
     @Test("Bundle versions of betas sort before their release and after the one before")
     func bundleVersionsOrder() {
         let ordered = ["0.0.1t1", "0.0.1t2", "0.1.0", "0.1.1", "0.2.0b1", "0.2.0b2", "0.2.0b10", "0.2.0", "0.10.0"]

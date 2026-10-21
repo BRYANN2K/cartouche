@@ -82,6 +82,7 @@ struct FakeInstall {
         for i in 1 2 3 4; do head -c 300000 /dev/zero >> "$game/game.exe"; sleep 0.2; done
         head -c 2000 /dev/zero > "$game/unins000.exe"
         head -c 1000 /dev/zero > "$game/_Redist/dxwebsetup.exe"
+        head -c 1000 /dev/zero > "$game/_Redist/dotNetFx40_Full_setup.exe"
         printf 'Starting the installation process.\\nInstallation process succeeded.\\nLog closed.\\n' > "$WINEPREFIX/drive_c/installer.log"
         exit 0
         """
@@ -179,14 +180,14 @@ struct InstallFlowTests {
 
         // Rosetta, the runner's loader, setup.exe with the Inno options; wineboot first.
         let calls = fake.calledWith()
-        #expect(calls.first == "x86_64 wineboot --init TEMP=")
+        #expect(calls.first == "x86_64 wineboot -u TEMP=")
         #expect(calls.dropFirst().first == "x86_64 \(fake.source.appending(path: "setup.exe").path) /DIR=C:\\Games\\Sample Game /NORESTART /LOG=C:\\installer.log /LANG=en TEMP=")
         #expect(calls.count == 2)
         #expect(!FileManager.default.fileExists(atPath: fake.trap.path))
 
-        // The redistributable was not run; its winetricks verb was installed instead.
+        // The redistributables were not run; winetricks installed the verbs, one per call, .NET excepted.
         #expect(verbs.calls == [["d3dx9"]])
-        #expect(job.redistributablesInstalled == true)
+        #expect(job.runtimeSteps.map(\.status) == [.installed])
         #expect(job.candidates.map { ($0.path as NSString).lastPathComponent } == ["game.exe"])
     }
 
@@ -218,7 +219,7 @@ struct InstallFlowTests {
         try FileManager.default.createDirectory(at: userdata.appending(path: "12345/config"), withIntermediateDirectories: true)
         let steam = SteamShortcuts(userdata: userdata, steamIsRunning: { false })
         let exe = try #require(job.candidates.first?.path)
-        let outcome = try center.engine.finish(job, exe: URL(filePath: exe), showInSteam: true, steam: steam)
+        let outcome = try await center.engine.finish(job, exe: URL(filePath: exe), showInSteam: true, steam: steam)
         #expect(outcome == .added)
         #expect(job.phase == .ready)
         #expect(center.sheet.step == .ready)

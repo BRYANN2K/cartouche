@@ -6,6 +6,7 @@ extension CartoucheApp {
     var actions: GameActionRunner {
         GameActionRunner(
             model: library,
+            searchCover: { [library] game in library.coverSearch = game },
             showInfo: { [library] in library.showPanel = true },
             afterLaunch: { [afterLaunch] in
                 switch afterLaunch {

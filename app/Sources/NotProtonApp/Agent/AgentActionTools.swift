@@ -139,6 +139,7 @@ extension AgentTools {
                         installerBytes: found.scan.totalSize + setupSize,
                         installerFiles: files, manifest: found.manifest)
                     request.unpacker = found.unpacker
+                    request.directUnpack = found.directUnpack
                     let runnerID = options["runner"]?.string
                         ?? backend.runners().filter(\.isOffered).first?.id
                         ?? backend.runners().first?.id
@@ -260,7 +261,7 @@ extension AgentTools {
                             throw AgentToolError("the exe must be inside the game's install folder")
                         }
                     }
-                    try backend.finishInstall(job, exe: url)
+                    try await backend.finishInstall(job, exe: url)
                     return ["game": .string(job.title), "exe": .string(url.lastPathComponent),
                             "candidates": .array(job.candidates.map { .string($0.path) })]
                 }

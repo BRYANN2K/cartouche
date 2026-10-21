@@ -193,8 +193,8 @@ final class AgentLiveBackend: AgentBackend {
 
     func stopInstall(_ job: InstallJob) throws { installs.stop(job) }
 
-    func finishInstall(_ job: InstallJob, exe: URL) throws {
-        _ = try installs.finish(job, exe: exe, showInSteam: false)
+    func finishInstall(_ job: InstallJob, exe: URL) async throws {
+        _ = try await installs.finish(job, exe: exe, showInSteam: false)
     }
 
     func cleanupInstaller(_ request: InstallRequest) throws -> Int64 {
@@ -245,7 +245,14 @@ final class AgentLiveBackend: AgentBackend {
             }
             let log = URL(filePath: installed.prefix).deletingLastPathComponent()
                 .appending(path: PrefixTools.winetricksLogName)
-            try await installs.engine.winetricks(verbs, prefix, wine, log)
+            let run = try await installs.engine.winetricks(verbs, prefix, wine, log)
+            try run.start()
+            let status = await run.exitStatus()
+            guard status == 0 else {
+                throw StepFailure(
+                    step: String(localized: "Run Winetricks"),
+                    detail: String(localized: "Winetricks stopped with status \(status). Its output is in \(log.path(percentEncoded: false))."))
+            }
             return log
         }
         guard let appID = game.steamAppID,

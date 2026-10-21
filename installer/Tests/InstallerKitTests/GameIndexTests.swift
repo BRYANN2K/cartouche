@@ -106,7 +106,7 @@ struct GameIndexTests {
     }
 }
 
-func samplePE(productName: String) -> Data {
+func samplePE(productName: String, fileDescription: String? = nil, companyName: String? = nil) -> Data {
     func le16(_ v: Int) -> [UInt8] { [UInt8(v & 0xFF), UInt8(v >> 8 & 0xFF)] }
     func le32(_ v: Int) -> [UInt8] { le16(v & 0xFFFF) + le16(v >> 16 & 0xFFFF) }
     func utf16(_ s: String) -> [UInt8] { (s + "\0").utf16.flatMap { le16(Int($0)) } }
@@ -117,9 +117,13 @@ func samplePE(productName: String) -> Data {
 
     var block = le16(0) + le16(0) + le16(1) + utf16("StringFileInfo")
     while block.count % 4 != 0 { block.append(0) }
-    block += le16(0) + le16(0) + le16(1) + utf16("ProductName")
-    while block.count % 4 != 0 { block.append(0) }
-    block += utf16(productName)
+    for (key, value) in [("ProductName", productName), ("FileDescription", fileDescription), ("CompanyName", companyName)] {
+        guard let value else { continue }
+        block += le16(0) + le16(0) + le16(1) + utf16(key)
+        while block.count % 4 != 0 { block.append(0) }
+        block += utf16(value)
+        while block.count % 4 != 0 { block.append(0) }
+    }
 
     var f = [UInt8](repeating: 0, count: 0x200)
     put([0x4D, 0x5A], at: 0, in: &f)

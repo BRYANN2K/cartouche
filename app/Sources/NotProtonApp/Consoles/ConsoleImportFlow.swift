@@ -124,70 +124,34 @@ struct ConsoleImportFlow: View {
         .onDisappear { flow.reset() }
     }
 
-    private var kindPicker: some View {
-        Picker("Kind", selection: Binding(get: { kind }, set: { new in
-            guard new == .windows, let library = center.library else {
-                kind = new
-                return
-            }
-            flow.reset()
-            library.addGames = nil
-            Task {
-                try? await Task.sleep(for: .milliseconds(350))
-                library.addGames = .windows
-            }
-        })) {
-            ForEach(AddGamesKind.allCases) { Text($0.title).tag($0) }
-        }
-        .pickerStyle(.segmented)
-        .labelsHidden()
-    }
-
     @ViewBuilder
     private func dropStep(_ flow: ConsoleImport) -> some View {
-        Text("Add Games").font(.title2.weight(.bold))
-        kindPicker
-        Text("Drop your own game files or a folder. Zip, chd, cue and m3u work.")
-            .foregroundStyle(.secondary)
-        VStack(spacing: 8) {
-            Image(systemName: "folder.badge.plus")
-                .font(.system(size: 30, weight: .light))
-                .foregroundStyle(Color.accentColor)
-                .accessibilityHidden(true)
-            Text("Drop files or a folder here").font(.headline)
-            Button("Choose…") {
-                if let urls = Self.chooser() { flow.start(urls) }
-            }
-        }
-        .padding(28)
-        .frame(maxWidth: .infinity)
-        .background {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(targeted ? Color.accentColor.opacity(0.08) : Color.clear)
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
-                .foregroundStyle(targeted ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.tertiary))
+        SheetHeader(title: Text("Add Console Games"),
+                    message: Text("Drop your own game files or a folder. Zip, chd, cue and m3u work."))
+        DropZone(title: Text("Drop files or a folder here"), choose: Text("Choose…"), targeted: targeted) {
+            if let urls = Self.chooser() { flow.start(urls) }
         }
         .dropDestination(for: URL.self) { urls, _ in
             flow.start(urls)
             return !urls.isEmpty
         } isTargeted: { targeted = $0 }
         Text("Games in your game folders are added automatically. Set them in Settings > Library.")
-            .font(.callout)
-            .foregroundStyle(.secondary)
+            .font(.system(size: 11))
+            .foregroundStyle(Glass.label2)
+            .padding(.horizontal, 4)
         HStack {
             Spacer()
-            Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
+            Button("Cancel") { dismiss() }
+                .buttonStyle(.sheet)
+                .keyboardShortcut(.cancelAction)
         }
+        .padding(.top, 4)
     }
 
     @ViewBuilder
     private func identifyStep(_ flow: ConsoleImport) -> some View {
-        Text(flow.title).font(.title2.weight(.bold))
-        Text("Matched against the libretro database (No-Intro and Redump).")
-            .foregroundStyle(.secondary)
+        SheetHeader(title: Text(flow.title),
+                    message: Text("Matched against the libretro database (No-Intro and Redump)."))
         ScrollView {
             VStack(spacing: 0) {
                 ForEach(flow.rows) { row in
@@ -201,28 +165,33 @@ struct ConsoleImportFlow: View {
             .frame(maxWidth: .infinity)
             .groupBackground()
         }
+        .softScrollEdges()
         .frame(maxHeight: 320)
         .fixedSize(horizontal: false, vertical: true)
         let new = flow.done ? flow.newConsoles(added: center.added) : []
         if !new.isEmpty {
             Text(Self.alsoAdds(new))
-                .font(.callout)
-                .padding(10)
+                .font(.system(size: 12))
+                .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.accentColor.opacity(0.1), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .groupBackground(tint: .accentColor)
         }
-        HStack {
-            Button("Back") { flow.reset() }
+        HStack(spacing: 8) {
+            Button("Back") { flow.reset() }.buttonStyle(.sheet)
             Spacer()
-            Button("Cancel") { flow.reset(); dismiss() }.keyboardShortcut(.cancelAction)
+            Button("Cancel") { flow.reset(); dismiss() }
+                .buttonStyle(.sheet)
+                .keyboardShortcut(.cancelAction)
             Button(flow.addTitle) {
                 let games = flow.games
                 dismiss()
                 Task { await center.addGames(games) }
             }
+            .buttonStyle(.sheetProminent)
             .keyboardShortcut(.defaultAction)
             .disabled(!flow.done || flow.games.isEmpty)
         }
+        .padding(.top, 4)
     }
 
     static func alsoAdds(_ consoles: [Console]) -> String {
@@ -251,13 +220,14 @@ private struct ImportRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            ConsoleGlyphView(glyph: row.found?.console.flatMap(ConsoleCatalog.console)?.glyph ?? .cartridge)
+            ConsoleMarkView(id: row.found?.console ?? "", size: 16)
+                .foregroundStyle(Color.accentColor)
                 .frame(width: 28, height: 28)
-                .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .background(Glass.fill2, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             VStack(alignment: .leading, spacing: 1) {
-                Text(row.found?.name ?? row.file.lastPathComponent).lineLimit(1)
+                Text(row.found?.name ?? row.file.lastPathComponent).font(.system(size: 13, weight: .medium)).lineLimit(1)
                 Text(row.found.map(ConsoleImport.line) ?? String(localized: "Checking…"))
-                    .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    .font(.system(size: 11)).foregroundStyle(Glass.label2).lineLimit(1)
             }
             Spacer()
             if let found = row.found {

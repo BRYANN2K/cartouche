@@ -9,11 +9,20 @@ struct InstallEngine: Sendable {
     var runners: URL = SupportPaths.runners
     var registry: @Sendable () -> RunnerRegistry = { RunnerRegistry.refresh(free: .standard) }
     var environment: [String: String] = SetupEnvironment.base
+    var setupDefaults: @Sendable () -> SetupDefaults = { SetupDefaults.load() }
+    var backendAvailability: @Sendable (RunnerRegistry, URL) -> BackendAvailability = {
+        BackendAvailability.current(registry: $0, runners: $1)
+    }
     var policy = InstallRun.Policy()
+    var verbTimeout: TimeInterval = 300
     var keepAwake = true
     var steam = SteamShortcuts()
     var winetricks: @Sendable (_ verbs: [String], _ prefix: URL, _ wine: WineRunner, _ log: URL) async throws -> InstallRun
         = InstallerWinetricks.run
+    var innoextract: @Sendable () -> String? = { Innoextract.path() }
+    var toolRunner: @Sendable () -> any ToolRunning = { ProcessToolRunner(timeout: 900) }
+    var unpackerDriver: @Sendable () -> URL? = { InstallPayload.unpackerDriver() }
+    var freeSpace: @Sendable (URL) -> Int64? = { Disk.freeBytes(at: $0) }
 
     func runnerIDs() -> [String] { InstallRunners.choices(registry()).map(\.id) }
 
@@ -57,6 +66,13 @@ struct InstallEngine: Sendable {
             return
         }
         guard !Task.isCancelled else { stopped(job); return }
+
+        // An installer with an external unpacker whose pattern the kit recognizes skips setup
+        // entirely: the driver unpacks the parts straight into the install dir.
+        if let plan = request.directUnpack {
+            await runDirectUnpack(job, plan: plan, folder: folder, wine: wine)
+            return
+        }
 
         // An installer that uses an external unpacker gets the prefix it needs before setup runs:
         // Windows version 10 and the runtimes the unpacker links against.
@@ -119,6 +135,166 @@ struct InstallEngine: Sendable {
             return
         }
 
+        await finishScan(job, in: installDir, folder: folder, wine: wine)
+    }
+
+    // Direct unpacking for installers with external unpackers: the helpers come out of the
+    // installer's tmp section, the bundled driver then unpacks each part in the order the parts
+    // list gives them, and the shipped manifest verifies what landed. setup never runs.
+    @MainActor
+    private func runDirectUnpack(_ job: InstallJob, plan: DirectUnpackPlan, folder: GameFolder, wine: WineRunner) async {
+        let request = job.request
+
+        // The parts decompress where they land and scratch next to them; a shortfall is fatal mid-run.
+        let needed = request.expectedBytes + max(Int64(2) << 30, request.expectedBytes / 10)
+        if let free = freeSpace(folder.prefix), free < needed {
+            job.fail(String(localized: "Not enough free space to unpack the game (about \(ByteCountFormatter.string(fromByteCount: needed, countStyle: .binary)) needed)."))
+            return
+        }
+        guard let tool = innoextract() else {
+            job.fail(String(localized: "innoextract is missing, so the installer's helper files could not be read."))
+            return
+        }
+        guard let driver = unpackerDriver() else {
+            job.fail(String(localized: "\(DirectUnpack.driverName) is missing from the app's resources."))
+            return
+        }
+
+        job.phase = .installing
+        do {
+            try WineInstall.mapSource(request.source, prefix: folder.prefix)
+            try WineInstall.makeTemp(prefix: folder.prefix)
+            try await prepareUnpack(setup: request.setup, inputs: job.inputs, plan: plan,
+                                    folder: folder, driver: driver, tool: tool)
+        } catch {
+            if Task.isCancelled { stopped(job); return }
+            job.fail(error.localizedDescription)
+            return
+        }
+        guard !Task.isCancelled else { stopped(job); return }
+
+        let installDir = WinePath.unix(job.inputs.installDir, prefix: folder.prefix) ?? folder.prefix
+        let journal = ProcessJournal(file: folder.root.appending(path: "processes.log"))
+        for (index, part) in plan.parts.enumerated() {
+            let launch = WineInstall.runUnpackDriver(
+                part: part, plan: plan, installDir: job.inputs.installDir,
+                runner: wine, prefix: folder.prefix, inputs: job.inputs, base: environment
+            )
+            let log = folder.root.appending(path: "unpack-\(index + 1)-\(part.lastPathComponent).log")
+            let run = InstallRun(launch, output: log, outputLimit: 32 << 20)
+            job.run = run
+            do { try run.start() } catch {
+                journal?.close()
+                job.fail(error.localizedDescription)
+                return
+            }
+            if keepAwake { Self.keepAwake(while: run.pid) }
+            journal?.note("part \(index + 1) of \(plan.parts.count): \(part.lastPathComponent)")
+            let status = await run.monitor(folder: installDir, expected: request.expectedBytes, policy: policy, journal: journal) { progress in
+                Task { @MainActor in if job.phase == .installing { job.progress = progress } }
+            }
+            journal?.finish(root: run.pid, status: status)
+            if run.wasStopped || Task.isCancelled {
+                journal?.close()
+                await killPrefix(wine, prefix: folder.prefix)
+                stopped(job)
+                return
+            }
+            guard status == 0 else {
+                journal?.close()
+                job.diagnosis = DirectUnpack.diagnose(status: status, log: InstallLog.read(log))
+                job.phase = .failed
+                return
+            }
+        }
+        journal?.close()
+        await waitForWine(wine, prefix: folder.prefix)
+        guard !Task.isCancelled else { stopped(job); return }
+
+        // The app section carries the manifest and any redistributables; it lands over the
+        // unpacked tree the way the installer would have placed it.
+        let sections = folder.root.appending(path: "installer-sections")
+        let appTree = sections.appending(path: DirectUnpack.appSection)
+        if FileManager.default.fileExists(atPath: appTree.path(percentEncoded: false)) {
+            do { try Self.copyContents(of: appTree, into: installDir) } catch {
+                job.fail(String(localized: "The unpacked files could not be moved into place. \(error.localizedDescription)"))
+                return
+            }
+        }
+
+        if let rel = plan.manifestPath,
+           let manifest = try? Checksums.parse(installDir.appending(path: rel)), !manifest.entries.isEmpty {
+            job.phase = .verifying
+            let counted = ByteCount()
+            do {
+                let results = try await Checksums.verify(manifest, root: installDir) { hashed in
+                    counted.add(hashed)
+                    let total = counted.value
+                    Task { @MainActor in
+                        guard job.phase == .verifying else { return }
+                        job.progress.bytes = total
+                        job.progress.fraction = min(0.99, Double(total) / Double(max(1, job.progress.expected)))
+                    }
+                }
+                let bad = results.filter { $0.value != ChecksumResult.ok }.map(\.key.lastPathComponent).sorted()
+                guard bad.isEmpty else {
+                    job.diagnosis = InstallDiagnosis(
+                        kind: .damagedFile, causes: [.damagedFile], fixes: [.verifyFiles], exitCode: 0,
+                        detail: bad.prefix(3).joined(separator: ", ")
+                    )
+                    job.phase = .failed
+                    return
+                }
+            } catch {
+                stopped(job)
+                return
+            }
+        }
+
+        await finishScan(job, in: installDir, folder: folder, wine: wine)
+    }
+
+    // Pulls the helpers and app section out of the setup with the bundled innoextract, stages the
+    // helpers in the prefix's short path, and lands the driver next to them.
+    private func prepareUnpack(setup: URL, inputs: InstallInputs, plan: DirectUnpackPlan,
+                               folder: GameFolder, driver: URL, tool: String) async throws {
+        let sections = folder.root.appending(path: "installer-sections")
+        let runner = toolRunner()
+        try await Task.detached {
+            try Innoextract.extract(setup: setup, section: DirectUnpack.helperSection, into: sections, tool: tool, runner: runner)
+            try Innoextract.extract(setup: setup, section: DirectUnpack.appSection, into: sections, tool: tool, runner: runner)
+        }.value
+        let helpers = folder.prefix.appending(path: DirectUnpack.helperUnixDir)
+        try Self.copyContents(of: sections.appending(path: DirectUnpack.helperSection), into: helpers)
+        try FileManager.default.copyItem(at: driver, to: helpers.appending(path: DirectUnpack.driverName))
+        if let ini = plan.clsConfig {
+            _ = try DirectUnpack.patchConfig(
+                at: helpers.appending(path: ini), tempDir: WineInstall.shortTemp,
+                memoryPercent: inputs.memoryPercent, threads: inputs.threads
+            )
+        }
+    }
+
+    // Moves every top-level entry into the destination, replacing same-named items.
+    private static func copyContents(of source: URL, into dest: URL) throws {
+        let fm = FileManager.default
+        try fm.createDirectory(at: dest, withIntermediateDirectories: true)
+        for item in try fm.contentsOfDirectory(atPath: source.path(percentEncoded: false)) {
+            let to = dest.appending(path: item)
+            if fm.fileExists(atPath: to.path(percentEncoded: false)) { try fm.removeItem(at: to) }
+            try fm.copyItem(at: source.appending(path: item), to: to)
+        }
+    }
+
+    private func killPrefix(_ wine: WineRunner, prefix: URL) async {
+        let env = WineInstall.environment(runner: wine, prefix: prefix, inputs: nil, base: environment)
+        await WineServer.kill(server: wine.server, env: env)
+    }
+
+    // The shared tail of an install: launcher candidates from the unpacked files, the runtimes
+    // they need, and on to the launcher's choice step.
+    @MainActor
+    private func finishScan(_ job: InstallJob, in installDir: URL, folder: GameFolder, wine: WineRunner) async {
         let gog = GOGInfo.find(in: installDir)
         let primary = gog.flatMap { found in found.info.primaryExe.map { found.url.deletingLastPathComponent().appending(path: $0) } }
         let scan = ExeDetector.scan(installFolder: installDir, prefix: folder.prefix, primary: primary)
@@ -159,10 +335,10 @@ struct InstallEngine: Sendable {
             game = target
         }
         job.installFolder = game
-        guard await installRedistributables(job, in: game, folder: folder, wine: wine) else { return }
+        guard await installRedistributables(job, exe: exe, folder: folder, wine: wine) else { return }
         job.progress.fraction = 1
         do {
-            job.steamOutcome = try finish(job, exe: exe, showInSteam: plan.showInSteam)
+            job.steamOutcome = try await finish(job, exe: exe, showInSteam: plan.showInSteam)
         } catch {
             job.fail(error.localizedDescription)
         }
@@ -181,76 +357,141 @@ struct InstallEngine: Sendable {
         do {
             let folder = try GameFolder.fresh(for: job.request.name, in: installs)
             job.folder = folder
-            if let create = try WineBootstrap.createRun(wine: wine, prefix: folder.prefix, base: environment,
-                                                     log: folder.root.appending(path: "prefix.log")) {
-                job.run = create
-                try create.start()
-                let status = await create.exitStatus()
-                if create.wasStopped || Task.isCancelled {
-                    stopped(job)
-                    return nil
-                }
-                guard status == 0 else {
-                    job.fail(String(localized: "The prefix could not be created (status \(status))."))
-                    return nil
-                }
-                await waitForWine(wine, prefix: folder.prefix)
+            // Preparing Windows environment: wineboot -u, then wineserver -w, shared if asked twice.
+            let boot = WineBootstrap.begin(wine: wine, prefix: folder.prefix, base: environment,
+                                           log: folder.root.appending(path: "prefix.log"))
+            job.bootStarted = boot.prepares ? boot.started : nil
+            job.run = boot.run
+            switch await boot.outcome.value {
+            case .ready:
+                return (folder, wine)
+            case .stopped:
+                stopped(job)
+                return nil
+            case .failed(let detail):
+                job.fail(detail)
+                return nil
             }
-            return (folder, wine)
         } catch {
             job.fail(error.localizedDescription)
             return nil
         }
     }
 
-    // The game's own runtime installers are not run: winetricks installs the Wine equivalents. False when stopped.
+    // An installed game's needs come from its own programs' imports, never from its redist folders.
+    @MainActor
+    private func installRedistributables(_ job: InstallJob, exe: URL, folder: GameFolder, wine: WineRunner) async -> Bool {
+        await installRedistributables(job, steps: RuntimeScan.scan(exe: exe).steps, folder: folder, wine: wine)
+    }
+
+    // The bundled runtime installers found after a setup ran; .NET is left out because Wine Mono covers it.
     @MainActor
     private func installRedistributables(_ job: InstallJob, in game: URL, folder: GameFolder, wine: WineRunner) async -> Bool {
-        job.redistributables = Redistributables.find(in: game)
-        let verbs = Redistributables.verbs(job.redistributables)
-        guard !verbs.isEmpty else { return true }
+        var seen: Set<String> = []
+        let steps = Redistributables.find(in: game).filter { $0.family != .dotNet }
+            .compactMap { seen.insert($0.verb).inserted ? RuntimeStep(verb: $0.verb, label: $0.label) : nil }
+        return await installRedistributables(job, steps: steps, folder: folder, wine: wine)
+    }
+
+    // One verb at a time so a stuck one is named, timed out and skipped instead of hanging the import.
+    @MainActor
+    private func installRedistributables(_ job: InstallJob, steps: [RuntimeStep], folder: GameFolder, wine: WineRunner) async -> Bool {
+        job.runtimeSteps = steps
+        guard !steps.isEmpty else { return true }
         guard !Task.isCancelled else { stopped(job); return false }
         job.phase = .redistributables
         let log = folder.root.appending(path: PrefixTools.winetricksLogName)
-        do {
-            let run = try await winetricks(verbs, folder.prefix, wine, log)
-            job.run = run
-            try run.start()
-            let status = await run.exitStatus()
-            if run.wasStopped || Task.isCancelled { stopped(job); return false }
-            job.redistributablesInstalled = status == 0
-            if status != 0 {
-                AppLog.note("installer: winetricks \(verbs) stopped with status \(status); its output is in \(log.path(percentEncoded: false))")
+        for i in job.runtimeSteps.indices {
+            job.runtimeSteps[i].status = .installing
+            job.skipRuntime = false
+            let verb = job.runtimeSteps[i].verb
+            do {
+                let run = try await winetricks([verb], folder.prefix, wine, log)
+                job.run = run
+                try run.start()
+                let timedOut = await exceeded(run, timeout: verbTimeout)
+                if Task.isCancelled { stopped(job); return false }
+                let status = await run.exitStatus()
+                if timedOut || (job.skipRuntime && status != 0) {
+                    job.runtimeSteps[i].status = .skipped
+                    if timedOut {
+                        AppLog.note("installer: winetricks \(verb) did not finish in \(Int(verbTimeout)) s and was skipped; its output is in \(log.path(percentEncoded: false))")
+                    }
+                } else {
+                    job.runtimeSteps[i].status = status == 0 ? .installed : .failed
+                    if status != 0 {
+                        AppLog.note("installer: winetricks \(verb) stopped with status \(status); its output is in \(log.path(percentEncoded: false))")
+                    }
+                }
+            } catch {
+                if Task.isCancelled { stopped(job); return false }
+                AppLog.note("installer: winetricks \(verb) failed: \(error.localizedDescription)")
+                job.runtimeSteps[i].status = .failed
             }
-        } catch {
-            if Task.isCancelled { stopped(job); return false }
-            AppLog.note("installer: winetricks \(verbs) failed: \(error.localizedDescription)")
-            job.redistributablesInstalled = false
         }
         await waitForWine(wine, prefix: folder.prefix)
         return true
     }
 
+    // True when the run was killed for taking longer than the verb timeout; the verb's own
+    // process group is killed, prefix-scoped, rather than the whole Wine session.
+    private func exceeded(_ run: InstallRun, timeout: TimeInterval) async -> Bool {
+        await withTaskGroup(of: Bool.self) { group in
+            group.addTask { _ = await run.exitStatus(); return false }
+            group.addTask {
+                try? await Task.sleep(for: .seconds(timeout))
+                return !Task.isCancelled
+            }
+            let hit = await group.next() ?? false
+            group.cancelAll()
+            if hit {
+                run.stop()
+                _ = await run.exitStatus()
+            }
+            return hit
+        }
+    }
+
     @MainActor
-    func finish(_ job: InstallJob, exe: URL, showInSteam: Bool, steam: SteamShortcuts? = nil) throws -> SteamShortcuts.Outcome? {
+    func finish(_ job: InstallJob, exe: URL, showInSteam: Bool, steam: SteamShortcuts? = nil) async throws -> SteamShortcuts.Outcome? {
         guard let folder = job.folder else { return nil }
+        let request = job.request, inputs = job.inputs, steps = job.runtimeSteps
+        let engine = self
+        // The registry scan, the launcher, the record and the Steam shortcut's process probe: none of it belongs on the main actor.
+        let made = try await Task.detached {
+            try engine.writeInstall(folder: folder, request: request, inputs: inputs, runtimeSteps: steps,
+                                    exe: exe, showInSteam: showInSteam, steam: steam)
+        }.value
+        job.game = made.game
+        job.phase = .ready
+        return made.steam
+    }
+
+    // Everything finish writes or probes, run off the caller's actor.
+    private func writeInstall(folder: GameFolder, request: InstallRequest, inputs: InstallInputs,
+                              runtimeSteps: [RuntimeStep], exe: URL, showInSteam: Bool,
+                              steam: SteamShortcuts?) throws -> (game: InstalledGame, steam: SteamShortcuts.Outcome?) {
         let registry = registry()
-        let runner = registry.runner(id: job.inputs.runnerID)
-        guard let wine = runner.flatMap({ InstallRunners.wine(for: $0, runners: runners) }) else {
+        guard let runner = registry.runner(id: inputs.runnerID),
+              let wine = InstallRunners.wine(for: runner, runners: runners) else {
             throw StepFailure(step: String(localized: "Write the game's launcher"),
                               detail: String(localized: "The runner that installed the game is not set up anymore."))
         }
-        try GameLauncher.write(exe: exe, folder: folder, wine: wine, backend: .wined3d)
-        // The setup defaults to what the install ran: the installer's runner, plain Wine (wined3d)
+        // The graphics default is the one any Windows game gets: the user's default pick, else the runner's first backend.
+        let offered = BackendSupport.backends(for: runner, translation: .rosetta,
+                                              availability: backendAvailability(registry, runners))
+        let backend = setupDefaults().graphics.flatMap { offered.contains($0) ? $0 : nil } ?? offered.first ?? .wined3d
+        SetupEnvironment.prepare(backend, prefix: folder.prefix)
+        try GameLauncher.write(exe: exe, folder: folder, wine: wine, backend: backend)
         var game = InstalledGame(
-            id: folder.root.lastPathComponent, name: job.request.name, appID: job.request.appID, gogID: job.request.gogID,
-            runnerID: job.inputs.runnerID, graphics: GraphicsBackend.wined3d.rawValue,
-            wineVersion: runner?.version, wineRunnerKind: runner?.kind.rawValue,
+            id: folder.root.lastPathComponent, name: request.name, appID: request.appID, gogID: request.gogID,
+            runnerID: inputs.runnerID, graphics: backend.rawValue,
+            wineVersion: runner.version, wineRunnerKind: runner.kind.rawValue,
             prefix: folder.prefix.path(percentEncoded: false),
             exe: exe.path(percentEncoded: false), installedAt: Date(),
-            installerFolder: job.request.source.path(percentEncoded: false),
-            redistributables: Redistributables.verbs(job.redistributables),
-            gameFolder: job.request.importing.flatMap { $0.copy ? nil : $0.folder.path(percentEncoded: false) }
+            installerFolder: request.source.path(percentEncoded: false),
+            redistributables: runtimeSteps.filter { $0.status == .installed }.map(\.verb),
+            gameFolder: request.importing.flatMap { $0.copy ? nil : $0.folder.path(percentEncoded: false) }
         )
         var outcome: SteamShortcuts.Outcome?
         if showInSteam {
@@ -258,13 +499,12 @@ struct InstallEngine: Sendable {
             game.steamShortcut = outcome == .added || outcome == .alreadyThere
         }
         try InstalledGames.save(game, in: folder)
-        job.game = game
-        job.phase = .ready
-        return outcome
+        return (game, outcome)
     }
 
     @MainActor
     func stop(_ job: InstallJob) {
+        if let folder = job.folder { WineBootstrap.stop(folder.prefix) }
         job.run?.stop()
         job.task?.cancel()
     }

@@ -239,11 +239,11 @@ final class SystemStatus {
             let lock = try DeploymentContent.acquireInstallationLock()
             defer { lock.release() }
             try await requireUnblockedContent()
-            let changed = try await Task.detached(priority: .userInitiated) {
-                try RunnerInstaller.removeClone(forBuild: build)
+            let answer = try await Task.detached(priority: .userInitiated) {
+                (try RunnerInstaller.removeClone(forBuild: build), SteamBundle.isRunning)
             }.value
             let removed = String(localized: "Removed build \(RunnerRegistry.displayVersion(forID: build)).")
-            return changed && SteamBundle.isRunning ? "\(removed) \(Self.toolsRestartHint)" : removed
+            return answer.0 && answer.1 ? "\(removed) \(Self.toolsRestartHint)" : removed
         }
     }
 
@@ -368,10 +368,13 @@ final class SystemStatus {
 
     private static let toolsRestartHint = String(localized: "Restart Steam to update its list of compatibility tools.")
 
-    private func runnerOutcome(_ result: RunnerSetup.Outcome) -> String {
+    private func runnerOutcome(_ result: RunnerSetup.Outcome) async -> String {
         if result.stagedNothing { return String(localized: "Compatibility tool is already set up.") }
-        guard result.toolsChanged, SteamBundle.isRunning else { return String(localized: "Compatibility tool ready.") }
-        return String(localized: "Compatibility tool ready. \(Self.toolsRestartHint)")
+        guard result.toolsChanged else { return String(localized: "Compatibility tool ready.") }
+        let running = await Task.detached(priority: .utility) { SteamBundle.isRunning }.value
+        return running
+            ? String(localized: "Compatibility tool ready. \(Self.toolsRestartHint)")
+            : String(localized: "Compatibility tool ready.")
     }
 
     func perform(
@@ -423,7 +426,7 @@ final class SystemStatus {
                 }
             }.value
 
-            return runnerOutcome(result)
+            return await runnerOutcome(result)
         }
     }
 
@@ -433,7 +436,9 @@ final class SystemStatus {
             let lock = try DeploymentContent.acquireInstallationLock()
             defer { lock.release() }
             try await requireInstallableContent()
-            let result = try await ValveFetcher.run { progress($0.label) }
+            let result = try await Task.detached(priority: .userInitiated) {
+                try await ValveFetcher.run { progress($0.label) }
+            }.value
             return result.wroteNothing ? nil : String(localized: "Downloaded missing components.")
         }
     }
@@ -513,7 +518,9 @@ final class SystemStatus {
             }.value
             if needsValve {
                 progress(String(localized: "Downloading missing components"))
-                _ = try await ValveFetcher.run { progress($0.label) }
+                _ = try await Task.detached(priority: .userInitiated) {
+                    try await ValveFetcher.run { progress($0.label) }
+                }.value
             }
 
             try await Task.detached(priority: .userInitiated) {
@@ -541,7 +548,9 @@ final class SystemStatus {
         await perform(from: RepairPhase.checking.label) { progress in
             let lock = try DeploymentContent.acquireInstallationLock()
             defer { lock.release() }
-            let result = try await SteamRepair.run(report: { progress($0.label) })
+            let result = try await Task.detached(priority: .userInitiated) {
+                try await SteamRepair.run(report: { progress($0.label) })
+            }.value
 
             var parts = [String(localized: "Steam restored to its original state.")]
             if result.stoppedClient { parts.append(Self.restartHint) }
@@ -551,14 +560,16 @@ final class SystemStatus {
 
     func resetControllerPermission() async {
         await perform(from: String(localized: "Resetting Steam's controller permission")) { _ in
-            let failed = SteamInstaller.failedInputAccessResets()
-            guard failed.isEmpty else {
+            let answer = await Task.detached(priority: .userInitiated) {
+                (SteamInstaller.failedInputAccessResets(), SteamBundle.isRunning)
+            }.value
+            guard answer.0.isEmpty else {
                 throw StepFailure(
                     step: String(localized: "Reset controller permission"),
-                    detail: String(localized: "macOS did not reset \(failed.joined(separator: ", ")) for Steam.")
+                    detail: String(localized: "macOS did not reset \(answer.0.joined(separator: ", ")) for Steam.")
                 )
             }
-            return SteamBundle.isRunning
+            return answer.1
                 ? String(localized: "Controller permission reset. Restart Steam so macOS asks again.")
                 : String(localized: "Controller permission reset. macOS asks again when Steam starts.")
         }
@@ -566,7 +577,9 @@ final class SystemStatus {
 
     func removeEverything() async {
         await perform(from: UninstallPhase.stoppingClient.label) { progress in
-            let result = try await Uninstall.run { progress($0.label) }
+            let result = try await Task.detached(priority: .userInitiated) {
+                try await Uninstall.run(report: { progress($0.label) })
+            }.value
 
             if let partial = result.partialRemoval { return partial }
             if result.leftSteamForOtherTool {

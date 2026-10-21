@@ -7,7 +7,7 @@ Cartouche v0.1.0 has no server and no account. It does not collect analytics. Ev
 ## What is built and what is planned
 
 - Agent control (P11) is merged. It exposes local tools to the MCP clients you authorize. Clients may send tool results to their own services; review the client’s policy. Cartouche itself sends no agent data to a Cartouche server.
-- Planned local-game changes are described separately below; they are not claims about current behavior.
+- Ranked identification, privacy-gated Steam search, PE-based runtime steps, managed-game uninstall and closed-Steam cache handling are merged in main 307ad2c. The archive backend is merged but its app adapter is not wired. Direct-unpacker implementation is merged; automatic failure fallback and app end-to-end checks remain pending.
 - FPS tracking (P8) is merged: sessions are measured and stored locally. Sharing them with MacGamingDB is coded but has no destination: MacGamingDB publishes no way to send reports. The sharing UI is hidden in v0.1.0 and comes back as an opt-in in v0.1.1 (see `docs/ROADMAP.md`). Nothing is sent.
 - Store sign-ins (P10), netplay, RetroAchievements, the translation service and iCloud Drive saves (P14) are merged and described below.
 
@@ -79,11 +79,12 @@ Cartouche sends no account, no Mac serial number and no list of your library. Th
 | Destination | When | What the service can see | Can you turn it off |
 |---|---|---|---|
 | macgamingdb.app | When you open a game's details or the estimate needs it, if the toggle is on | The Steam App ID of that game, your IP address, and the User-Agent `Cartouche/<version>` with the project website | Yes: Settings > Privacy > Fetch Mac reports from MacGamingDB |
+| store.steampowered.com | When a Windows installer game has no Steam app ID for its cover, and when you use Change Cover > Search Steam; only if the toggle is on | The game's name in a search request, your IP address, and the User-Agent `Cartouche/<version>` | Yes: Settings > Privacy > Fetch Mac reports from MacGamingDB |
 | github.com release asset `compat-data` (the compatibility file and the signed runner manifest) | At most once a day | A plain download request: your IP address and the User-Agent `Cartouche/<version>` | Yes: Settings > General > Check for updates and compatibility data daily |
 | github.com `appcast.xml` (Sparkle) | The daily update check | A plain download request. The Info.plist does not turn on Sparkle's system profile | Yes: the same switch pauses the automatic check. Check for Updates in the Cartouche menu always works. Beta releases are a separate opt-in |
 | buildbot.libretro.com | When you add a console (its core and the core info archive), or when you pick an official RetroArch release | A plain download request | Cores download only for consoles you add |
 | raw.githubusercontent.com | When you install a redistributable with Winetricks | A plain download request for the pinned Winetricks script | You choose to run it |
-| Steam content servers (`steamstatic.com`, `steamcdn-a.akamaihd.net`, `media.steampowered.com`) | When Cartouche installs its Steam integration or fetches a Steam game's icon | A plain download request. Packages are checked against pinned SHA-256 values | Inherited from NotProton |
+| Steam content servers (`steamstatic.com`, `steamcdn-a.akamaihd.net`, `media.steampowered.com`) | When Cartouche installs its Steam integration, fetches a Steam game's icon, or downloads a game's cover art | A plain download request. Packages are checked against pinned SHA-256 values | Inherited from NotProton |
 | github.com release assets of the store clients | The first time each store needs its client | A plain download request for a pinned release asset, checked by size and SHA-256 | Clients download only for stores you sign in to |
 | epicgames.com | Epic sign-in, and everything legendary does: listing your games, downloads, cloud saves | Epic's page sees the account you sign in with. legendary sends it your tokens and the game IDs you install or play | You sign in per store. Sign out deletes the tokens |
 | auth.gog.com, embed.gog.com, remote-config.gog.com, gamesdb.gog.com | GOG sign-in; the library list, cloud-save locations and covers read by Cartouche itself with your token; everything gogdl does (downloads, save sync); comet beside a running GOG game | The account you sign in with. comet answers the game's Galaxy calls with your tokens | You sign in per store. Sign out deletes the tokens |
@@ -93,11 +94,15 @@ Cartouche sends no account, no Mac serial number and no list of your library. Th
 | The translation service you configured | When you ask to translate the screen in a console game | RetroArch sends the current frame to that service. You choose the service; Cartouche only writes its address into RetroArch's settings | The option does nothing until you set a service |
 | iCloud Drive (Apple) | While "Save states to iCloud Drive" is on | Your console save files and save states, synced by macOS like any iCloud Drive folder | Turning the option off copies the files back to the Mac |
 
-### Planned game identification and local files
+### Game identification and local files
 
-ADR 0019 requires local identification first: store IDs, engine metadata, PE version information, executable name, then folder names. Steam store search is a fallback only when the online-lookups privacy choice permits it. That request may reveal the searched game title and your IP address to Steam. The full ranked resolver and its privacy gate are planned; this section does not claim they are merged.
+Ranked local identification and the Steam store fallback are merged. Local evidence includes store IDs, installer titles where available, engine metadata, PE version information, executable names and folder names. The shared Steam lookup path is controlled by Settings > Privacy > Fetch Mac reports from MacGamingDB. This existing toggle gates both Mac reports and Steam name searches; its wording does not mean Steam search has a separate switch. See The Steam store search below for request fields and cache details.
 
-Archive decompression and direct extraction of supported installers with external unpackers run locally. They do not upload game files. In-place Windows-game import is merged and leaves the original files where they are. Removing such an import must never delete those files. Planned managed-game uninstall moves the game to the Trash and offers a local copy of save files first (ADRs 0016–0018).
+PE-based runtime detection reads local executable imports. Wine Mono covers .NET; required winetricks steps run one at a time with timeout and Skip. No game files are uploaded by that analysis.
+
+Managed-game uninstall is merged: the game and prefix move to the Trash, with Keep save files offered for save folders found in the prefix. Removing an in-place import moves only Cartouche’s prefix and record to the Trash; the external source files stay untouched. Save copies stay locally under Cartouche’s saves folder.
+
+Archive decompression and direct extraction of supported installers with external unpackers run locally and do not upload game files. The archive backend is merged in 95b4e47 but its app adapter is unwired. Direct unpack is merged in 3bb5921; failure fallback and end-to-end app verification are pending.
 
 ### MacGamingDB
 
@@ -108,6 +113,14 @@ Archive decompression and direct extraction of supported installers with externa
 - With the toggle off, no request goes to macgamingdb.app. The panel shows AppleGamingWiki data and no estimate, and says Mac reports are turned off.
 - The toggle is on by default.
 - MacGamingDB publishes no data license. Cartouche reads its reports live and keeps them on your Mac. It does not copy them into the nightly file or anywhere else.
+
+### The Steam store search
+
+- The request is `GET https://store.steampowered.com/api/storesearch/?term=<game name>&l=english&cc=US`. It is Steam's public store search: no key and no account.
+- Steam can see the game's name, with your IP address. No account and no Mac identifier is sent.
+- Automatic search runs only when local identification leaves no known Steam App ID; Change Cover > Search Steam is a user-requested search through the same path. Cache entries reduce repeat requests: a found app ID is kept on the game's install record, and the search answers are cached in `compatibility/steam-lookup/` (a found answer for a month, a no-match for a day, an unreachable Steam for an hour).
+- Change Cover > Search Steam shows the same search's results; picking one downloads that game's cover from Steam's content servers. Cover art itself is a plain image download and carries no name.
+- With the toggle off, no search goes to steampowered.com and the picker says Steam lookups are turned off.
 
 ### The nightly compatibility file
 
@@ -141,17 +154,17 @@ Archive decompression and direct extraction of supported installers with externa
 - With "Save states to iCloud Drive" on, Cartouche's `saves` and `states` folders become links to `iCloud Drive/Cartouche/Saves` and `…/States`. The newer copy wins when they merge, and turning the option off copies everything back. Sync is Apple's own iCloud Drive; Cartouche has no cloud.
 - Coach mode reads named values of a running game through Cartouche's own relay. It sends nothing to a server.
 
-### Steam owned-library export (in progress)
+### Steam owned-library export (merged; real Steam check pending)
 
-The full owned-games list will come from Steam’s signed-in client, through a WebUI route registered by Cartouche’s injected dylib. Only Cartouche’s injected page script receives the random token for that Steam launch. The dylib validates the request and atomically writes SteamExport v1 `steam-library.json` locally. This adds no loopback HTTP service and requires neither a public Steam profile nor a user Web API key. The export stays on your Mac; this feature does not upload your library to Cartouche.
+The full owned-games list comes from Steam’s signed-in client, through a WebUI route registered by Cartouche’s injected dylib. Only Cartouche’s injected page script receives the random token for that Steam launch. The dylib validates the request and atomically writes SteamExport v1 `steam-library.json` locally. This adds no loopback HTTP service and requires neither a public Steam profile nor a user Web API key. The export stays on your Mac; this feature does not upload your library to Cartouche.
 
-When Steam is closed, Cartouche uses the last account-matched export even if stale and labels it cached/stale. Installed status comes from appmanifests. localconfig.vdf is play data only, not ownership. Implementation is in progress on `phase/steam-export`; see ADR 0022 and `openspec/changes/steam-export/`.
+When Steam is closed, Cartouche uses the last account-matched export even if stale and labels it cached/stale. Installed status comes from appmanifests. localconfig.vdf is play data only, not ownership. Implementation is merged in 451e393 / de0e6ec. It polls every 15 seconds and sends only changes, validates payloads up to 4 MB, writes mode 0600 and refuses symlinks. Real Steam verification remains pending; see ADR 0022 and `openspec/changes/steam-export/`.
 
 ## What stays on your Mac
 
 - Your library, favorites, game setups and settings.
 - The cached Steam library export (`steam-library.json`), console games, store library lists and install records (`stores/`).
-- The compatibility file and the per-game MacGamingDB answers (`~/Library/Application Support/Cartouche/compatibility/`).
+- The compatibility file, the per-game MacGamingDB answers and the Steam name-lookup answers (`~/Library/Application Support/Cartouche/compatibility/`).
 - Frame rates: one SQLite file, `performance/sessions.sqlite`, in the Cartouche folder (P8). Nothing is sent; v0.1.0 shows no sharing control, and MacGamingDB has no way to receive reports. If one ever existed, a report would carry only the chip, memory, macOS version, runner, backend, filtered settings and the FPS.
 - Logs in `~/Library/Logs/Cartouche`.
 - Epic, GOG and Amazon tokens, and the RetroAchievements token, in the macOS Keychain only. Details below.

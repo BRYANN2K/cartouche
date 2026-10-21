@@ -44,11 +44,21 @@ Steam (Mac client)
 - Reuses the existing app code: `CrossOverSource`, `RunnerStore`, `RunnerInstaller`, `SupportedRunner`, `PinnedDownload`, `AppUpdater`, `SupportPaths`.
 - Own names inside Steam (`cartouche.dylib`, `cartouche-proton*` tools, `CARTOUCHE_*` variables) come from one header, `cartouche_identity.h`. Install, Repair Steam and Remove Everything never touch an installed NotProton.
 
+### Process probes outside view updates (fixed in f9bb3d7)
+
+A release-app crash (AttributeGraph precondition failure) came from synchronous lsof/pgrep waits during SwiftUI updates: GameMenu.items → isBusy → lsof and LibraryModel.watch → SteamBundle.isRunning. GameMenu.items now reads cached per-game busy state and is pure. Busy refresh and Steam-presence probing run off the main actor. Uninstall planning/probes run detached before confirmation returns to the main actor. SystemStatus, SteamSetup, CoverBackdrop, PrefixTools and PrefixesModel also move blocking waits off the main actor.
+
+Keep process inspection out of view/menu construction. Cached state is refreshed asynchronously; rendering must not wait for a subprocess. The fix is merged, not an open known issue. This documentation update does not claim a new crash-reproduction run.
+
+### Library appearance (merged in 51a8ece)
+
+The dark Liquid Glass layout uses a floating sidebar, cover-tinted backdrop, store/console brand marks and a four-column grid. Not-installed covers are grayscale with color reveal on download. The panel uses a red anti-cheat subtitle and media carousel with arrows and capped dots; red is not a new macOS anti-cheat verdict. Selection stays stable without slide animations, and narrow layouts dock content. Change Cover uses the same restyled sheet system. The integration owner reports 0% idle CPU and flat memory on the local run; this is not a performance guarantee for all Macs. Existing macOS 15 and accessibility requirements remain.
+
 ### Steam-side dylib (`dylib/`, inherited from NotProton)
 
 - C code injected into the Mac Steam client with Dobby hooks.
 - Registers compatibility tools, patches Steam's web UI (`feats/webpatch.c`), writes Steam shortcuts (`feats/usershortcuts.c`) and starts games (`feats/compat_run.sh`).
-- P5 consumes SteamExport v1 `steam-library.json`. The full owned-list writer is in progress on `phase/steam-export`: the injected dylib registers a WebUI route through compatsvc’s route mechanism, validates a per-launch random token known only to Cartouche’s injected page script and the submitted payload, then atomically replaces the export (ADR 0022). No loopback HTTP listener, public Steam profile or user Web API key is used. With Steam closed, use the last account-matched export even if stale, labelled cached/stale. Appmanifests supply installed status; localconfig.vdf supplies play data only, never ownership (ADR 0021).
+- P5 consumes SteamExport v1 `steam-library.json`. The full owned-list writer is merged in 451e393 / de0e6ec: the injected dylib registers a WebUI route through compatsvc’s route mechanism, validates a per-launch random token known only to Cartouche’s injected page script and the submitted payload, then atomically replaces the export (ADR 0022). No loopback HTTP listener, public Steam profile or user Web API key is used. With Steam closed, use the last account-matched export even if stale, labelled cached/stale. Appmanifests supply installed status; localconfig.vdf supplies play data only, never ownership (ADR 0021).
 - P3 makes `compat_run.sh` set DLL overrides and environment variables per backend.
 - Also in this tree: `lsteamclient/`, `steam-shim/`, `ntdll-patch/`, `overlay-shim/`, `bridge/`, `helpers/`.
 - The dylib and the app share one data root and one set of Steam-side names through a generated header (P0). A test compares both sides.
@@ -73,22 +83,32 @@ Steam (Mac client)
 - Steam sees one compatibility tool per valid runner and backend pair, named `<runner> · <backend>`.
 - A game installed from a Windows installer gets the same setup picker, limited to the install runners. `SetupEnvironment` builds the launch environment for store and installer games alike; `GameLauncher` rewrites `installs/<slug>/launch` in place, so the game and its prefix are never copied. Its record keeps the Wine version that last ran the prefix: picking an older Wine warns that the game may not start, and still applies.
 
-### Planned local-game changes (ADRs 0015–0020)
+### Unified Add Games (UI merged, backend pending)
 
-- CrossOver 26.3 Wine becomes the default runner. Among free Wine variants, it alone enables D3DMetal and DXMT; Apple files are still user-supplied. Existing runner and ntdll validation remains required.
-- Serialize first boot per prefix. Await successful initialization and Wine-server completion before installers or games run. Existing `WineBootstrap` checks `system.reg`; that is not yet the required completion gate. A local repair took about eleven minutes; do not turn that observation into a sleep or a fixed deadline.
-- Use one bundled open-source decompressor for zip, rar and 7z across PC and console imports. Dependency selection is pending. Classify dropped archives, folders, installers and ROMs before import.
-- A Cartouche-owned driver directly extracts supported parts for installers with external unpackers. Main currently prepares Windows 10, short paths and runtimes, journals processes and still executes setup. Direct extraction is in progress, not merged.
+ADR 0024 replaces separate Windows Games… / Console Games… entries. Toolbar + and library-window drops open the same Add Games sheet: drop zone and Choose… for files or folders of any type. The existing UI DropClassifying protocol connects to the shared DropClassifier backend; detection routes to installer/import, console ROM import or other matching flows. UI work is merged in a47ffd3 / 51a8ece; the InstallerKit backend is merged in 95b4e47 but its app adapter remains unwired in installer/AppAdapter/. Until DropClassifier is supplied to the app, the sheet shows “Game detection is unavailable”. See openspec/changes/unified-add-games/ and docs/research/unified-add-games.md for updated mockup notes.
+
+### Local-game changes and remaining work (ADRs 0015–0020)
+
+- CrossOver 26.3 Wine release `wine-crossover-26.3.0-1` is published from BRYANN2K/cartouche-wine. RELEASE.md records its size, hash and reused CI-build provenance. Default selection for new games when installed, the manifest pin, Graphics-menu reasons and serialized first boot are merged in 95b4e47; real-hardware checks remain pending. Among free Wine variants, CrossOver Wine alone enables D3DMetal and DXMT; D3DMetal also needs the user’s own GPTK files. Existing runner and ntdll validation remains required.
+- Serialize first boot per prefix. Await successful initialization and Wine-server completion before installers or games run. Merged WineBootstrap uses explicit `wineboot -u` then `wineserver -w`, serialized per prefix; the gate precedes direct unpack and offers Show Log, Try Again and Recreate Prefix. A local repair took about eleven minutes; do not turn that observation into a sleep or a fixed deadline.
+- Backend merged in 95b4e47: bundled pinned libarchive 3.8.9 (BSD-2-Clause), xz 5.8.4 and zstd 1.5.7, universal arm64+x86_64, behind CArchive and an InstallerKit Swift wrapper. Pins are in installer/libarchive/pins. The app adapter remains unwired. Never use system libarchive/bsdtar. Target zip/zip64, 7z, tar.* and RAR4/RAR5; multi-volume and solid coverage depends on the pinned build and must be verified with fixtures and the user-supplied real RAR. Refuse encrypted archives clearly. DropClassifier feeds the existing UI DropClassifying protocol, extracting archives then classifying installers, installed-game folders, ROMs, ROM archives and mixed inputs (ADR 0023).
+- A Cartouche-owned driver directly extracts supported parts for installers with external unpackers. Main currently prepares Windows 10, short paths and runtimes, journals processes and still executes setup. The CLS Init_MapFile_ / unarc.dll FreeArcExtract recipe is now verified under WineHQ 11.18 on CarX Street: 905/905 real files MD5-verified, 22,703,585,753 bytes, exe present; one malformed manifest row is excluded. App implementation is merged in 3bb5921. Selection requires the Inno tmp/unarc.dll, tmp/arc.ini and cls-* entries, no password, and signature-checked FreeArc .bin parts; otherwise it uses setup. Missing-driver/failed-part automatic recovery is still absent, and the app end-to-end check is pending. See docs/research/direct-unpack-verification.md.
 - In-place and copied Windows-game imports are merged. In-place is the default; the record stores the external game path and Cartouche owns only its prefix and record.
-- Planned managed-game uninstall moves files to the Trash with an optional Keep save files copy. In-place removal must leave the source folder untouched. This is not the app-level Remove Cartouche operation.
-- Planned identity order: store IDs → engine metadata → PE version info → exe name → folder names. Steam store search is fallback only, gated by the online-lookups privacy choice.
-- Planned runtime selection reads the game’s PE imports. Install one winetricks verb per step, with timeout and Skip. Wine Mono covers .NET. Main still discovers redistributables by files and submits verbs together.
+- Merged in 307ad2c: managed-game uninstall moves files to the Trash with an optional Keep save files copy. In-place removal trashes only the Cartouche prefix and record, leaving source files untouched. GameUninstall copies detected prefix save folders before trashing; a failed copy leaves the game in place. This is not app-level Remove Cartouche.
+- Merged in 307ad2c: ranked identification uses GOG/Steam identity, installer title where present, engine metadata, PE product information, exe name and folder names. One Steam lookup path serves fallback identification and cover search, gated by the existing Fetch Mac reports from MacGamingDB choice. Epic-specific local metadata coverage is not established by this merge.
+- Merged in 307ad2c: RuntimeScan reads PE imports from the main exe and adjacent DLLs, avoids runtimes already shipped beside the game, and uses Wine Mono for .NET. InstallEngine runs one winetricks verb per step with Skip and a 300-second verb timeout. This is an existing code constant, not a documentation change.
+
+### Verified output and fallback (ADRs 0025–0026, UI merged in 7f8773b, engine pending)
+
+The UI defines GameVerificationPresenting in Library/Verification/GameVerification.swift, with badge/panel status, Verify Files…, progress with Stop, and mismatch choices. Its default backend is nil; FixtureGameVerification is not a production verifier. Engine implementation and live wiring remain pending. ADR 0026 separates installed and verification states. Full: shipped checksum list or archive CRC, always checked, no skip; Stop marks not verified. Partial: script file presence/sizes, labelled “verified (sizes)”. Unavailable: allow installation as “Installed, not verified” with a discreet badge and panel line. Verify Files… supports later checks. Mismatch offers Retry with the standard method (default), Keep Anyway (advanced; not verified, mismatches logged), and Cancel. Retry uses shipped helpers/original settings before guided real-installer execution under Wine. No successful process exit alone grants verified status.
+
+Optimizations may change speed only. Native helper replacements require exact version hashes on an allowlist; unknown helpers use shipped Windows versions. Every optimization needs byte-identical output on applicable local user-owned regression cases, including CarX Street, Lost in Random and Silksong RAR. Corpus files and verification data never leave the Mac. No helper hashes are selected here. The research-verified.md detection tree remains proposed.
 
 ### InstallerKit (`installer/`)
 
 - Swift package with no dependency on the app.
 - Components: `PartScanner`, `Checksums`, `InnoInspector`, `GameName`, `SpaceEstimate`, `InnoCommand`, `ExeDetector`. CLI: `installer-inspect`.
-- Analysis reads files and runs only `innoextract`. It never executes anything from the dropped folder.
+- Analysis reads files and runs only `innoextract`. It never executes anything from the dropped folder. The bundled innoextract is Homebrew 1.9, supporting Inno through 6.2.2; newer Inno support is not established.
 - The install runner (P6): fresh prefix, Rosetta, Inno options (`/DIR`, `/LOG`, `/LANG`, `/NORESTART`), progress from the install folder size, stuck watchdog, retry fixes, winetricks for redistributables.
 
 ### Compatibility data pipeline (CI)
@@ -169,7 +189,7 @@ Steam (Mac client)
 
 ### Sparkle updates
 
-- Sparkle 2.10.0 checks `appcast.xml` in GitHub Releases once a day.
+- Sparkle 2.10.0 checks `appcast.xml` in GitHub Releases once a day. `SUVerifyUpdateBeforeExtraction` is enabled in Info.plist (fix 8b6b29b); without it Sparkle refused to start with this configuration. ReleaseFeedTests guards the setting.
 - The appcast is signed with an EdDSA key kept in CI secrets. The app trusts only Cartouche's public key and requires a signed feed (`SURequireSignedFeed`).
 - Releases are signed with one self-signed certificate, so macOS grants survive updates. Tags, channels and certificate rotation: `docs/RELEASE.md`.
 - Optional Beta channel, off by default (Settings > Receive beta updates). A critical flag can force the prompt after a Steam update breaks the dylib.
@@ -254,7 +274,7 @@ Per-game setup, one Steam tool per runner and backend pair, Mac or Windows versi
 Nightly JSON, offline-first client, per-Mac estimate, Linux anti-cheat data, attribution. MacGamingDB is read live, not published. Change: [`p4-compatibility-data`](../openspec/changes/archive/2026-10-19-p4-compatibility-data/). Spec: `openspec/specs/compatibility-data/`. Merged.
 
 ### P5 Library app
-SwiftUI library, Steam import, favorites, search, all screen states, both macOS versions. The importer combines any account-matched export, installed manifests and play data. The Steam-side export writer is still missing despite archival. Change: [`p5-library-app`](../openspec/changes/archive/2026-10-19-p5-library-app/). Merged and archived. Real Steam freshness remains a manual check.
+SwiftUI library, Steam import, favorites, search, all screen states, both macOS versions. The importer combines any account-matched export, installed manifests and play data. The Steam-side writer was added in 451e393 and merged in de0e6ec, closing the old archived P5 implementation gap. Change: [`p5-library-app`](../openspec/changes/archive/2026-10-19-p5-library-app/). Merged and archived. Real Steam freshness remains a manual check.
 
 ### P6 Windows installer
 Analysis, install with progress, retry, playable result. Change: [`p6-windows-installer`](../openspec/changes/archive/2026-10-19-p6-windows-installer/). Spec: `openspec/specs/windows-installer/`. Merged.
@@ -297,7 +317,7 @@ Change [`p18-onboarding`](../openspec/changes/archive/2026-10-19-p18-onboarding/
 
 ## Open technical questions
 
-- In progress on `phase/steam-export`: the protected WebUI export route is decided (ADR 0022), not an open transport choice. Validate token isolation and rotation, payload rejection, atomic replacement, real Steam freshness and account isolation. Closed-client ownership is cached, not inferred from localconfig.vdf.
+- Merged Steam export (451e393 / de0e6ec): Cartouche.ExportOwnedGames#1 uses SteamClient WebUI transport, per-launch token prefix, a 4 MB payload limit, v1/account/type/name validation, atomic 0600 writes and symlink refusal. Page polling is every 15 seconds and sends on change. Reported automated checks: libexport-check 0 failures, library-export.js 20 checks. Real Steam freshness and account switching remain manual checks; closed-client ownership is cached, never inferred from localconfig.vdf.
 - Not proven on real runners: frame counter injection per runner; the probe exists and a refused runner plays unmeasured (P8 evidence).
 - Not proven on a real Steam: Pause and Resume reach `SteamClient.Downloads` through the injected page (P7 evidence, manual check M1).
 - Not proven on real services: the netplay lobby and MITM relay, live RetroAchievements, real iCloud Drive sync and two physical Macs (P14 evidence). The RetroArch MCP tool list is pinned by a fixture at the current commit and compared in CI at every bump.
@@ -306,4 +326,4 @@ Change [`p18-onboarding`](../openspec/changes/archive/2026-10-19-p18-onboarding/
 - Not proven: which macOS permissions apply without a relaunch on macOS 15, 26 and 27. Only Input Monitoring is assumed to need one. The P17 matrix is a manual check.
 - Not proven: an update keeps macOS grants across two signed releases (P9 and P17 manual checks).
 - Implemented: Settings > General > Check for updates and compatibility data daily pauses both automatic checks. See PRIVACY.md.
-- Planned: dependency selection for the shared decompressor; direct unpacker format coverage; serialized prefix-completion checks; PE runtime timeout values; v0.1.1 statistics submission and website hosting design.
+- Pending: archive app wiring and real user-archive coverage; direct unpacker format coverage; real-hardware prefix/backend checks; v0.1.1 statistics submission and website hosting design.

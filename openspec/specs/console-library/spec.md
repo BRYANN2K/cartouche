@@ -21,7 +21,7 @@ The sidebar SHALL list only the consoles the user added, each with its game coun
 - **THEN** it leaves the sidebar, its core is deleted, and every PlayStation game file is still on disk
 
 ### Requirement: Adding games by checksum
-Console games added from the + sheet or found in a watched folder SHALL be identified by checksum (CRC32, then MD5/SHA-1 for discs) against the libretro database, SHALL get their console and name from it, and unknown files SHALL ask for a console.
+Console games routed by automatic detection from the unified Add Games sheet or found in a watched folder SHALL be identified by checksum (CRC32, then MD5/SHA-1 for discs) against the libretro database, SHALL get their console and name from it, and unknown files SHALL ask for a console.
 
 #### Scenario: Known cartridge
 - **WHEN** a No-Intro verified SNES dump of Super Metroid is dropped
@@ -39,9 +39,13 @@ Console games added from the + sheet or found in a watched folder SHALL be ident
 - **WHEN** a recognized game file is copied into a watched folder while Cartouche runs
 - **THEN** it appears in its console within 10 seconds, without opening any sheet
 
-#### Scenario: Back and forth in the + sheet
-- **WHEN** the user switches from Console Games to Windows Game and back, and goes Back from the identification step
-- **THEN** each switch shows the matching first step and nothing is lost or stuck
+#### Scenario: ROM routed from Add Games
+- **WHEN** the user drops or chooses ROM files or a ROM archive through the common Add Games entry point
+- **THEN** automatic detection routes them to console import, extracting supported archives first, without a separate Console Games… entry
+
+#### Scenario: Back to the common sheet
+- **WHEN** the user goes Back from console identification
+- **THEN** the common Add Games sheet is shown without a Windows/Console mode selector
 
 ### Requirement: Covers
 Console games SHALL show box art, title screen and screenshot from libretro-thumbnails matched by database name, cached locally, on square cards that fit landscape and portrait boxes.

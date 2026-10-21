@@ -60,7 +60,7 @@ final class RunnersModelTests {
         await model.refresh()
         let before = try #require(model.rows.first { $0.id == build.id })
         #expect(before.title == "Wine CrossOver 26.3")
-        #expect(before.detail == "Built by Cartouche from CodeWeavers’ open-source code")
+        #expect(before.detail == "Built by Cartouche from CodeWeavers’ open-source code. Best for games: D3DMetal and DXMT.")
         #expect(before.status == "Not installed")
         #expect(before.action == .download)
 

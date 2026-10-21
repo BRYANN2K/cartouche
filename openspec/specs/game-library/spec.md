@@ -90,7 +90,7 @@ Every action in the context menu SHALL also be reachable from the menu bar, and 
 - **THEN** the game is added to Favorites
 
 ### Requirement: Built for PC and console games
-The library SHALL group sources under PC and Consoles, SHALL support square covers for console games next to 2:3 covers for PC games, and the toolbar's Add Games SHALL offer both Windows Game and Console Games.
+The library SHALL group sources under PC and Consoles and SHALL support square covers for console games next to 2:3 covers for PC games. The toolbar + SHALL open one Add Games sheet with a drop zone and Choose… for files or folders of any type. Dropping on the library window SHALL open the same sheet. Separate Windows Games… and Console Games… entries SHALL NOT be offered. Automatic detection SHALL route inputs to the matching installer, installed-game import, console ROM import or other supported flow through the existing DropClassifying protocol.
 
 #### Scenario: Sidebar structure
 - **WHEN** the app starts with Steam signed in and no console added
@@ -99,6 +99,18 @@ The library SHALL group sources under PC and Consoles, SHALL support square cove
 #### Scenario: Section titles are not repeated
 - **WHEN** a single source or console is selected
 - **THEN** the grid has no section header repeating the toolbar title; section headers appear only in All Games
+
+#### Scenario: One toolbar entry
+- **WHEN** the user clicks the toolbar +
+- **THEN** one Add Games sheet opens with a drop zone and Choose… for files or folders of any type, without a Windows Games… or Console Games… choice
+
+#### Scenario: Library-window drop
+- **WHEN** the user drops files or folders on the library window
+- **THEN** the same Add Games sheet opens with those inputs and runs automatic detection
+
+#### Scenario: Choose inputs
+- **WHEN** the user selects files or folders with Choose… in Add Games
+- **THEN** those inputs use the same detection and routing as a drop, without a platform-specific file-type filter
 
 ### Requirement: Covers for PC games
 Every PC game SHALL have a 2:3 cover, taken in this order: Steam's library art for its Steam App ID (from Steam's local cache first, then Steam's CDN), the store's own art (P10), a cover the user dropped on the game, and finally a cover drawn from the game's name and its executable icon. The user's choice SHALL always win.
@@ -114,3 +126,18 @@ Every PC game SHALL have a 2:3 cover, taken in this order: Steam's library art f
 #### Scenario: Nothing found
 - **WHEN** no art exists for a game
 - **THEN** the cover shows the game's name and its exe icon on a plain background, never a broken image
+
+#### Scenario: Privacy-gated cover search
+- **WHEN** an installer game has no known Steam App ID and online lookups are disabled
+- **THEN** automatic cover fallback sends no Steam name search and the library shows a local placeholder or cached cover
+
+#### Scenario: User cover search
+- **WHEN** online lookups are enabled and the user picks a result in Change Cover > Search Steam
+- **THEN** the shared Steam lookup path supplies the result and the selected cover is saved as the user’s choice
+
+### Requirement: Nonblocking library process state
+View and menu construction SHALL NOT synchronously wait for process probes. GameMenu.items SHALL read cached per-game busy state. Busy refresh, Steam presence and uninstall probes/plans SHALL run off the main actor; user confirmation SHALL return to the main actor.
+
+#### Scenario: Menu during process refresh
+- **WHEN** a game menu is built while process state is being refreshed
+- **THEN** menu construction reads cached state without waiting for lsof or pgrep

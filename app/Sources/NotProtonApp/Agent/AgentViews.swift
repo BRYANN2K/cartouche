@@ -135,7 +135,7 @@ struct AgentApprovalSheet: View {
 
     var body: some View {
         VStack(spacing: 18) {
-            Text("Cartouche agent request").font(.title2.weight(.bold))
+            Text("Cartouche agent request").font(.system(size: 17, weight: .bold))
             VStack(spacing: 4) {
                 Text("\(approval.client) wants to \(approval.text). Allow?")
                     .multilineTextAlignment(.center)

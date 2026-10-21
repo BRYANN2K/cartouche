@@ -65,6 +65,8 @@
 	<string>https://github.com/BRYANN2K/cartouche/releases/latest/download/appcast.xml</string>
 	<key>SURequireSignedFeed</key>
 	<true/>
+	<key>SUVerifyUpdateBeforeExtraction</key>
+	<true/>
 	<key>SUPublicEDKey</key>
 	<string>GQF06ayCCpIxh8XlQPQYWTwbYO2SckfWqr9rYCuJrqI=</string>
 </dict>

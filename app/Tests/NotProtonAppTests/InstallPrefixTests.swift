@@ -76,4 +76,50 @@ struct InstallPrefixTests {
         #expect(InstallRunners.choices(RunnerRegistry(runners: [ready, fexOnly])).map(\.id) == [ready.id])
         #expect(InstallRunners.wine(for: ready, runners: try scratchDirectory("empty")) == nil)
     }
+
+    static func freeWine(_ id: String) -> Runner {
+        Runner(id: id, kind: .wineBuild, version: id, displayVersion: id, flavors: [.rosetta],
+               state: .ready, build: nil, source: nil, isInstalled: true)
+    }
+
+    static func manifest(origin: RunnerManifest.Build.Origin, id: String = "wine-crossover-26.3.0-1") -> RunnerManifest {
+        RunnerManifest(format: 1, revision: 1, builds: [
+            .init(id: id, kind: "wineBuild", origin: origin, name: "Wine CrossOver", version: "26.3.0",
+                  displayVersion: "26.3",
+                  url: URL(string: "https://github.com/BRYANN2K/cartouche-wine/releases/download/\(id)/\(id)-x86_64.tar.xz")!,
+                  size: 0, sha256: RunnerManifest.pendingSHA256, root: id, loader: "bin/wine", flavors: ["rosetta"]),
+        ])
+    }
+
+    @Test("Cartouche's CrossOver Wine is the first install choice, ahead of a licensed CrossOver and WineHQ builds")
+    func cartoucheFirst() throws {
+        let runners = try scratchDirectory("runners")
+        let crossOver = try fakeRunner(in: runners)
+        let winehq = Self.freeWine("wine-stable-11.0_1")
+        let ours = Self.freeWine("wine-crossover-26.3.0-1")
+        let registry = RunnerRegistry(runners: [crossOver, winehq, ours])
+        #expect(InstallRunners.choices(registry, manifest: Self.manifest(origin: .cartouche)).map(\.id)
+                == ["wine-crossover-26.3.0-1", crossOver.id, winehq.id])
+        // A manifest that does not know the build keeps the registry order
+        #expect(InstallRunners.choices(registry, manifest: Self.manifest(origin: .winehq)).map(\.id)
+                == [crossOver.id, winehq.id, ours.id])
+    }
+
+    @Test("A new game takes the CrossOver Wine default; a game's own stored runner still wins")
+    func defaultRunner() throws {
+        let ours = Self.freeWine("wine-crossover-26.3.0-1")
+        let winehq = Self.freeWine("wine-stable-11.0_1")
+        let offered = [ours, winehq]
+        let fresh = GameSetupResolver.resolve(GameSetupChoice(), runners: offered, availability: BackendAvailability(),
+                                              offered: offered)
+        #expect(fresh.setup.runner?.id == ours.id)
+        let kept = GameSetupResolver.resolve(GameSetupChoice(runnerID: winehq.id), runners: offered,
+                                             availability: BackendAvailability(), offered: offered)
+        #expect(kept.setup.runner?.id == winehq.id)
+        #expect(kept.problems.isEmpty)
+        // A user default naming another runner keeps winning over the new first choice
+        let defaulted = GameSetupResolver.resolve(GameSetupChoice(), defaults: SetupDefaults(runnerID: winehq.id),
+                                                  runners: offered, availability: BackendAvailability(), offered: offered)
+        #expect(defaulted.setup.runner?.id == winehq.id)
+    }
 }

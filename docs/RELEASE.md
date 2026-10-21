@@ -9,6 +9,21 @@ Before v0.1.0, validate serialized prefix initialization on a clean Mac: no game
 
 How a Cartouche release is built, signed and published, and what the maintainer sets up once. Read by the maintainer and by contributors who change the release pipeline.
 
+### Published Wine build (2026-10-20)
+
+Release [`wine-crossover-26.3.0-1`](https://github.com/BRYANN2K/cartouche-wine/releases/tag/wine-crossover-26.3.0-1) is published. The tag points to commit `fef50c2`.
+
+| Field | Value |
+|---|---|
+| Asset | `wine-crossover-26.3.0-1-x86_64.tar.xz` |
+| Size (bytes) | `149444708` |
+| SHA-256 | `60400817826a053599193aa290d4e24e97213a743195f4187400bf9c74906887` |
+| Build provenance | CI run `39472948579` |
+
+The archive was reused without a rebuild. That run built successfully; its old 60-second cold-prefix boot check failed. Later commits changed only the boot check and publication repository name. Publication is not evidence that the new boot check passed. Keep build provenance separate from the release-tag commit.
+
+App integration is merged in main 95b4e47: the asset is pinned in runners.json; CrossOver Wine defaults for new games when installed; Graphics explains unmet requirements; serialized first boot gates launch. Real-hardware checks remain pending. D3DMetal requires CrossOver-capable Wine, Rosetta and the user’s own D3DMetal files; Cartouche does not redistribute those files. Do not mark the app integration or real-game checks complete based on publication alone.
+
 ## Signing certificate
 
 Every release is signed with one self-signed certificate (ADR 0003). Its SHA-1 is part of the app's designated requirement, so macOS keeps controller access, folder access and Keychain items across updates only while the certificate stays the same.
@@ -49,6 +64,12 @@ Steps:
 2. Replace the two secrets and the `SIGNING_IDENTITY` variable.
 3. Say in the release notes of the next release that macOS will ask for permissions again.
 4. If the old key leaked, also say which releases were signed with it.
+
+## Sparkle configuration check
+
+Keep `SUVerifyUpdateBeforeExtraction` enabled in `app/Info.plist`. Fix 8b6b29b adds it because Sparkle refused to start without it in this app’s configuration. `ReleaseFeedTests` guards this requirement. Check the built app’s Info.plist as well as the source before release; a valid key and signed feed alone do not prove the updater starts.
+
+The release-app AttributeGraph crash from blocking lsof/pgrep probes during SwiftUI updates is fixed in main f9bb3d7. For release smoke testing, open game menus, refresh Steam presence and inspect uninstall confirmation while the library updates. Process probes must stay off the main actor; record any recurrence rather than treating the old crash as unresolved by default.
 
 ## Sparkle key
 

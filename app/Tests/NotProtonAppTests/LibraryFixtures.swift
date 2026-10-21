@@ -33,6 +33,11 @@ struct SteamFixture {
     static let accountID = "39734314"
     static let account = "player42"
 
+    // What appinfo.vdf knows about the mock apps and the runtime manifest also written
+    static let appInfo: [(id: Int, name: String, type: String, oslist: String)] =
+        apps.map { (id: $0.id, name: $0.name, type: "Game", oslist: "windows") }
+        + [(id: 228_980, name: "Steamworks Common Redistributables", type: "Tool", oslist: "windows")]
+
     let root: URL
     // One fixed instant anchors every LastPlayed the fixture writes, so a test
     // asserting "yesterday" cannot cross midnight between write and read
@@ -97,18 +102,10 @@ struct SteamFixture {
         try manifest(App(id: 228_980, name: "Steamworks Common Redistributables", installed: true, played: nil, minutes: 0),
                      in: steam, flags: 4, lastPlayed: 0)
 
-        var apps = ""
-        for app in Self.apps where app.minutes > 0 {
-            apps += "\"\(app.id)\" { \"LastPlayed\" \"\(now - (app.played ?? 0) * 86400)\" \"Playtime\" \"\(app.minutes)\" }\n"
-        }
-        try write("userdata/\(Self.accountID)/config/localconfig.vdf", """
-        "UserLocalConfigStore"
-        {
-        \t"Software" { "Valve" { "Steam" { "Apps" {
-        \(apps)
-        \t} } } }
-        }
-        """)
+        try writeLocalConfig(Self.apps.filter { $0.minutes > 0 }.map {
+            (id: $0.id, lastPlayed: now - ($0.played ?? 0) * 86400, playtime: $0.minutes)
+        })
+        try writeAppInfo(Self.appInfo)
         let rows: [[Any]] = [
             ["user-collections.uc-souls", ["key": "user-collections.uc-souls", "timestamp": 1,
                                             "value": #"{"id":"uc-souls","name":"Souls","added":[1245620,1174180,730],"removed":[730]}"#]],
@@ -141,6 +138,50 @@ struct SteamFixture {
         try text.write(to: library.appending(path: "steamapps/appmanifest_\(app.id).acf"), atomically: true, encoding: .utf8)
         try FileManager.default.createDirectory(at: library.appending(path: "steamapps/common/\(app.name)"),
                                                 withIntermediateDirectories: true)
+    }
+
+    // The account's apps section in localconfig.vdf; an entry may carry no play data at all
+    func writeLocalConfig(_ apps: [(id: Int, lastPlayed: Int?, playtime: Int?)]) throws {
+        var entries = ""
+        for app in apps {
+            entries += "\"\(app.id)\" {"
+            if let lastPlayed = app.lastPlayed { entries += " \"LastPlayed\" \"\(lastPlayed)\"" }
+            if let playtime = app.playtime { entries += " \"Playtime\" \"\(playtime)\"" }
+            entries += " }\n"
+        }
+        try write("userdata/\(Self.accountID)/config/localconfig.vdf", """
+        "UserLocalConfigStore"
+        {
+        \t"Software" { "Valve" { "Steam" { "Apps" {
+        \(entries)
+        \t} } } }
+        }
+        """)
+    }
+
+    var localConfig: URL { steam.appending(path: "userdata/\(Self.accountID)/config/localconfig.vdf") }
+
+    // appinfo.vdf in its v28 layout: appid, size, a 60-byte header, then the appinfo/common keys
+    func writeAppInfo(_ apps: [(id: Int, name: String, type: String, oslist: String)]) throws {
+        var b: [UInt8] = []
+        func u32(_ v: UInt32) { for i in 0..<4 { b.append(UInt8((v >> (8 * UInt32(i))) & 0xff)) } }
+        u32(0x0756_4428); u32(1)
+        for app in apps {
+            var kv: [UInt8] = []
+            func kstr(_ s: String) { kv.append(contentsOf: s.utf8); kv.append(0) }
+            kv.append(0x00); kstr("appinfo")
+            kv.append(0x00); kstr("common")
+            kv.append(0x01); kstr("name"); kstr(app.name)
+            kv.append(0x01); kstr("type"); kstr(app.type)
+            kv.append(0x01); kstr("oslist"); kstr(app.oslist)
+            kv.append(contentsOf: [0x08, 0x08, 0x08])
+            u32(UInt32(app.id)); u32(UInt32(60 + kv.count))
+            b.append(contentsOf: [UInt8](repeating: 0, count: 60))
+            b.append(contentsOf: kv)
+        }
+        u32(0)
+        try FileManager.default.createDirectory(at: steam.appending(path: "appcache"), withIntermediateDirectories: true)
+        try Data(b).write(to: steam.appending(path: "appcache/appinfo.vdf"))
     }
 
     // What the running Steam client exports: every owned game, installed or not

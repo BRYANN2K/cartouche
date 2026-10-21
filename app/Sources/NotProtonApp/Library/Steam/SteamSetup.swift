@@ -100,17 +100,20 @@ final class SteamSetup {
         let dmg = work.appending(path: "steam.dmg")
         try FileManager.default.moveItem(at: file, to: dmg)
         let mount = work.appending(path: "mount")
-        let attach = try Shell.run("/usr/bin/hdiutil", ["attach", "-nobrowse", "-readonly", "-mountpoint", mount.path, dmg.path])
-        guard attach.succeeded else { throw Failed(errorDescription: attach.stderr) }
-        defer { _ = try? Shell.run("/usr/bin/hdiutil", ["detach", mount.path, "-force"]) }
-        let app = mount.appending(path: "Steam.app")
-        try verifyValveApp(app)
-        let destination = applications.appending(path: "Steam.app")
-        guard !FileManager.default.fileExists(atPath: destination.path(percentEncoded: false)) else {
-            throw Failed(errorDescription: String(localized: "Steam is already in \(applications.lastPathComponent)."))
-        }
-        let copy = try Shell.run("/usr/bin/ditto", [app.path, destination.path])
-        guard copy.succeeded else { throw Failed(errorDescription: copy.stderr) }
+        // hdiutil, codesign and a multi-hundred-MB ditto are process waits: never on the main actor.
+        try await Task.detached {
+            let attach = try Shell.run("/usr/bin/hdiutil", ["attach", "-nobrowse", "-readonly", "-mountpoint", mount.path, dmg.path])
+            guard attach.succeeded else { throw Failed(errorDescription: attach.stderr) }
+            defer { _ = try? Shell.run("/usr/bin/hdiutil", ["detach", mount.path, "-force"]) }
+            let app = mount.appending(path: "Steam.app")
+            try verifyValveApp(app)
+            let destination = applications.appending(path: "Steam.app")
+            guard !FileManager.default.fileExists(atPath: destination.path(percentEncoded: false)) else {
+                throw Failed(errorDescription: String(localized: "Steam is already in \(applications.lastPathComponent)."))
+            }
+            let copy = try Shell.run("/usr/bin/ditto", [app.path, destination.path])
+            guard copy.succeeded else { throw Failed(errorDescription: copy.stderr) }
+        }.value
     }
 
     // Only Valve's signature may land in Applications; HTTPS alone does not prove the DMG is Valve's, as the URL can be re-pointed in QA mode

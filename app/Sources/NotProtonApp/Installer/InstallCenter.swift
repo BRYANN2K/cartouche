@@ -29,6 +29,17 @@ final class InstallCenter {
     @ObservationIgnored var onGameReady: @MainActor (InstalledGame) -> Void = { _ in }
     @ObservationIgnored let titles = TitleIndex()
     @ObservationIgnored var compat: @MainActor () async -> CompatData?
+    // Steam store search, the app-ID fallback when the compatibility data finds nothing
+    @ObservationIgnored var lookup = SteamLookup()
+    // A game's name leaves the Mac for Steam only when this says the online lookups choice allows it
+    @ObservationIgnored var lookupsAllowed: @MainActor () -> Bool = { false }
+    // A wineserver session on the game's prefix means it is running; injectable so tests stay off lsof.
+    // It runs a process, so only refreshBusy calls it, off the main actor.
+    @ObservationIgnored var isPrefixInUse: @Sendable (GameFolder) -> Bool = {
+        PrefixStore.isInUse(root: $0.root, pfx: $0.prefix)
+    }
+    // The last off-thread answer per game: menus read it, so they never wait on lsof.
+    private(set) var busyGames: Set<String> = []
     @MainActor private static var compatModel: CompatibilityModel?
 
     init(engine: InstallEngine = InstallEngine(), notifier: (any InstallNotifying)? = nil) {
@@ -114,14 +125,52 @@ final class InstallCenter {
         }
     }
 
-    func finish(_ job: InstallJob, exe: URL, showInSteam: Bool) throws -> SteamShortcuts.Outcome? {
-        let outcome = try engine.finish(job, exe: exe, showInSteam: showInSteam)
+    func finish(_ job: InstallJob, exe: URL, showInSteam: Bool) async throws -> SteamShortcuts.Outcome? {
+        let outcome = try await engine.finish(job, exe: exe, showInSteam: showInSteam)
         if let game = job.game { onGameReady(game) }
         return outcome
     }
 
     func forget(_ job: InstallJob) {
         jobs.removeAll { $0 === job }
+    }
+
+    // The job building this game, while it still has work left.
+    func job(for game: Game) -> InstallJob? {
+        guard game.id.hasPrefix("installer:") else { return nil }
+        let slug = String(game.id.dropFirst("installer:".count))
+        return jobs.first { job in
+            (job.folder?.root.lastPathComponent == slug || job.game?.id == slug)
+                && (job.isRunning || job.phase == .waiting || job.phase == .choosing)
+        }
+    }
+
+    // An install on it or a live prefix: moving its folder to the Trash then would pull the rug out.
+    // Cheap and synchronous: the prefix half comes from busyGames, never probed here.
+    func isBusy(_ game: Game) -> Bool {
+        job(for: game) != nil || busyGames.contains(game.id)
+    }
+
+    // The lsof probe that fills busyGames: it spawns a process, so it never runs on the main actor.
+    // Called when a panel or the window's games change and after an install or a launch.
+    func refreshBusy(for games: [Game], in installs: URL, after delay: Duration = .zero) {
+        let probe = isPrefixInUse
+        Task.detached { [weak self] in
+            if delay > .zero { try? await Task.sleep(for: delay) }
+            guard !Task.isCancelled else { return }
+            var found: [String: Bool] = [:]
+            for game in games {
+                guard let folder = GameFolder.of(game, in: installs) else { continue }
+                found[game.id] = probe(folder)
+            }
+            await self?.noteBusy(found)
+        }
+    }
+
+    private func noteBusy(_ found: [String: Bool]) {
+        for (id, busy) in found {
+            if busy { busyGames.insert(id) } else { busyGames.remove(id) }
+        }
     }
 
     private func pump() {
@@ -138,6 +187,7 @@ final class InstallCenter {
         if job.phase == .stopped { jobs.removeAll { $0 === job } }
         // An import picks its program up front, so it ends ready, already in the library.
         if job.phase == .ready, let game = job.game { onGameReady(game) }
+        if let game = job.game { refreshBusy(for: [Game(installed: game)], in: engine.installs) }
         if job.phase == .choosing || job.phase == .ready {
             if let flow = permissionFlow { NotificationOffer.offer(after: .installFinished, flow: flow) }
             if !isSheetPresented || sheet.job !== job { notifier.installed(name: job.title, job: job.id) }

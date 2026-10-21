@@ -19,6 +19,12 @@ struct GameFolder: Sendable, Equatable {
 
     static var installs: URL { SupportPaths.support.appending(path: "installs") }
 
+    // An installer game's own folder under installs; nil for games from anywhere else.
+    static func of(_ game: Game, in installs: URL = installs) -> GameFolder? {
+        guard game.source == .installer, game.id.hasPrefix("installer:") else { return nil }
+        return GameFolder(root: installs.appending(path: String(game.id.dropFirst("installer:".count))))
+    }
+
     static func slug(_ name: String) -> String {
         let ascii = WinePath.folderName(name).lowercased()
         let words = ascii.split { !$0.isLetter && !$0.isNumber }
@@ -50,9 +56,10 @@ struct GameFolder: Sendable, Equatable {
 
 enum InstallRunners {
 
-    // Runners that can install: set up, serving Rosetta, and either offered to Steam (CrossOver) or a ready free Wine build.
-    static func choices(_ registry: RunnerRegistry) -> [Runner] {
-        registry.runners.filter { runner in
+    // Runners that can install: set up, serving Rosetta, and either offered to Steam (CrossOver) or a ready free Wine
+    // build. Cartouche's own CrossOver Wine build comes first: it is the one that can load D3DMetal and DXMT.
+    static func choices(_ registry: RunnerRegistry, manifest: RunnerManifest = .current()) -> [Runner] {
+        let all = registry.runners.filter { runner in
             guard runner.flavors.contains(.rosetta) else { return false }
             switch runner.kind {
             case .crossOver: return runner.isOffered
@@ -60,6 +67,8 @@ enum InstallRunners {
             case .portingToolkit: return false
             }
         }
+        let own = all.filter { $0.kind == .wineBuild && manifest.build(id: $0.id)?.origin == .cartouche }
+        return own + all.filter { runner in !own.contains(where: { $0.id == runner.id }) }
     }
 
     // The runner's Wine, always its x86_64 side: installs run under Rosetta.

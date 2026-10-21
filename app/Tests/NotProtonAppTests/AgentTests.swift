@@ -92,7 +92,7 @@ final class AgentFixture: AgentBackend {
         calls.append("retry:\(fixes.count)")
     }
     func stopInstall(_ job: InstallJob) throws {}
-    func finishInstall(_ job: InstallJob, exe: URL) throws { calls.append("finish:\(exe.lastPathComponent)") }
+    func finishInstall(_ job: InstallJob, exe: URL) async throws { calls.append("finish:\(exe.lastPathComponent)") }
     func cleanupInstaller(_ request: InstallRequest) throws -> Int64 { 0 }
     func copyInstallerToInternal(_ source: URL) async throws -> URL {
         let folder = roots.support.appending(path: "installers").appending(path: source.lastPathComponent)

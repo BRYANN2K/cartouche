@@ -174,7 +174,7 @@ final class ConsoleCenter {
 
     func perform(_ action: ConsoleMenuItem.Action, on id: String) async {
         switch action {
-        case .addGames: library?.addGames = .consoles
+        case .addGames: library?.showAddGames = true
         case .remove: await remove(id)
         }
     }

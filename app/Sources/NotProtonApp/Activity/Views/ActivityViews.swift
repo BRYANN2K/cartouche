@@ -30,7 +30,7 @@ struct ActivitySlotView: View {
         ZStack {
             if let slot {
                 card(slot)
-                    .padding(10)
+                    .padding(8)
                     .transition(Motion(reduceMotion: reduceMotion).entrance)
             }
         }
@@ -74,8 +74,8 @@ private struct SlotHeader: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
-            Text(label).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-            Text(title).font(.callout.weight(.semibold)).lineLimit(1).truncationMode(.tail)
+            Text(label).font(.system(size: 11, weight: .semibold)).foregroundStyle(Glass.label2)
+            Text(title).font(.system(size: 13, weight: .semibold)).lineLimit(1).truncationMode(.tail)
         }
     }
 }
@@ -94,7 +94,7 @@ struct PlayingCard: View {
                 Circle().fill(.green).frame(width: 6, height: 6).accessibilityHidden(true)
                 Spacer(minLength: 4)
                 Button("Quit", action: quit)
-                    .controlSize(.small)
+                    .buttonStyle(.pill)
                     .disabled(game.starting)
                     .help(game.emulator.map { Text("Quit \($0).") }
                           ?? (game.onRetroArch ? Text("Quit the game. RetroArch saves where you are first.") : Text("Quit \(game.name)")))
@@ -136,7 +136,7 @@ struct StoreInstallCard: View {
     let show: () -> Void
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             DownloadRing(fraction: activity.fraction)
             Button(action: show) {
                 VStack(alignment: .leading, spacing: 2) {
@@ -153,7 +153,7 @@ struct StoreInstallCard: View {
             .buttonStyle(.plain)
             .help(Text("Show in the library"))
             Button("Stop", action: stop)
-                .controlSize(.small)
+                .buttonStyle(.pill)
         }
         .accessibilityElement(children: .contain)
     }
@@ -170,7 +170,7 @@ struct DownloadsCard: View {
             Button(action: show) {
                 VStack(alignment: .leading, spacing: 2) {
                     SlotHeader(label: summary.label, title: summary.title)
-                    Text(summary.detail).font(.caption).monospacedDigit().foregroundStyle(.secondary)
+                    Text(summary.detail).font(.system(size: 12)).monospacedDigit().foregroundStyle(Glass.label2)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
@@ -190,7 +190,7 @@ struct ActivityBar: View {
     var body: some View {
         GeometryReader { proxy in
             ZStack(alignment: .leading) {
-                Capsule().fill(Color.primary.opacity(0.1))
+                Capsule().fill(Glass.fill2)
                 Capsule().fill(color).frame(width: proxy.size.width * min(1, max(0, fraction)))
             }
         }
@@ -230,7 +230,7 @@ struct DownloadRing: View {
 
     private var ring: some View {
         ZStack {
-            Circle().stroke(Color.primary.opacity(0.12), lineWidth: 2.6)
+            Circle().stroke(Glass.fill2, lineWidth: 2.6)
             Circle()
                 .trim(from: 0, to: max(0.001, min(1, fraction)))
                 .stroke(barColor, style: StrokeStyle(lineWidth: 2.6, lineCap: .round))
@@ -293,9 +293,9 @@ struct DownloadBlock: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(download.title).font(.headline)
+                Text(download.title).font(.system(size: 13, weight: .semibold))
                 Spacer()
-                Text(verbatim: "\(download.percent)%").monospacedDigit().foregroundStyle(.secondary)
+                Text(verbatim: "\(download.percent)%").monospacedDigit().foregroundStyle(Glass.label2)
             }
             ActivityBar(fraction: download.fraction,
                         color: download.isFailed ? .red : download.isPaused ? .secondary : .accentColor)
@@ -309,25 +309,27 @@ struct DownloadBlock: View {
                 }
                 Spacer()
             }
-            .font(.caption)
-            .foregroundStyle(.secondary)
+            .font(.system(size: 12))
+            .foregroundStyle(Glass.label2)
             HStack(spacing: 6) {
                 if download.isFailed {
-                    Button("Try Again") { center.retry(download.appID) }
+                    Button("Try Again") { center.retry(download.appID) }.buttonStyle(.pillProminent)
                 } else {
-                    Button(download.isPaused ? "Resume" : "Pause") { center.togglePause(download.appID) }
+                    Button(download.isPaused ? "Resume" : "Pause") { center.togglePause(download.appID) }.buttonStyle(.pill)
                 }
                 Button("Cancel") { center.cancel(download.appID) }
+                    .buttonStyle(.pill)
                     .help(Text("Steam asks before it removes what was downloaded"))
             }
-            .controlSize(.small)
+            .padding(.top, 2)
             if let problem = center.problem {
                 Text(problem).font(.caption).foregroundStyle(.red)
             }
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .groupBackground()
+        .groupBackground(tint: download.isFailed ? .red : nil)
+        .padding(.bottom, 22)
     }
 }
 

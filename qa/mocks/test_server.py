@@ -462,6 +462,27 @@ class TestSteam(MockServerCase):
         status, _, _ = self.get("/store_item_assets/steam/apps/1245620/notakind.jpg")
         self.assertEqual(status, 404)
 
+    def test_storesearch(self):
+        doc = self.get_json("/api/storesearch/?term=elden&l=english&cc=US")
+        names = {item["name"]: item["type"] for item in doc["items"]}
+        self.assertEqual(names.get("ELDEN RING"), "app")
+        self.assertEqual(names.get("ELDEN RING Soundtrack"), "music")
+        self.assertEqual(names.get("ELDEN RING NIGHTREIGN"), "dlc")
+        for item in doc["items"]:
+            self.assertTrue(item["tiny_image"].startswith("http://127.0.0.1:"))
+
+    def test_storesearch_empty(self):
+        doc = self.get_json("/api/storesearch/?term=nothing-like-this")
+        self.assertEqual(doc["items"], [])
+        self.req("POST", "/__control/empty-library")
+        doc = self.get_json("/api/storesearch/?term=elden")
+        self.assertEqual(doc["items"], [])
+
+    def test_capsule(self):
+        status, body, _ = self.get("/steam/apps/1245620/capsule_231x87.jpg")
+        self.assertEqual(status, 200)
+        self.assertTrue(body.startswith(b"\x89PNG"))
+
     def test_steam_dmg(self):
         status, body, _ = self.get("/client/installer/steam.dmg")
         self.assertEqual(status, 200)

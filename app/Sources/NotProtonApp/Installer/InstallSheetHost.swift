@@ -29,12 +29,18 @@ private struct InstallSheetHost: ViewModifier {
             }
             .task {
                 center.compat = { [compat] in compat.data }
-                center.onGameReady = { _ in library.showInstalledGames(InstalledGames.all()) }
+                center.lookupsAllowed = { [compat] in compat.choices.fetchMacReports }
+                center.onGameReady = { _ in
+                    library.showInstalledGames(InstalledGames.all())
+                    Task { await library.resolveInstallerAppIDs(lookup: center.lookup, allowed: compat.choices.fetchMacReports) }
+                }
                 center.showConsoleGames = {
                     center.isSheetPresented = false
                     pendingConsoles = true
                 }
                 library.showInstalledGames(InstalledGames.all())
+                center.refreshBusy(for: library.allGames, in: library.installsFolder)
+                Task { await library.resolveInstallerAppIDs(lookup: center.lookup, allowed: compat.choices.fetchMacReports) }
             }
     }
 }

@@ -80,6 +80,10 @@ enum WineRunnerInstaller {
         downloads: URL = WineRunnerInstaller.downloads,
         session: URLSession = WineRunnerInstaller.session
     ) async throws -> Receipt {
+        // A pending placeholder pins nothing: refuse before any download rather than after it.
+        guard build.isPinned else {
+            throw StepFailure(step: step, detail: String(localized: "\(build.title) has no published archive yet."))
+        }
         let archive = try await PinnedDownload.obtain(
             build.url, sha256: build.sha256, size: build.size,
             into: downloads, step: step, from: "GitHub", session: session)

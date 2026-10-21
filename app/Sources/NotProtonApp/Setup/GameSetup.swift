@@ -39,11 +39,14 @@ struct SetupDefaults: Equatable, Sendable {
 }
 
 struct BackendAvailability: Equatable, Sendable {
-    // Runners whose own files carry D3DMetal: a CrossOver with lib64/apple_gptk, or the user's Game Porting Toolkit copy.
+    // Runners whose own files carry D3DMetal: a CrossOver with lib64/apple_gptk, a CrossOver-origin
+    // Wine with either that or a usable Game Porting Toolkit, or the user's toolkit copy itself.
     var d3dMetalRunners: Set<String> = []
     var installed: Set<GraphicsBackend> = []
     // Wine builds from CodeWeavers' sources, which DXMT needs (its winemetal unix library calls into CrossOver's winemac.drv).
     var crossOverWine: Set<String> = []
+    // A ready Game Porting Toolkit, so a "needs GPTK" reason is only given when it really is missing.
+    var hasGamePortingToolkit = false
 
     // Never read from a runner source directly.
     static func current(
@@ -57,11 +60,23 @@ struct BackendAvailability: Equatable, Sendable {
                 let root = SupportPaths.clonedRoot(forBuild: runner.id, runners: runners)
                 if RunnerRegistry.crossOverD3DMetal(inRoot: root) != nil { out.d3dMetalRunners.insert(runner.id) }
             case .portingToolkit:
-                if runner.state == .ready { out.d3dMetalRunners.insert(runner.id) }
+                if runner.state == .ready {
+                    out.d3dMetalRunners.insert(runner.id)
+                    out.hasGamePortingToolkit = true
+                }
             case .wineBuild:
-                if manifest.build(id: runner.id)?.origin == .cartouche { out.crossOverWine.insert(runner.id) }
+                // CrossOver Wine can load D3DMetal where a WineHQ build cannot: from its own
+                // apple_gptk when the tree carries it, else from the user's toolkit copy.
+                guard manifest.build(id: runner.id)?.origin == .cartouche else { break }
+                out.crossOverWine.insert(runner.id)
+                let root = WineRunnerInstaller.dir(for: runner.id, runners: runners)
+                if RunnerRegistry.crossOverD3DMetal(inRoot: root) != nil
+                    || PortingToolkitSource.libd3dshared(runners: runners) != nil {
+                    out.d3dMetalRunners.insert(runner.id)
+                }
             }
         }
+        if PortingToolkitSource.libd3dshared(runners: runners) != nil { out.hasGamePortingToolkit = true }
         out.installed = Set(BackendInstaller.installed(in: backends).map(\.backend))
         return out
     }
@@ -91,6 +106,7 @@ enum BackendSupport {
             offered = Set(crossOver(translation: translation, d3dMetal: d3dMetal))
         case .wineBuild:
             var set: Set<GraphicsBackend> = [.wined3d]
+            if d3dMetal && availability.crossOverWine.contains(runner.id) { set.insert(.d3dmetal) }
             if availability.installed.contains(.dxvk) { set.insert(.dxvk) }
             if availability.installed.contains(.dxmt) && availability.crossOverWine.contains(runner.id)
                 && translation == .rosetta { set.insert(.dxmt) }
@@ -100,6 +116,47 @@ enum BackendSupport {
             offered = d3dMetal ? [.d3dmetal] : []
         }
         return preference.filter(offered.contains)
+    }
+
+    // Why a listed backend is not offered for this runner, or nil when it is. The reasons name the
+    // missing part — CrossOver Wine, the toolkit files, a download — not the backend.
+    static func missing(
+        _ backend: GraphicsBackend, for runner: Runner,
+        translation: GameSetupChoice.Translation, availability: BackendAvailability
+    ) -> String? {
+        let offered = backends(for: runner, translation: translation, availability: availability)
+        guard !offered.contains(backend) else { return nil }
+        // The toolkit is D3DMetal itself: no DXMT, DXVK or wined3d through it.
+        if runner.kind == .portingToolkit && backend != .d3dmetal {
+            return String(localized: "Not available with this runner")
+        }
+        // CodeWeavers' loader and winemac.drv are the part D3DMetal and DXMT hook into
+        let crossOverCapable = runner.kind == .crossOver || runner.kind == .portingToolkit
+            || availability.crossOverWine.contains(runner.id)
+        switch backend {
+        case .d3dmetal:
+            if crossOverCapable, translation == .fex {
+                return String(localized: "Needs Rosetta translation")
+            }
+            if !crossOverCapable, availability.hasGamePortingToolkit {
+                return String(localized: "Needs CrossOver Wine")
+            }
+            if !crossOverCapable {
+                return String(localized: "Needs CrossOver Wine and Game Porting Toolkit")
+            }
+            return String(localized: "Needs Game Porting Toolkit")
+        case .dxmt:
+            if !crossOverCapable { return String(localized: "Needs CrossOver Wine") }
+            if translation == .fex { return String(localized: "Needs Rosetta translation") }
+            return String(localized: "Needs the DXMT download")
+        case .dxvk:
+            if availability.installed.contains(.dxvk) {
+                return String(localized: "Not available with this runner")
+            }
+            return String(localized: "Needs the DXVK download")
+        case .wined3d:
+            return String(localized: "Not available with this runner")
+        }
     }
 }
 

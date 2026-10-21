@@ -42,11 +42,11 @@ struct InstallLaunchTests {
         #expect(!args.contains { $0.hasPrefix("/LANG") })
     }
 
-    @Test("A new prefix is made with wineboot, without the Mono and Gecko prompts")
+    @Test("A new prefix is updated by wineboot; Mono and Gecko stay enabled in case a game asks")
     func newPrefix() {
         let launch = WineInstall.createPrefix(runner: sampleRunner, prefix: prefix, base: [:])
-        #expect(launch.arguments == ["-x86_64", "/R/CrossOver/lib/wine/x86_64-unix/wine", "wineboot", "--init"])
-        #expect(launch.environment["WINEDLLOVERRIDES"] == "winemenubuilder.exe=d;mscoree,mshtml=")
+        #expect(launch.arguments == ["-x86_64", "/R/CrossOver/lib/wine/x86_64-unix/wine", "wineboot", "-u"])
+        #expect(launch.environment["WINEDLLOVERRIDES"] == "winemenubuilder.exe=d")
         #expect(launch.environment["WINEPREFIX"] == prefix.path)
     }
 

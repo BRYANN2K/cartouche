@@ -64,6 +64,18 @@ innoextract 1.9
          domain, 0BSD) are linked statically into it. It reads Windows
          installers for the analysis step and never runs them.
 
+libarchive 3.8.9
+  License: BSD-2-Clause
+  Source: https://github.com/libarchive/libarchive, pinned in
+          installer/libarchive/pins
+  License text: https://github.com/libarchive/libarchive/blob/master/COPYING
+  Where: Cartouche.app/Contents/Helpers/libarchive.dylib, a universal
+         (arm64+x86_64) build from installer/libarchive/build.sh. liblzma
+         (public domain, 0BSD) and zstd (BSD-3-Clause) are linked statically
+         into it; zlib, bzip2 and iconv are the OS's. It reads the archives a
+         user drops for the built-in decompressor; the app loads it at run
+         time and never links or shells out to a system copy.
+
 Dobby
   License: Apache-2.0
   Source: https://github.com/jmpews/Dobby, commit
@@ -195,6 +207,20 @@ clients are upstream's own builds:
   nile 1.2.0          GPL-3.0, from github.com/imLinguin/nile,
                       release asset nile_macOS_arm64.
                       Amazon Games sign-in, library, downloads.
+
+Platform marks
+--------------
+
+One-color vector marks drawn inside Cartouche to identify stores and consoles,
+stored in app/Sources/NotProtonApp/Resources/Brand.xcassets. Marks taken from
+Simple Icons (https://simpleicons.org) are dedicated to the public domain under
+CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/): Steam
+(mark-steam), Epic Games (mark-epic), GOG (mark-gog), PlayStation
+(mark-playstation), PlayStation 2 (mark-playstation2), PlayStation Portable
+(mark-psp), Sega (mark-sega) and Atari (mark-atari). The Amazon Games mark
+(mark-amazon) is the one already drawn in mockup/launcher.html. Platform names
+and logos belong to their owners; Cartouche uses them only to identify the
+platforms.
 
 Community data
 --------------

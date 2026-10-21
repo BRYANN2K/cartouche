@@ -1,4 +1,4 @@
-// Owned games come from the export the running Steam client writes to steam-library.json; Steam's own files give installed games, play data and collections.
+// Owned games come from the export the running Steam client writes to steam-library.json; closed, the last export still speaks, however old. Steam's own files give installed games, play data and collections.
 
 import Foundation
 

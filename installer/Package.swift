@@ -11,7 +11,9 @@ let package = Package(
         .executable(name: "installer-inspect", targets: ["installer-inspect"]),
     ],
     targets: [
-        .target(name: "InstallerKit", swiftSettings: [.swiftLanguageMode(.v6)]),
+        // The dylib'd libarchive in Contents/Helpers, dlopen'd at run time
+        .target(name: "CArchive"),
+        .target(name: "InstallerKit", dependencies: ["CArchive"], swiftSettings: [.swiftLanguageMode(.v6)]),
         .executableTarget(
             name: "installer-inspect",
             dependencies: ["InstallerKit"],

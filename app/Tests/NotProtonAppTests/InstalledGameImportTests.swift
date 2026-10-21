@@ -6,8 +6,9 @@ import Testing
 
 @testable import NotProtonApp
 
-// A Unity game as it sits on an external drive: the program, its _Data folder, a crash handler and a runtime installer.
-// Every program is the trap script: running any of them leaves a marker.
+// A Unity game as it sits on an external drive: a PE program that needs the 2015+ Visual C++
+// runtime, its _Data folder, a crash handler and a generic _CommonRedist the import must ignore.
+// The non-main programs are the trap script: running any of them leaves a marker.
 private func installedGame(in work: URL, trap: URL) throws -> URL {
     let game = work.appending(path: "Volumes/SSD/Disco Elysium")
     let fm = FileManager.default
@@ -15,12 +16,16 @@ private func installedGame(in work: URL, trap: URL) throws -> URL {
         try fm.createDirectory(at: game.appending(path: dir), withIntermediateDirectories: true)
     }
     try Data().write(to: game.appending(path: "Disco Elysium_Data/Plugins/x86_64/steam_api64.dll"))
-    for exe in ["Disco Elysium.exe", "UnityCrashHandler64.exe", "_CommonRedist/vcredist/2019/VC_redist.x64.exe"] {
+    let main = game.appending(path: "Disco Elysium.exe")
+    try TestPE.build(imports: ["KERNEL32.dll", "MSVCP140.dll", "xinput1_3.dll"]).write(to: main)
+    try FileHandle(forWritingTo: main).truncate(atOffset: 640_000)
+    for exe in ["UnityCrashHandler64.exe", "_CommonRedist/vcredist/2019/VC_redist.x64.exe",
+                "_CommonRedist/dxwebsetup.exe", "_CommonRedist/dotNetFx40_Full_setup.exe", "_CommonRedist/oalinst.exe"] {
         let url = game.appending(path: exe)
+        try fm.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try Data("#!/bin/sh\ntouch '\(trap.path)'\n".utf8).write(to: url)
         try fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.path)
     }
-    try FileHandle(forWritingTo: game.appending(path: "Disco Elysium.exe")).truncate(atOffset: 640_000)
     return game
 }
 
@@ -91,6 +96,67 @@ struct InstalledGameImportTests {
         #expect(FileManager.default.fileExists(atPath: exe))
     }
 
+    @Test("The noisy GameSite folder is named by Unity's app.info and matched in the index")
+    func engineInfoIdentifies() async throws {
+        let (center, _, _) = try importCenter("import-engine-info")
+        var json = try #require(JSONSerialization.jsonObject(with: Data(CompatFixture.json().utf8)) as? [String: Any])
+        var records = json["records"] as? [String: Any] ?? [:]
+        records["9999999"] = ["name": "Hollow Knight: Silksong"]
+        json["records"] = records
+        center.compat = { try? JSONDecoder().decode(CompatData.self, from: JSONSerialization.data(withJSONObject: json)) }
+
+        let root = try scratchDirectory("import-engine-info-game").appending(path: "Hollow-Knight-Silksong-GameSite.com")
+        for path in ["Hollow Knight Silksong/Hollow Knight Silksong.exe",
+                     "Hollow Knight Silksong/UnityCrashHandler64.exe",
+                     "_CommonRedist/dxwebsetup.exe"] {
+            let url = root.appending(path: path)
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try Data("#!/bin/sh\nexit 0\n".utf8).write(to: url)
+        }
+        try FileManager.default.createDirectory(
+            at: root.appending(path: "Hollow Knight Silksong/Hollow Knight Silksong_Data"), withIntermediateDirectories: true)
+        try Data("Team Cherry\nHollow Knight Silksong\n".utf8)
+            .write(to: root.appending(path: "Hollow Knight Silksong/Hollow Knight Silksong_Data/app.info"))
+        try Data("x".utf8).write(to: root.appending(path: "Read_Me_Instructions.txt"))
+
+        center.open([root])
+        #expect(await waitFor { !center.sheet.isAnalyzing })
+        #expect(center.sheet.isImport)
+        #expect(center.sheet.gameName == "Hollow Knight: Silksong")
+        #expect(center.sheet.appID == 9_999_999)
+    }
+
+    @Test("When the index misses, the Steam store lookup names the same candidates")
+    func storeFallbackIdentifies() async throws {
+        let (center, _, _) = try importCenter("import-store-lookup")
+        let root = try scratchDirectory("import-store-lookup-game").appending(path: "Hollow-Knight-Silksong-GameSite.com")
+        for path in ["Hollow Knight Silksong/Hollow Knight Silksong.exe", "_CommonRedist/dxwebsetup.exe"] {
+            let url = root.appending(path: path)
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try Data("#!/bin/sh\nexit 0\n".utf8).write(to: url)
+        }
+        try FileManager.default.createDirectory(
+            at: root.appending(path: "Hollow Knight Silksong/Hollow Knight Silksong_Data"), withIntermediateDirectories: true)
+        try Data("Team Cherry\nHollow Knight Silksong\n".utf8)
+            .write(to: root.appending(path: "Hollow Knight Silksong/Hollow Knight Silksong_Data/app.info"))
+
+        var lookup = SteamLookup(directory: root.deletingLastPathComponent().appending(path: "lookup"))
+        lookup.fetch = { _ in
+            let body = try JSONSerialization.data(withJSONObject: [
+                "total": 1, "items": [["id": 9_999_999, "type": "app", "name": "Hollow Knight: Silksong"]],
+            ])
+            return (body, 200)
+        }
+        center.lookup = lookup
+        center.lookupsAllowed = { true }
+
+        center.open([root])
+        #expect(await waitFor { !center.sheet.isAnalyzing })
+        #expect(center.sheet.gameName == "Hollow Knight: Silksong")
+        #expect(center.sheet.appID == 9_999_999)
+        #expect(center.sheet.identificationViaSteam)
+    }
+
     @Test("A folder with only data and no program blocks Continue")
     func noProgram() async throws {
         let (center, _, _) = try importCenter("import-empty")
@@ -159,13 +225,16 @@ struct InstalledGameImportFlowTests {
     func inPlace() async throws {
         let (fake, game, job, verbs, ready) = try await run("import-in-place", copy: false)
         #expect(job.phase == .ready)
-        #expect(fake.calledWith() == ["x86_64 wineboot --init TEMP="])
+        #expect(fake.calledWith() == ["x86_64 wineboot -u TEMP="])
         #expect(!FileManager.default.fileExists(atPath: fake.trap.path))
+        // The PE imports asked for vcrun2022; the generic _CommonRedist (DirectX, .NET, OpenAL) was ignored.
         #expect(verbs.calls == [["vcrun2022"]])
+        #expect(job.runtimeSteps.map(\.status) == [.installed])
 
         let record = try #require(InstalledGames.all(in: fake.installs).first)
         #expect(ready.map(\.id) == [record.id])
         #expect(record.exe == game.appending(path: "Disco Elysium.exe").path)
+        #expect(record.redistributables == ["vcrun2022"])
         #expect(record.gameFolder == game.path)
         #expect(record.prefix.hasPrefix(fake.installs.path))
         #expect(!game.path.hasPrefix(fake.installs.path))
@@ -176,8 +245,9 @@ struct InstalledGameImportFlowTests {
 
     @Test("Copied: the files land in the prefix, the program path follows, the original stays")
     func copied() async throws {
-        let (fake, game, job, _, _) = try await run("import-copy", copy: true)
+        let (fake, game, job, verbs, _) = try await run("import-copy", copy: true)
         #expect(job.phase == .ready)
+        #expect(verbs.calls == [["vcrun2022"]])
         let record = try #require(InstalledGames.all(in: fake.installs).first)
         let copy = URL(filePath: record.prefix).appending(path: "drive_c/Games/Disco Elysium")
         #expect(record.exe == copy.appending(path: "Disco Elysium.exe").path)
@@ -186,5 +256,47 @@ struct InstalledGameImportFlowTests {
         #expect(FileManager.default.fileExists(atPath: copy.appending(path: "Disco Elysium_Data/Plugins/x86_64/steam_api64.dll").path))
         #expect(FileManager.default.fileExists(atPath: game.appending(path: "Disco Elysium.exe").path))
         #expect(!FileManager.default.fileExists(atPath: fake.trap.path))
+    }
+
+    private func hangingJob(
+        _ label: String, imports: [String] = ["KERNEL32.dll", "MSVCP140.dll", "xinput1_3.dll"], verbs: VerbLog
+    ) async throws -> (FakeInstall, InstallCenter, InstallJob) {
+        let fake = try FakeInstall(label)
+        let game = try installedGame(in: fake.work, trap: fake.trap)
+        try TestPE.build(imports: imports).write(to: game.appending(path: "Disco Elysium.exe"))
+        var engine = fake.engine(winetricks: verbs)
+        engine.verbTimeout = 0.5
+        engine.winetricks = { calls, _, _, _ in
+            verbs.add(calls)
+            let hang = verbs.calls.count == 1
+            return InstallRun(InstallLaunch(executable: "/bin/sh", arguments: ["-c", hang ? "sleep 30" : "exit 0"], environment: [:]))
+        }
+        let center = InstallCenter(engine: engine, notifier: RecordingNotifier())
+        var request = InstallRequest(setup: game, source: game, name: "Disco Elysium", appID: nil, gogID: nil,
+                                     expectedBytes: 0, installerBytes: 0, installerFiles: [], manifest: nil)
+        request.importing = GameImport(folder: game, exe: game.appending(path: "Disco Elysium.exe"), copy: false, showInSteam: false)
+        let job = InstallJob(request: request, inputs: InstallInputs(runnerID: fake.runner.id, gameName: "Disco Elysium"))
+        center.enqueue(job)
+        return (fake, center, job)
+    }
+
+    @Test("A runtime that stalls is killed after the timeout and skipped, and the import finishes")
+    func verbTimeout() async throws {
+        let (fake, _, job) = try await hangingJob("import-verb-timeout", verbs: VerbLog())
+        #expect(await waitFor { job.phase == .ready }, "the import did not finish")
+        #expect(job.runtimeSteps.map(\.status) == [.skipped])
+        #expect(InstalledGames.all(in: fake.installs).first?.redistributables == [])
+    }
+
+    @Test("Skip abandons the current runtime and the next one still installs")
+    func skipVerb() async throws {
+        let verbs = VerbLog()
+        let (_, center, job) = try await hangingJob("import-verb-skip", imports: ["MSVCP140.dll", "d3dx9_43.dll"], verbs: verbs)
+        #expect(await waitFor { job.phase == .redistributables })
+        center.sheet.show(job)
+        center.sheet.skipRuntime()
+        #expect(await waitFor { job.phase == .ready })
+        #expect(verbs.calls == [["vcrun2022"], ["d3dx9"]])
+        #expect(job.runtimeSteps.map(\.status) == [.skipped, .installed])
     }
 }

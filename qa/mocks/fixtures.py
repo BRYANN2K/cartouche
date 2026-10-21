@@ -49,6 +49,13 @@ FIXTURE_GAMES = [
 
 GAME_NAMES = {appid: name for appid, name, _, _ in FIXTURE_GAMES}
 
+# /api/storesearch answers: the fixture games plus a soundtrack and a DLC, so a
+# search can show that non-app results are never picked
+SEARCH_ROWS = [(appid, name, "app") for appid, name, _, _ in FIXTURE_GAMES] + [
+    (9995001, "ELDEN RING Soundtrack", "music"),
+    (9995002, "ELDEN RING NIGHTREIGN", "dlc"),
+]
+
 # Magic appids for the edge cases every QA run needs
 APPID_NO_REPORTS = 9990001   # 200, empty reviews: "No reports yet for this version"
 APPID_SERVER_ERROR = 9990002  # 500: the app keeps its cache

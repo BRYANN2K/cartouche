@@ -50,6 +50,7 @@ SRCS := \
 	dylib/feats/compat.c \
 	dylib/feats/webui.c \
 	dylib/feats/compatsvc.c \
+	dylib/feats/libexport.c \
 	dylib/feats/usershortcuts.c \
 	dylib/feats/webpatch.c \
 	dylib/feats/nativeplatform.c \
@@ -75,8 +76,8 @@ DEPS := $(OBJS:.o=.d)
         anchorcheck callscheck sigdb-fixtures webpatch-fixtures peicon-fixtures panel-behavior app-tests \
         tests-list overlay-shim overlay-shim-install overlay-shim-tests \
         overlay-shim-bench iconmaker icon \
-        appinfo helpers-install ntdll-resolve bridge runcheck compatcheck \
-        compatsvc-check shortcutcheck scriptcheck envcheck buildcheck settingscheck routecheck bridgecheck gamedrivecheck backendcheck launchercheck launch-shell activatecheck FORCE
+        appinfo helpers-install unarc-driver ntdll-resolve bridge runcheck compatcheck \
+        compatsvc-check libexport-check shortcutcheck scriptcheck envcheck buildcheck settingscheck routecheck bridgecheck gamedrivecheck backendcheck launchercheck launch-shell activatecheck FORCE
 
 APP_PAYLOAD := app/Sources/NotProtonApp/Resources/payload
 
@@ -187,6 +188,14 @@ compatsvc-check:
 	mkdir -p $(OUT_DIR) && \
 	$(TEST_CC) -o $(COMPATSVC_CHECK) dylib/tests/compatsvc-check.c && \
 	$(COMPATSVC_CHECK)
+
+LIBEXPORT_CHECK := $(OUT_DIR)/libexport-check
+
+libexport-check:
+	@if [ ! -f dylib/tests/libexport-check.c ]; then $(call SKIP,libexport-check,dylib/tests/libexport-check.c); exit 0; fi; \
+	mkdir -p $(OUT_DIR) && \
+	$(TEST_CC) -o $(LIBEXPORT_CHECK) dylib/tests/libexport-check.c dylib/util/file.c vendor/cJSON.c && \
+	$(LIBEXPORT_CHECK)
 
 SHORTCUT_BUNDLE_CHECK := $(OUT_DIR)/shortcut-bundle-check
 SHORTCUTCHECK         := $(OUT_DIR)/shortcutcheck
@@ -393,6 +402,7 @@ panel-behavior:
 	node $(PANEL_TESTS)/shell.js $(OUT_DIR)/panel-emit && \
 	node $(PANEL_TESTS)/migration.js $(OUT_DIR)/panel-emit && \
 	node $(PANEL_TESTS)/downloads.js $(OUT_DIR)/panel-emit && \
+	node $(PANEL_TESTS)/library-export.js $(OUT_DIR)/panel-emit && \
 	node $(PANEL_TESTS)/localization.js $(OUT_DIR)/panel-emit && \
 	node $(PANEL_TESTS)/fex.js $(OUT_DIR)/panel-emit && \
 	echo "==> panel behavior: renders as expected, no stale arguments"
@@ -565,6 +575,18 @@ helpers-install: $(ICONMAKER) $(APPINFO)
 	$(call install_atomically,$(APPINFO),$(SUPPORT_DIR)/appinfo)
 	@echo "==> Installed: $(SUPPORT_DIR)/{iconmaker,appinfo}"
 
+# The Win32 driver that unpacks FreeArc .bin parts through the installer's own
+# unarc.dll, without running the installer. It is a 32-bit PE: unarc.dll is x86.
+MINGW32     ?= i686-w64-mingw32-gcc
+UNARC_DRIVER := $(OUT_DIR)/unarc-driver.exe
+
+unarc-driver: $(UNARC_DRIVER)
+
+$(UNARC_DRIVER): helpers/unarc-driver.c
+	@mkdir -p $(OUT_DIR)
+	$(MINGW32) -O2 -Wall -static-libgcc -o $@ $<
+	@echo "==> Built $@"
+
 dobby:
 	@mkdir -p $(DOBBY_DIR)
 	cd $(DOBBY_DIR) && cmake $(CURDIR)/vendor/dobby \
@@ -650,6 +672,11 @@ app-payload: $(TARGET) $(OVERLAY_SHIM) $(FPS_COUNTER) $(ICONMAKER) $(APPINFO)
 		elif [ -f "$$dst" ]; then echo "==> keeping staged $${spec##*:}"; \
 		else echo "$$src is missing and nothing is staged at $$dst, run: $(MAKE) bridge" >&2; exit 1; fi; \
 	done
+	@if command -v "$(MINGW32)" >/dev/null 2>&1; then \
+		$(MAKE) --no-print-directory $(UNARC_DRIVER) && \
+		cp -f "$(UNARC_DRIVER)" "$(APP_PAYLOAD)/unarc-driver.exe"; \
+	elif [ -f "$(APP_PAYLOAD)/unarc-driver.exe" ]; then echo "==> keeping staged unarc-driver.exe"; \
+	else echo "$(UNARC_DRIVER) needs $(MINGW32) (brew install mingw-w64) or a staged $(APP_PAYLOAD)/unarc-driver.exe" >&2; exit 1; fi
 	@if [ ! -d build/fonts ]; then echo "build/fonts is missing, run: $(MAKE) fonts" >&2; exit 1; fi
 	@mkdir -p "$(APP_PAYLOAD)/fonts"
 	@rsync -a --delete build/fonts/ "$(APP_PAYLOAD)/fonts/"
@@ -747,6 +774,11 @@ define BUNDLE_APP
 		cp -f "$(INNOEXTRACT)" "$(2)/Contents/Helpers/innoextract" && \
 		codesign -f -s "$(APP_SIGN_ID)" "$(2)/Contents/Helpers/innoextract"; \
 	else echo "==> $(INNOEXTRACT) not built, installer analysis needs a Homebrew innoextract (run: $(MAKE) innoextract)"; fi
+	@if [ -f "$(LIBARCHIVE)" ]; then \
+		mkdir -p "$(2)/Contents/Helpers" && \
+		cp -f "$(LIBARCHIVE)" "$(2)/Contents/Helpers/libarchive.dylib" && \
+		codesign -f -s "$(APP_SIGN_ID)" "$(2)/Contents/Helpers/libarchive.dylib"; \
+	else echo "==> $(LIBARCHIVE) not built, archive extraction is unavailable (run: $(MAKE) libarchive)"; fi
 	codesign -f -s "$(APP_SIGN_ID)" "$(2)"
 	codesign --verify --strict "$(2)"
 	@echo "==> Built $(2) ($(APP_VERSION), $(1))"
@@ -768,9 +800,14 @@ app-zip: app
 
 # innoextract for the Windows installer analysis, built from pinned sources
 INNOEXTRACT := $(OUT_DIR)/innoextract
-.PHONY: innoextract installer-tests
+.PHONY: innoextract libarchive installer-tests
 innoextract:
 	sh installer/innoextract/build.sh build/innoextract "$(INNOEXTRACT)"
+
+# libarchive for the built-in decompressor, universal, built from pinned sources
+LIBARCHIVE := $(OUT_DIR)/libarchive.dylib
+libarchive:
+	sh installer/libarchive/build.sh build/libarchive "$(LIBARCHIVE)"
 
 installer-tests:
 	@cd installer && swift test

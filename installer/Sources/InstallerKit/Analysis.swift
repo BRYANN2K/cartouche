@@ -17,6 +17,8 @@ public struct InstallerAnalysis: Sendable {
     public let name: String
     // Set when the installer unpacks through its own helper programs (ExternalUnpacker).
     public let unpacker: ExternalUnpacker?
+    // Set when the parts can be unpacked directly by the driver, without the setup running.
+    public let directUnpack: DirectUnpackPlan?
     public let classification: FolderClassification
     public var checksums: [URL: ChecksumResult] = [:]
     public var seconds: Double = 0
@@ -78,7 +80,7 @@ public enum Analyzer {
             return InstallerAnalysis(
                 folder: folder, scan: PartScan(folder: folder, setup: nil, parts: [], missing: []), manifest: nil,
                 inno: nil, innoProblem: nil, name: GameName.clean(folder.lastPathComponent), unpacker: nil,
-                classification: classification
+                directUnpack: nil, classification: classification
             )
         }
         let scan = try PartScanner.scan(folder)
@@ -94,6 +96,7 @@ public enum Analyzer {
             folder: folder, scan: scan, manifest: manifest, inno: inno, innoProblem: problem,
             name: GameName.clean(folder.lastPathComponent),
             unpacker: ExternalUnpacker.detect(inno: inno, folder: folder),
+            directUnpack: DirectUnpack.plan(inno: inno, scan: scan),
             classification: classification
         )
     }

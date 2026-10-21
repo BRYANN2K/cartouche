@@ -15,3 +15,7 @@ Original local evidence: docs/research/local-games-and-wine.md section 3 and /tm
 Commit `eb1ae1f` on `cartouche-wine/wine-build` separates prefix initialization from the GUI check. CI runs `wineboot -i` with `WINEDLLOVERRIDES=mscoree,mshtml=` (CI only), then waits for `wineserver -w`. The initialization phase has a 20-minute limit, `BOOT_INIT_LIMIT`, and logs elapsed time. Only after successful initialization does CI run the existing 60-second winecfg window check.
 
 Run `39498286344` was started. Its result is not yet recorded here; the change is not evidence that CI passed. The CI-only overrides and initialization limit do not set app launch policy. ADR 0015 still requires a serialized first-boot gate in Cartouche; its warning concerns counting cold initialization inside the 60-second window check, not removing that post-initialization check.
+
+## Publication follow-up
+
+The wine-crossover-26.3.0-1 release was published from tag commit fef50c2, reusing the archive built by CI run 39472948579. That build passed, but its old cold-prefix window check failed. Later changes affected checking and the publication repository name, not the archive. This publication does not resolve the pending result of run 39498286344. See RELEASE.md for the asset hash and size. App default selection and serialized first boot remain in progress on phase/crossover-default.

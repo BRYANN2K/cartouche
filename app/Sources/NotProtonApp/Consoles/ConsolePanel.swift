@@ -33,25 +33,30 @@ struct ConsolePanel: View {
             if let content {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    CoverView(game: game, kind: .hero)
-                        .frame(height: 170)
-                        .frame(maxWidth: .infinity)
-                        .overlay { LookOverlay(look: console.setup.look) }
-                        .clipped()
+                    PanelHero(game: game, overlay: LookOverlay(look: console.setup.look))
                         .accessibilityLabel(Text("\(game.name) screenshot"))
-                    VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 0) {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(game.name).font(.title2.weight(.bold)).textSelection(.enabled)
-                            Text(content.subtitle()).foregroundStyle(.secondary)
+                            Text(game.name)
+                                .font(.system(size: 22, weight: .bold))
+                                .tracking(-0.44)
+                                .textSelection(.enabled)
+                            Text(content.subtitle())
+                                .font(.system(size: 12))
+                                .foregroundStyle(Glass.label2)
                         }
+                        .padding(.top, 4)
+                        .padding(.bottom, 14)
                         ForEach(content.sections, id: \.self) { section in
                             block(section, content)
                         }
                     }
-                    .padding(16)
+                    .padding(EdgeInsets(top: 6, leading: 16, bottom: 20, trailing: 16))
                 }
             }
-            .id(game.id)
+            .scrollIndicators(.never)
+            .softScrollEdges(top: 24, bottom: 32)
+                .id(game.id)
             .task(id: game.id) { if let system = center.console(of: console) { await center.refreshEmulators(for: system) } }
             .transition(Motion(reduceMotion: reduceMotion).entrance)
             .sheet(isPresented: $showingMore) {
@@ -76,52 +81,58 @@ struct ConsolePanel: View {
     private func block(_ section: ConsolePanelContent.Section, _ content: ConsolePanelContent) -> some View {
         switch section {
         case .play:
-            HStack(spacing: 8) {
-                Button {
-                    Task { await center.play(console.id, resume: content.hasAutoState && content.statesAllowed, reduceMotion: reduceMotion) }
-                } label: {
-                    Label(content.playLabel, systemImage: "play.fill")
-                        .frame(maxWidth: .infinity)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Button {
+                        Task { await center.play(console.id, resume: content.hasAutoState && content.statesAllowed, reduceMotion: reduceMotion) }
+                    } label: {
+                        Label(content.playLabel, systemImage: "play.fill")
+                    }
+                    .buttonStyle(PlayCapsuleStyle())
+                    .couchRing(controls?.couch.ringsPlay == true, radius: 19)
+                    .disabled(!content.canPlay)
+                    Menu {
+                        GameMenuContent(items: GameMenu.items(for: game, in: model)) { actions.perform($0, on: game) }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                    }
+                    .menuStyle(.button)
+                    .menuIndicator(.hidden)
+                    .buttonStyle(RoundFillStyle())
+                    .fixedSize()
+                    .accessibilityLabel(Text("More"))
                 }
-                .controlSize(.large)
-                .prominentButton()
-                .couchRing(controls?.couch.ringsPlay == true)
-                .disabled(!content.canPlay)
-                Menu {
-                    GameMenuContent(items: GameMenu.items(for: game, in: model)) { actions.perform($0, on: game) }
-                } label: {
-                    Image(systemName: "ellipsis")
+                if let note = content.playNote {
+                    Text(note).font(.system(size: 12))
+                        .foregroundStyle(content.route.missingText == nil ? Glass.label2 : Color.orange)
                 }
-                .menuIndicator(.hidden)
-                .fixedSize()
-                .controlSize(.large)
-                .accessibilityLabel(Text("More"))
             }
-            if let note = content.playNote {
-                Text(note).font(.callout).foregroundStyle(content.route.missingText == nil ? Color.secondary : Color.orange)
-            }
+            .padding(.bottom, 22)
         case .bios:
             if let warning = content.biosWarning {
                 HStack(alignment: .top, spacing: 10) {
                     Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
                         .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(warning.title).fontWeight(.semibold)
-                        Text(warning.detail).font(.callout).foregroundStyle(.secondary)
+                        Text(warning.title).font(.system(size: 13, weight: .semibold))
+                        Text(warning.detail).font(.system(size: 12)).foregroundStyle(Glass.label2)
                         Button("Show BIOS Folder") {
                             try? FileManager.default.createDirectory(at: center.paths.bios, withIntermediateDirectories: true)
                             NSWorkspace.shared.open(center.paths.bios)
                         }
-                        .controlSize(.small)
+                        .buttonStyle(.pill)
+                        .padding(.top, 2)
                     }
                 }
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .groupBackground(tint: .orange)
                 .accessibilityElement(children: .combine)
+                .padding(.bottom, 18)
             }
         case .continueFrom:
-            group(section.title) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(verbatim: section.title).groupHeader()
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
                         ForEach(content.states) { state in
@@ -132,15 +143,19 @@ struct ConsolePanel: View {
                             }
                         }
                     }
+                    .padding(.horizontal, 2)
+                    .padding(.vertical, 4)
                 }
             }
+            .padding(.bottom, 12)
         case .stats:
-            HStack(alignment: .top) {
-                stat(Text("Played"), content.played)
-                stat(Text("Achievements"), content.achievements)
+            HStack(alignment: .top, spacing: 8) {
+                StatCell(title: Text("Played"), value: content.played)
+                StatCell(title: Text("Achievements"), value: content.achievements)
             }
             .padding(12)
             .groupBackground()
+            .padding(.bottom, 18)
         case .setup:
             group(section.title) {
                 EmulatorRows(console: content.console, route: content.route, center: center)
@@ -156,33 +171,18 @@ struct ConsolePanel: View {
             }
         case .more:
             HStack {
-                Text("Achievements, BIOS and files").foregroundStyle(.secondary)
+                Text("Achievements, BIOS and files").font(.system(size: 12)).foregroundStyle(Glass.label2)
                 Spacer()
-                Button("More…") { showingMore = true }.controlSize(.small)
+                Button("More…") { showingMore = true }.buttonStyle(.pill)
             }
             .padding(12)
             .groupBackground()
+            .padding(.bottom, 18)
         }
     }
 
-    private func stat(_ title: Text, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            title.font(.caption).foregroundStyle(.secondary)
-            Text(value).font(.title3.weight(.semibold)).monospacedDigit()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
-    }
-
-    private func group<Content: View>(_ title: String, @ViewBuilder _ body: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
-                .accessibilityAddTraits(.isHeader)
-            VStack(alignment: .leading, spacing: 8, content: body)
-                .padding(12)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .groupBackground()
-        }
+    private func group<Content: View>(_ title: String, @ViewBuilder _ body: @escaping () -> Content) -> some View {
+        PanelGroup(title: title, content: body)
     }
 }
 
@@ -191,6 +191,7 @@ private struct StateButton: View {
     let look: ConsoleLook
     let disabled: Bool
     let action: () -> Void
+    @State private var hovering = false
 
     var body: some View {
         Button(action: action) {
@@ -203,12 +204,18 @@ private struct StateButton: View {
                     LookOverlay(look: look)
                 }
                 .frame(width: 104, height: 78)
-                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                Text(state.title).font(.caption.weight(.semibold))
-                Text(ConsolePanelContent.when(state)).font(.caption2).foregroundStyle(.secondary)
+                .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                .overlay { CoverEdge(radius: 9) }
+                .shadow(color: .black.opacity(0.3), radius: 5, y: 4)
+                .offset(y: hovering ? -2 : 0)
+                .padding(.bottom, 3)
+                Text(state.title).font(.system(size: 12, weight: .semibold))
+                Text(ConsolePanelContent.when(state)).font(.system(size: 11)).foregroundStyle(Glass.label2)
             }
         }
         .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .animation(.spring(duration: 0.2, bounce: 0), value: hovering)
         .disabled(disabled)
         .accessibilityLabel(Text("Continue from \(state.title)"))
     }
@@ -220,36 +227,46 @@ private struct ConsoleSetupRows: View {
     let center: ConsoleCenter
 
     var body: some View {
-        Picker("Core", selection: Binding(
-            get: { content.core },
-            set: { core in Task { await center.setSetup(game.id) { $0.core = core } } }
-        )) {
-            ForEach(content.cores, id: \.id) { Text(verbatim: $0.name).tag($0.id) }
-        }
-        Picker("Look", selection: Binding(
-            get: { game.setup.look },
-            set: { look in Task { await center.setSetup(game.id) { $0.look = look } } }
-        )) {
-            ForEach(ConsoleLook.allCases) { Text($0.title).tag($0) }
-        }
-        .pickerStyle(.segmented)
-        if game.isMultiDisc {
-            Picker("Disc", selection: Binding(
-                get: { min(game.setup.disc, game.discs.count - 1) },
-                set: { disc in Task { await center.setSetup(game.id) { $0.disc = disc } } }
+        PanelRow(title: Text("Core")) {
+            Picker("Core", selection: Binding(
+                get: { content.core },
+                set: { core in Task { await center.setSetup(game.id) { $0.core = core } } }
             )) {
-                ForEach(game.discs.indices, id: \.self) { Text(verbatim: "\($0 + 1)").tag($0) }
+                ForEach(content.cores, id: \.id) { Text(verbatim: $0.name).tag($0.id) }
+            }
+            .labelsHidden()
+            .fixedSize()
+        }
+        PanelRow(title: Text("Look")) {
+            Picker("Look", selection: Binding(
+                get: { game.setup.look },
+                set: { look in Task { await center.setSetup(game.id) { $0.look = look } } }
+            )) {
+                ForEach(ConsoleLook.allCases) { Text($0.title).tag($0) }
             }
             .pickerStyle(.segmented)
+            .labelsHidden()
         }
-        Toggle("Lower input lag", isOn: Binding(
+        if game.isMultiDisc {
+            PanelRow(title: Text("Disc")) {
+                Picker("Disc", selection: Binding(
+                    get: { min(game.setup.disc, game.discs.count - 1) },
+                    set: { disc in Task { await center.setSetup(game.id) { $0.disc = disc } } }
+                )) {
+                    ForEach(game.discs.indices, id: \.self) { Text(verbatim: "\($0 + 1)").tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+            }
+        }
+        PanelSwitchRow(title: Text("Lower input lag"), isOn: Binding(
             get: { game.setup.lowerInputLag },
             set: { on in Task { await center.setSetup(game.id) { $0.lowerInputLag = on } } }))
-        Toggle("Hardcore achievements", isOn: Binding(
+        PanelSwitchRow(title: Text("Hardcore achievements"), isOn: Binding(
             get: { game.setup.hardcore },
             set: { on in Task { await center.setSetup(game.id) { $0.hardcore = on } } }))
         if game.setup.hardcore {
-            Text("Hardcore turns off Continue From while you play.").font(.caption).foregroundStyle(.secondary)
+            Text("Hardcore turns off Continue From while you play.").font(.system(size: 11)).foregroundStyle(Glass.label2)
         }
     }
 }
@@ -316,7 +333,7 @@ struct ConsoleMoreSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(verbatim: game.name).font(.title2.weight(.bold))
+            SheetHeader(title: Text(verbatim: game.name))
             Form {
                 Section("Achievements") {
                     LabeledContent {
@@ -357,7 +374,7 @@ struct ConsoleMoreSheet: View {
             Text("Covers from libretro-thumbnails. Achievements from RetroAchievements.").font(.caption).foregroundStyle(.secondary)
             HStack {
                 Spacer()
-                Button("Done") { dismiss() }.keyboardShortcut(.defaultAction)
+                Button("Done") { dismiss() }.keyboardShortcut(.defaultAction).buttonStyle(.sheetProminent)
             }
         }
         .padding(22)

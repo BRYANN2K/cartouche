@@ -24,12 +24,13 @@ struct OnboardingView: View {
                 .padding(.vertical, 20)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            Divider()
+            .softScrollEdges()
             OnboardingFooter(model: model)
                 .padding(.horizontal, 20)
                 .padding(.vertical, 14)
         }
         .frame(width: 660, height: 620)
+        .scrollBounceBehavior(.basedOnSize, axes: [.vertical, .horizontal])
         .task { await model.prepare() }
         .animation(Motion(reduceMotion: reduceMotion).panel, value: model.step)
     }
@@ -50,11 +51,11 @@ struct StepDots: View {
     let current: OnboardingStep
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             ForEach(OnboardingStep.allCases, id: \.self) { step in
-                Circle()
-                    .fill(step <= current ? Color.accentColor : Color.secondary.opacity(0.3))
-                    .frame(width: 7, height: 7)
+                Capsule()
+                    .fill(step == current ? Color.accentColor : Glass.fill2)
+                    .frame(width: step == current ? 18 : 6, height: 6)
             }
         }
         .accessibilityElement(children: .ignore)
@@ -69,17 +70,17 @@ struct ResumeBanner: View {
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Welcome back").font(.headline)
+                Text("Welcome back").font(.system(size: 13, weight: .semibold))
                 Text("You were setting up \(step.title). Your choices are kept.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Glass.label2)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 12)
-            Button("Start Over", action: startOver)
+            Button("Start Over", action: startOver).buttonStyle(.pill)
         }
         .padding(12)
-        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
+        .groupBackground(tint: .accentColor)
     }
 }
 
@@ -104,9 +105,9 @@ struct OnboardingFooter: View {
             }
             primary
                 .keyboardShortcut(.defaultAction)
-                .prominentButton()
+                .buttonStyle(.sheetProminent)
         }
-        .controlSize(.large)
+        .buttonStyle(.sheet)
     }
 
     @ViewBuilder
@@ -135,8 +136,8 @@ private struct StepHeader: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            title.font(.largeTitle.weight(.bold))
-            message.foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            title.font(.system(size: 22, weight: .bold)).tracking(-0.44)
+            message.font(.system(size: 13)).foregroundStyle(Glass.label2).fixedSize(horizontal: false, vertical: true)
         }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
@@ -147,20 +148,23 @@ private struct FoundRow<Trailing: View>: View {
     let title: Text
     var detail: Text?
     var monospaced = false
+    var mark: PlatformMark?
     @ViewBuilder var trailing: Trailing
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
+            if let mark { PlatformMarkView(mark: mark).foregroundStyle(Color.accentColor) }
             VStack(alignment: .leading, spacing: 2) {
-                title.font(monospaced ? .body.monospaced().weight(.semibold) : .headline)
+                title.font(monospaced ? .system(size: 12, weight: .medium).monospaced() : .system(size: 13, weight: .medium))
                 if let detail {
-                    detail.font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    detail.font(.system(size: 12)).foregroundStyle(Glass.label2).fixedSize(horizontal: false, vertical: true)
                 }
             }
             Spacer(minLength: 12)
             trailing
         }
-        .padding(.vertical, 8)
+        .frame(minHeight: 38)
+        .padding(.vertical, 7)
         .padding(.horizontal, 12)
         .accessibilityElement(children: .combine)
     }
@@ -172,7 +176,7 @@ private struct Found: View {
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: "checkmark").foregroundStyle(.green).accessibilityHidden(true)
-            label.foregroundStyle(.secondary)
+            label.foregroundStyle(Glass.label2)
         }
     }
 }
@@ -184,7 +188,7 @@ private struct RowGroup<Content: View>: View {
         VStack(alignment: .leading, spacing: 0) {
             Group(subviews: content) { rows in
                 ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
-                    if index > 0 { Divider().padding(.leading, 12) }
+                    if index > 0 { Divider().overlay(Glass.separator).padding(.leading, 12) }
                     row
                 }
             }
@@ -228,7 +232,7 @@ struct FoundList: View {
     var body: some View {
         RowGroup {
             if let steam = found.steam {
-                FoundRow(title: Text(verbatim: "Steam"), detail: Text(Self.steamLine(steam))) {
+                FoundRow(title: Text(verbatim: "Steam"), detail: Text(Self.steamLine(steam)), mark: .steam) {
                     Found(label: Text("Found"))
                 }
             }
@@ -293,7 +297,8 @@ private struct PCGamesStep: View {
                         .padding(.horizontal, 6)
                 } else {
                     FoundRow(title: Text(verbatim: "Steam"),
-                             detail: Text("Steam is not on this Mac. The Steam page of the library installs it.")) {
+                             detail: Text("Steam is not on this Mac. The Steam page of the library installs it."),
+                             mark: .steam) {
                         EmptyView()
                     }
                 }
@@ -302,8 +307,8 @@ private struct PCGamesStep: View {
                 Text(message).foregroundStyle(.red).fixedSize(horizontal: false, vertical: true)
             }
             Text("You can skip this and play console games only.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
+                .font(.system(size: 11))
+                .foregroundStyle(Glass.label2)
         }
     }
 
@@ -315,16 +320,16 @@ private struct PCGamesStep: View {
         case .downloading:
             ProgressView().controlSize(.small).accessibilityLabel(Text("Downloading"))
         case .failed:
-            Button("Try Again") { Task { await model.downloadRunner() } }
+            Button("Try Again") { Task { await model.downloadRunner() } }.buttonStyle(.pill)
         case .notInstalled, .none:
             Button("Download") { Task { await model.downloadRunner() } }
-                .prominentButton()
+                .buttonStyle(.pillProminent)
         }
     }
 
     static func origin(_ build: RunnerManifest.Build) -> String {
         switch build.origin {
-        case .cartouche: String(localized: "Free runner, built by Cartouche from CodeWeavers’ open-source code")
+        case .cartouche: String(localized: "Free runner, built by Cartouche from CodeWeavers’ open-source code. Best for games: D3DMetal and DXMT.")
         case .winehq: String(localized: "Free runner, the official WineHQ build")
         }
     }
@@ -360,7 +365,7 @@ private struct ConsolesStep: View {
                        message: Text("Consoles with games in your folders are already picked. Only their cores are downloaded."))
             ForEach(Self.groups, id: \.0) { maker, consoles in
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(verbatim: maker).font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
+                    Text(verbatim: maker).groupHeader()
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 136), spacing: 8)], alignment: .leading, spacing: 8) {
                         ForEach(consoles) { console in
                             ConsoleTile(console: console, model: model)
@@ -390,31 +395,33 @@ private struct ConsoleTile: View {
 
     var body: some View {
         let picked = model.isPicked(console)
+        let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
         Button {
             model.toggle(console)
         } label: {
             VStack(alignment: .leading, spacing: 2) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(verbatim: console.name).font(.callout.weight(.semibold)).lineLimit(2)
+                HStack(alignment: .top) {
+                    ConsoleMarkView(id: console.id, size: 20).foregroundStyle(Color.accentColor)
+                        .frame(height: 20)
                     Spacer(minLength: 4)
                     if picked {
                         Image(systemName: "checkmark.circle.fill").foregroundStyle(Color.accentColor)
                     }
                 }
+                .padding(.bottom, 4)
+                Text(verbatim: console.name).font(.system(size: 13, weight: .semibold)).lineLimit(1)
                 Text(verbatim: ConsolesStep.coreNames[console.core] ?? console.core)
-                    .font(.caption).foregroundStyle(.secondary)
-                note.font(.caption)
+                    .font(.system(size: 11)).foregroundStyle(Glass.label2)
+                note.font(.system(size: 10, weight: .semibold))
             }
-            .frame(maxWidth: .infinity, minHeight: 58, alignment: .topLeading)
-            .padding(10)
-            .contentShape(Rectangle())
+            .frame(maxWidth: .infinity, minHeight: 74, alignment: .topLeading)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(picked ? Color.accentColor.opacity(0.12) : Glass.fill, in: shape)
+            .overlay { if picked { shape.strokeBorder(Color.accentColor, lineWidth: 2) } }
+            .contentShape(shape)
         }
         .buttonStyle(.plain)
-        .groupBackground(radius: 10)
-        .overlay {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .strokeBorder(picked ? Color.accentColor : .clear, lineWidth: 2)
-        }
         .disabled(model.addingConsoles)
         .accessibilityAddTraits(picked ? .isSelected : [])
     }
@@ -426,10 +433,10 @@ private struct ConsoleTile: View {
         if let bios, !bios.isReady {
             Text(bios.message).foregroundStyle(.orange)
         } else if model.isAdded(console) {
-            Text("Added").foregroundStyle(.secondary)
+            Text("Added").foregroundStyle(Glass.label2)
         } else if found > 0 {
             Text(found == 1 ? String(localized: "1 game found") : String(localized: "\(found) games found"))
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(Color.green)
         } else if console.bios != .none {
             Text("Needs BIOS").foregroundStyle(.orange)
         }
@@ -444,10 +451,10 @@ private struct BIOSNote: View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
-                Text("\(status.console.name) needs a BIOS").font(.headline)
+                Text("\(status.console.name) needs a BIOS").font(.system(size: 13, weight: .semibold))
                 Text("\(status.message). Copy it from your own console into the BIOS folder.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Glass.label2)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 8)
@@ -455,9 +462,10 @@ private struct BIOSNote: View {
                 try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
                 NSWorkspace.shared.open(folder)
             }
+            .buttonStyle(.pill)
         }
         .padding(12)
-        .groupBackground()
+        .groupBackground(tint: .orange)
         .accessibilityElement(children: .combine)
     }
 }
@@ -488,19 +496,20 @@ private struct FoldersStep: View {
                     Button("Add Folder…") {
                         if let folder = GameFolders.choose() { model.addFolder(folder) }
                     }
+                    .buttonStyle(.pill)
                 }
             }
             RowGroup {
                 FoundRow(title: Text("Fetch Mac reports from MacGamingDB"),
-                         detail: Text("When you open a game, Cartouche asks MacGamingDB for its Mac reports. No account or Mac identifier is sent.")) {
+                         detail: Text("When you open a game, Cartouche asks MacGamingDB for its Mac reports. When a Windows game has no cover, its name may be looked up in the Steam store. No account or Mac identifier is sent.")) {
                     Toggle(isOn: Bindable(model.privacy).fetchMacReports) { Text("Fetch Mac reports from MacGamingDB") }
                         .toggleStyle(.switch)
                         .labelsHidden()
                 }
             }
             Text("Cartouche asks for a permission the first time you use the feature that needs it.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
+                .font(.system(size: 11))
+                .foregroundStyle(Glass.label2)
         }
     }
 }
@@ -532,8 +541,8 @@ private struct ReadyStep: View {
                 .groupBackground()
             }
             Text("Everything you skipped is in Settings.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
+                .font(.system(size: 11))
+                .foregroundStyle(Glass.label2)
         }
     }
 }

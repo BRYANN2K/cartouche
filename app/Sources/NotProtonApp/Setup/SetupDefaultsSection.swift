@@ -5,7 +5,8 @@ struct SetupDefaultsSection: View {
     @State private var defaults = SetupDefaults()
 
     var body: some View {
-        let runners = model.runners.filter(\.isOffered)
+        // The install runners, CrossOver Wine first: the default also serves installers and store games.
+        let runners = model.installRunners
         Section {
             Picker("Default runner", selection: Binding(
                 get: { defaults.runnerID ?? "" },

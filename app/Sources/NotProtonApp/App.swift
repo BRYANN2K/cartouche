@@ -77,7 +77,7 @@ struct CartoucheApp: App {
                 .environment(consoleCenter)
                 .environment(controls)
                 .controlsSheet(controls)
-                .frame(minWidth: 900, minHeight: 560)
+                .frame(minWidth: 800, minHeight: 560)
                 .permissionExplanations(permissionFlow)
                 .sheet(isPresented: Binding(get: { onboarding?.isPresented ?? false },
                                             set: { onboarding?.isPresented = $0 })) {

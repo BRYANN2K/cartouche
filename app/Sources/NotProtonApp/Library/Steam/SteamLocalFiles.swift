@@ -7,12 +7,11 @@ struct SteamAccount: Equatable, Sendable {
     let accountName: String
     let personaName: String?
 
+    // The account's userdata folder name is the low 32 bits of its SteamID64
     var accountID: String? {
-        guard let id = UInt64(steamID), id > Self.base else { return nil }
-        return String(id - Self.base)
+        guard let id = UInt64(steamID) else { return nil }
+        return String(id & 0xffff_ffff)
     }
-
-    static let base: UInt64 = 76_561_197_960_265_728
 }
 
 struct SteamInstalledApp: Equatable, Sendable {

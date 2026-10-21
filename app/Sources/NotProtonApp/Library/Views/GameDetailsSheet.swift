@@ -18,7 +18,7 @@ struct GameDetailsSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(content.game.name).font(.title2.weight(.bold)).padding([.horizontal, .top], 20)
+            Text(content.game.name).font(.system(size: 17, weight: .bold)).padding([.horizontal, .top], 20)
             Form {
                 ForEach(content.detailsSections, id: \.self) { section in
                     block(section)

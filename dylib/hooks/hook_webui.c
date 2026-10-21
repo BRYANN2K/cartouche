@@ -3,6 +3,7 @@
 #include "hooks.h"
 #include "../core/macho.h"
 #include "../feats/compatsvc.h"
+#include "../feats/libexport.h"
 #include "../feats/webui.h"
 #include "../util/log.h"
 #include <stdint.h>
@@ -19,6 +20,7 @@ static void register_routes(void *address, void *ctx) {
     (void)address;
     (void)ctx;
     np_compatsvc_register(g_mh, g_slide, g_text_base, g_text_size);
+    np_libexport_register(g_mh, g_slide, g_text_base, g_text_size);
 }
 
 static np_patch_entry_t g_hooks[] = {

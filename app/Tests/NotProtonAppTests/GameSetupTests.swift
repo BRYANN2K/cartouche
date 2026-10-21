@@ -188,4 +188,78 @@ struct GameSetupTests {
         #expect(availability.d3dMetalRunners == [Self.release.id])
         #expect(availability.installed == [.dxmt])
     }
+
+    // A Wine CrossOver build by Cartouche plus a user toolkit on disk, all under the scratch folder.
+    static func cartoucheManifest() -> RunnerManifest {
+        RunnerManifest(format: 1, revision: 1, builds: [
+            .init(id: "wine-crossover-26.3.0-1", kind: "wineBuild", origin: .cartouche, name: "Wine CrossOver",
+                  version: "26.3.0", displayVersion: "26.3",
+                  url: URL(string: "https://github.com/BRYANN2K/cartouche-wine/releases/download/wine-crossover-26.3.0-1/wine-crossover-26.3.0-1-x86_64.tar.xz")!,
+                  size: 0, sha256: RunnerManifest.pendingSHA256,
+                  root: "wine-crossover-26.3.0-1", loader: "bin/wine", flavors: ["rosetta"]),
+            .init(id: "wine-stable-11.0_1", kind: "wineBuild", origin: .winehq, name: "Wine",
+                  version: "11.0_1", displayVersion: "11.0",
+                  url: URL(string: "https://github.com/Gcenx/x/releases/download/11.0_1/w.tar.xz")!,
+                  size: 1, sha256: String(repeating: "ab", count: 32),
+                  root: "w", loader: "bin/wine", flavors: ["rosetta"]),
+        ])
+    }
+
+    // A ready toolkit copy: gptk-<v>/ with its receipt and lib/external/libd3dshared.dylib.
+    static func toolkit(in runners: URL, version: String = "4.0b3") throws -> Runner {
+        let fm = FileManager.default
+        let folder = PortingToolkitSource.folder(version: version, runners: runners)
+        try fm.createDirectory(at: folder.appending(path: "lib/external"), withIntermediateDirectories: true)
+        try Data("shared".utf8).write(to: folder.appending(path: "lib/external/libd3dshared.dylib"))
+        let receipt = PortingToolkitSource.Receipt(version: version, origin: "/Volumes/GPTK", files: [:])
+        try JSONEncoder().encode(receipt).write(to: folder.appending(path: PortingToolkitSource.receiptName))
+        return Runner(id: PortingToolkitSource.runnerID(version: version), kind: .portingToolkit, version: version,
+                      displayVersion: version, flavors: [.rosetta], state: .ready, build: nil, source: nil, isInstalled: true)
+    }
+
+    @Test("CrossOver Wine counts for DXMT, and D3DMetal comes from the toolkit or its own apple_gptk")
+    func cartoucheAvailability() throws {
+        let work = try scratchDirectory("setup-cartouche")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let runners = work.appending(path: "runners")
+        let ours = Self.wine("wine-crossover-26.3.0-1")
+        let winehq = Self.wine("wine-stable-11.0_1")
+        let manifest = Self.cartoucheManifest()
+
+        // No toolkit: CrossOver-capable, but no D3DMetal yet.
+        var availability = BackendAvailability.current(registry: RunnerRegistry(runners: [ours, winehq]),
+                                                       runners: runners, backends: work.appending(path: "b"),
+                                                       manifest: manifest)
+        #expect(availability.crossOverWine == [ours.id])
+        #expect(availability.d3dMetalRunners.isEmpty)
+        #expect(!availability.hasGamePortingToolkit)
+        #expect(BackendSupport.missing(.d3dmetal, for: ours, translation: .rosetta, availability: availability)
+                == String(localized: "Needs Game Porting Toolkit"))
+        #expect(BackendSupport.missing(.d3dmetal, for: winehq, translation: .rosetta, availability: availability)
+                == String(localized: "Needs CrossOver Wine and Game Porting Toolkit"))
+        #expect(BackendSupport.missing(.dxmt, for: winehq, translation: .rosetta, availability: availability)
+                == String(localized: "Needs CrossOver Wine"))
+
+        // The toolkit present: the WineHQ build still cannot load D3DMetal, ours can.
+        let toolkit = try Self.toolkit(in: runners)
+        availability = BackendAvailability.current(registry: RunnerRegistry(runners: [ours, winehq, toolkit]),
+                                                   runners: runners, backends: work.appending(path: "b"),
+                                                   manifest: manifest)
+        #expect(availability.hasGamePortingToolkit)
+        #expect(availability.d3dMetalRunners == Set([ours.id, toolkit.id]))
+        #expect(BackendSupport.backends(for: ours, translation: .rosetta, availability: availability).contains(.d3dmetal))
+        #expect(BackendSupport.missing(.d3dmetal, for: winehq, translation: .rosetta, availability: availability)
+                == String(localized: "Needs CrossOver Wine"))
+
+        // Its own apple_gptk counts even without the user's toolkit.
+        let own = WineRunnerInstaller.dir(for: ours.id, runners: runners)
+            .appending(path: "lib64/apple_gptk/external/D3DMetal.framework")
+        try FileManager.default.createDirectory(at: own, withIntermediateDirectories: true)
+        try FileManager.default.removeItem(at: PortingToolkitSource.folder(version: "4.0b3", runners: runners))
+        availability = BackendAvailability.current(registry: RunnerRegistry(runners: [ours, winehq]),
+                                                   runners: runners, backends: work.appending(path: "b"),
+                                                   manifest: manifest)
+        #expect(availability.d3dMetalRunners == [ours.id])
+        #expect(!availability.hasGamePortingToolkit)
+    }
 }

@@ -41,30 +41,16 @@ private struct DropStep: View {
     @State private var targeted = false
 
     var body: some View {
-        Text("Install a Windows Game").font(.title2.bold())
-        if let showConsoleGames {
-            Picker("Kind", selection: Binding(get: { AddGamesKind.windows }, set: { if $0 == .consoles { showConsoleGames() } })) {
-                ForEach(AddGamesKind.allCases) { Text($0.title).tag($0) }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-        }
-        Text("Choose the folder with the installer. Keep the .bin files next to setup.exe.")
-            .foregroundStyle(.secondary)
-        VStack(spacing: 8) {
-            Image(systemName: "folder.badge.plus").font(.system(size: 30)).foregroundStyle(.secondary)
-            Text("Drop a folder here").font(.headline)
-            Button("Choose Folder…", action: choose)
-        }
-        .frame(maxWidth: .infinity, minHeight: 150)
-        .background(RoundedRectangle(cornerRadius: 12).strokeBorder(targeted ? Color.accentColor : .secondary.opacity(0.4),
-                                                                      style: StrokeStyle(lineWidth: 1.5, dash: [5, 4])))
-        .dropDestination(for: URL.self) { urls, _ in
-            guard let url = urls.first else { return false }
-            model.analyze(url)
-            return true
-        } isTargeted: { targeted = $0 }
+        SheetHeader(title: Text("Install a Windows Game"),
+                    message: Text("Choose the folder with the installer. Keep the .bin files next to setup.exe."))
+        DropZone(title: Text("Drop a folder here"), choose: Text("Choose Folder…"), targeted: targeted, action: choose)
+            .dropDestination(for: URL.self) { urls, _ in
+                guard let url = urls.first else { return false }
+                model.analyze(url)
+                return true
+            } isTargeted: { targeted = $0 }
         Footer {
+            Spacer()
             Button("Cancel") { model.close() }.keyboardShortcut(.cancelAction)
         }
     }
@@ -83,7 +69,7 @@ private struct AnalysisStep: View {
     let model: InstallSheetModel
 
     var body: some View {
-        Text(model.isImport ? "Checking the Game" : "Checking the Installer").font(.title2.bold())
+        Text(model.isImport ? "Checking the Game" : "Checking the Installer").font(.system(size: 17, weight: .bold))
         if let folder = model.dropped {
             Text(Analyzer.folder(for: folder).lastPathComponent).font(.callout.monospaced()).foregroundStyle(.secondary).lineLimit(1)
         }
@@ -99,13 +85,13 @@ private struct AnalysisStep: View {
             }
         }
         .padding(.horizontal, 12)
-        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
+        .groupBackground()
         Footer {
             Button("Back") { model.back() }
             Spacer()
             if model.hasBlockingProblem { Button("Check Again") { model.checkAgain() } }
             Button("Continue") { model.toReview() }
-                .keyboardShortcut(.defaultAction)
+                .keyboardShortcut(.defaultAction).buttonStyle(.sheetProminent)
                 .disabled(!model.canContinue)
         }
     }
@@ -154,11 +140,14 @@ private struct ReviewStep: View {
     @Bindable var model: InstallSheetModel
 
     var body: some View {
-        Text("Ready to Install").font(.title2.bold())
+        Text("Ready to Install").font(.system(size: 17, weight: .bold))
         HStack(alignment: .top, spacing: 18) {
             InstallCover(appID: model.appID, name: model.gameName).frame(width: 140, height: 210)
             VStack(alignment: .leading, spacing: 10) {
                 Text(model.gameName).font(.title3.bold())
+                if model.identificationViaSteam {
+                    Text("Identified via Steam").font(.callout).foregroundStyle(.secondary)
+                }
                 if let analysis = model.analysis {
                     Text("\(analysis.scan.parts.count) parts, about \(InstallSheetModel.size(analysis.space.installed)) installed")
                         .foregroundStyle(.secondary)
@@ -198,7 +187,7 @@ private struct ReviewStep: View {
         Footer {
             Button("Back") { model.back() }
             Spacer()
-            Button("Install") { model.install() }.keyboardShortcut(.defaultAction).disabled(!model.canInstall)
+            Button("Install") { model.install() }.keyboardShortcut(.defaultAction).buttonStyle(.sheetProminent).disabled(!model.canInstall)
         }
     }
 }
@@ -208,7 +197,7 @@ private struct ImportReviewStep: View {
     @Bindable var model: InstallSheetModel
 
     var body: some View {
-        Text("Ready to Import").font(.title2.bold())
+        Text("Ready to Import").font(.system(size: 17, weight: .bold))
         HStack(alignment: .top, spacing: 18) {
             InstallCover(appID: model.appID, name: model.gameName).frame(width: 140, height: 210)
             VStack(alignment: .leading, spacing: 10) {
@@ -277,7 +266,7 @@ private struct InstallingStep: View {
 
     var body: some View {
         if let job = model.job {
-            Text(job.request.importing == nil ? "Installing \(job.title)" : "Importing \(job.title)").font(.title2.bold())
+            Text(job.request.importing == nil ? "Installing \(job.title)" : "Importing \(job.title)").font(.system(size: 17, weight: .bold))
             HStack(alignment: .top, spacing: 18) {
                 InstallCover(appID: job.request.appID, name: job.title)
                     .saturation(job.phase == .installing || job.phase == .redistributables ? job.progress.fraction : 1)
@@ -301,13 +290,21 @@ private struct InstallingStep: View {
                 if job.isRunning || job.phase == .waiting {
                     Button("Stop") { model.stop() }
                     Spacer()
-                    Button("Continue in Background") { center.continueInBackground() }.keyboardShortcut(.defaultAction)
+                    Button("Continue in Background") { center.continueInBackground() }.keyboardShortcut(.defaultAction).buttonStyle(.sheetProminent)
                 } else {
                     Spacer()
-                    Button("Close") { model.close() }.keyboardShortcut(.defaultAction)
+                    Button("Close") { model.close() }.keyboardShortcut(.defaultAction).buttonStyle(.sheetProminent)
                 }
             }
         }
+    }
+}
+
+// mm:ss for a boot's or an install's elapsed time.
+enum InstallElapsed {
+    static func format(from start: Date, to now: Date) -> String {
+        let seconds = max(0, Int(now.timeIntervalSince(start)))
+        return String(format: "%d:%02d", seconds / 60, seconds % 60)
     }
 }
 
@@ -317,7 +314,25 @@ private struct ProgressBody: View {
 
     var body: some View {
         Text(phaseText).font(.headline)
-        ProgressView(value: job.progress.fraction)
+        if job.phase == .preparing {
+            bootBody
+        } else if job.phase == .redistributables {
+            ProgressView().controlSize(.small)
+            ForEach(job.runtimeSteps) { step in
+                if step.status == .skipped {
+                    Label(String(localized: "\(step.label) was skipped"), systemImage: "exclamationmark.triangle")
+                        .font(.callout).foregroundStyle(.orange)
+                } else if step.status == .failed {
+                    Label(String(localized: "\(step.label) could not be installed"), systemImage: "exclamationmark.triangle")
+                        .font(.callout).foregroundStyle(.orange)
+                }
+            }
+            if job.runtimeSteps.contains(where: { $0.status == .installing }) {
+                Button("Skip") { model.skipRuntime() }
+            }
+        } else {
+            ProgressView(value: job.progress.fraction)
+        }
         if job.phase == .installing, job.request.importing != nil {
             Text("\(InstallSheetModel.size(job.progress.bytes)) of \(InstallSheetModel.size(job.request.expectedBytes))")
                 .foregroundStyle(.secondary).monospacedDigit()
@@ -353,12 +368,37 @@ private struct ProgressBody: View {
         }
     }
 
+    // The prefix's first boot has no fraction to show: a small spinner, the elapsed time, and its log.
+    @ViewBuilder
+    private var bootBody: some View {
+        HStack(spacing: 10) {
+            ProgressView().controlSize(.small)
+            if let started = job.bootStarted {
+                TimelineView(.periodic(from: started, by: 1)) { context in
+                    Text(InstallElapsed.format(from: started, to: context.date))
+                        .font(.callout.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer(minLength: 0)
+            if let log = job.folder.map({ $0.root.appending(path: "prefix.log") }),
+               FileManager.default.fileExists(atPath: log.path(percentEncoded: false)) {
+                Button("Show Log") { NSWorkspace.shared.open(log) }
+            }
+        }
+    }
+
     private var phaseText: String {
         switch job.phase {
         case .waiting: String(localized: "Waiting for the other install to finish")
         case .verifying: String(localized: "Checking files")
-        case .preparing: String(localized: "Preparing a new prefix")
-        case .redistributables: String(localized: "Installing Visual C++ and DirectX")
+        case .preparing: String(localized: "Preparing Windows environment")
+        case .redistributables:
+            if let n = job.runtimeSteps.firstIndex(where: { $0.status == .installing }) {
+                String(localized: "Installing \(job.runtimeSteps[n].label) runtime, \(n + 1) of \(job.runtimeSteps.count)")
+            } else {
+                String(localized: "Installing runtimes")
+            }
         default: job.request.importing == nil ? String(localized: "Unpacking game files") : String(localized: "Copying game files")
         }
     }
@@ -379,6 +419,13 @@ private struct FailureView: View {
         Text("The installation failed").font(.headline).foregroundStyle(.red)
         if let problem = job.problem {
             Text(problem)
+        }
+        // A failed first boot has no diagnosis: plain retry, or a wiped prefix built from scratch.
+        if job.diagnosis == nil, job.bootStarted != nil {
+            HStack {
+                Button("Try Again") { model.tryAgain() }
+                Button("Recreate Prefix") { model.recreatePrefix() }
+            }
         }
         if let diagnosis = job.diagnosis {
             if let detail = diagnosis.detail { Text(detail).font(.callout.monospaced()).foregroundStyle(.secondary).textSelection(.enabled) }
@@ -442,7 +489,7 @@ private struct ExeStep: View {
     @Bindable var model: InstallSheetModel
 
     var body: some View {
-        Text("Which file starts the game?").font(.title2.bold())
+        Text("Which file starts the game?").font(.system(size: 17, weight: .bold))
         if let job = model.job {
             if job.candidates.isEmpty {
                 Text("No program was found in the install folder.").foregroundStyle(.secondary)
@@ -454,17 +501,23 @@ private struct ExeStep: View {
                 Label(installed ? String(localized: "The installer's compatibility settings were applied") : String(localized: "The installer's compatibility settings could not be applied"),
                       systemImage: installed ? "checkmark" : "exclamationmark.triangle")
             }
-            if let installed = job.redistributablesInstalled {
-                let labels = ListFormatter.localizedString(byJoining: Redistributables.labels(job.redistributables))
-                Label(installed ? String(localized: "\(labels) installed") : String(localized: "\(labels) could not be installed"),
-                      systemImage: installed ? "checkmark" : "exclamationmark.triangle")
+            ForEach(job.runtimeSteps) { step in
+                switch step.status {
+                case .installed:
+                    Label(String(localized: "\(step.label) installed"), systemImage: "checkmark")
+                case .skipped:
+                    Label(String(localized: "\(step.label) was skipped"), systemImage: "exclamationmark.triangle")
+                case .failed:
+                    Label(String(localized: "\(step.label) could not be installed"), systemImage: "exclamationmark.triangle")
+                default: EmptyView()
+                }
             }
             Toggle("Show in Steam", isOn: $model.showInSteam)
             if let problem = model.finishProblem { Text(problem).foregroundStyle(.red) }
             Footer {
                 Spacer()
                 Button("Continue") { model.confirmExe() }
-                    .keyboardShortcut(.defaultAction)
+                    .keyboardShortcut(.defaultAction).buttonStyle(.sheetProminent)
                     .disabled(job.candidates.isEmpty)
             }
         }
@@ -514,7 +567,7 @@ private struct ReadyStep: View {
         if let job = model.job {
             VStack(spacing: 12) {
                 InstallCover(appID: job.request.appID, name: job.title).frame(width: 120, height: 180)
-                Text("\(job.title) is ready").font(.title2.bold())
+                Text("\(job.title) is ready").font(.system(size: 17, weight: .bold))
                 if let outcome = model.steamOutcome ?? job.steamOutcome { Text(Self.steam(outcome)).foregroundStyle(.secondary) }
             }
             .frame(maxWidth: .infinity)
@@ -543,7 +596,7 @@ private struct ReadyStep: View {
             }
             Footer {
                 Spacer()
-                Button("Done") { model.close() }.keyboardShortcut(.defaultAction)
+                Button("Done") { model.close() }.keyboardShortcut(.defaultAction).buttonStyle(.sheetProminent)
             }
         }
     }
@@ -567,7 +620,7 @@ private struct InstallCover: View {
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 8).fill(.quaternary)
+            RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Glass.fill2)
             Text(name).font(.headline).multilineTextAlignment(.center).padding(8).foregroundStyle(.secondary)
             if let url = appID.flatMap(GameCover.steam) {
                 AsyncImage(url: url) { image in
@@ -575,7 +628,9 @@ private struct InstallCover: View {
                 } placeholder: { Color.clear }
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay { CoverEdge(radius: 12) }
+        .shadow(color: .black.opacity(0.35), radius: 12, y: 8)
         .accessibilityLabel(Text("\(name) cover"))
     }
 }
@@ -584,6 +639,8 @@ private struct Footer<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
-        HStack { content }.padding(.top, 6)
+        HStack(spacing: 8) { content }
+            .buttonStyle(.sheet)
+            .padding(.top, 6)
     }
 }

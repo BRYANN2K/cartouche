@@ -38,9 +38,13 @@ enum SetupEnvironment {
         env["CX_GRAPHICS_BACKEND"] = backend.rawValue
         let crossOver = FileManager.default.fileExists(atPath: wine.root.appending(path: "share/crossover").path(percentEncoded: false))
         guard !crossOver else { return }
-        // A Wine built from CodeWeavers' source loads the user's D3DMetal through this
-        if backend == .d3dmetal, let shared = PortingToolkitSource.libd3dshared(runners: runners) {
-            env["CX_APPLEGPTK_LIBD3DSHARED_PATH"] = shared.path(percentEncoded: false)
+        // A Wine built from CodeWeavers' source loads D3DMetal through this: the build's own
+        // apple_gptk when it carries one, else the user's Game Porting Toolkit copy.
+        if backend == .d3dmetal {
+            let own = wine.root.appending(path: "lib64/apple_gptk/external/libd3dshared.dylib")
+            let shared = FileManager.default.fileExists(atPath: own.path(percentEncoded: false)) ? own
+                : PortingToolkitSource.libd3dshared(runners: runners)
+            if let shared { env["CX_APPLEGPTK_LIBD3DSHARED_PATH"] = shared.path(percentEncoded: false) }
         }
         if let dlls = dlls(backend, backends: backends) {
             env["WINEDLLPATH"] = ([dlls.path] + [env["WINEDLLPATH"]])

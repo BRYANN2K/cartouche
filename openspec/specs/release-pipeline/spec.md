@@ -47,3 +47,10 @@ A nightly job SHALL detect new releases of NotProton, the Mac Steam client, Code
 #### Scenario: New Steam client
 - **WHEN** Steam publishes a client version not in the supported list
 - **THEN** an issue titled "Upstream: Steam client <version>" is opened with the release link, and no duplicate is opened the next night
+
+### Requirement: Verify updates before extraction
+The release app SHALL enable SUVerifyUpdateBeforeExtraction in Info.plist so Sparkle starts with the selected verification configuration. ReleaseFeedTests SHALL guard this setting.
+
+#### Scenario: Release configuration
+- **WHEN** the release Info.plist is checked
+- **THEN** SUVerifyUpdateBeforeExtraction is enabled and the regression test rejects its removal
