@@ -28,7 +28,8 @@ struct FreshOnboardingTests {
         await Task.yield()
         #expect(scene.counts.steamInstalls == 0)
         await install.value
-        for _ in 0..<100 where starts.withLock({ $0 }) == 0 {
+        // steamRestarted is set after restart returns, so wait for both
+        for _ in 0..<200 where starts.withLock({ $0 }) == 0 || model.steamRestarted != true {
             try await Task.sleep(for: .milliseconds(10))
         }
         #expect(scene.counts.steamInstalls == 1)
