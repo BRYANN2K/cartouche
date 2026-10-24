@@ -70,6 +70,8 @@ launch() {
 }
 
 session_value() { sed -n "s/^$1=//p" "$fps_dir/session"; }
+# The game's own output: the launcher also logs its exit status after it
+game_log() { grep -v '^Wine launcher exited with status=' "$loader_root/cartouche-wine.log" | sed '/^$/d'; }
 
 echo "== A loader that takes the library =="
 export MTL_HUD_ENABLED=1
@@ -88,7 +90,7 @@ case "$(session_value started)" in [0-9]*) ok "a start time" ;; *) bad "a start 
 is "no probe marker left" "" "$(find "$fps_dir" -name probe)"
 is "the session file is moved into place whole" "" "$(find "$fps_dir" -name session.tmp)"
 has "the log says so" "fps: ok by $runner/accepting" "$(cat "$log")"
-out=$(launch accepting locked 60 5; cat "$loader_root/cartouche-wine.log")
+out=$(launch accepting locked 60 5; game_log)
 is "the game runs" "300" "$out"
 set -- "$fps_dir"/samples-*
 [ -f "$1" ] && ok "the game's process wrote its samples" || bad "the game's process wrote its samples" "samples-<pid>" "$(ls "$fps_dir")"
@@ -109,7 +111,7 @@ echo "== A hardened loader ignores the library =="
 prepare "$runner/hardened"
 is "refused" "refused" "$(session_value measure)"
 is "nothing inserted" "" "$fps_insert"
-out=$(launch hardened locked 60 1; cat "$loader_root/cartouche-wine.log")
+out=$(launch hardened locked 60 1; game_log)
 is "the game runs normally" "60" "$out"
 is "and writes no samples" "" "$(find "$fps_dir" -name 'samples-*')"
 has "the log names the runner" "fps: refused by $runner/hardened" "$(cat "$log")"
@@ -125,7 +127,7 @@ is "inserted anyway, the game would not start" 134 "$rc"
 prepare "$runner/killed"
 is "refused" "refused" "$(session_value measure)"
 is "nothing inserted" "" "$fps_insert"
-out=$(launch killed locked 60 1; cat "$loader_root/cartouche-wine.log")
+out=$(launch killed locked 60 1; game_log)
 is "the game runs normally" "60" "$out"
 cp "$counter_build" "$np_support/fps-counter.dylib"
 
@@ -139,14 +141,15 @@ mkdir -p "$loader_macos" "$fps_dir"
 WINELOADER="$runner/accepting"
 : > "$np_support/overlay-shim.dylib"
 eval "$launcher"
-sed 's|^"[^"]*" "\$@"$|echo "DYLD=$DYLD_INSERT_LIBRARIES COUNTER=${CARTOUCHE_FPS_COUNTER:-}"|' "$loader_macos/launcher" > "$loader_macos/launcher.print"
+sed 's#^"[^"]*" "\$@" || status=\$?$#echo "DYLD=$DYLD_INSERT_LIBRARIES COUNTER=${CARTOUCHE_FPS_COUNTER:-}"#' "$loader_macos/launcher" > "$loader_macos/launcher.print"
+grep -q '^echo "DYLD=' "$loader_macos/launcher.print" || bad "the launcher still runs the loader on one line" '"$WINELOADER" "$@" || status=$?' "$(grep '"\$@"' "$loader_macos/launcher")"
 STEAM_DYLD_INSERT_LIBRARIES=/steam/gameoverlayrenderer.dylib CARTOUCHE_FPS_COUNTER="$fps_insert" sh "$loader_macos/launcher.print"
 is "overlay shim, Steam's overlay, then the counter" \
-  "DYLD=$np_support/overlay-shim.dylib:/steam/gameoverlayrenderer.dylib:$fps_insert COUNTER=" "$(cat "$loader_root/cartouche-wine.log")"
+  "DYLD=$np_support/overlay-shim.dylib:/steam/gameoverlayrenderer.dylib:$fps_insert COUNTER=" "$(game_log)"
 CARTOUCHE_FPS_COUNTER="$fps_insert" sh "$loader_macos/launcher.print"
-is "without the overlay, the counter alone" "DYLD=$fps_insert COUNTER=" "$(cat "$loader_root/cartouche-wine.log")"
+is "without the overlay, the counter alone" "DYLD=$fps_insert COUNTER=" "$(game_log)"
 sh "$loader_macos/launcher.print"
-is "a refused runner gets nothing" "DYLD= COUNTER=" "$(cat "$loader_root/cartouche-wine.log")"
+is "a refused runner gets nothing" "DYLD= COUNTER=" "$(game_log)"
 rm -f "$np_support/overlay-shim.dylib"
 
 echo "== open passes the folder only when there is one =="
