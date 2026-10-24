@@ -18,7 +18,7 @@ variables:
     ARTIFACTS: dobby wine proton innoextract libarchive fonts
     SIGNING_IDENTITY: Cartouche Self-Signed
     TAP_REPOSITORY: BRYANN2K/cartouche
-    TAP_BRANCH: dev
+    TAP_BRANCH: main
   - &gh_token
     GH_TOKEN:
       from_secret: github_release_token

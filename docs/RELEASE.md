@@ -11,7 +11,7 @@ How a Cartouche release is built, signed and published, and what the maintainer 
 
 ## Branches and CI
 
-- `dev` is the integration branch: pull requests target it. A beta promotes `dev` into `beta`; a release promotes `beta` (or `dev`) into `main`. Until the first beta, `beta` sits at `main`.
+- `main` is the default branch on GitHub (stable code, the install script and the cask). `dev` is the integration branch: pull requests target it. A beta promotes `dev` into `beta`; a release promotes `beta` (or `dev`) into `main`. Until the first beta, `beta` sits at `main`.
 - Tag `vX.Y.Z` on `main` and `vX.Y.Z-beta.N` on `beta`.
 - Checks run on Woodpecker, not GitHub Actions:
   - `.woodpecker/app.yaml`: app build and Swift tests on the self-hosted Mac agent (`platform: darwin/arm64`, local backend).
@@ -115,7 +115,7 @@ A manifest whose signature is missing or wrong, whose revision is not higher, or
 
 ## Homebrew tap
 
-The cask lives in this repository, at `Casks/cartouche.rb` on `dev` (the default branch, which `brew tap` follows). Users run:
+The cask lives in this repository, at `Casks/cartouche.rb` on `main` (the default branch, which `brew tap` follows). Users run:
 
 ```sh
 brew tap bryann2k/cartouche https://github.com/BRYANN2K/cartouche
@@ -126,7 +126,7 @@ Tapping clones this repository, so the first `brew tap` downloads the whole app 
 
 ### What a release does
 
-After the GitHub release is published, the `tap` step fills `packaging/homebrew/cartouche.rb.in` with the version and the SHA-256 from `SHA256SUMS`, writes it as `Casks/cartouche.rb` and pushes it to `dev` with `github_release_token`. Betas and test releases do not touch the cask.
+After the GitHub release is published, the `tap` step fills `packaging/homebrew/cartouche.rb.in` with the version and the SHA-256 from `SHA256SUMS`, writes it as `Casks/cartouche.rb` and pushes it to `main` with `github_release_token`; `dev` picks it up at the next promotion. Betas and test releases do not touch the cask.
 
 ### Check it
 
@@ -138,7 +138,7 @@ GitHub Actions is paused (billing), so `.woodpecker/release.yaml` publishes on t
 
 - `vX.Y.Z` is published only if the tagged commit is on `main`; `vX.Y.Z-beta.N` only if it is on `beta`. Any other tag, test tags included, is refused. The check uses the compare API (`GET /repos/{repo}/compare/{branch}...{sha}`, status `identical` or `behind`).
 - The build, the signing (throwaway keychain from `signing_cert_p12` and `signing_cert_password`), `make-appcast.sh`, the release and, for stable only, the Homebrew tap bump are the same as the steps below. `gh` publishes through the REST API with `github_release_token`.
-- Woodpecker secrets, all limited to the `tag` event: `github_release_token` (fine-grained, this repository, Contents read and write), `sparkle_private_key`, `signing_cert_p12`, `signing_cert_password`. The cask commit to `dev` uses `github_release_token` too.
+- Woodpecker secrets, all limited to the `tag` event: `github_release_token` (fine-grained, this repository, Contents read and write), `sparkle_private_key`, `signing_cert_p12`, `signing_cert_password`. The cask commit to `main` uses `github_release_token` too.
 - To publish a tag again after a failure, delete its release if one was created, then restart the tag's pipeline in Woodpecker.
 
 While this repository is private, Sparkle, `install.sh` and Homebrew cannot download the feed or the archives anonymously. A tag still publishes, which is a useful dry run; users get updates once the repository is public.
