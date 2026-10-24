@@ -89,8 +89,8 @@ done
 base="http://127.0.0.1:$(cat "$work/port")"
 
 # The script as published, with the test certificate pinned instead of Cartouche's
-sed "s/^cert_sha1=\$/cert_sha1=$sha1/" "$repo/install.sh" > "$work/install.sh"
-grep -q "^cert_sha1=$sha1\$" "$work/install.sh" || fail "install.sh has no empty cert_sha1= line to pin"
+sed "s/^cert_sha1=.*/cert_sha1=$sha1/" "$repo/install.sh" > "$work/install.sh"
+grep -q "^cert_sha1=$sha1\$" "$work/install.sh" || fail "install.sh has no cert_sha1= line to pin"
 
 apps="$work/Applications"
 mkdir -p "$apps" "$work/tmp"
@@ -142,7 +142,8 @@ run adhoc; refused "ad-hoc signature" "not signed with Cartouche's certificate"
 run identifier; refused "other bundle identifier" "not signed with Cartouche's certificate"
 run traversal; refused "archive name with a path" "names no Cartouche archive"
 run missing; refused "missing release" "SHA256SUMS could not be downloaded"
-run good "$repo/install.sh"; refused "unpinned script" "does not name Cartouche's certificate"
+sed "s/^cert_sha1=.*/cert_sha1=/" "$repo/install.sh" > "$work/unpinned.sh"
+run good "$work/unpinned.sh"; refused "unpinned script" "does not name Cartouche's certificate"
 
 status=0
 TMPDIR="$work/tmp" CARTOUCHE_RELEASE_URL="http://example.com/download" CARTOUCHE_APPLICATIONS="$apps" \

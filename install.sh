@@ -10,7 +10,7 @@
 set -eu
 
 # SHA-1 of the certificate that signs every release (docs/RELEASE.md)
-cert_sha1=
+cert_sha1=b3c04999a68c1411b8b412aace337634cdced059
 bundle_id=dev.bryann2k.cartouche
 
 release=${CARTOUCHE_RELEASE_URL:-https://github.com/BRYANN2K/cartouche/releases/latest/download}
@@ -46,7 +46,7 @@ main() {
     version=${archive#Cartouche-}
     version=${version%.zip}
 
-    say "Downloading Cartouche $version…"
+    say "Downloading Cartouche ${version}…"
     fetch "$archive" || fail "$archive could not be downloaded from $release."
 
     say "Checking the SHA-256…"
