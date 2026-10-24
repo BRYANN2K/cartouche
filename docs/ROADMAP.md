@@ -28,11 +28,11 @@ Each phase was one OpenSpec change. A phase is done when every scenario of its s
 | P17 | `p17-mac-permissions` | Every macOS permission asked at the right moment, explained, recoverable | P0 |
 | P18 | `p18-onboarding` | First launch: install, Gatekeeper, detection, choices, permissions | P5, P17 |
 
-## Current status (2026-10-21, end of day)
+## Current status (2026-10-24)
 
-P0–P18 have code on main. All phase specs are folded into `openspec/specs/`. That is not proof that every original criterion passed. Merged code and fixture tests do not replace real-service, real-game or clean-machine release checks.
+P0–P18 have code on `beta`. All phase specs are folded into `openspec/specs/`. That is not proof that every original criterion passed. Merged code and fixture tests do not replace real-service, real-game or clean-machine release checks.
 
-The work merged on the integration branch on 2026-10-21 has not been compiled or run yet. Every item below marked "merged" is pending build and live check.
+The 2026-10-21 work was built and run on a Mac during the 0.1.0 validation pass (2026-10-23 and 24). Since then: games location in Settings > Library, Wine Tools and Stop for running Steam games, the problem banner, community contributions (off until the site's service is live), network backoff on 429/503, and the MCP token in the Keychain. Checks run on Woodpecker. Items marked "pending live check" below still need a real game or service.
 
 ### Merged before 2026-10-21
 
