@@ -6,7 +6,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 
 ## [Unreleased]
 
-Merged on 2026-10-21, pending build and live check:
+## [0.1.0] - 2026-10-24
+
+First public release.
 
 - Our Wine build, built from CodeWeavers' CrossOver sources (LGPL), is now called Cartouche Wine in the app and in Steam > Compatibility. It is not CrossOver. Runner IDs (`wine-crossover-*`) and existing installs are unchanged.
 - Starts With (French: Programme de lancement): change the program an installed game starts with, from the game menu, the context menu or the panel's Setup section. The list follows the install sheet's ranking, and Choose Another… opens the game's folder. The prefix and settings are kept.
@@ -52,8 +54,8 @@ Merged on 2026-10-21, pending build and live check:
 
 - Import already-installed Windows games in place or copy them. In-place source files remain user-owned.
 - Detect installers that unpack their data with their own helper programs, prepare their Wine environment, and directly extract supported formats; unsupported paths use the installer. Real-game coverage remains under validation.
-- MCP agent control, console extras, controls, store integrations and performance tracking are merged. Real-machine and service checks remain before release.
-- Wine builds are published from the public BRYANN2K/cartouche-wine build-recipe repository. The app repository stays private until v0.1.0.
+- MCP agent control, console extras, controls, store integrations and performance tracking.
+- Wine builds are published from the public BRYANN2K/cartouche-wine build-recipe repository.
 
 - Cartouche starts from NotProton 1.2.0, renamed and with its own data folder, update feed and icon.
-- Release pipeline: pull request checks, signed releases with Sparkle updates, a beta channel, a Homebrew tap and a nightly watch of upstream projects.
+- Release pipeline: pull request checks, signed releases with Sparkle updates, a beta channel, a Homebrew cask and a nightly watch of upstream projects.
