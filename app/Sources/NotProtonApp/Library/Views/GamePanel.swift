@@ -14,6 +14,7 @@ struct GamePanel: View {
     @Environment(ConsoleCenter.self) private var consoles: ConsoleCenter?
     @Environment(ControlsCenter.self) private var controls: ControlsCenter?
     @Environment(StoreCenter.self) private var stores: StoreCenter?
+    @Environment(ContributionsModel.self) private var contributions: ContributionsModel?
 
     private var content: GamePanelContent {
         GamePanelContent(game: game, compat: compat.panel(appID: game.steamAppID ?? game.compatAppID ?? -1, method: .wine),
@@ -73,6 +74,9 @@ struct GamePanel: View {
                     }
                     ForEach(content.sections, id: \.self) { section in
                         block(section, content)
+                    }
+                    if let contributions, contributions.isAvailable {
+                        CommunityBlock(game: game, model: model, compat: compat, contributions: contributions)
                     }
                     AdvancedGameRows(game: game, model: model)
                     if let controls {

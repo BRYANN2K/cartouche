@@ -59,11 +59,24 @@ struct GameUninstall: Sendable {
 
     private func copySaves(_ plan: RemovalPlan) throws {
         let fm = FileManager.default
+        let root = Self.unusedFolder(saves.appending(path: plan.folder.root.lastPathComponent))
         for (dir, relative) in Self.saveFolders(in: plan.folder.prefix) {
-            let target = saves.appending(path: plan.folder.root.lastPathComponent).appending(path: relative)
+            let target = root.appending(path: relative)
             try fm.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
             try fm.copyItem(at: dir, to: target)
         }
+    }
+
+    // Saves kept by an earlier removal of the same game stay; this one goes next to them.
+    static func unusedFolder(_ folder: URL) -> URL {
+        let fm = FileManager.default
+        var candidate = folder
+        var n = 2
+        while fm.fileExists(atPath: candidate.path(percentEncoded: false)) {
+            candidate = folder.deletingLastPathComponent().appending(path: "\(folder.lastPathComponent)-\(n)", directoryHint: .isDirectory)
+            n += 1
+        }
+        return candidate
     }
 
     // drive_c/users/<name>/<save dir> pairs holding at least one file, with the path to keep them under.

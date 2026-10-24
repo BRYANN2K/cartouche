@@ -37,9 +37,10 @@ struct ShimAgreementTests {
 
     @Test("The shim checks the ntdll arches the app patches")
     func ntdllArchesAgree() throws {
+        // One ntdll loop per runner origin (downloaded, bridge-staged), then the builtins loop.
         let lists = Self.archLists(in: try Self.verifyRunnerBlock())
-        #expect(lists.count == 2)
-        #expect(lists.first == Set(WineArch.allCases.map(\.rawValue)))
+        #expect(lists.count == 3)
+        #expect(lists.dropLast().allSatisfy { $0 == Set(WineArch.allCases.map(\.rawValue)) })
     }
 
     @Test("The shim checks the builtins the app installs")
@@ -47,7 +48,7 @@ struct ShimAgreementTests {
         let block = try Self.verifyRunnerBlock()
         let lists = Self.archLists(in: block)
 
-        #expect(lists.count == 2)
+        #expect(lists.count == 3)
 
         let arches = try #require(lists.last)
         let unix = "\"${wine_unix##*/}\""

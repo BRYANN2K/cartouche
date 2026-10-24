@@ -205,15 +205,21 @@ public final class MCPSocketServer: @unchecked Sendable {
 
     private func drop(_ connection: Connection) {
         guard connections.removeValue(forKey: connection.id) != nil else { return }
-        // The fd closes in a cancel handler so no queued event meets a reused fd number; a suspended source traps on cancel, so a drained writer is resumed first.
+        // The fd closes once every source's cancel handler ran, so no queued event meets a reused fd number; a suspended source traps on cancel, so a drained writer is resumed first.
+        let cancelled = DispatchGroup()
         if let writer = connection.writeSource {
             if !connection.writeArmed { writer.resume() }
-            writer.setCancelHandler { close(connection.fd) }
+            cancelled.enter()
+            writer.setCancelHandler { cancelled.leave() }
             writer.cancel()
-        } else {
-            connection.readSource?.setCancelHandler { close(connection.fd) }
         }
-        connection.readSource?.cancel()
+        if let reader = connection.readSource {
+            cancelled.enter()
+            reader.setCancelHandler { cancelled.leave() }
+            reader.cancel()
+        }
+        let fd = connection.fd
+        cancelled.notify(queue: queue) { close(fd) }
     }
 
     private func drain(_ connection: Connection) {

@@ -230,6 +230,22 @@ struct InstallUninstallTests {
         #expect(!fm.fileExists(atPath: root.appending(path: "Desktop/notes.txt").path(percentEncoded: false)))
     }
 
+    @Test("Saves kept by an earlier removal of the same game stay, and the new ones go next to them")
+    func keepsSavesTwice() async throws {
+        let s = try scene("remove-saves-twice", saves: true)
+        let fm = FileManager.default
+        let earlier = s.saves.appending(path: "\(s.folder.root.lastPathComponent)/crossover/AppData/Game")
+        try fm.createDirectory(at: earlier, withIntermediateDirectories: true)
+        try Data("older".utf8).write(to: earlier.appending(path: "save.dat"))
+        let (actions, _) = try runner(s)
+
+        actions.perform(.uninstall, on: s.game)
+        #expect(await waitFor { s.model.game(s.game.id) == nil })
+        #expect(try Data(contentsOf: earlier.appending(path: "save.dat")) == Data("older".utf8))
+        let root = s.saves.appending(path: "\(s.folder.root.lastPathComponent)-2/crossover")
+        #expect(fm.fileExists(atPath: root.appending(path: "AppData/Game/save.dat").path(percentEncoded: false)))
+    }
+
     @Test("Without the checkbox nothing is copied; cancel moves nothing")
     func noSavesAndCancel() async throws {
         let s = try scene("remove-nosave", saves: true)

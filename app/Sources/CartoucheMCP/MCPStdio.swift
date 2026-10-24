@@ -9,21 +9,34 @@ public enum MCPStdio {
         output: FileHandle = .standardOutput,
         channel: any MCPRequestChannel
     ) async {
+        // Split on LF only: AsyncLineSequence also breaks on U+2028/U+2029, which JSON strings may carry raw.
+        var line = Data()
         do {
-            for try await line in input.bytes.lines {
-                guard let data = line.data(using: .utf8), !data.isEmpty else { continue }
-                let reply: Data
-                do {
-                    reply = try await channel.send(data)
-                } catch {
-                    if MCPUnreachable.isNotification(data) { continue }
-                    reply = MCPUnreachable.reply(to: data, reason: error.localizedDescription)
+            for try await byte in input.bytes {
+                if byte == 0x0A {
+                    await handle(line, channel: channel, output: output)
+                    line.removeAll(keepingCapacity: true)
+                } else {
+                    line.append(byte)
                 }
-                guard !reply.isEmpty else { continue }
-                write(reply, to: output)
             }
         } catch {
         }
+        await handle(line, channel: channel, output: output)
+    }
+
+    private static func handle(_ line: Data, channel: any MCPRequestChannel, output: FileHandle) async {
+        let data = line.last == 0x0D ? line.dropLast() : line
+        guard !data.isEmpty else { return }
+        let reply: Data
+        do {
+            reply = try await channel.send(Data(data))
+        } catch {
+            if MCPUnreachable.isNotification(Data(data)) { return }
+            reply = MCPUnreachable.reply(to: Data(data), reason: error.localizedDescription)
+        }
+        guard !reply.isEmpty else { return }
+        write(reply, to: output)
     }
 
     static func write(_ data: Data, to output: FileHandle) {

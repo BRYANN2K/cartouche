@@ -159,6 +159,25 @@ struct StoreSignInTests {
         #expect(!FileManager.default.fileExists(atPath: file.path))
     }
 
+    @Test("A fresh run that writes no token, like a refused code, keeps the saved session")
+    func freshRunWithoutTokenKeepsVault() async throws {
+        let vault = MemoryVault()
+        let work = try scratchDirectory("vault-fresh-empty")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let folders = StoreFolders(root: work)
+        let secrets = folders.secrets(vault: vault)
+        try vault.write(StoreSecret(account: "player42", files: ["user.json": Data("saved".utf8)]), for: .epic)
+        let file = folders.client(.epic).appending(path: "user.json")
+        try await secrets.using(.epic, fresh: true) {
+            #expect(!FileManager.default.fileExists(atPath: file.path))
+        }
+        #expect(try vault.read(.epic)?.files["user.json"] == Data("saved".utf8))
+        try await secrets.using(.epic, fresh: true) {
+            try Data("new".utf8).write(to: file)
+        }
+        #expect(try vault.read(.epic)?.files["user.json"] == Data("new".utf8))
+    }
+
     @Test("The Keychain item is a generic password of Cartouche's own service, this Mac only, never synced")
     func keychainItem() throws {
         let vault = KeychainVault()

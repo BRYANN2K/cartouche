@@ -90,7 +90,7 @@ actor StoreSecrets {
         do {
             let result = try await body()
             do {
-                try close(store, collect: true)
+                try close(store, collect: true, emptyMeansSignedOut: !fresh)
             } catch {
                 // The Keychain can be unreachable on a locked Mac; the files stay (0600) for sweep() at next start.
                 AppLog.note("store \(store.id): tokens could not be stored: \(error.localizedDescription)")
@@ -126,10 +126,10 @@ actor StoreSecrets {
         }
     }
 
-    private func close(_ store: GameSource, collect: Bool) throws {
+    private func close(_ store: GameSource, collect: Bool, emptyMeansSignedOut: Bool = true) throws {
         users[store, default: 1] -= 1
         guard users[store] == 0 else { return }
-        if collect { try self.collect(store) } else { clearFiles(store) }
+        if collect { try self.collect(store, emptyMeansSignedOut: emptyMeansSignedOut) } else { clearFiles(store) }
     }
 
     func clearFiles(_ store: GameSource) {
@@ -139,13 +139,14 @@ actor StoreSecrets {
         }
     }
 
-    // No files left means the client signed out, and so does the vault; files are deleted only once the vault holds them.
-    func collect(_ store: GameSource) throws {
+    // No files left means the client signed out, and so does the vault, except after a fresh run that never wrote any; files are deleted only once the vault holds them.
+    func collect(_ store: GameSource, emptyMeansSignedOut: Bool = true) throws {
         guard let folder = folders[store] else { return }
         let files = Self.files(in: folder, matching: patterns[store] ?? [])
         var contents: [String: Data] = [:]
         for (path, url) in files { contents[path] = try Data(contentsOf: url) }
         if contents.isEmpty {
+            guard emptyMeansSignedOut else { return }
             try vault.delete(store)
             accounts[store] = nil
         } else {

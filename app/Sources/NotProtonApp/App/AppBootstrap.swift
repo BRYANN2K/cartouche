@@ -53,6 +53,8 @@ extension CartoucheApp {
         await loadRunners()
         startStores()
         await compat.refresh()
+        // Only what the user confirmed waits in the queue; nothing new is collected here
+        Task { await contributions.drain() }
     }
 
     private func startStores() {

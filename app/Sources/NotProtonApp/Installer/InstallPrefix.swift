@@ -37,8 +37,9 @@ struct GameFolder: Sendable, Equatable {
         return words.isEmpty ? "game" : words.joined(separator: "-")
     }
 
-    // A finished game is never reused; an unfinished attempt of the same game is cleared so the retry starts from a fresh prefix.
-    static func fresh(for name: String, in installs: URL = installs) throws -> GameFolder {
+    // A finished game is never reused; an unfinished attempt of the same game is cleared so the retry starts from a fresh prefix,
+    // unless another live job still owns it (reserved holds those roots).
+    static func fresh(for name: String, in installs: URL = installs, reserved: Set<URL> = []) throws -> GameFolder {
         let fm = FileManager.default
         try fm.createDirectory(at: installs, withIntermediateDirectories: true)
         let base = slug(name)
@@ -46,6 +47,7 @@ struct GameFolder: Sendable, Equatable {
         while true {
             let folder = GameFolder(root: installs.appending(path: n == 1 ? base : "\(base)-\(n)"))
             let path = folder.root.path(percentEncoded: false)
+            if reserved.contains(folder.root.standardizedFileURL) { n += 1; continue }
             if !fm.fileExists(atPath: path) { break }
             if !folder.isFinished, fm.fileExists(atPath: folder.attempt.path(percentEncoded: false)) {
                 try fm.removeItem(at: folder.root)

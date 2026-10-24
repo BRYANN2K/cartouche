@@ -69,8 +69,19 @@ struct AgentDiagnosis: Sendable {
             ]
         }
         if log.range(of: "anticheat|easyanticheat|battleye", options: [.regularExpression, .caseInsensitive]) != nil {
-            out.problem = "anti-cheat refuses Wine"
-            out.detail = "This game's anti-cheat does not allow Wine. Check get_compatibility before trying more fixes."
+            // A log line names the anti-cheat; it does not prove a block, and Linux rules do not decide a Mac verdict
+            let resolved = backend.resolvedCompatibility(game)
+            switch resolved?.macOnline {
+            case .compatible?:
+                out.problem = "anti-cheat mentioned in the log"
+                out.detail = "Mac evidence says protected online play works for this game, so the anti-cheat line alone is not the cause. Look for another failure."
+            case .blocked?:
+                out.problem = "anti-cheat blocks protected online play on Mac"
+                out.detail = "Mac evidence reports this anti-cheat refusing protected online play. Settings changes will not lift that."
+            default:
+                out.problem = "anti-cheat mentioned in the log"
+                out.detail = "The log mentions an anti-cheat. Whether it refuses Wine on a Mac is not established; check get_compatibility before trying more fixes."
+            }
         }
         if log.range(of: "err:module:(?!import_dll).*load|cannot find", options: .regularExpression) != nil
             && out.problem == "no obvious failure in the last log" {

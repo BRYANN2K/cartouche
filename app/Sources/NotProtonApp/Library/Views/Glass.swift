@@ -133,30 +133,6 @@ private struct ProminentButton: ViewModifier {
     }
 }
 
-private struct CircleButton: ViewModifier {
-    @Environment(\.glassMode) private var mode
-
-    func body(content: Content) -> some View {
-        if #available(macOS 26, *), mode == .liquid {
-            content.buttonStyle(.glass).buttonBorderShape(.circle)
-        } else {
-            content.buttonStyle(.bordered).buttonBorderShape(.circle)
-        }
-    }
-}
-
-private struct CircleProminentButton: ViewModifier {
-    @Environment(\.glassMode) private var mode
-
-    func body(content: Content) -> some View {
-        if #available(macOS 26, *), mode == .liquid {
-            content.buttonStyle(.glassProminent).buttonBorderShape(.circle)
-        } else {
-            content.buttonStyle(.borderedProminent).buttonBorderShape(.circle)
-        }
-    }
-}
-
 // The toolbar's search field: a glass capsule on macOS 26, a material one earlier
 private struct CapsuleField: ViewModifier {
     @Environment(\.glassMode) private var mode
@@ -429,10 +405,6 @@ extension View {
     }
 
     func prominentButton() -> some View { modifier(ProminentButton()) }
-
-    func circleButton() -> some View { modifier(CircleButton()) }
-
-    func circleProminentButton() -> some View { modifier(CircleProminentButton()) }
 
     func capsuleField() -> some View { modifier(CapsuleField()) }
 

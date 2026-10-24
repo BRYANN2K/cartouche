@@ -71,10 +71,21 @@ struct PerformanceSharing: Sendable {
     static let macGamingDB: (@Sendable (Int) -> URL)? = nil
 
     var endpoint: (@Sendable (Int) -> URL)? = PerformanceSharing.macGamingDB
-    var send: @Sendable (URLRequest) async throws -> Void = { request in
-        let (_, response) = try await URLSession.shared.data(for: request)
-        guard let status = (response as? HTTPURLResponse)?.statusCode, (200...299).contains(status) else {
-            throw URLError(.badServerResponse)
+    // 30 s per request, and the shared host pause after a 429 or 503 (Support/HTTPRetryPolicy.swift)
+    var send: @Sendable (URLRequest) async throws -> Void = PerformanceSharing.live(cooldown: .shared)
+
+    static func live(cooldown: HTTPCooldown) -> @Sendable (URLRequest) async throws -> Void {
+        { original in
+            guard let url = original.url else { throw URLError(.badURL) }
+            if await cooldown.isPaused(url) { throw URLError(.cannotConnectToHost) }
+            var request = original
+            request.timeoutInterval = 30
+            let (_, response) = try await URLSession.shared.data(for: request)
+            let http = response as? HTTPURLResponse
+            await cooldown.note(url, status: http?.statusCode ?? 0, retryAfter: http?.value(forHTTPHeaderField: "Retry-After"))
+            guard let status = http?.statusCode, (200...299).contains(status) else {
+                throw URLError(.badServerResponse)
+            }
         }
     }
     var mac: @Sendable () -> PerformanceReport.Mac = { PerformanceReport.Mac.current() }
@@ -104,6 +115,8 @@ struct PerformanceSharing: Sendable {
                 sent += 1
             } catch {
                 AppLog.note("performance report for \(session.appID) not sent: \(error.localizedDescription)")
+                // A paused or throttling host gets nothing more in this pass
+                if let url = request.url, await HTTPCooldown.shared.isPaused(url) { break }
             }
         }
         return sent

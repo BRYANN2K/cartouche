@@ -57,9 +57,10 @@ struct InstallSheetTests {
         center.open([folder])
         #expect(center.isSheetPresented)
         #expect(center.sheet.step == .analysis)
-        #expect(await waitFor { !center.sheet.isAnalyzing })
+        try #require(await waitFor { !center.sheet.isAnalyzing })
         let items = center.sheet.items
-        #expect(items.map(\.title) == ["Inno Setup 5.5 installer", "2 parts found", "Files are intact", "Identified as Disco Elysium", items.last!.title])
+        try #require(items.count == 5)
+        #expect(items.map(\.title) == ["Inno Setup 5.5 installer", "2 parts found", "Files are intact", "Identified as Disco Elysium", items[4].title])
         #expect(items[0].detail.hasPrefix("Uses an external unpacker (cls-srep_x64.exe, isdone.dll, unarc.dll)"))
         #expect(items[3].cover == 632_470)
         #expect(items.allSatisfy { $0.check != .failed })
@@ -73,7 +74,7 @@ struct InstallSheetTests {
     func unpackerRequest() async throws {
         let (center, folder) = try sheetFixture("sheet-unpacker")
         center.open([folder])
-        #expect(await waitFor { !center.sheet.isAnalyzing })
+        try #require(await waitFor { !center.sheet.isAnalyzing })
         let analysis = try #require(center.sheet.analysis)
         #expect(analysis.unpacker?.helpers == ["cls-srep_x64.exe", "isdone.dll", "unarc.dll"])
 
@@ -96,7 +97,7 @@ struct InstallSheetTests {
     func missingPart() async throws {
         let (center, folder) = try sheetFixture("sheet-missing", parts: ["data-01.bin": "a"])
         center.open([folder])
-        #expect(await waitFor { !center.sheet.isAnalyzing })
+        try #require(await waitFor { !center.sheet.isAnalyzing })
         let missing = try #require(center.sheet.items.first { $0.id == "parts" })
         #expect(missing.title == "data-02.bin is missing")
         #expect(missing.check == .failed)
@@ -106,7 +107,7 @@ struct InstallSheetTests {
         // Check Again after the file is back.
         try Data("b".utf8).write(to: folder.appending(path: "data-02.bin"))
         center.sheet.checkAgain()
-        #expect(await waitFor { !center.sheet.isAnalyzing })
+        try #require(await waitFor { !center.sheet.isAnalyzing })
         #expect(center.sheet.canContinue)
     }
 
@@ -114,7 +115,7 @@ struct InstallSheetTests {
     func optionalPart() async throws {
         let (center, folder) = try sheetFixture("sheet-optional", manifest: sums, parts: ["data-01.bin": "a"])
         center.open([folder])
-        #expect(await waitFor { !center.sheet.isAnalyzing })
+        try #require(await waitFor { !center.sheet.isAnalyzing })
         let optional = try #require(center.sheet.items.first { $0.id.hasPrefix("optional-") })
         #expect(optional.title == "data-02.bin is missing")
         #expect(optional.check == .warning)
@@ -126,7 +127,7 @@ struct InstallSheetTests {
     func correctMatch() async throws {
         let (center, folder) = try sheetFixture("sheet-correct")
         center.open([folder])
-        #expect(await waitFor { !center.sheet.isAnalyzing })
+        try #require(await waitFor { !center.sheet.isAnalyzing })
         center.sheet.toReview()
         #expect(center.sheet.appID == 632_470)
         center.sheet.search = "elden"
@@ -169,7 +170,7 @@ struct InstallSheetTests {
     func noRunner() async throws {
         let (center, folder) = try sheetFixture("sheet-norunner")
         center.open([folder])
-        #expect(await waitFor { !center.sheet.isAnalyzing })
+        try #require(await waitFor { !center.sheet.isAnalyzing })
         center.sheet.toReview()
         #expect(!center.sheet.canInstall)
     }
@@ -189,7 +190,7 @@ struct InstallSheetTests {
         center.lookup = lookup
         center.lookupsAllowed = { true }
         center.open([folder])
-        #expect(await waitFor { !center.sheet.isAnalyzing })
+        try #require(await waitFor { !center.sheet.isAnalyzing })
         #expect(center.sheet.appID == 1_118_860)
         #expect(center.sheet.identificationViaSteam)
         let item = try #require(center.sheet.items.first { $0.id == "game" })
@@ -213,7 +214,7 @@ struct InstallSheetTests {
         center.lookup = lookup
         center.lookupsAllowed = { true }
         center.open([folder])
-        #expect(await waitFor { !center.sheet.isAnalyzing })
+        try #require(await waitFor { !center.sheet.isAnalyzing })
         #expect(center.sheet.appID == 1_118_860)
         #expect(center.sheet.identificationViaSteam)
     }
@@ -237,7 +238,7 @@ struct InstallSheetTests {
         center.lookup = lookup
         center.lookupsAllowed = { true }
         center.open([folder])
-        #expect(await waitFor { !center.sheet.isAnalyzing })
+        try #require(await waitFor { !center.sheet.isAnalyzing })
         #expect(center.sheet.appID == 1_118_860)
         #expect(center.sheet.identificationViaSteam)
         #expect(asked.value.count == 1)
@@ -254,7 +255,7 @@ struct InstallSheetTests {
         center.lookup = lookup
         center.lookupsAllowed = { true }
         center.open([folder])
-        #expect(await waitFor { !center.sheet.isAnalyzing })
+        try #require(await waitFor { !center.sheet.isAnalyzing })
         #expect(center.sheet.appID == nil)
         #expect(!center.sheet.identificationViaSteam)
         let item = try #require(center.sheet.items.first { $0.id == "game" })
@@ -271,7 +272,7 @@ struct InstallSheetTests {
         center.lookup = lookup
         center.lookupsAllowed = { false }
         center.open([folder])
-        #expect(await waitFor { !center.sheet.isAnalyzing })
+        try #require(await waitFor { !center.sheet.isAnalyzing })
         #expect(center.sheet.appID == nil)
         #expect(!center.sheet.identificationViaSteam)
         #expect(asked.value.isEmpty)
@@ -307,7 +308,7 @@ struct InstallSheetTests {
 
         try shoot("1-drop")
         center.open([folder])
-        #expect(await waitFor { !center.sheet.isAnalyzing })
+        try #require(await waitFor { !center.sheet.isAnalyzing })
         try shoot("2-analysis")
         center.sheet.toReview()
         try shoot("3-review")

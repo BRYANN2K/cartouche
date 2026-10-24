@@ -46,7 +46,7 @@ struct StatusSnapshot: Sendable {
             damagedRunners: registry.damaged,
             installContent: DeploymentContent.current(version: bundledVersion),
             runners: registry.runners,
-            compatibilityTools: CompatToolList.installed()
+            compatibilityTools: RunnerRegistry.compatibilityTools()
         )
     }
 }
@@ -59,8 +59,6 @@ final class SystemStatus {
     var isRefreshing = false
     var activity: String?
     var outcome: String?
-    private(set) var highlightedRow: String?
-    @ObservationIgnored private var highlightReset: Task<Void, Never>?
     private(set) var failure: String?
     private(set) var failureRemedy: Remedy?
 
@@ -135,20 +133,6 @@ final class SystemStatus {
 
     var usableCrossOvers: [CrossOverInstall] {
         snapshot?.crossOver.filter(\.isUsable) ?? []
-    }
-
-    var crossOverRows: [CrossOverRow] {
-        guard let snapshot else { return [] }
-        var unpatched: [String] = []
-        if case .unpatched(let builds, _) = snapshot.runner { unpatched = builds }
-        return CrossOverRow.rows(
-            installs: snapshot.crossOver,
-            licenses: snapshot.crossOverLicense,
-            installed: snapshot.installedRunners,
-            damaged: snapshot.damagedRunners,
-            orphaned: snapshot.orphanedRunners,
-            unpatched: unpatched
-        )
     }
 
     var repairSource: CrossOverInstall? {
@@ -262,38 +246,6 @@ final class SystemStatus {
         }
     }
 
-    func addCrossOver() async {
-        let panel = NSOpenPanel()
-        panel.canChooseFiles = true
-        panel.canChooseDirectories = false
-        panel.allowsMultipleSelection = false
-        panel.allowedContentTypes = [.application]
-        panel.prompt = String(localized: "Add")
-        panel.message = String(localized: "Select a copy of CrossOver.")
-        panel.directoryURL = URL(filePath: "/Applications", directoryHint: .isDirectory)
-
-        guard panel.runModal() == .OK, let picked = panel.url else { return }
-
-        clearFailure()
-        outcome = nil
-
-        guard RunnerRegistry.looksLikeCrossOver(picked) else {
-            setFailure(String(localized: "\(picked.lastPathComponent) is not a valid copy of CrossOver."))
-            AppLog.note("crossOver choice refused: \(picked.path(percentEncoded: false))")
-            return
-        }
-
-        await refresh()
-        if let row = CrossOverRow.listing(RunnerRegistry.inspect(bundle: picked), in: crossOverRows) {
-            AppLog.note("crossOver already listed: \(picked.path(percentEncoded: false))")
-            highlight(row)
-            return
-        }
-        RunnerRegistry.addManualBundle(picked)
-        AppLog.note("crossOver added: \(picked.path(percentEncoded: false))")
-        await refresh()
-    }
-
     func chooseSteam() async {
         let current = SupportPaths.Steam.app
         let panel = NSOpenPanel()
@@ -359,26 +311,6 @@ final class SystemStatus {
             return String(localized: "Cartouche is installed in \(current.path(percentEncoded: false)). Use Repair Steam to remove it before choosing another copy of Steam.")
         }
         return nil
-    }
-
-    private func highlight(_ row: CrossOverRow) {
-        AccessibilityNotification.Announcement(String(localized: "\(row.title) is already listed.")).post()
-        highlightReset?.cancel()
-        highlightedRow = row.id
-        highlightReset = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(2))
-            guard !Task.isCancelled else { return }
-            self?.highlightedRow = nil
-        }
-    }
-
-    func removeFromList(_ install: CrossOverInstall) async {
-        guard isIdle else { return }
-        clearFailure()
-        outcome = nil
-        RunnerRegistry.removeManualBundle(install.bundle)
-        AppLog.note("crossOver removed from list: \(install.id)")
-        await refresh()
     }
 
     private static let toolsRestartHint = String(localized: "Restart Steam to update its list of compatibility tools.")

@@ -43,6 +43,16 @@ struct InstallPrefixTests {
         #expect(FileManager.default.fileExists(atPath: retry.record.path))
     }
 
+    @Test("An unfinished attempt another live job owns is neither cleared nor reused")
+    func reservedAttemptKept() throws {
+        let installs = try scratchDirectory("installs")
+        let first = try GameFolder.fresh(for: "Sample", in: installs)
+        try Data("still choosing a launcher".utf8).write(to: first.prefix.appending(path: "system.reg"))
+        let second = try GameFolder.fresh(for: "Sample", in: installs, reserved: [first.root.standardizedFileURL])
+        #expect(second.root.lastPathComponent == "sample-2")
+        #expect(FileManager.default.fileExists(atPath: first.prefix.appending(path: "system.reg").path))
+    }
+
     @Test("A folder Cartouche did not mark is left alone")
     func foreignFolderKept() throws {
         let installs = try scratchDirectory("installs")

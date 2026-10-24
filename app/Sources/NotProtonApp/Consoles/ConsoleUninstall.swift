@@ -108,7 +108,8 @@ struct ConsoleUninstall: Sendable {
     private func copySaves(_ plan: ConsoleGameRemoval) throws {
         let fm = FileManager.default
         let base = Self.basePath(plan.root) + "/"
-        let target = saves.appending(path: "\(plan.game.console)-\(plan.game.contentName)", directoryHint: .isDirectory)
+        let target = GameUninstall.unusedFolder(
+            saves.appending(path: "\(plan.game.console)-\(plan.game.contentName)", directoryHint: .isDirectory))
         for file in plan.saves {
             let relative = String(file.resolvingSymlinksInPath().path(percentEncoded: false).dropFirst(base.count))
             let destination = target.appending(path: relative)

@@ -80,6 +80,7 @@ Cartouche sends no account, no Mac serial number and no list of your library. Th
 |---|---|---|---|
 | macgamingdb.app | When you open a game's details or the estimate needs it, if the toggle is on | The Steam App ID of that game, your IP address, and the User-Agent `Cartouche/<version>` with the project website | Yes: Settings > Privacy > Fetch Mac reports from MacGamingDB |
 | store.steampowered.com | When a Windows installer game has no Steam app ID for its cover, and when you use Change Cover > Search Steam; only if the toggle is on | The game's name in a search request, your IP address, and the User-Agent `Cartouche/<version>` | Yes: Settings > Privacy > Fetch Mac reports from MacGamingDB |
+| The Cartouche community site (`CartoucheCommunityURL`; unset in builds until the service is live) | Reading: the app feed at most once an hour once its refresh time has passed, if the Mac reports toggle is on; the fix registry and a fix when you open Review on a shared fix. Sending: only what you confirmed in Share My Results or Share a Fix, and the status of your own contributions in My Contributions | Your IP address and `Cartouche/<version>`. With a contribution: the game's store ID, the report or fix you previewed, and your pseudonymous contributor key. No account, Steam ID, Mac serial, path or log | Reading: Settings > Privacy > Fetch Mac reports. Sending happens only when you press Share; drafts and unsent items can be deleted from My Contributions |
 | github.com release asset `compat-data` (the compatibility file and the signed runner manifest) | At most once a day | A plain download request: your IP address and the User-Agent `Cartouche/<version>` | Yes: Settings > General > Check for updates and compatibility data daily |
 | github.com `appcast.xml` (Sparkle) | The daily update check | A plain download request. The Info.plist does not turn on Sparkle's system profile | Yes: the same switch pauses the automatic check. Check for Updates in the Cartouche menu always works. Beta releases are a separate opt-in |
 | buildbot.libretro.com | When you add a console (its core and the core info archive), or when you pick an official RetroArch release | A plain download request | Cores download only for consoles you add |
@@ -103,6 +104,15 @@ PE-based runtime detection reads local executable imports. Wine Mono covers .NET
 Managed-game uninstall is merged: the game and prefix move to the Trash, with Keep save files offered for save folders found in the prefix. Removing an in-place import moves only Cartouche’s prefix and record to the Trash; the external source files stay untouched. Save copies stay locally under Cartouche’s saves folder.
 
 Archive decompression and direct extraction of supported installers with external unpackers run locally and do not upload game files. The archive backend is merged in 95b4e47 but its app adapter is unwired. Direct unpack is merged in 3bb5921; failure fallback and end-to-end app verification are pending.
+
+### The Cartouche community site
+
+- Nothing is shared automatically. A result or a fix leaves the Mac only after you confirmed its preview. The automatic frame-rate sharing path stays off and has no destination.
+- Statistics and hardware (chip, memory, macOS version, model, CPU cores, FPS, resolution) are sent only when "Share statistics and this Mac's hardware" is on for that report. Without it, the report carries the game, the method, the runner and backend, your answers and your comment.
+- The first share creates a pseudonymous contributor key on the site. It is kept in the macOS Keychain (`dev.bryann2k.cartouche.community`), is not linked to an account or to the Mac, and lets you edit or withdraw what you shared.
+- Confirmed contributions wait in `community/queue.json` while the site is unreachable. They are never sent to MacGamingDB or another service.
+- Contributions are published under CC0 1.0 only after a moderator approves them. A withdrawn report is removed from the site's aggregates; copies already downloaded by others cannot be recalled.
+- Shared fixes are applied only after their signature, list of valid fixes, expiry and revocations check out. Your previous setup is saved in `community/applied-fixes.json` so Undo Fix restores it.
 
 ### MacGamingDB
 
@@ -165,6 +175,7 @@ When Steam is closed, Cartouche uses the last account-matched export even if sta
 - Your library, favorites, game setups and settings.
 - The cached Steam library export (`steam-library.json`), console games, store library lists and install records (`stores/`).
 - The compatibility file, the per-game MacGamingDB answers and the Steam name-lookup answers (`~/Library/Application Support/Cartouche/compatibility/`).
+- The community feed, your contribution queue and the setups saved before a shared fix (`~/Library/Application Support/Cartouche/community/`).
 - Frame rates: one SQLite file, `performance/sessions.sqlite`, in the Cartouche folder (P8). Nothing is sent; v0.1.0 shows no sharing control, and MacGamingDB has no way to receive reports. If one ever existed, a report would carry only the chip, memory, macOS version, runner, backend, filtered settings and the FPS.
 - Logs in `~/Library/Logs/Cartouche`.
 - Planned local crash reports and diagnostics bundles (ADR 0029; implementation pending): after a crash, the next launch offers Show Report and Copy Summary; Collect Diagnostics creates a local zip. Nothing is sent over the network. Users choose whether to share files themselves.

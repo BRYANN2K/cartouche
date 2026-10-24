@@ -22,6 +22,7 @@ struct CartoucheApp: App {
     @State var relaunch: RelaunchService
     @State var onboarding: OnboardingModel?
     @State var performance = PerformanceModel()
+    @State var contributions = ContributionsModel()
     @State var runners: RunnersModel
     @State var stores: StoreCenter
     @State var verification = GameVerificationCenter()
@@ -87,6 +88,7 @@ struct CartoucheApp: App {
                 }
                 .environment(status)
                 .environment(performance)
+                .environment(contributions)
                 .environment(stores)
                 .environment(\.dropClassifier, InstallerKitDropClassifier())
                 .storeSignIn(stores)

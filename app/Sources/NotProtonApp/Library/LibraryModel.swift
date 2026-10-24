@@ -173,6 +173,7 @@ final class LibraryModel {
     private func rebuildGames() {
         allGames = (steam.games + otherGames).map(withVersion) + consoleGames
         gamesByID = Dictionary(allGames.map { ($0.id, $0) }, uniquingKeysWith: { _, last in last })
+        if let id = selectedGameID, gamesByID[id] == nil { keepSelectionVisible() }
     }
 
     func game(_ id: String?) -> Game? {

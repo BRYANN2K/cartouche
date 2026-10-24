@@ -34,7 +34,7 @@ final class AgentControlModel {
         }
     }
 
-    // Bearer token for HTTP clients; kept in defaults so a restart does not break the client config.
+    // Bearer token for HTTP clients; kept in the Keychain so a restart does not break the client config.
     let token: String
 
     private(set) var socketState = "off"
@@ -63,18 +63,26 @@ final class AgentControlModel {
     private static let tokenKey = "agent.http.token"
     private static let levelKey = "agent.level"
 
+    // Scratch defaults (tests) get an in-memory store, so no test adds an item to the user's keychain
     init(service: AgentService, defaults: UserDefaults = .standard,
-         socket: URL = SupportPaths.agentSocket) {
+         socket: URL = SupportPaths.agentSocket, secrets: (any SecretStore)? = nil) {
+        let secrets = secrets ?? (defaults == .standard
+            ? KeychainSecrets(service: QAEnvironment.isActive ? "dev.bryann2k.cartouche.mcp.qa" : "dev.bryann2k.cartouche.mcp")
+            : MemorySecrets())
         self.service = service
         self.defaults = defaults
         socketURL = socket
         server = MCPServer(handler: AgentHandling(service: service))
         httpPort = UInt16(exactly: defaults.integer(forKey: Self.portKey)) ?? 3398
-        if let saved = defaults.string(forKey: Self.tokenKey), saved.count >= 16 {
+        // A token an earlier version left in defaults moves to the Keychain once
+        let legacy = defaults.string(forKey: Self.tokenKey)
+        if let saved = secrets.read(Self.tokenKey) ?? legacy, saved.count >= 16 {
             token = saved
         } else {
-            token = "cartouche-" + UUID().uuidString.replacing("-", with: "").prefix(32)
-            defaults.set(token, forKey: Self.tokenKey)
+            token = MCPToken.generate()
+        }
+        if (try? secrets.write(token, for: Self.tokenKey)) != nil, legacy != nil {
+            defaults.removeObject(forKey: Self.tokenKey)
         }
         if let raw = defaults.string(forKey: Self.levelKey), let saved = AgentLevel(rawValue: raw) {
             service.level = saved

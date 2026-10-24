@@ -181,7 +181,7 @@ struct PermissionMomentTests {
         #expect(tcc.requests.isEmpty)
     }
 
-    @Test("Onboarding can ask only App Management and Downloads, and neither needs a relaunch")
+    @Test("Onboarding asks only the permissions it lists, and none of them needs a relaunch")
     func onboardingPermissions() async {
         let scratch = ScratchDefaults()
         let tcc = FakeTCC()
@@ -197,7 +197,7 @@ struct PermissionMomentTests {
             }
         }
         // Each one that was let through shows up twice: the sheet, then Not Now
-        #expect(Set(asked) == [.appManagement, .downloads])
+        #expect(Set(asked) == [.appManagement, .downloads, .accessibility, .removableVolumes, .notifications])
         #expect(Permission.allCases.filter(\.askedInOnboarding).allSatisfy { !$0.needsRelaunch })
         #expect(tcc.requests.isEmpty)
     }

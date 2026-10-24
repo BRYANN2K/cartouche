@@ -53,7 +53,8 @@ struct AgentSettingsUITests {
         #expect(try await host.wait(for: "Bearer token"))
         let texts = try host.texts()
         #expect(texts.contains { $0.contains("127.0.0.1:\(model.httpPort)/mcp") }, "\(texts)")
-        #expect(texts.contains { $0.contains(model.token) }, "\(texts)")
+        // The 64-hex-digit token is truncated in the middle; Copy gives the whole of it
+        #expect(texts.contains { $0.contains(model.token.prefix(16)) }, "\(texts)")
         #expect(texts.contains { $0.contains("Client configuration") }, "\(texts)")
         #expect(model.clientConfiguration.contains("\"url\": \"http://127.0.0.1:\(model.httpPort)/mcp\""))
         #expect(model.clientConfiguration.contains("Bearer \(model.token)"))

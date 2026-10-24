@@ -30,8 +30,9 @@ struct InstallEngine: Sendable {
         return await Task.detached { InstallRunners.choices(registry()).map(\.id) }.value
     }
 
+    // reserved: the folders other live jobs own, which this run must not clear or reuse.
     @MainActor
-    func run(_ job: InstallJob) async {
+    func run(_ job: InstallJob, reserved: Set<URL> = []) async {
         let request = job.request
         let inputs = job.inputs
         job.problem = nil
@@ -41,7 +42,7 @@ struct InstallEngine: Sendable {
         job.bootLog = nil
 
         if let plan = request.importing {
-            await runImport(job, plan)
+            await runImport(job, plan, reserved: reserved)
             return
         }
 
@@ -61,7 +62,7 @@ struct InstallEngine: Sendable {
         }
         guard !Task.isCancelled else { stopped(job); return }
 
-        guard let made = await makePrefix(job) else { return }
+        guard let made = await makePrefix(job, reserved: reserved) else { return }
         let (folder, wine) = made
         do {
             if inputs.shortSource { try WineInstall.mapSource(request.source, prefix: folder.prefix) }
@@ -368,7 +369,8 @@ struct InstallEngine: Sendable {
     func resumeAfterMismatch(_ job: InstallJob) async {
         guard job.phase == .failed, let outcome = job.verification, !outcome.mismatched.isEmpty,
               let folder = job.folder, let installDir = job.verificationDir else { return }
-        let registry = registry()
+        let load = registry
+        let registry = await Task.detached { load() }.value
         guard let runner = registry.runner(id: job.inputs.runnerID) ?? InstallRunners.choices(registry).first,
               let wine = InstallRunners.wine(for: runner, runners: runners) else {
             job.fail(String(localized: "No runner is set up for installs. Set one up in Runners first."))
@@ -412,8 +414,8 @@ struct InstallEngine: Sendable {
 
     // An installed game: a fresh prefix, the files copied or left where they are, its runtimes, then the record.
     @MainActor
-    private func runImport(_ job: InstallJob, _ plan: GameImport) async {
-        guard let made = await makePrefix(job) else { return }
+    private func runImport(_ job: InstallJob, _ plan: GameImport, reserved: Set<URL>) async {
+        guard let made = await makePrefix(job, reserved: reserved) else { return }
         let (folder, wine) = made
         guard !Task.isCancelled else { stopped(job); return }
         var game = plan.folder, exe = plan.exe
@@ -450,7 +452,7 @@ struct InstallEngine: Sendable {
     }
 
     @MainActor
-    private func makePrefix(_ job: InstallJob) async -> (GameFolder, WineRunner)? {
+    private func makePrefix(_ job: InstallJob, reserved: Set<URL>) async -> (GameFolder, WineRunner)? {
         job.phase = .preparing
         // Refreshing the registry checks codesignatures: the probes wait on processes, so they run detached.
         let load = registry
@@ -462,7 +464,7 @@ struct InstallEngine: Sendable {
         }
         job.inputs.runnerID = runner.id
         do {
-            let folder = try GameFolder.fresh(for: job.request.name, in: installs)
+            let folder = try GameFolder.fresh(for: job.request.name, in: installs, reserved: reserved)
             job.folder = folder
             // Preparing Windows environment: wineboot -u, then wineserver -w, shared if asked twice.
             let boot = WineBootstrap.begin(wine: wine, prefix: folder.prefix, base: environment,

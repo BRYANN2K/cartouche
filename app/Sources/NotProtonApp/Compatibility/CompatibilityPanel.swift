@@ -33,6 +33,6 @@ extension CompatibilityModel {
     func panel(appID: Int, method: PlayMethod) -> CompatibilityPanel {
         CompatibilityPanel(
             record: record(appID: appID), mac: macReports[appID], macReportsOn: choices.fetchMacReports,
-            method: method, chip: chip, data: data, ageNotice: ageNotice)
+            method: method, chip: chip, data: data, ageNotice: busyNotice ?? ageNotice)
     }
 }

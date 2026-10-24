@@ -60,6 +60,9 @@ extension RunnerRegistry {
         RunnerStore.state(runners: runners)
     }
 
+    // The compatibility tools Steam was offered, as the tool list records them.
+    static func compatibilityTools() -> [InstalledTool] { CompatToolList.installed() }
+
     static func installedBuilds(in runners: URL = SupportPaths.runners) -> [RunnerBuild] {
         RunnerStore.installedBuilds(in: runners)
     }
@@ -93,22 +96,6 @@ extension RunnerRegistry {
     }
 
     static var versionList: String { SupportedRunners.versionList }
-
-    static func looksLikeCrossOver(_ bundle: URL) -> Bool {
-        CrossOverSource.looksLikeCrossOver(bundle)
-    }
-
-    static func inspect(bundle: URL) -> CrossOverInstall {
-        CrossOverSource.inspect(bundle: bundle)
-    }
-
-    static func addManualBundle(_ bundle: URL) {
-        CrossOverSource.addManualBundle(bundle)
-    }
-
-    static func removeManualBundle(_ bundle: URL) {
-        CrossOverSource.removeManualBundle(bundle)
-    }
 
     static func sameBundle(_ a: URL, _ b: URL) -> Bool {
         CrossOverSource.same(a, b)

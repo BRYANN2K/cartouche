@@ -69,8 +69,10 @@ struct LibraryGrid: View {
             onDropCover: { droppedCover = (game, $0) },
             menu: { GameMenu.items(for: game, in: model, stores: stores, consoles: consoles) },
             perform: { actions.perform($0, on: game) },
-            antiCheatBlocked: game.steamAppID.flatMap { compat?.record(appID: $0) }
-                .flatMap(AntiCheatSummary.init(record:))?.level == .blocked
+            antiCheatBlocked: compat.map { compat in
+                compat.resolved(game, method: .wine).showsLinuxBlock(
+                    game.steamAppID.flatMap { compat.record(appID: $0) }.flatMap(AntiCheatSummary.init(record:)))
+            } ?? false
         )
     }
 }

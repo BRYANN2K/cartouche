@@ -287,25 +287,31 @@ extension AgentTools {
                 schema: gameArg(),
                 run: { backend, args in
                     let game = try find(backend, args)
-                    guard let record = backend.compatRecord(game) else {
+                    let record = backend.compatRecord(game)
+                    let resolved = backend.resolvedCompatibility(game)
+                    guard record != nil || (resolved.map { $0.origin != .none } ?? false) else {
                         throw AgentToolError("no compatibility record for \(game.name)")
                     }
+                    // ProtonDB and AreWeAntiCheatYet describe Linux; "cartouche" is the Mac answer the panel shows
                     var out: [String: JSONValue] = [
-                        "game": .string(record.name),
-                        "protondb": record.protondb.map {
+                        "game": .string(record?.name ?? game.name),
+                        "protondb": record?.protondb.map {
                             .object(["verdict": .string($0.verdict.rawValue),
                                      "works": .number(Double($0.works)),
-                                     "reports": .number(Double($0.reports))])
+                                     "reports": .number(Double($0.reports)),
+                                     "platform": "linux"])
                         } ?? .null,
-                        "applegamingwiki": record.applegamingwiki.map {
+                        "applegamingwiki": record?.applegamingwiki.map {
                             .object($0.ratings.mapValues { .string($0) })
                         } ?? .null,
-                        "anticheat": record.areweanticheatyet.map {
+                        "anticheat": record?.areweanticheatyet.map {
                             .object(["status": .string($0.status.rawValue),
                                      "native": .bool($0.native),
-                                     "anticheats": .array($0.anticheats.map { .string($0) })])
+                                     "anticheats": .array($0.anticheats.map { .string($0) }),
+                                     "platform": "linux"])
                         } ?? .null,
                     ]
+                    if let resolved { out["cartouche"] = AgentCompatJSON.resolved(resolved) }
                     if let entry = backend.macEntry(game) {
                         out["macgamingdb"] = .object([
                             "rating": entry.rating.map { .string($0.rawValue) } ?? .null,

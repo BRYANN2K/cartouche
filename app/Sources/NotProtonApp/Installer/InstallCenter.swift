@@ -271,10 +271,11 @@ final class InstallCenter {
     // The menu's answer to a stuck "running": wineserver -k on this game's own
     // prefix, never another's, then a fresh probe so removal is offered again.
     func endSession(for game: Game, in installs: URL) {
-        let runners = engine.registry().runners
+        let registry = engine.registry
         let runnerRoot = engine.runners
         let kill = killServer
         Task.detached { [weak self] in
+            let runners = registry().runners
             guard let folder = GameFolder.of(game, in: installs),
                   let session = WineSession.of(folder: folder, runners: runners,
                                                runnerRoot: runnerRoot)
@@ -291,13 +292,14 @@ final class InstallCenter {
     // keeps its session — then a fresh probe answers the menu.
     func watchSession(_ run: InstallRun, for game: Game, in installs: URL,
                       drain timeout: TimeInterval = WineSession.drain) {
-        let runners = engine.registry().runners
+        let registry = engine.registry
         let runnerRoot = engine.runners
         let wait = waitServer
         let kill = killServer
         let probe = prefixUse
         Task.detached { [weak self] in
             _ = await run.exitStatus()
+            let runners = registry().runners
             guard let folder = GameFolder.of(game, in: installs),
                   let session = WineSession.of(folder: folder, runners: runners,
                                                runnerRoot: runnerRoot)
@@ -313,8 +315,9 @@ final class InstallCenter {
         guard running == nil, let next = jobs.first(where: { $0.phase == .waiting }) else { return }
         next.phase = .preparing
         let engine = engine
+        let reserved = Set(jobs.filter { $0 !== next }.compactMap { $0.folder?.root.standardizedFileURL })
         next.task = Task { [weak self] in
-            await engine.run(next)
+            await engine.run(next, reserved: reserved)
             self?.ended(next)
         }
     }

@@ -124,7 +124,9 @@ final class AgentLiveBackend: AgentBackend {
             return
         }
         if installedGame(for: game) != nil {
-            GameActionRunner.launchInstaller(game)
+            if case .failure(let failure) = GameActionRunner.launchInstaller(game) {
+                throw AgentToolError(failure.errorDescription ?? "\(game.name) could not start")
+            }
             return
         }
         throw AgentToolError("\(game.name) is not installed")
@@ -205,6 +207,10 @@ final class AgentLiveBackend: AgentBackend {
 
     func copyInstallerToInternal(_ source: URL) async throws -> URL {
         let folder = roots.support.appending(path: "installers").appending(path: source.lastPathComponent)
+        // A second retry of the same fix points at the copy already made; removing it would delete the source.
+        if source.standardizedFileURL.path(percentEncoded: false) == folder.standardizedFileURL.path(percentEncoded: false) {
+            return folder
+        }
         try FileManager.default.createDirectory(at: folder.deletingLastPathComponent(),
                                                 withIntermediateDirectories: true)
         try? FileManager.default.removeItem(at: folder)
@@ -307,8 +313,10 @@ final class AgentLiveBackend: AgentBackend {
     }
 
     func removeConsole(_ id: String) async throws {
+        guard ConsoleCatalog.console(id) != nil else { throw AgentToolError("no console \"\(id)\"") }
         await consoleCenter.remove(id)
         if let problem = consoleCenter.problem { throw AgentToolError(problem) }
+        if consoleCenter.isAdded(id) { throw AgentToolError("\(id) was not removed") }
     }
 
     func biosStatus(_ consoleID: String) async -> BIOSStatus? {
@@ -320,6 +328,7 @@ final class AgentLiveBackend: AgentBackend {
     func states(_ game: ConsoleGame) async -> [SaveState] { await consoleCenter.states(for: game) }
 
     func launchConsole(_ game: ConsoleGame, slot: Int?, resume: Bool) async throws {
+        if consoleCenter.playing != nil { throw AgentToolError("another game is playing; quit it first") }
         await consoleCenter.play(game.id, slot: slot, resume: resume)
         if let problem = consoleCenter.problem { throw AgentToolError(problem) }
     }
@@ -364,7 +373,8 @@ final class AgentLiveBackend: AgentBackend {
     }
 
     func addConsoleGames(_ games: [ConsoleGame]) async throws {
-        _ = await consoleCenter.addGames(games)
+        let added = await consoleCenter.addGames(games)
+        if added.isEmpty, !games.isEmpty, let problem = consoleCenter.problem { throw AgentToolError(problem) }
     }
 
     func rescanFolders() async { await consoleCenter.rescanFolders() }
@@ -396,6 +406,10 @@ final class AgentLiveBackend: AgentBackend {
 
     func compatRecord(_ game: Game) -> CompatRecord? {
         game.steamAppID.flatMap { compat.record(appID: $0) }
+    }
+
+    func resolvedCompatibility(_ game: Game) -> ResolvedCompatibility? {
+        compat.resolved(game, method: library.hasMacBuild(game) && library.resolution(for: game).setup.version == .mac ? .native : .wine)
     }
 
     func macEntry(_ game: Game) -> MacGamingDBEntry? {

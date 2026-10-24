@@ -2038,6 +2038,72 @@
         }
       }
     },
+    "%@: protected online play blocked on Mac" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ : jeu en ligne protégé bloqué sur Mac"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: gioco online protetto bloccato su Mac"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@：Mac 上受保护的在线游戏被阻止"
+          }
+        }
+      }
+    },
+    "%@: protected online play not reported on Mac" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ : jeu en ligne protégé non signalé sur Mac"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: gioco online protetto non segnalato su Mac"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@：尚无 Mac 上受保护在线游戏的报告"
+          }
+        }
+      }
+    },
+    "%@: protected online play reported working on Mac" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ : jeu en ligne protégé signalé fonctionnel sur Mac"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: gioco online protetto segnalato funzionante su Mac"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@：据报告 Mac 上受保护的在线游戏可用"
+          }
+        }
+      }
+    },
     "%lld Steam games" : {
       "localizations" : {
         "fr" : {
@@ -3734,6 +3800,50 @@
         }
       }
     },
+    "A pending report counts once a moderator publishes it." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un résultat en attente compte une fois publié par un modérateur."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un risultato in attesa conta quando un moderatore lo pubblica."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "待审核的结果在版主发布后才会计入。"
+          }
+        }
+      }
+    },
+    "A playable result is your judgement: a frame rate or a clean exit alone doesn’t prove it." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "« Jouable » est votre jugement : une fréquence d’images ou une fermeture normale ne le prouve pas à elle seule."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il giudizio «giocabile» è tuo: un frame rate o una chiusura regolare da soli non lo dimostrano."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“可玩”由你判断：仅凭帧率或正常退出不能证明。"
+          }
+        }
+      }
+    },
     "A prefix appears here once a Windows game has been launched through Cartouche." : {
       "localizations" : {
         "fr" : {
@@ -4930,6 +5040,28 @@
         }
       }
     },
+    "Anti-cheat" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anti-triche"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anti-cheat"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "反作弊"
+          }
+        }
+      }
+    },
     "Anti-cheat blocks Linux" : {
       "localizations" : {
         "fr" : {
@@ -5080,6 +5212,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下次启动时应用到游戏的 Wine 前缀。"
+          }
+        }
+      }
+    },
+    "Apply Fix" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appliquer le correctif"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Applica la correzione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "应用修复"
           }
         }
       }
@@ -6266,11 +6420,55 @@
         }
       }
     },
+    "Cancel Sending" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annuler l’envoi"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annulla l’invio"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消发送"
+          }
+        }
+      }
+    },
     "Cartouche" : {
       "localizations" : {
 
       },
       "shouldTranslate" : false
+    },
+    "Cartouche Community" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Communauté Cartouche"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Community di Cartouche"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 社区"
+          }
+        }
+      }
     },
     "Cartouche Components" : {
       "localizations" : {
@@ -6558,6 +6756,72 @@
         }
       }
     },
+    "Cartouche can’t read this game’s version to compare it." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche ne peut pas lire la version de ce jeu pour la comparer."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche non riesce a leggere la versione di questo gioco per confrontarla."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 无法读取此游戏的版本进行比较。"
+          }
+        }
+      }
+    },
+    "Cartouche can’t read this game’s version. The fix will say so instead of naming one." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche ne peut pas lire la version de ce jeu. Le correctif l’indiquera au lieu d’en nommer une."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche non riesce a leggere la versione di questo gioco. La correzione lo dirà invece di indicarne una."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 无法读取此游戏的版本。修复会如实注明，而不会填写一个版本。"
+          }
+        }
+      }
+    },
+    "Cartouche can’t tell which store game this is, so it can’t be shared yet." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche ne sait pas de quel jeu de boutique il s’agit, il ne peut donc pas encore être partagé."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche non sa di quale gioco dello store si tratti, quindi non può ancora essere condiviso."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 无法确定这是哪个商店游戏，因此暂时无法分享。"
+          }
+        }
+      }
+    },
     "Cartouche carries no components." : {
       "localizations" : {
         "fr" : {
@@ -6822,6 +7086,28 @@
         }
       }
     },
+    "Cartouche couldn’t read its contributor key from the Keychain." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche n’a pas pu lire sa clé de contributeur dans le trousseau."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche non è riuscito a leggere la chiave di contributore dal Portachiavi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 无法从钥匙串读取其贡献者密钥。"
+          }
+        }
+      }
+    },
     "Cartouche couldn’t read this install’s record." : {
       "localizations" : {
         "fr" : {
@@ -6910,6 +7196,50 @@
         }
       }
     },
+    "Cartouche couldn’t save your contributions: %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche n’a pas pu enregistrer vos contributions : %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche non è riuscito a salvare i tuoi contributi: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 无法保存你的贡献：%@"
+          }
+        }
+      }
+    },
+    "Cartouche couldn’t save your current setup, so the fix was not applied." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche n’a pas pu sauvegarder votre configuration actuelle, le correctif n’a donc pas été appliqué."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche non è riuscito a salvare la configurazione attuale, quindi la correzione non è stata applicata."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 无法保存你当前的设置，因此未应用修复。"
+          }
+        }
+      }
+    },
     "Cartouche couldn’t save your library choices: %@" : {
       "localizations" : {
         "fr" : {
@@ -6972,6 +7302,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cartouche 无法判断“%@”中是哪款游戏。"
+          }
+        }
+      }
+    },
+    "Cartouche couldn’t update its list of applied fixes." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche n’a pas pu mettre à jour sa liste de correctifs appliqués."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche non è riuscito ad aggiornare l’elenco delle correzioni applicate."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 无法更新已应用修复的列表。"
           }
         }
       }
@@ -7350,6 +7702,28 @@
         }
       }
     },
+    "Cartouche players" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Joueurs Cartouche"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Giocatori di Cartouche"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 玩家"
+          }
+        }
+      }
+    },
     "Cartouche relaunches when your game quits" : {
       "localizations" : {
         "fr" : {
@@ -7500,6 +7874,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "更改按键在 %@ 中的作用"
+          }
+        }
+      }
+    },
+    "Changes" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modifications"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modifiche"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更改"
           }
         }
       }
@@ -8006,6 +8402,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "选择磁盘映像…"
+          }
+        }
+      }
+    },
+    "Choose a runner first: a fix names the runner it worked with." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisissez d’abord une version de Wine : un correctif indique celle avec laquelle il a fonctionné."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli prima un runner: una correzione indica il runner con cui ha funzionato."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先选择运行器：修复需注明它适用的运行器。"
           }
         }
       }
@@ -8604,6 +9022,28 @@
         }
       }
     },
+    "Comment" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Commentaire"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Commento"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "备注"
+          }
+        }
+      }
+    },
     "Compare %lld Setups" : {
       "localizations" : {
         "fr" : {
@@ -8778,6 +9218,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "兼容工具已就绪。%@"
+          }
+        }
+      }
+    },
+    "Compatible" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compatible"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compatibile"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "兼容"
           }
         }
       }
@@ -10036,6 +10498,28 @@
         }
       }
     },
+    "Crashes" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plantages"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arresti anomali"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "崩溃次数"
+          }
+        }
+      }
+    },
     "CrossOver" : {
       "localizations" : {
 
@@ -10394,6 +10878,28 @@
         }
       }
     },
+    "Declared compatibility" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compatibilité déclarée"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compatibilità dichiarata"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已声明兼容"
+          }
+        }
+      }
+    },
     "Default" : {
       "localizations" : {
         "fr" : {
@@ -10680,6 +11186,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "删除备份"
+          }
+        }
+      }
+    },
+    "Delete Draft" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer le brouillon"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elimina la bozza"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除草稿"
           }
         }
       }
@@ -11324,6 +11852,28 @@
         }
       }
     },
+    "Doesn’t match this setup" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ne correspond pas à cette configuration"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non corrisponde a questa configurazione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "与此设置不匹配"
+          }
+        }
+      }
+    },
     "Doesn’t run on Linux" : {
       "localizations" : {
         "fr" : {
@@ -11342,6 +11892,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法在 Linux 上运行"
+          }
+        }
+      }
+    },
+    "Doesn’t start" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ne démarre pas"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non si avvia"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法启动"
+          }
+        }
+      }
+    },
+    "Doesn’t work" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ne fonctionne pas"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non funziona"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不可用"
           }
         }
       }
@@ -11838,6 +12432,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "从 Valve 下载官方安装程序，并将 Steam 移到“应用程序”。"
+          }
+        }
+      }
+    },
+    "Draft, not sent" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brouillon, non envoyé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bozza, non inviata"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "草稿，未发送"
           }
         }
       }
@@ -12854,6 +13470,28 @@
         }
       }
     },
+    "Fix in use: %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Correctif utilisé : %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Correzione in uso: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在使用的修复：%@"
+          }
+        }
+      }
+    },
     "Folders where you keep your own console games. Cartouche only reads them." : {
       "localizations" : {
         "fr" : {
@@ -13338,6 +13976,28 @@
         }
       }
     },
+    "Game version" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version du jeu"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versione del gioco"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "游戏版本"
+          }
+        }
+      }
+    },
     "Games folder" : {
       "localizations" : {
         "fr" : {
@@ -13712,6 +14372,28 @@
         }
       }
     },
+    "Graphics: %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moteur de rendu : %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grafica: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "图形：%@"
+          }
+        }
+      }
+    },
     "Guided" : {
       "localizations" : {
         "fr" : {
@@ -13818,6 +14500,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "硬核模式下，游玩时无法使用“继续游玩”。"
+          }
+        }
+      }
+    },
+    "Has problems" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A des problèmes"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ha dei problemi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有问题"
           }
         }
       }
@@ -15208,6 +15912,28 @@
         }
       }
     },
+    "Is this the Steam game with app ID %@? Cartouche matched it by its name only." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "S’agit-il du jeu Steam d’identifiant %@ ? Cartouche l’a associé uniquement par son nom."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "È il gioco Steam con App ID %@? Cartouche l’ha associato solo dal nome."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这是 App ID 为 %@ 的 Steam 游戏吗？Cartouche 仅按名称匹配了它。"
+          }
+        }
+      }
+    },
     "It is in Steam's library too." : {
       "localizations" : {
         "fr" : {
@@ -15292,6 +16018,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "仅能以引导模式运行。"
+          }
+        }
+      }
+    },
+    "It was tested with another graphics backend." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il a été testé avec un autre moteur de rendu."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "È stata provata con un altro backend grafico."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "它在另一个图形后端上测试过。"
+          }
+        }
+      }
+    },
+    "It was tested with another runner." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il a été testé avec une autre version de Wine."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "È stata provata con un altro runner."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "它在另一个运行器上测试过。"
+          }
+        }
+      }
+    },
+    "It was tested with another version of the game." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il a été testé avec une autre version du jeu."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "È stata provata con un’altra versione del gioco."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "它在游戏的另一个版本上测试过。"
           }
         }
       }
@@ -15476,6 +16268,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "其游戏将被隐藏，文件保留在磁盘上。"
+          }
+        }
+      }
+    },
+    "Its graphics backend isn’t available on this Mac." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Son moteur de rendu n’est pas disponible sur ce Mac."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il suo backend grafico non è disponibile su questo Mac."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "它的图形后端在此 Mac 上不可用。"
           }
         }
       }
@@ -15920,6 +16734,28 @@
         }
       }
     },
+    "Last copy from the Cartouche site" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dernière copie du site Cartouche"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ultima copia dal sito di Cartouche"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "来自 Cartouche 网站的最近副本"
+          }
+        }
+      }
+    },
     "Last used" : {
       "localizations" : {
         "fr" : {
@@ -16180,6 +17016,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "游戏库"
+          }
+        }
+      }
+    },
+    "Limited" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limité"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limitato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "受限"
           }
         }
       }
@@ -16822,6 +17680,28 @@
         }
       }
     },
+    "Menu only" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menu uniquement"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo menu"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅菜单"
+          }
+        }
+      }
+    },
     "Metal HUD" : {
       "localizations" : {
         "fr" : {
@@ -16840,6 +17720,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Metal HUD"
+          }
+        }
+      }
+    },
+    "Metal HUD on" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Metal HUD activé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Metal HUD attivo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开启 Metal HUD"
           }
         }
       }
@@ -16994,6 +17896,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "缺少：%@。请点击“安装”，为当前 macOS 用户恢复这些文件。"
+          }
+        }
+      }
+    },
+    "Mixed results" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Résultats partagés"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Risultati contrastanti"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "结果不一"
+          }
+        }
+      }
+    },
+    "Mode tested" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mode testé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modalità provata"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "测试的模式"
           }
         }
       }
@@ -17262,6 +18208,28 @@
         }
       }
     },
+    "My Contributions" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mes contributions"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I miei contributi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "我的贡献"
+          }
+        }
+      }
+    },
     "Native" : {
       "localizations" : {
         "fr" : {
@@ -17412,6 +18380,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "需要 Rosetta 转译"
+          }
+        }
+      }
+    },
+    "Needs a fix" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nécessite un correctif"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Richiede una correzione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要修复"
           }
         }
       }
@@ -18472,6 +19462,28 @@
         }
       }
     },
+    "No session" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune session"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessuna sessione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无会话"
+          }
+        }
+      }
+    },
     "No setup.exe in this folder" : {
       "localizations" : {
         "fr" : {
@@ -18648,6 +19660,28 @@
         }
       }
     },
+    "Not accepted by the site" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refusé par le site"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non accettato dal sito"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "网站未接受"
+          }
+        }
+      }
+    },
     "Not allowed" : {
       "localizations" : {
         "fr" : {
@@ -18754,6 +19788,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此运行器不可用"
+          }
+        }
+      }
+    },
+    "Not compatible" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non compatible"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non compatibile"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不兼容"
           }
         }
       }
@@ -18978,6 +20034,28 @@
         }
       }
     },
+    "Not recorded" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non enregistrée"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non registrata"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未记录"
+          }
+        }
+      }
+    },
     "Not set up" : {
       "localizations" : {
         "fr" : {
@@ -19062,6 +20140,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "暂不支持"
+          }
+        }
+      }
+    },
+    "Not sure" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Incertain"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non so"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不确定"
+          }
+        }
+      }
+    },
+    "Not tested" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non testé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non provato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未测试"
           }
         }
       }
@@ -19198,6 +20320,28 @@
         }
       }
     },
+    "Nothing shared from this Mac yet." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rien n’a encore été partagé depuis ce Mac."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nulla è stato ancora condiviso da questo Mac."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此 Mac 尚未分享任何内容。"
+          }
+        }
+      }
+    },
     "Nothing to bring in yet. The next steps set up Windows games and consoles." : {
       "localizations" : {
         "fr" : {
@@ -19304,6 +20448,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "关"
+          }
+        }
+      }
+    },
+    "Off: the report has no chip, memory, macOS version or FPS." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désactivé : le résultat ne contient ni puce, ni mémoire, ni version de macOS, ni FPS."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disattivato: il risultato non contiene chip, memoria, versione di macOS né FPS."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭时：结果中不含芯片、内存、macOS 版本或 FPS。"
           }
         }
       }
@@ -19624,6 +20790,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "仅在需要时，授予必要权限。"
+          }
+        }
+      }
+    },
+    "Only these settings can be shared as a fix. Environment variables, launch arguments, file patches and commands can’t." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seuls ces réglages peuvent être partagés comme correctif. Variables d’environnement, arguments de lancement, modifications de fichiers et commandes ne le peuvent pas."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo queste impostazioni possono essere condivise come correzione. Variabili d’ambiente, argomenti di avvio, patch di file e comandi no."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只有这些设置可以作为修复分享。环境变量、启动参数、文件补丁和命令都不行。"
           }
         }
       }
@@ -20152,6 +21340,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在“系统设置”>“蓝牙”中配对，或用线缆连接。"
+          }
+        }
+      }
+    },
+    "Partly works" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fonctionne en partie"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Funziona in parte"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "部分可用"
           }
         }
       }
@@ -20750,6 +21960,28 @@
         }
       }
     },
+    "Plays well" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fonctionne bien"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Funziona bene"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "运行良好"
+          }
+        }
+      }
+    },
     "Please run CrossOver and try again." : {
       "localizations" : {
         "fr" : {
@@ -21036,6 +22268,50 @@
         }
       }
     },
+    "Problem it solves" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Problème résolu"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Problema risolto"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解决的问题"
+          }
+        }
+      }
+    },
+    "Problem solved: %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Problème résolu : %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Problema risolto: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解决的问题：%@"
+          }
+        }
+      }
+    },
     "Program" : {
       "localizations" : {
         "fr" : {
@@ -21076,6 +22352,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "进度仍会显示在 Cartouche 中。"
+          }
+        }
+      }
+    },
+    "Protected matchmaking" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Matchmaking protégé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Matchmaking protetto"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "受保护的匹配"
+          }
+        }
+      }
+    },
+    "Published" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Publié"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pubblicato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已发布"
+          }
+        }
+      }
+    },
+    "Published under CC0 1.0 once a moderator approves it. No account, Steam ID, path or log is sent. You can edit or withdraw it from My Contributions." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Publié sous CC0 1.0 après validation par un modérateur. Aucun compte, identifiant Steam, chemin ou journal n’est envoyé. Vous pouvez le modifier ou le retirer depuis Mes contributions."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pubblicato con licenza CC0 1.0 dopo l’approvazione di un moderatore. Non vengono inviati account, ID Steam, percorsi o log. Puoi modificarlo o ritirarlo da I miei contributi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "经版主批准后以 CC0 1.0 发布。不会发送任何账户、Steam ID、路径或日志。你可以在“我的贡献”中修改或撤回。"
           }
         }
       }
@@ -21472,6 +22814,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已就绪。"
+          }
+        }
+      }
+    },
+    "Reason: %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Motif : %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Motivo: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原因：%@"
           }
         }
       }
@@ -22020,6 +23384,28 @@
         }
       }
     },
+    "Refused" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refusé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rifiutato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "被拒绝"
+          }
+        }
+      }
+    },
     "Refused: %@" : {
       "localizations" : {
         "fr" : {
@@ -22082,6 +23468,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "注册表编辑器"
+          }
+        }
+      }
+    },
+    "Rejected" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rejeté"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Respinto"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已拒绝"
           }
         }
       }
@@ -23204,6 +24612,28 @@
         }
       }
     },
+    "Result" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Résultat"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Risultato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "结果"
+          }
+        }
+      }
+    },
     "Resume" : {
       "localizations" : {
         "fr" : {
@@ -23468,6 +24898,28 @@
         }
       }
     },
+    "Review…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Examiner…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esamina…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看…"
+          }
+        }
+      }
+    },
     "Run" : {
       "localizations" : {
         "fr" : {
@@ -23596,6 +25048,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在所选游戏容器中运行程序或打开 Wine 工具。"
+          }
+        }
+      }
+    },
+    "Run: %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exécution : %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esecuzione: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "运行：%@"
           }
         }
       }
@@ -23750,6 +25224,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld/%lld 份近期 ProtonDB 报告称其可在 Linux 上运行。"
+          }
+        }
+      }
+    },
+    "Save Draft" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrer le brouillon"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salva la bozza"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "存为草稿"
           }
         }
       }
@@ -24040,6 +25536,50 @@
         }
       }
     },
+    "Sent as a proposal under CC0 1.0. Nobody’s setup changes until a moderator publishes it and a player chooses to apply it." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoyé comme proposition sous CC0 1.0. La configuration de personne ne change tant qu’un modérateur ne l’a pas publié et qu’un joueur ne choisit pas de l’appliquer."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inviata come proposta con licenza CC0 1.0. Nessuna configurazione cambia finché un moderatore non la pubblica e un giocatore sceglie di applicarla."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以 CC0 1.0 作为提案发送。在版主发布且玩家选择应用之前，不会更改任何人的设置。"
+          }
+        }
+      }
+    },
+    "Session" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Session"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sessione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会话"
+          }
+        }
+      }
+    },
     "Set Up" : {
       "localizations" : {
         "fr" : {
@@ -24238,6 +25778,28 @@
         }
       }
     },
+    "Settings in this fix" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réglages de ce correctif"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impostazioni di questa correzione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此修复中的设置"
+          }
+        }
+      }
+    },
     "Settings…" : {
       "localizations" : {
         "fr" : {
@@ -24300,6 +25862,182 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "多种类型的游戏"
+          }
+        }
+      }
+    },
+    "Share" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partager"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Condividi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分享"
+          }
+        }
+      }
+    },
+    "Share My Results" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partager mes résultats"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Condividi i miei risultati"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分享我的结果"
+          }
+        }
+      }
+    },
+    "Share My Results…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partager mes résultats…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Condividi i miei risultati…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分享我的结果…"
+          }
+        }
+      }
+    },
+    "Share a Fix" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partager un correctif"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Condividi una correzione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分享修复"
+          }
+        }
+      }
+    },
+    "Share a Fix…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partager un correctif…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Condividi una correzione…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分享修复…"
+          }
+        }
+      }
+    },
+    "Share statistics and this Mac’s hardware" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partager les statistiques et le matériel de ce Mac"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Condividi le statistiche e l’hardware di questo Mac"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分享统计数据和此 Mac 的硬件信息"
+          }
+        }
+      }
+    },
+    "Shared Fix" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Correctif partagé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Correzione condivisa"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "共享的修复"
+          }
+        }
+      }
+    },
+    "Shared fix, revision %lld" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Correctif partagé, révision %lld"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Correzione condivisa, revisione %lld"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "共享的修复，修订 %lld"
           }
         }
       }
@@ -25136,6 +26874,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在登录…"
+          }
+        }
+      }
+    },
+    "Single player" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Giocatore singolo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "单人"
           }
         }
       }
@@ -26884,6 +28644,28 @@
         }
       }
     },
+    "Supporting report" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Résultat à l’appui"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Risultato a supporto"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支持的结果"
+          }
+        }
+      }
+    },
     "Swap A/B" : {
       "localizations" : {
         "fr" : {
@@ -27034,6 +28816,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "模板 %@"
+          }
+        }
+      }
+    },
+    "Tested with" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testé avec"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Provata con"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "测试环境"
           }
         }
       }
@@ -27346,6 +29150,72 @@
         }
       }
     },
+    "The Cartouche site can’t be reached. Your contributions wait on this Mac." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le site Cartouche est injoignable. Vos contributions attendent sur ce Mac."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il sito di Cartouche non è raggiungibile. I tuoi contributi restano in attesa su questo Mac."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法连接 Cartouche 网站。你的贡献会在此 Mac 上等待。"
+          }
+        }
+      }
+    },
+    "The Cartouche site refused this Mac’s contributor key." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le site Cartouche a refusé la clé de contributeur de ce Mac."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il sito di Cartouche ha rifiutato la chiave di contributore di questo Mac."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 网站拒绝了此 Mac 的贡献者密钥。"
+          }
+        }
+      }
+    },
+    "The Keychain couldn’t keep your contributor key. After Cartouche quits, what you shared can no longer be edited from this Mac." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le trousseau n’a pas pu conserver votre clé de contributeur. Une fois Cartouche quitté, ce que vous avez partagé ne pourra plus être modifié depuis ce Mac."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il Portachiavi non ha potuto conservare la chiave di contributore. Dopo l’uscita da Cartouche, ciò che hai condiviso non potrà più essere modificato da questo Mac."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "钥匙串无法保存你的贡献者密钥。退出 Cartouche 后，将无法再从此 Mac 修改你分享的内容。"
+          }
+        }
+      }
+    },
     "The MCP server entry most clients take" : {
       "localizations" : {
         "fr" : {
@@ -27640,6 +29510,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "复制到 %@ 的 Wine 加载器与构建版本 %@ 不匹配。预期为 %@，实际为 %@。"
+          }
+        }
+      }
+    },
+    "The compatibility server is busy. Cartouche shows its last copy and will try again later." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le serveur de compatibilité est surchargé. Cartouche affiche sa dernière copie et réessaiera plus tard."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il server di compatibilità è occupato. Cartouche mostra l’ultima copia e riproverà più tardi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "兼容性服务器繁忙。Cartouche 显示其最近的副本，稍后会重试。"
           }
         }
       }
@@ -28116,6 +30008,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "首次启动已停止。"
+          }
+        }
+      }
+    },
+    "The fix couldn’t be downloaded. Try again when you’re online." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le correctif n’a pas pu être téléchargé. Réessayez une fois connecté."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non è stato possibile scaricare la correzione. Riprova quando sei online."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法下载修复。请联网后重试。"
+          }
+        }
+      }
+    },
+    "The fix’s signature doesn’t match. It was not applied." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La signature du correctif ne correspond pas. Il n’a pas été appliqué."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La firma della correzione non corrisponde. Non è stata applicata."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "修复的签名不匹配，未应用。"
           }
         }
       }
@@ -28736,6 +30672,50 @@
         }
       }
     },
+    "The list of valid fixes is older than one already checked." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La liste des correctifs valides est plus ancienne qu’une liste déjà vérifiée."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’elenco delle correzioni valide è più vecchio di uno già verificato."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有效修复列表比已检查过的列表更旧。"
+          }
+        }
+      }
+    },
+    "The list of valid fixes is out of date. Connect to the internet to check it again." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La liste des correctifs valides est périmée. Connectez-vous à Internet pour la vérifier à nouveau."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’elenco delle correzioni valide è scaduto. Connettiti a Internet per verificarlo di nuovo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有效修复列表已过期。请联网重新检查。"
+          }
+        }
+      }
+    },
     "The lobby did not answer. Games on your network are still listed." : {
       "localizations" : {
         "fr" : {
@@ -29330,6 +31310,72 @@
         }
       }
     },
+    "This fix is for another game." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce correctif concerne un autre jeu."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questa correzione è per un altro gioco."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此修复针对另一个游戏。"
+          }
+        }
+      }
+    },
+    "This fix uses a format this version of Cartouche can’t apply." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce correctif utilise un format que cette version de Cartouche ne sait pas appliquer."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questa correzione usa un formato che questa versione di Cartouche non può applicare."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此修复使用的格式当前版本的 Cartouche 无法应用。"
+          }
+        }
+      }
+    },
+    "This fix was withdrawn." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce correctif a été retiré."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questa correzione è stata ritirata."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此修复已被撤回。"
+          }
+        }
+      }
+    },
     "This folder could not be read." : {
       "localizations" : {
         "fr" : {
@@ -29370,6 +31416,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此游戏无法读取键盘。请在系统设置的“输入监控”中允许。"
+          }
+        }
+      }
+    },
+    "This game has no Mac version." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce jeu n’a pas de version Mac."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo gioco non ha una versione Mac."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此游戏没有 Mac 版本。"
           }
         }
       }
@@ -29480,6 +31548,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此工具用于修复在 Rosetta 与 FEX 版 CrossOver 之间切换后的游戏容器。"
+          }
+        }
+      }
+    },
+    "This version of Cartouche has no key to check shared fixes." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette version de Cartouche n’a pas de clé pour vérifier les correctifs partagés."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questa versione di Cartouche non ha una chiave per verificare le correzioni condivise."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此版本的 Cartouche 没有用于校验共享修复的密钥。"
           }
         }
       }
@@ -29602,6 +31692,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "剩余时间"
+          }
+        }
+      }
+    },
+    "Title" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titre"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titolo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "标题"
           }
         }
       }
@@ -29826,6 +31938,28 @@
         }
       }
     },
+    "Translation: %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduction : %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduzione: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "转译：%@"
+          }
+        }
+      }
+    },
     "Troubleshooting" : {
       "localizations" : {
         "fr" : {
@@ -29954,6 +32088,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "撤销"
+          }
+        }
+      }
+    },
+    "Undo Fix" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annuler le correctif"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annulla la correzione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撤销修复"
           }
         }
       }
@@ -30174,6 +32330,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法游玩"
+          }
+        }
+      }
+    },
+    "Unprotected multiplayer" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Multijoueur non protégé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Multigiocatore non protetto"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无保护的多人游戏"
           }
         }
       }
@@ -30926,6 +33104,28 @@
         }
       }
     },
+    "Waiting before asking the Cartouche site for a contributor key again." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Attente avant de redemander une clé de contributeur au site Cartouche."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In attesa prima di richiedere di nuovo una chiave di contributore al sito di Cartouche."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等待一段时间后再向 Cartouche 网站申请贡献者密钥。"
+          }
+        }
+      }
+    },
     "Waiting for Steam" : {
       "localizations" : {
         "fr" : {
@@ -30992,6 +33192,28 @@
         }
       }
     },
+    "Waiting for moderation" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En attente de validation"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In attesa di moderazione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等待审核"
+          }
+        }
+      }
+    },
     "Waiting for sign-in…" : {
       "localizations" : {
         "fr" : {
@@ -31032,6 +33254,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在等待另一个安装完成"
+          }
+        }
+      }
+    },
+    "Waiting to be sent" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En attente d’envoi"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In attesa di invio"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等待发送"
+          }
+        }
+      }
+    },
+    "Waiting to be sent: the site can’t be reached" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En attente d’envoi : le site est injoignable"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In attesa di invio: il sito non è raggiungibile"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等待发送：无法连接网站"
           }
         }
       }
@@ -31246,6 +33512,28 @@
         }
       }
     },
+    "What will be shared" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce qui sera partagé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cosa verrà condiviso"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将分享的内容"
+          }
+        }
+      }
+    },
     "What works" : {
       "localizations" : {
         "fr" : {
@@ -31286,6 +33574,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "游戏启动时"
+          }
+        }
+      }
+    },
+    "When it worked (optional)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conditions de réussite (facultatif)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quando ha funzionato (facoltativo)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "适用条件（可选）"
           }
         }
       }
@@ -31789,6 +34099,138 @@
         }
       }
     },
+    "Withdraw" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retirer"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ritira"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撤回"
+          }
+        }
+      }
+    },
+    "Withdraw: %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retrait : %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ritiro: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撤回：%@"
+          }
+        }
+      }
+    },
+    "Withdrawn" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retiré"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ritirato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已撤回"
+          }
+        }
+      }
+    },
+    "Withdrawn from players" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retiré pour les joueurs"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ritirato per i giocatori"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已对玩家撤回"
+          }
+        }
+      }
+    },
+    "Worked" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A fonctionné"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ha funzionato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可用"
+          }
+        }
+      }
+    },
+    "Worked with: %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A fonctionné avec : %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ha funzionato con: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "适用于：%@"
+          }
+        }
+      }
+    },
     "Working" : {
       "localizations" : {
         "fr" : {
@@ -31807,6 +34249,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在处理"
+          }
+        }
+      }
+    },
+    "Works" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fonctionne"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Funziona"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可用"
           }
         }
       }
@@ -31851,6 +34315,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Xbox"
+          }
+        }
+      }
+    },
+    "Yes, This Is the Game" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oui, c’est ce jeu"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sì, è questo gioco"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "是的，就是这个游戏"
           }
         }
       }
@@ -32075,6 +34561,28 @@
         }
       }
     },
+    "Your current setup is saved first. Undo Fix in the game panel brings it back." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre configuration actuelle est d’abord sauvegardée. « Annuler le correctif » dans la fiche du jeu la rétablit."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La configurazione attuale viene salvata prima. «Annulla la correzione» nel pannello del gioco la ripristina."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会先保存你当前的设置。在游戏面板中点击“撤销修复”即可恢复。"
+          }
+        }
+      }
+    },
     "Your full library appears after Steam has run once while signed in." : {
       "localizations" : {
         "fr" : {
@@ -32269,6 +34777,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你的会话已过期。请重新登录。"
+          }
+        }
+      }
+    },
+    "Your setup already matches this fix." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre configuration correspond déjà à ce correctif."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La tua configurazione corrisponde già a questa correzione."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的设置已与此修复一致。"
           }
         }
       }

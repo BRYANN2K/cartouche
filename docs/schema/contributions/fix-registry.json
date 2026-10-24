@@ -1,0 +1,26 @@
+{
+  "payload": {
+    "schema_version": 1,
+    "version": 7,
+    "generated_at": "2026-10-22T12:00:00.000Z",
+    "expires_at": "2026-10-23T12:00:00.000Z",
+    "fixes": [
+      {
+        "id": "5f0c6b1e-3a4d-4c2b-9e8f-1a2b3c4d5e6f",
+        "revision": 1,
+        "sha256": "e681b8f4dbe1ab5bfe60f0d407b8a35c3119ecfc366a1d8ead27a67d2fc84b48",
+        "url": "http://localhost:8787/api/v1/fixes/5f0c6b1e-3a4d-4c2b-9e8f-1a2b3c4d5e6f/revisions/1"
+      }
+    ],
+    "revoked": [
+      {
+        "id": "9d8c7b6a-5f4e-4d3c-8b2a-0f1e2d3c4b5a",
+        "revision": 2
+      }
+    ]
+  },
+  "algorithm": "Ed25519",
+  "key_id": "cartouche-fixes-test",
+  "signature": "Ma8+/B3xxxm30QRlOrIqybTkPNDBO/+FBOupBdz7MKIA8nOSCOwPog8YPjVBkL8hkyEcmTqOvKL/l6qyrS/nCQ==",
+  "public_key": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAebVWLo/mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ=\n-----END PUBLIC KEY-----\n"
+}

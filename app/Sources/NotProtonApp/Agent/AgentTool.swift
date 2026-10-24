@@ -89,12 +89,18 @@ protocol AgentBackend {
     // MARK: Diagnostics and system
     func sessions(_ game: Game) -> [StoredSession]
     func compatRecord(_ game: Game) -> CompatRecord?
+    // The same resolved answer the game panel shows: Cartouche data first, legacy data for what is missing
+    func resolvedCompatibility(_ game: Game) -> ResolvedCompatibility?
     func macEntry(_ game: Game) -> MacGamingDBEntry?
     func gpuStrength() -> [String: Double]
     // The log a source names: "wine", "launch", "installer", "console", "app".
     func logFile(_ source: String, for game: Game?) -> URL?
     func installLogFile(_ job: InstallJob) -> URL?
     func diskFree(at url: URL) -> Int64?
+}
+
+extension AgentBackend {
+    func resolvedCompatibility(_ game: Game) -> ResolvedCompatibility? { nil }
 }
 
 struct AgentToolError: LocalizedError {
