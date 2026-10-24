@@ -126,6 +126,7 @@ If you open Cartouche from the disk image or from Downloads, it offers to move i
 ### Homebrew
 
 ```sh
+brew tap bryann2k/cartouche https://github.com/BRYANN2K/cartouche
 brew install --cask bryann2k/cartouche/cartouche
 ```
 

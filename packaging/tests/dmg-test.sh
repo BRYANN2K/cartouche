@@ -47,7 +47,7 @@ hdiutil detach -quiet "$mnt"
 attached=
 
 # What the window, the cask and the tap say about the signature
-for file in README.md packaging/dmg/background.swift packaging/homebrew/cartouche.rb.in packaging/homebrew/tap-README.md; do
+for file in README.md packaging/dmg/background.swift packaging/homebrew/cartouche.rb.in; do
     text="$(tr '\n' ' ' < "$repo/$file" | tr -s ' ')"
     for phrase in "signed with its own certificate" "Open Anyway" "install script"; do
         printf '%s' "$text" | grep -q "$phrase" || fail "$file does not say \"$phrase\""

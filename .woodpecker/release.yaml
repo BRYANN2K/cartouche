@@ -17,7 +17,8 @@ variables:
     FONT_TOOLS: afdko==4.0.3 fonttools==4.66.1
     ARTIFACTS: dobby wine proton innoextract libarchive fonts
     SIGNING_IDENTITY: Cartouche Self-Signed
-    TAP_REPOSITORY: BRYANN2K/homebrew-cartouche
+    TAP_REPOSITORY: BRYANN2K/cartouche
+    TAP_BRANCH: dev
   - &gh_token
     GH_TOKEN:
       from_secret: github_release_token
@@ -209,7 +210,7 @@ steps:
     environment:
       <<: *env
       TAP_TOKEN:
-        from_secret: tap_token
+        from_secret: github_release_token
     commands:
       - . .release/meta.env
       - |
@@ -217,18 +218,17 @@ steps:
         sha=$(shasum -a 256 "dist/$archive" | cut -d' ' -f1)
         rm -rf .release/tap
         git -c credential.helper= -c "credential.helper=!f() { echo username=x-access-token; echo password=\$TAP_TOKEN; }; f" \
-          clone -q "https://github.com/$TAP_REPOSITORY.git" .release/tap
+          clone -q --depth 1 -b "$TAP_BRANCH" "https://github.com/$TAP_REPOSITORY.git" .release/tap
         mkdir -p .release/tap/Casks
         python3 packaging/release.py cask --template packaging/homebrew/cartouche.rb.in \
           --version "$version" --sha256 "$sha" --out .release/tap/Casks/cartouche.rb
-        [ -f .release/tap/README.md ] || cp packaging/homebrew/tap-README.md .release/tap/README.md
         cd .release/tap
         git config user.name BRYANN2K
         git config user.email BRYANN2K@users.noreply.github.com
-        git add Casks/cartouche.rb README.md
+        git add Casks/cartouche.rb
         if git diff --cached --quiet; then echo "The cask already names $version"; exit 0; fi
-        git commit -q -m "cartouche $version"
-        git -c credential.helper= -c "credential.helper=!f() { echo username=x-access-token; echo password=\$TAP_TOKEN; }; f" push -q
+        git commit -q -m "cask: cartouche $version [skip ci]"
+        git -c credential.helper= -c "credential.helper=!f() { echo username=x-access-token; echo password=\$TAP_TOKEN; }; f" push -q origin "HEAD:$TAP_BRANCH"
 
   - name: cleanup
     image: bash
