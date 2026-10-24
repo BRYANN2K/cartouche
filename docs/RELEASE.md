@@ -109,6 +109,17 @@ After the GitHub release is published, the `tap` job fills `packaging/homebrew/c
 
 After a release: `brew update && brew install --cask bryann2k/cartouche/cartouche`, then `defaults read /Applications/Cartouche.app/Contents/Info CFBundleShortVersionString` must print the version just released.
 
+## Publishing from Woodpecker
+
+GitHub Actions is paused (billing), so `.woodpecker/release.yaml` publishes on the Mac agent instead. It runs on tag events only:
+
+- `vX.Y.Z` is published only if the tagged commit is on `main`; `vX.Y.Z-beta.N` only if it is on `beta`. Any other tag, test tags included, is refused. The check uses the compare API (`GET /repos/{repo}/compare/{branch}...{sha}`, status `identical` or `behind`).
+- The build, the signing (throwaway keychain from `signing_cert_p12` and `signing_cert_password`), `make-appcast.sh`, the release and, for stable only, the Homebrew tap bump are the same as the steps below. `gh` publishes through the REST API with `github_release_token`.
+- Woodpecker secrets, all limited to the `tag` event: `github_release_token` (fine-grained, this repository, Contents read and write), `sparkle_private_key`, `signing_cert_p12`, `signing_cert_password`, `tap_token` (fine-grained, `homebrew-cartouche`, Contents read and write).
+- To publish a tag again after a failure, delete its release if one was created, then restart the tag's pipeline in Woodpecker.
+
+While this repository is private, Sparkle, `install.sh` and Homebrew cannot download the feed or the archives anonymously. A tag still publishes, which is a useful dry run; users get updates once the repository is public.
+
 ## Publishing a release
 
 1. Set `CARTOUCHE_VERSION` in `dylib/version.h` to the new version, for example `0.1.1`.

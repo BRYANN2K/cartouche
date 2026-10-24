@@ -33,8 +33,8 @@ steps:
     environment: *env
     commands:
       - |
-        cache="${CARTOUCHE_CI_CACHE:-$HOME/Library/Caches/woodpecker-cartouche}"
-        if [ ! -f "$cache/wine/key" ] && [ "${CARTOUCHE_CI_COLD:-}" != 1 ]; then
+        cache="$${CARTOUCHE_CI_CACHE:-$HOME/Library/Caches/woodpecker-cartouche}"
+        if [ ! -f "$cache/wine/key" ] && [ "$${CARTOUCHE_CI_COLD:-}" != 1 ]; then
           echo "The Mac build cache $cache is empty." >&2
           echo "Seed it once (infra runbook), or start a manual pipeline on main with CARTOUCHE_CI_COLD=1 (about 60 min)." >&2
           exit 1
@@ -56,7 +56,7 @@ steps:
       - make libarchive
       - |
         if [ ! -f build/fonts.stamp ]; then
-          venv="${CARTOUCHE_CI_CACHE:-$HOME/Library/Caches/woodpecker-cartouche}/fontvenv-$(echo "$FONT_TOOLS" | shasum -a 256 | cut -c1-12)"
+          venv="$${CARTOUCHE_CI_CACHE:-$HOME/Library/Caches/woodpecker-cartouche}/fontvenv-$(echo "$FONT_TOOLS" | shasum -a 256 | cut -c1-12)"
           [ -x "$venv/bin/python" ] || { python3 -m venv "$venv" && "$venv/bin/pip" install -q $FONT_TOOLS; }
           export PATH="$venv/bin:$PATH"
         fi

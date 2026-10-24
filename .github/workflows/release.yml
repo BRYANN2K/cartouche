@@ -3,9 +3,11 @@ name: release
 # Pushing a tag vX.Y.Z publishes a release, vX.Y.Z-beta.N a beta, and
 # vX.Y.Z-test.N a pipeline test (before the first release only). docs/RELEASE.md
 # lists the secrets and variables this needs.
+# Paused: GitHub Actions is blocked by billing. Woodpecker runs this as
+# .woodpecker/release.yaml. Restore the triggers below to switch back.
+#   push:
+#     tags: ["v*"]
 on:
-  push:
-    tags: ["v*"]
   workflow_dispatch:
     inputs:
       tag:

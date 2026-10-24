@@ -1,0 +1,239 @@
+# Port of .github/workflows/release.yml for the Woodpecker Mac agent. Tag
+# events only: vX.Y.Z on a main commit publishes a release, vX.Y.Z-beta.N on a
+# beta commit a beta (Sparkle channel "beta"). Builds, signs and writes the
+# appcast exactly as packaging/release.py and packaging/make-appcast.sh do,
+# then publishes through the GitHub REST API (gh), no Actions.
+# The feed and the archives reach users only once this repository is public;
+# while it is private a tag still publishes, which works as a dry run.
+labels:
+  platform: darwin/arm64
+
+when:
+  - event: tag
+
+variables:
+  - &env
+    DOBBY_COMMIT: 5dfc8546954ce3b3198132ab13fddb89ee92cdd7
+    FONT_TOOLS: afdko==4.0.3 fonttools==4.66.1
+    ARTIFACTS: dobby wine proton innoextract libarchive fonts
+    SIGNING_IDENTITY: Cartouche Self-Signed
+    TAP_REPOSITORY: BRYANN2K/homebrew-cartouche
+  - &gh_token
+    GH_TOKEN:
+      from_secret: github_release_token
+
+steps:
+  # stable vX.Y.Z only from a commit on main, beta vX.Y.Z-beta.N only from a
+  # commit on beta; anything else (test tags included) is refused
+  - name: guard
+    image: bash
+    environment: *gh_token
+    commands:
+      - |
+        tag="$CI_COMMIT_TAG"
+        if printf '%s' "$tag" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+          branch=main
+        elif printf '%s' "$tag" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+-beta\.[0-9]+$'; then
+          branch=beta
+        else
+          echo "refused: $tag is neither vX.Y.Z nor vX.Y.Z-beta.N" >&2
+          exit 1
+        fi
+        status="$(gh api "repos/$CI_REPO/compare/$branch...$CI_COMMIT_SHA" --jq .status)"
+        case "$status" in
+          identical|behind) echo "$tag points to a commit on $branch" ;;
+          *) echo "refused: $tag ($CI_COMMIT_SHA) is not on $branch (compare: $status)" >&2; exit 1 ;;
+        esac
+
+  - name: meta
+    image: bash
+    environment: *gh_token
+    commands:
+      - |
+        if gh release view "$CI_COMMIT_TAG" --repo "$CI_REPO" >/dev/null 2>&1; then
+          echo "$CI_COMMIT_TAG is already released; delete that release first to publish it again" >&2
+          exit 1
+        fi
+      - published="$(gh release list --repo "$CI_REPO" --limit 500 --json tagName,isDraft --jq '.[] | select(.isDraft | not) | .tagName' | tr '\n' ' ')"
+      - mkdir -p .release dist work
+      - python3 packaging/release.py meta "$CI_COMMIT_TAG" --published "$published" | tee .release/meta.env
+
+  - name: toolchain
+    image: bash
+    environment: *env
+    commands:
+      - xcodebuild -version
+      - swift --version
+      - for t in cmake i686-w64-mingw32-gcc x86_64-w64-mingw32-gcc bison flex fontforge node python3 git gh openssl; do command -v "$t" >/dev/null || { echo "missing $t on the Mac agent, see the infra runbook" >&2; exit 1; }; done
+
+  - name: restore-cache
+    image: bash
+    environment: *env
+    commands:
+      - |
+        cache="$${CARTOUCHE_CI_CACHE:-$HOME/Library/Caches/woodpecker-cartouche}"
+        [ -f "$cache/wine/key" ] || { echo "The Mac build cache $cache is empty; seed it before a release (infra runbook)." >&2; exit 1; }
+      - sh .woodpecker/cache.sh restore $ARTIFACTS
+
+  - name: build
+    image: bash
+    environment: *env
+    commands:
+      - git clone -q --no-checkout https://github.com/jmpews/Dobby.git vendor/dobby
+      - git -C vendor/dobby checkout -q "$DOBBY_COMMIT"
+      - test -f build/dobby/libdobby.a || make dobby
+      - make all
+      - make overlay-shim
+      - make iconmaker appinfo
+      - make bridge
+      - make innoextract
+      - make libarchive
+      - |
+        if [ ! -f build/fonts.stamp ]; then
+          venv="$${CARTOUCHE_CI_CACHE:-$HOME/Library/Caches/woodpecker-cartouche}/fontvenv-$(echo "$FONT_TOOLS" | shasum -a 256 | cut -c1-12)"
+          [ -x "$venv/bin/python" ] || { python3 -m venv "$venv" && "$venv/bin/pip" install -q $FONT_TOOLS; }
+          export PATH="$venv/bin:$PATH"
+        fi
+        make fonts
+      - make app-payload
+      - (cd app && swift build --build-tests && swift test --skip-build --no-parallel)
+      - make app
+      - codesign --verify --strict --deep out/Cartouche.app
+      - sh packaging/redist-scan.sh out/Cartouche.app
+
+  - name: check-bundle
+    image: bash
+    commands:
+      - . .release/meta.env
+      - rm -rf work/Cartouche.app && ditto out/Cartouche.app work/Cartouche.app
+      - plist=work/Cartouche.app/Contents/Info.plist
+      - test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$plist")" = "$version"
+      - test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$plist")" = "$bundle_version"
+      - test -n "$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' "$plist")"
+      - make -s mincheck APP_BUNDLE=work/Cartouche.app
+      # QA mode is compiled into debug builds only: a release build must ignore it
+      - |
+        CARTOUCHE_QA_BASE_URL=http://127.0.0.1:9 work/Cartouche.app/Contents/MacOS/Cartouche &
+        pid=$!
+        sleep 5
+        kill $pid 2>/dev/null || true
+        wait $pid 2>/dev/null || true
+        log="$HOME/Library/Logs/Cartouche/app.log"
+        [ -f "$log" ] || { echo "Cartouche did not start, its log is missing" >&2; exit 1; }
+        if grep -q "QA mode" "$log"; then echo "the release build honored CARTOUCHE_QA_BASE_URL" >&2; exit 1; fi
+
+  # Throwaway keychain from the secrets, as on GitHub; the agent user's own
+  # keychains are never touched. Removed by the cleanup step on any outcome.
+  - name: sign
+    image: bash
+    environment:
+      <<: *env
+      SIGNING_CERT_P12:
+        from_secret: signing_cert_p12
+      SIGNING_CERT_PASSWORD:
+        from_secret: signing_cert_password
+    commands:
+      - . .release/meta.env
+      - kc="$PWD/.release/cartouche-signing.keychain-db"
+      - sh packaging/signing/import-cert.sh "$kc"
+      - sh packaging/signing/sign-app.sh work/Cartouche.app "$SIGNING_IDENTITY" "$kc" > dist/designated-requirement.txt
+      - cat dist/designated-requirement.txt
+      # install.sh refuses any app whose certificate it does not pin
+      - |
+        signed=$(sed -n 's/.*certificate leaf = H"\([0-9a-f]*\)".*/\1/p' dist/designated-requirement.txt)
+        pinned=$(sed -n 's/^cert_sha1=//p' install.sh)
+        if [ "$signed" != "$pinned" ]; then
+          echo "install.sh pins certificate '$${pinned:-none}' but this release is signed with '$signed' (docs/RELEASE.md)" >&2
+          exit 1
+        fi
+      - ditto -c -k --keepParent work/Cartouche.app "dist/$archive"
+      - sh packaging/redist-scan.sh work/Cartouche.app "dist/$archive"
+      - sh packaging/dmg/make-dmg.sh work/Cartouche.app "dist/Cartouche-$version.dmg"
+      - codesign -s "$SIGNING_IDENTITY" --keychain "$kc" "dist/Cartouche-$version.dmg"
+
+  - name: appcast
+    image: bash
+    environment:
+      GH_TOKEN:
+        from_secret: github_release_token
+      SPARKLE_PRIVATE_KEY:
+        from_secret: sparkle_private_key
+    commands:
+      - . .release/meta.env
+      - python3 packaging/release.py checksums "dist/$archive" "dist/Cartouche-$version.dmg" --out dist/SHA256SUMS
+      - (cd dist && shasum -a 256 -c SHA256SUMS)
+      - python3 packaging/release.py notes "$version" > dist/notes.md
+      - gh api markdown -f text="$(cat dist/notes.md)" -f mode=gfm -f context="$CI_REPO" > "dist/Cartouche-$version.html"
+      # The live feed is releases/latest/download/appcast.xml, on the newest non-beta release
+      - |
+        latest=$(gh release view --repo "$CI_REPO" --json tagName --jq .tagName 2>/dev/null || true)
+        echo "latest=$latest" >> .release/meta.env
+        if [ -n "$latest" ]; then
+          rm -rf prev && gh release download "$latest" --repo "$CI_REPO" --pattern appcast.xml --dir prev
+          cp prev/appcast.xml dist/previous-appcast.xml
+          python3 packaging/release.py previous-archives dist/previous-appcast.xml --count 3 \
+            | while read -r v url; do
+                echo "Archive of $v for deltas"
+                gh release download "$(basename "$(dirname "$url")")" --repo "$CI_REPO" --pattern "$(basename "$url")" --dir dist --clobber
+              done
+        else
+          echo "No release yet, this is the first feed"
+        fi
+      - swift package resolve --package-path app
+      - sh packaging/make-appcast.sh dist "$version" "https://github.com/$CI_REPO/releases/download/$CI_COMMIT_TAG/" "$channel" "$critical"
+
+  - name: publish
+    image: bash
+    environment: *gh_token
+    commands:
+      - . .release/meta.env
+      - |
+        set -- "dist/$archive" "dist/Cartouche-$version.dmg" dist/SHA256SUMS dist/appcast.xml
+        while read -r delta; do set -- "$@" "dist/$delta"; done < dist/deltas.txt
+        if [ "$prerelease" = true ]; then
+          gh release create "$CI_COMMIT_TAG" --repo "$CI_REPO" --verify-tag --prerelease --latest=false \
+            --title "$version" --notes-file dist/notes.md "$@"
+          # Betas reach the Beta channel through the live feed on the latest release
+          if [ -n "$latest" ]; then
+            gh release upload "$latest" --repo "$CI_REPO" --clobber dist/appcast.xml
+          else
+            echo "warning: no release yet, so no feed lists this beta"
+          fi
+        else
+          gh release create "$CI_COMMIT_TAG" --repo "$CI_REPO" --verify-tag --latest \
+            --title "$version" --notes-file dist/notes.md "$@"
+        fi
+
+  - name: tap
+    image: bash
+    environment:
+      <<: *env
+      TAP_TOKEN:
+        from_secret: tap_token
+    commands:
+      - . .release/meta.env
+      - |
+        if [ "$bump_tap" != true ]; then echo "beta: the Homebrew tap is not touched"; exit 0; fi
+        sha=$(shasum -a 256 "dist/$archive" | cut -d' ' -f1)
+        rm -rf .release/tap
+        git -c credential.helper= -c "credential.helper=!f() { echo username=x-access-token; echo password=\$TAP_TOKEN; }; f" \
+          clone -q "https://github.com/$TAP_REPOSITORY.git" .release/tap
+        mkdir -p .release/tap/Casks
+        python3 packaging/release.py cask --template packaging/homebrew/cartouche.rb.in \
+          --version "$version" --sha256 "$sha" --out .release/tap/Casks/cartouche.rb
+        [ -f .release/tap/README.md ] || cp packaging/homebrew/tap-README.md .release/tap/README.md
+        cd .release/tap
+        git config user.name BRYANN2K
+        git config user.email BRYANN2K@users.noreply.github.com
+        git add Casks/cartouche.rb README.md
+        if git diff --cached --quiet; then echo "The cask already names $version"; exit 0; fi
+        git commit -q -m "cartouche $version"
+        git -c credential.helper= -c "credential.helper=!f() { echo username=x-access-token; echo password=\$TAP_TOKEN; }; f" push -q
+
+  - name: cleanup
+    image: bash
+    when:
+      - status: [success, failure]
+    commands:
+      - security delete-keychain "$PWD/.release/cartouche-signing.keychain-db" 2>/dev/null || true
+      - rm -rf .release/tap prev
