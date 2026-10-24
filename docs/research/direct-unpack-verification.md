@@ -22,4 +22,4 @@ fg01 rerun3 exit=0; verify-game.py: 906 manifest rows, 905 ok, 1 'missing' = mal
 
 ## Scope and remaining work
 
-The result verifies this recipe on this test case. It does not prove support for all external-unpacker formats, every runner or encrypted archives. App implementation is merged in 3bb5921; end-to-end app verification and automatic failure fallback remain pending. The app still needs routing, safe output handling, progress, cancellation, failure behavior and evidence from its own path before this feature can be marked complete.
+The result verifies this recipe on this test case. It does not prove support for all external-unpacker formats, every runner or encrypted archives. App implementation is merged; end-to-end app verification and automatic failure fallback remain pending. The app still needs routing, safe output handling, progress, cancellation, failure behavior and evidence from its own path before this feature can be marked complete.

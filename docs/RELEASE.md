@@ -41,7 +41,7 @@ Release [`wine-crossover-26.3.0-1`](https://github.com/BRYANN2K/cartouche-wine/r
 
 The archive was reused without a rebuild. That run built successfully; its old 60-second cold-prefix boot check failed. Later commits changed only the boot check and publication repository name. Publication is not evidence that the new boot check passed. Keep build provenance separate from the release-tag commit.
 
-App integration is merged in main 95b4e47: the asset is pinned in runners.json; Cartouche Wine defaults for new games when installed; the original Graphics reason UI is superseded by ADR 0027 (hide unavailable choices/reasons, conditional Get More entry to install Cartouche Wine); serialized first boot gates launch. Real-hardware checks remain pending. D3DMetal requires CrossOver-capable Wine, Rosetta and the user’s own D3DMetal files; Cartouche does not redistribute those files. Do not mark the app integration or real-game checks complete based on publication alone.
+App integration is merged: the asset is pinned in runners.json; Cartouche Wine defaults for new games when installed; the original Graphics reason UI is superseded by ADR 0027 (hide unavailable choices/reasons, conditional Get More entry to install Cartouche Wine); serialized first boot gates launch. Real-hardware checks remain pending. D3DMetal requires CrossOver-capable Wine, Rosetta and the user’s own D3DMetal files; Cartouche does not redistribute those files. Do not mark the app integration or real-game checks complete based on publication alone.
 
 ## Signing certificate
 
@@ -86,9 +86,9 @@ Steps:
 
 ## Sparkle configuration check
 
-Keep `SUVerifyUpdateBeforeExtraction` enabled in `app/Info.plist`. Fix 8b6b29b adds it because Sparkle refused to start without it in this app’s configuration. `ReleaseFeedTests` guards this requirement. Check the built app’s Info.plist as well as the source before release; a valid key and signed feed alone do not prove the updater starts.
+Keep `SUVerifyUpdateBeforeExtraction` enabled in `app/Info.plist`. It is required because Sparkle refused to start without it in this app’s configuration. `ReleaseFeedTests` guards this requirement. Check the built app’s Info.plist as well as the source before release; a valid key and signed feed alone do not prove the updater starts.
 
-The release-app AttributeGraph crash from blocking lsof/pgrep probes during SwiftUI updates is fixed in main f9bb3d7. For release smoke testing, open game menus, refresh Steam presence and inspect uninstall confirmation while the library updates. Process probes must stay off the main actor; record any recurrence rather than treating the old crash as unresolved by default.
+The release-app AttributeGraph crash from blocking lsof/pgrep probes during SwiftUI updates is fixed. For release smoke testing, open game menus, refresh Steam presence and inspect uninstall confirmation while the library updates. Process probes must stay off the main actor; record any recurrence rather than treating the old crash as unresolved by default.
 
 ## Sparkle key
 

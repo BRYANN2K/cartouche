@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted, 2026-10-21. Supersedes in part 0007, 0015, 0027 and 0032 for the name of our Wine build only. Rename merged on 2026-10-21 (828e14e), pending build and live check.
+Accepted, 2026-10-21. Supersedes in part 0007, 0015, 0027 and 0032 for the name of our Wine build only. Rename merged on 2026-10-21, pending build and live check.
 
 ## Context
 

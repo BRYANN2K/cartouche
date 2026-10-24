@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted, 2026-10-20. Extends ADR 0021 with the export transport. Implementation merged in de0e6ec; real Steam check pending. The token is fetched through an authenticated WebUI route in the same `steam_osx` process as the export handler. The former helper-file fetch returned a different process-local token.
+Accepted, 2026-10-20. Extends ADR 0021 with the export transport. Implementation merged; real Steam check pending. The token is fetched through an authenticated WebUI route in the same `steam_osx` process as the export handler. The former helper-file fetch returned a different process-local token.
 
 ## Context
 

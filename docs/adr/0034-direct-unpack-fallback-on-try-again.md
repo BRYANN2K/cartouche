@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted, 2026-10-21. Amends 0017. Verification mismatches stay under 0025 and 0026. Merged on 2026-10-21 (e4ff967, 75f9887), pending build and live check.
+Accepted, 2026-10-21. Amends 0017. Verification mismatches stay under 0025 and 0026. Merged on 2026-10-21, pending build and live check.
 
 ## Context
 

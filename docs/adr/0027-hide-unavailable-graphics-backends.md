@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted, 2026-10-21. Supersedes the Graphics reason-line UI in the crossover-default contract. Runtime eligibility and Apple-file distribution rules are unchanged. UI implementation is merged in 522d4fa.
+Accepted, 2026-10-21. Supersedes the Graphics reason-line UI in the crossover-default contract. Runtime eligibility and Apple-file distribution rules are unchanged. UI implementation is merged.
 
 ## Context
 

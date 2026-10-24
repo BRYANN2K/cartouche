@@ -7,7 +7,7 @@ Cartouche v0.1.0 has no server and no account. It does not collect analytics. Ev
 ## What is built and what is planned
 
 - Agent control (P11) is merged. It exposes local tools to the MCP clients you authorize. Clients may send tool results to their own services; review the client’s policy. Cartouche itself sends no agent data to a Cartouche server.
-- Ranked identification, privacy-gated Steam search, PE-based runtime steps, managed-game uninstall and closed-Steam cache handling are merged in main 307ad2c. The archive backend and its app adapter are merged. Direct unpack is merged, with a fallback to the original setup on Try Again; app end-to-end checks remain pending.
+- Ranked identification, privacy-gated Steam search, PE-based runtime steps, managed-game uninstall and closed-Steam cache handling are merged. The archive backend and its app adapter are merged. Direct unpack is merged, with a fallback to the original setup on Try Again; app end-to-end checks remain pending.
 - FPS tracking (P8) is merged: sessions are measured and stored locally. Sharing them with MacGamingDB is coded but has no destination: MacGamingDB publishes no way to send reports. The sharing UI is hidden in v0.1.0 and comes back as an opt-in in v0.1.1 (see `docs/ROADMAP.md`). Nothing is sent.
 - Store sign-ins (P10), netplay, RetroAchievements, the translation service and iCloud Drive saves (P14) are merged and described below.
 
@@ -103,7 +103,7 @@ PE-based runtime detection reads local executable imports. Wine Mono covers .NET
 
 Managed-game uninstall is merged: the game and prefix move to the Trash, with Keep save files offered for save folders found in the prefix. Removing an in-place import moves only Cartouche’s prefix and record to the Trash; the external source files stay untouched. Save copies stay locally under Cartouche’s saves folder.
 
-Archive decompression and direct extraction of supported installers run locally and do not upload game files. The archive backend is merged in 95b4e47 and its app adapter in 539fbe3. Direct unpack is merged in 3bb5921 and its Try Again fallback on 2026-10-21; end-to-end app verification is pending.
+Archive decompression and direct extraction of supported installers run locally and do not upload game files. The archive backend and its app adapter are merged. Direct unpack and its Try Again fallback are merged; end-to-end app verification is pending.
 
 ### The Cartouche community site
 
@@ -168,7 +168,7 @@ Archive decompression and direct extraction of supported installers run locally 
 
 The full owned-games list comes from Steam’s signed-in client, through a WebUI route registered by Cartouche’s injected dylib. Only Cartouche’s injected page script receives the random token for that Steam launch. The dylib validates the request and atomically writes SteamExport v1 `steam-library.json` locally. This adds no loopback HTTP service and requires neither a public Steam profile nor a user Web API key. The export stays on your Mac; this feature does not upload your library to Cartouche.
 
-When Steam is closed, Cartouche uses the last account-matched export even if stale and labels it cached/stale. Installed status comes from appmanifests. localconfig.vdf is play data only, not ownership. Implementation is merged in 451e393 / de0e6ec. It polls every 15 seconds and sends only changes, validates payloads up to 4 MB, writes mode 0600 and refuses symlinks. Real Steam verification remains pending; see ADR 0022.
+When Steam is closed, Cartouche uses the last account-matched export even if stale and labels it cached/stale. Installed status comes from appmanifests. localconfig.vdf is play data only, not ownership. Implementation is merged. It polls every 15 seconds and sends only changes, validates payloads up to 4 MB, writes mode 0600 and refuses symlinks. Real Steam verification remains pending; see ADR 0022.
 
 ## What stays on your Mac
 

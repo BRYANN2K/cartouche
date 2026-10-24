@@ -1,6 +1,6 @@
 # Unified Add Games mockup notes
 
-Accepted direction, 2026-10-20. See ADR 0024. UI merged in a47ffd3 / 51a8ece; InstallerKit backend classification is merged in 95b4e47, but the app adapter is not wired. The UI explicitly shows detection unavailable until that backend is supplied.
+Accepted direction, 2026-10-20. See ADR 0024. UI merged; InstallerKit backend classification is merged, but the app adapter is not wired. The UI explicitly shows detection unavailable until that backend is supplied.
 
 The toolbar + opens one Add Games sheet. It has a drop zone and Choose… for files or folders of any type. Dropping on the library window opens the same sheet. Automatic detection selects the installer, installed-game import, console ROM import or other matching flow.
 
@@ -8,4 +8,4 @@ Remove separate Windows Games… and Console Games… entries and any Windows/Co
 
 This supersedes the earlier mode-switch design. Do not implement a “switch from Console Games to Windows Game” navigation.
 
-UI: the phase/liquid-glass-pass branch, merged in 51a8ece. Backend: DropClassifier on phase/archives, behind the existing UI DropClassifying protocol. Shared archive rules are in ADR 0023 and openspec/specs/archive-import/.
+UI: the phase/liquid-glass-pass branch, merged. Backend: DropClassifier on phase/archives, behind the existing UI DropClassifying protocol. Shared archive rules are in ADR 0023 and openspec/specs/archive-import/.

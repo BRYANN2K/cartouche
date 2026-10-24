@@ -37,23 +37,23 @@ The 2026-10-21 work was built and run on a Mac during the 0.1.0 validation pass 
 ### Merged before 2026-10-21
 
 - Cartouche Wine default/recommendation, pinned downloads and serialized first boot (ADR 0015); published builds register Steam compatibility tools. WineHQ/GPTK Steam support still depends on pinned hook offsets.
-- Unified Add Games and live `InstallerKitDropClassifier` wiring (7b9f842 / 539fbe3): installers, installed folders, ROMs, mixed inputs and archive staging through bundled universal libarchive (ADRs 0016, 0023–0024). Encrypted archives are refused.
-- Direct extraction for supported installers that unpack with their own helper programs (3bb5921), with live output verification and standard/guided recovery (93aa900 / 04d6b6f; ADRs 0017, 0025–0026). Unknown helpers remain the shipped Windows versions.
+- Unified Add Games and live `InstallerKitDropClassifier` wiring: installers, installed folders, ROMs, mixed inputs and archive staging through bundled universal libarchive (ADRs 0016, 0023–0024). Encrypted archives are refused.
+- Direct extraction for supported installers that unpack with their own helper programs, with live output verification and standard/guided recovery (ADRs 0017, 0025–0026). Unknown helpers remain the shipped Windows versions.
 - Managed uninstall, safe in-place removal, save retention, ranked identification, privacy-gated cover search and PE runtime selection (ADRs 0018–0020). Imported games also support rename/re-identification; game-session cleanup preserves unrelated store clients.
-- Full Steam owned-library export, account-matched cached/stale presentation, runtime token fetch with no-store/backoff, and Cartouche Wine compatibility tools (ADRs 0021–0022; 9214df4). Steam download progress, pause/resume and cancellation are wired.
+- Full Steam owned-library export, account-matched cached/stale presentation, runtime token fetch with no-store/backoff, and Cartouche Wine compatibility tools (ADRs 0021–0022). Steam download progress, pause/resume and cancellation are wired.
 - Installer inspection and detection, plus hermetic universal innoextract 1.10 with Inno support through 6.4.0 (8014773). Boost/liblzma are static pinned builds; no Homebrew runtime dependency.
 - Local crash reports, Copy Summary and Collect Diagnostics (ADR 0029), and Your Play setup comparisons.
-- Capability-gated Advanced options for Windows-game sources (397990d / a46a8bb; ADRs 0030–0031): MetalFX, AVX advertisement, MSync, high resolution and HUD. DLSS requires verified DXMT extension DLLs; D3DMetal DLSS and frame generation are not offered.
-- Onboarding v2 (d7b3404; ADR 0032): seven steps, pinned Cartouche Wine recommendation, GPTK disk-image import, background tasks, durable choices and pending-work recovery. App Management is asked immediately before the Steam write in Stores. Welcome has Skip Setup; Ready opens the library.
-- Settings rework (a9ceae3): Steam and Wine Prefixes replace legacy setup/prefix menus and the Steam Play Setup window. Prefix backups can be restored; CrossOver.app is no longer required for the free runner path.
-- Main-actor process-wait and console ownership-probe fixes (64e0e19 / 2d09f81), real-ROM-only console detection, console/emulator uninstall, and reviewed French localization (22fda08 / b0a048c; `docs/l10n/glossary-fr.md`).
+- Capability-gated Advanced options for Windows-game sources (ADRs 0030–0031): MetalFX, AVX advertisement, MSync, high resolution and HUD. DLSS requires verified DXMT extension DLLs; D3DMetal DLSS and frame generation are not offered.
+- Onboarding v2 (ADR 0032): seven steps, pinned Cartouche Wine recommendation, GPTK disk-image import, background tasks, durable choices and pending-work recovery. App Management is asked immediately before the Steam write in Stores. Welcome has Skip Setup; Ready opens the library.
+- Settings rework: Steam and Wine Prefixes replace legacy setup/prefix menus and the Steam Play Setup window. Prefix backups can be restored; CrossOver.app is no longer required for the free runner path.
+- Main-actor process-wait and console ownership-probe fixes, real-ROM-only console detection, console/emulator uninstall, and reviewed French localization (`docs/l10n/glossary-fr.md`).
 
 ### Bugs from the 2026-10-21 tests
 
 | Item | Subject | Status |
 |---|---|---|
-| I, H | Steam export token refused; Wine-build tools not seen by the app | Merged on main (cb248b2), pending live check after Repair |
-| J | Controller not seen in Windows games | SDL3 runtime fix merged on main (1b05e2d); Cartouche Wine 26.3.0-2 published as a prerelease, live check pending |
+| I, H | Steam export token refused; Wine-build tools not seen by the app | Merged on main, pending live check after Repair |
+| J | Controller not seen in Windows games | SDL3 runtime fix merged on main; Cartouche Wine 26.3.0-2 published as a prerelease, live check pending |
 | A | D3DMetal with Cartouche Wine (Silksong) | Merged: launch scripts export the toolkit path, Get D3DMetal… |
 | L | Play becomes Stop | Merged |
 | E, F | One Steam repair action in Settings and onboarding | Merged |

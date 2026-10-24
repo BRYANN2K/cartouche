@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted, 2026-10-21. Implementation merged in 1c25236.
+Accepted, 2026-10-21. Implementation merged.
 
 ## Context
 
