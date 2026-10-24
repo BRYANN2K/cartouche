@@ -64,7 +64,31 @@ restore() {
 		cp -cpR "$entry/data/$p" "$p" 2>/dev/null || cp -pR "$entry/data/$p" "$p"
 		case "$1" in innoextract | libarchive) touch "$p" ;; esac
 	done
+	relocate "$1" "$entry"
 	echo "==> cache $1: restored"
+}
+
+# The local backend gives every pipeline a new workspace path, and configure and
+# CMake trees record absolute paths: rewrite the saved path, keeping mtimes.
+relocate() {
+	here="$(pwd -P)"
+	# shellcheck disable=SC2046 # artifact paths have no spaces, one word each
+	set -- "$1" "$2" $(paths "$1")
+	name=$1 entry=$2
+	shift 2
+	if [ -f "$entry/workspace" ]; then
+		was="$(cat "$entry/workspace")"
+	else
+		was="$(grep -rhoIE -m1 '/[^ "]*/woodpecker-local-[0-9]+/workspace' "$@" 2>/dev/null | head -n 1)"
+	fi
+	[ -n "$was" ] && [ "$was" != "$here" ] || return 0
+	list="$(mktemp)"
+	grep -rlIF "$was" "$@" > "$list" 2>/dev/null || true
+	while IFS= read -r f; do
+		sed "s|$was|$here|g" "$f" > "$f.relocate" && touch -r "$f" "$f.relocate" && chmod "$(stat -f %Lp "$f")" "$f.relocate" && mv "$f.relocate" "$f"
+	done < "$list"
+	echo "==> cache $name: $(wc -l < "$list" | tr -d ' ') file(s) moved from $was"
+	rm -f "$list"
 }
 
 save() {
@@ -78,6 +102,7 @@ save() {
 		cp -cpR "$p" "$tmp/data/$p" 2>/dev/null || cp -pR "$p" "$tmp/data/$p"
 	done
 	key "$1" > "$tmp/key"
+	pwd -P > "$tmp/workspace"
 	rm -rf "$entry"
 	mv "$tmp" "$entry"
 	echo "==> cache $1: saved"
