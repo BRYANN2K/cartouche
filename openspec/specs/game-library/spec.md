@@ -74,11 +74,14 @@ The library SHALL group games by source, show not-installed games in black and w
 - **THEN** the grid is replaced by "No games match “zelda”" with Clear Search, and the toolbar reads "Search, 0 results"
 
 ### Requirement: Game panel
-The panel SHALL use one chrome for a PC game and a console game: artwork, the title, one metadata line (source, status, and size when known), then the modules from `PanelModules` (ADR 0037). A module that does not apply SHALL be omitted and SHALL NOT leave an empty card. The exception is Your Play on an installed PC game with no session, which stays and reads "No sessions yet". Modules SHALL NOT change order. Setup and Your Play SHALL stay hidden until a PC game is installed. Details SHALL hold the long report.
+The panel SHALL use one chrome for a PC game and a console game: artwork, the title, one metadata line (source, status, and size when known), then the modules from `PanelModules` (ADR 0037). Modules SHALL NOT change order. Details SHALL hold the long report.
 
 #### Scenario: Panel content
 - **WHEN** installed Elden Ring is selected on the fixture data
 - **THEN** the panel shows, in this order, Play, Setup, Your Play, Expected on This Mac, Anti-Cheat, Graphics Reported on Macs and Controls. Advanced appears only when the resolved runner offers an option. The Details sheet holds AppleGamingWiki, the Mac picker, the HUD and the sources
+
+### Requirement: Panel modules
+A module that does not apply SHALL be omitted and SHALL NOT leave an empty card. The exception is Your Play on an installed PC game with no session, which stays and reads "No sessions yet". Setup and Your Play SHALL stay hidden until a PC game is installed.
 
 #### Scenario: Not installed
 - **WHEN** a Windows game is not installed

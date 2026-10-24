@@ -76,8 +76,8 @@ steps:
 
   - name: swift-tests
     image: bash
-    directory: app
     commands:
+      - cd app
       - swift build --build-tests
       - swift test --skip-build --no-parallel
 
