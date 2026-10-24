@@ -18,7 +18,7 @@ How a Cartouche release is built, signed and published, and what the maintainer 
   - `.woodpecker/checks.yaml`: shell lint, OpenSpec validation and the redistribution scan, on the Linux agent.
   - `.woodpecker/retroarch.yaml`: RetroArch scan and kit jobs on the Mac agent, when `retroarch/` or the submodule changes.
 - They run on pull requests, pushes to `dev`, `beta` and `main`, and manual runs. Gitignored inputs (Dobby, Wine trees, the Proton tarball, innoextract, libarchive, fonts) come from `$CARTOUCHE_CI_CACHE` through `.woodpecker/cache.sh`. The first run on an empty cache is a manual run with `CARTOUCHE_CI_COLD=1`.
-- The GitHub workflows in `.github/workflows/` stay as the reference and as the release path described below until a Woodpecker release pipeline replaces it.
+- Releases are published by `.woodpecker/release.yaml` on tag events (see Publishing from Woodpecker). The GitHub workflows in `.github/workflows/` stay as the reference; the GitHub release trigger is paused.
 
 ### Published Wine builds
 
@@ -130,6 +130,17 @@ After the GitHub release is published, the `tap` job fills `packaging/homebrew/c
 ### Check it
 
 After a release: `brew update && brew install --cask bryann2k/cartouche/cartouche`, then `defaults read /Applications/Cartouche.app/Contents/Info CFBundleShortVersionString` must print the version just released.
+
+## Publishing from Woodpecker
+
+GitHub Actions is paused (billing), so `.woodpecker/release.yaml` publishes on the Mac agent instead. It runs on tag events only:
+
+- `vX.Y.Z` is published only if the tagged commit is on `main`; `vX.Y.Z-beta.N` only if it is on `beta`. Any other tag, test tags included, is refused. The check uses the compare API (`GET /repos/{repo}/compare/{branch}...{sha}`, status `identical` or `behind`).
+- The build, the signing (throwaway keychain from `signing_cert_p12` and `signing_cert_password`), `make-appcast.sh`, the release and, for stable only, the Homebrew tap bump are the same as the steps below. `gh` publishes through the REST API with `github_release_token`.
+- Woodpecker secrets, all limited to the `tag` event: `github_release_token` (fine-grained, this repository, Contents read and write), `sparkle_private_key`, `signing_cert_p12`, `signing_cert_password`, `tap_token` (fine-grained, `homebrew-cartouche`, Contents read and write).
+- To publish a tag again after a failure, delete its release if one was created, then restart the tag's pipeline in Woodpecker.
+
+While this repository is private, Sparkle, `install.sh` and Homebrew cannot download the feed or the archives anonymously. A tag still publishes, which is a useful dry run; users get updates once the repository is public.
 
 ## Publishing a release
 
