@@ -1,0 +1,14 @@
+labels:
+  platform: darwin/arm64
+when:
+  - event: manual
+    evaluate: 'CARTOUCHE_DIAG == "1"'
+steps:
+  - name: e5rt-diag
+    image: bash
+    commands:
+      - env | sort > /tmp/claude-env-ci.txt
+      - ulimit -a > /tmp/claude-ulimit-ci.txt
+      - launchctl managername > /tmp/claude-launchd-ci.txt 2>&1 || true
+      - cd /tmp/claude-cart/app && swift test --skip-build --no-parallel --filter ControlsUITests > /tmp/claude-ci-diag.log 2>&1 || true
+      - grep -c e5rtError /tmp/claude-ci-diag.log || true
