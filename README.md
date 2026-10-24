@@ -224,6 +224,6 @@ The full list with licenses is in [NOTICE](NOTICE) and [THIRD-PARTY-LICENSES](TH
 
 ## License
 
-Cartouche is free software under the [GNU General Public License v3.0](LICENSE), like NotProton. Some parts keep their original authors' licenses, listed in NOTICE and THIRD-PARTY-LICENSES.
+Cartouche is free software, licensed under the GNU General Public License version 3 (GPL-3.0), like NotProton. See [LICENSE](LICENSE). Some parts keep their original authors' licenses, listed in NOTICE and THIRD-PARTY-LICENSES.
 
-Cartouche is not affiliated with NotProton, Valve, Apple or CodeWeavers. Platform and game names and artwork belong to their owners and are shown only to identify them.
+Cartouche is now its own project, not built on NotProton. It is not affiliated with NotProton, Valve, Apple or CodeWeavers. Platform and game names and artwork belong to their owners and are shown only to identify them.
