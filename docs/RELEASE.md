@@ -9,7 +9,26 @@ Before v0.1.0, validate serialized prefix initialization on a clean Mac: no game
 
 How a Cartouche release is built, signed and published, and what the maintainer sets up once. Read by the maintainer and by contributors who change the release pipeline.
 
-### Published Wine build (2026-10-20)
+## Branches and CI
+
+- `main` holds stable releases and `beta` holds betas. Tag `vX.Y.Z` on `main` and `vX.Y.Z-beta.N` on `beta`.
+- GitHub Actions is blocked by billing for this private repository, so checks run on Woodpecker:
+  - `.woodpecker/app.yaml`: app build and Swift tests on the self-hosted Mac agent (`platform: darwin/arm64`, local backend).
+  - `.woodpecker/checks.yaml`: shell lint, OpenSpec validation and the redistribution scan, on the Linux agent.
+  - `.woodpecker/retroarch.yaml`: RetroArch scan and kit jobs on the Mac agent, when `retroarch/` or the submodule changes.
+- They run on pull requests, pushes to `main` and manual runs. Gitignored inputs (Dobby, Wine trees, the Proton tarball, innoextract, libarchive, fonts) come from `$CARTOUCHE_CI_CACHE` through `.woodpecker/cache.sh`. The first run on an empty cache is a manual run with `CARTOUCHE_CI_COLD=1`.
+- The GitHub workflows in `.github/workflows/` stay as the reference and as the release path described below until a Woodpecker release pipeline replaces it.
+
+### Published Wine builds
+
+| Build | Status in `cartouche-wine` | Asset size (bytes) | SHA-256 |
+|---|---|---|---|
+| `wine-crossover-26.3.0-2` | Prerelease (2026-10-22): SDL3 for controllers, bundled Wine Mono and Wine Gecko | `271814416` | `59cf07facf9828d504b4c68fa5c02c5e18115835a7d57a0f46874fcc043136c1` |
+| `wine-crossover-26.3.0-1` | Latest release (2026-10-20) | `149444708` | `60400817826a053599193aa290d4e24e97213a743195f4187400bf9c74906887` |
+
+The app bundles `runners.json` revision 3, which pins both builds; runner lists offer the newest revision and keep older installed ones manageable. 26.3.0-2 still needs its Mac checks (first boot, a controller) before it is promoted in the signed remote manifest.
+
+### First build: 26.3.0-1 (2026-10-20)
 
 Release [`wine-crossover-26.3.0-1`](https://github.com/BRYANN2K/cartouche-wine/releases/tag/wine-crossover-26.3.0-1) is published. The tag points to commit `fef50c2`.
 
@@ -88,6 +107,8 @@ To ship a new Wine build:
 2. Test the prerelease archive on a Mac.
 3. Promote it with `cartouche-wine`'s `runner-manifest` workflow. The workflow adds the pinned build (URL, size, SHA-256) to `runners.json`, raises `revision`, signs the file with `sign_update` and `SPARKLE_PRIVATE_KEY` — the same key as the appcast — and uploads both files to the `manifest` release.
 4. Within a day, the app fetches both files. It accepts the manifest only when the signature verifies against `SUPublicEDKey` and the revision is higher than the one it has. Settings > Runners then shows "Update to …" on the installed build of the same series.
+
+Signing the manifest needs one setup in `cartouche-wine`, done by hand: create the environment `release` (Settings > Environments) and add the secret `SPARKLE_PRIVATE_KEY`, with the same EdDSA key as the app's Sparkle updates. Required reviewers on that environment are optional. Without the secret, the signing step fails with `SPARKLE_PRIVATE_KEY must be set`, no manifest is published, and the app keeps its bundled `runners.json`. Never rotate the key to work around a missing secret: installed copies would reject every later manifest and app update.
 
 A manifest whose signature is missing or wrong, whose revision is not higher, or that changes the pin of a build the app already lists is refused; the bundled `runners.json` stays in use. That bundled copy is the offline baseline: copy the promoted `runners.json` into `app/Sources/NotProtonApp/Resources/` before an app release. This repository no longer publishes a runner manifest.
 

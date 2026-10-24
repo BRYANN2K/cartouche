@@ -36,6 +36,8 @@ Plain definitions of the terms used in Cartouche docs and specs. Read by contrib
 
 **FEX.** An alternative x86 translator. Cartouche offers it only on macOS 26.
 
+**Contribution.** A result or a fix a user chose to share with the Cartouche community site, after a preview. Off until the site's service is live.
+
 **Estimate.** The expected rating, FPS and settings for the user's own Mac, computed from reports on comparable Macs.
 
 ## Consoles

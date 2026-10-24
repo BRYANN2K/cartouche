@@ -101,7 +101,7 @@ Toolbar + and library-window drops open the same Add Games sheet, with Choose…
 
 ### Local-game changes and remaining work (ADRs 0015–0020)
 
-- Cartouche Wine 26.3 release `wine-crossover-26.3.0-1` is published from BRYANN2K/cartouche-wine. RELEASE.md records its size, hash and reused CI-build provenance. Default selection for new games when installed, the manifest pin, Graphics-menu reasons and serialized first boot are merged in 95b4e47; real-hardware checks remain pending. Among free Wine variants, Cartouche Wine alone enables D3DMetal and DXMT; D3DMetal also needs the user’s own GPTK files. Existing runner and ntdll validation remains required.
+- Cartouche Wine 26.3 releases `wine-crossover-26.3.0-1` (latest) and `26.3.0-2` (prerelease) are published from BRYANN2K/cartouche-wine; the bundled manifest (revision 3) pins both. RELEASE.md records its size, hash and reused CI-build provenance. Default selection for new games when installed, the manifest pin, Graphics-menu reasons and serialized first boot are merged in 95b4e47; real-hardware checks remain pending. Among free Wine variants, Cartouche Wine alone enables D3DMetal and DXMT; D3DMetal also needs the user’s own GPTK files. Existing runner and ntdll validation remains required.
 - Serialize first boot per prefix. Await successful initialization and Wine-server completion before installers or games run. Merged WineBootstrap uses explicit `wineboot -u` then `wineserver -w`, serialized per prefix; the gate precedes direct unpack and offers Show Log, Try Again and Recreate Prefix. A local repair took about eleven minutes; do not turn that observation into a sleep or a fixed deadline.
 - Backend merged in 95b4e47: bundled pinned libarchive 3.8.9 (BSD-2-Clause), xz 5.8.4 and zstd 1.5.7, universal arm64+x86_64, behind CArchive and an InstallerKit Swift wrapper. Pins are in installer/libarchive/pins. The live app adapter is wired in 539fbe3. Never use system libarchive/bsdtar. Target zip/zip64, 7z, tar.* and RAR4/RAR5; multi-volume and solid coverage depends on the pinned build and must be verified with fixtures and the user-supplied real RAR. Refuse encrypted archives clearly. DropClassifier feeds the existing UI DropClassifying protocol, extracting archives then classifying installers, installed-game folders, ROMs, ROM archives and mixed inputs (ADR 0023).
 - A Cartouche-owned driver directly extracts supported parts for installers that unpack their data with their own helper programs. Main currently prepares Windows 10, short paths and runtimes, journals processes and still executes setup. The CLS Init_MapFile_ / unarc.dll FreeArcExtract recipe is now verified under WineHQ 11.18 on CarX Street: 905/905 real files MD5-verified, 22,703,585,753 bytes, exe present; one malformed manifest row is excluded. App implementation is merged in 3bb5921. Selection requires the Inno tmp/unarc.dll, tmp/arc.ini and cls-* entries, no password, and signature-checked FreeArc .bin parts; otherwise it uses setup. When a direct unpack cannot run or fails, the job says that a retry runs the original setup under Wine. Try Again, Recreate Prefix, every retry fix and the standard-method retry then drop the unpack plan and run setup guided. The fallback is never automatic (ADR 0034). Merged on 2026-10-21; the app end-to-end check is pending. See docs/research/direct-unpack-verification.md.
@@ -151,6 +151,16 @@ Mappings are `DXMT_ENABLE_NVEXT`, `DXMT_METALFX_SPATIAL_SWAPCHAIN`, `DXMT_CONFIG
 - The app computes the per-Mac estimate locally from the cached MacGamingDB report rows and the `gpu_strength` table of the data file. Comparable Macs are those with GPU strength within 1/1.4 to 1.4 times the user's Mac. With fewer than 3 reports, it uses the 5 closest.
 - Schemas and data licenses: `docs/DATA-SCHEMA.md`.
 - Anti-cheat data is stored and shown as Linux data only.
+
+### Community contributions (off until the service is live)
+
+`app/Sources/NotProtonApp/Contributions/` shares results and fixes with the Cartouche community site only, never with MacGamingDB.
+
+- Activation: the base URL comes from the defaults key `community.apiURL` (testers) or the Info.plist key `CartoucheCommunityURL`. Both are unset in builds. Only `https` URLs, or `http` on localhost, are accepted. The defaults key `community.disabled` turns the feature off.
+- Sending: Share My Results and Share a Fix build a preview from the wire format in `ContributionContract.swift` (fixtures in `docs/schema/contributions/`). A value Cartouche did not observe is left out. Confirmed items wait in `community/queue.json` until the site accepts them; My Contributions shows transport and moderation states and can withdraw them.
+- Reading: the site's app feed is cached apart from `compat.json.gz`, at most once an hour, when Settings > Privacy > Fetch Mac reports is on. `CompatResolution.swift` merges it with `compat.json` and MacGamingDB.
+- Fixes: a shared fix is applied only after its registry and artifact verify against a key shipped with the app (`FixVerifier.swift`); nothing in a fix's text is executed. Applied fixes are recorded in `community/applied-fixes.json` and can be undone.
+- Privacy fields are listed in `docs/PRIVACY.md`.
 
 ### Bundled RetroArch
 
@@ -259,7 +269,7 @@ The compatibility schemas and the FPS store schema are in `docs/DATA-SCHEMA.md`.
 | Dobby | Function hooks in the dylib | Apache-2.0 | Cloned at a pinned commit, built from source |
 | lsteamclient, steam-shim | Steam API bridge | Steamworks SDK License, BSD-3-Clause | Source in the repository |
 | cJSON, jsoncpp | JSON in C and C++ | MIT, public domain or MIT | Source in the repository |
-| Cartouche Wine (built from CodeWeavers' CrossOver sources) | Free runner | LGPL | Built by our CI, downloaded by the app. Bundles freetype, gnutls, MoltenVK, SDL2. 26.3.0-2 (in progress) adds SDL3, Wine Mono and Wine Gecko |
+| Cartouche Wine (built from CodeWeavers' CrossOver sources) | Free runner | LGPL | Built by our CI, downloaded by the app. Bundles freetype, gnutls, MoltenVK, SDL2. 26.3.0-2 (published as a prerelease, pinned in the bundled manifest) adds SDL3, Wine Mono and Wine Gecko |
 | Wine (WineHQ builds, by Gcenx) | Secondary runner | LGPL | Downloaded by the app, not bundled |
 | Game Porting Toolkit, D3DMetal | Runner and DirectX 12 backend | Apple license | Never bundled. The user's own copy |
 | DXMT | DirectX 11 backend | MIT | Downloaded, pinned SHA-256 |

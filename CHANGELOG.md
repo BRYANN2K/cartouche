@@ -21,7 +21,13 @@ Merged on 2026-10-21, pending build and live check:
 - Security and robustness: the official RetroArch download is pinned by size and SHA-256 and must carry libretro's Developer ID; a core build that differs from the recorded one is held until you ask again; iCloud saves download evicted files before switching; each MCP client's name is shown as a claim; tokens move to the data protection keychain; hardened Steam dylib and installer parsing; `library.json` and other JSON stores keep readable fields instead of resetting; Delete Prefix keeps the prefix's backups; a Wine build or the toolkit cannot be removed while a game uses it.
 - French for the RetroArch console strings.
 - Release builds fail if bundled libarchive or innoextract is missing.
-- In progress, not released: Cartouche Wine 26.3.0-2, with SDL3 for controllers and bundled Wine Mono and Wine Gecko.
+- Cartouche Wine 26.3.0-2, with SDL3 for controllers and bundled Wine Mono and Wine Gecko, is pinned in the bundled runner list. Runner lists show the newest build and keep older installed ones.
+- Games location: Settings > Library > PC Games > Games Location chooses where new Windows and store games install. Games already installed stay where they are, and every earlier location is still scanned.
+- Wine Tools in the game menu: Winetricks…, Run Program in Prefix…, Open C: Drive and Show Log, on the game's own prefix. Running Steam games get a Stop.
+- A banner in the library reports problems from the library, the stores and the consoles, and games that exit early with an error code. It offers Show Log, Copy Summary or the right Settings tab.
+- Wine Prefixes lists every game's prefix. A crash in a Steam prefix ends with a `winedbg --auto` backtrace in the log instead of Wine's debugger dialog.
+- Community contributions, off until the community service is live: Share My Results and Share a Fix for a game, My Contributions to track and withdraw them, and a Mac reports feed (Settings > Privacy). Nothing is sent without a preview and Share.
+- Network politeness: a host that answers 429 or 503 is paused, honoring Retry-After with capped backoff. The local MCP token is stored in the Keychain.
 
 - Unified Add Games now classifies dropped installers, installed-game folders and console games, including archives extracted with bundled libarchive.
 - Installed-game verification now uses a live engine: checksum/CRC verification, size-only checks, explicit not-verified status, later Verify Files, and standard-method recovery on mismatch.

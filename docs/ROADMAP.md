@@ -53,7 +53,7 @@ The work merged on the integration branch on 2026-10-21 has not been compiled or
 | Item | Subject | Status |
 |---|---|---|
 | I, H | Steam export token refused; Wine-build tools not seen by the app | Merged on main (cb248b2), pending live check after Repair |
-| J | Controller not seen in Windows games | SDL3 runtime fix merged on main (1b05e2d); Cartouche Wine 26.3.0-2 in progress |
+| J | Controller not seen in Windows games | SDL3 runtime fix merged on main (1b05e2d); Cartouche Wine 26.3.0-2 published as a prerelease, live check pending |
 | A | D3DMetal with Cartouche Wine (Silksong) | Merged: launch scripts export the toolkit path, Get D3DMetal… |
 | L | Play becomes Stop | Merged |
 | E, F | One Steam repair action in Settings and onboarding | Merged |
@@ -70,8 +70,8 @@ Also merged: drop handoff and Back to Add Games, direct-unpack fallback on Try A
 
 - First Mac build of the integration branch, then fixes for any failing tests.
 - Live checks: Steam export after Repair; a controller with Cartouche Wine 26.3.0-2; D3DMetal on Silksong; installer with an external unpacker: install, cancel and direct-unpack fallback; CarX Street setup under Cartouche Wine.
-- Cartouche Wine 26.3.0-2 (SDL3 for controllers, bundled Wine Mono and Wine Gecko) is in progress, not released.
-- Maintainer tasks: GitHub billing or a self-hosted runner (`MACOS_RUNNER`), the signing certificate and secrets, the Sparkle EdDSA key, the Homebrew tap repository. See `docs/RELEASE.md`.
+- Cartouche Wine 26.3.0-2 (SDL3 for controllers, bundled Wine Mono and Wine Gecko) is a prerelease in `cartouche-wine` and pinned in the bundled manifest; promote it after its Mac checks.
+- Maintainer tasks: the Woodpecker Mac agent and its build cache (checks already run on Woodpecker; the release pipeline still has to move off GitHub Actions), the signing certificate and secrets, the Sparkle EdDSA key and the `release` environment in `cartouche-wine`, the Homebrew tap repository. See `docs/RELEASE.md`.
 - Earlier evidence still open: real Steam owned-list freshness and account switching, tool registration and download controls; real runner first boot and frame-counter injection; user-supplied RAR coverage; real store sign-ins, two-Mac cloud saves, netplay and RetroAchievements; permissions on supported macOS versions; onboarding captures. Manual QA runs with `qa/` remain postponed, not passed.
 
 ### After v0.1.0

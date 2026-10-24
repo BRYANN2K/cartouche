@@ -34,7 +34,7 @@ The exporter still authenticates its transport and obtains the per-launch export
 - GPU comparison profiles ship with the app, so existing MacGamingDB reports can produce per-Mac estimates and populate the Mac picker even when the separate compatibility feed is unavailable. Missing reports still produce no estimate.
 - **Settings → Runners → Check for Updates** bypasses the daily check interval and daily-check preference for that explicit request. Manifests still require their EdDSA signature. Installing each runner update remains an explicit action.
 
-The remote runner manifest currently requires the maintainer setup in `docs/RELEASE.md` (Runner manifest): publish the signed `manifest` release using the existing Sparkle key. An unavailable feed is reported in the UI and does not change installed runners. The public `wine-crossover-26.3.0-2` release is a prerelease and is not silently promoted into this app's bundled catalog.
+The remote runner manifest needs the signing setup in `docs/RELEASE.md` (Runner manifest). An unavailable feed is reported in the UI and does not change installed runners. The bundled `runners.json` (revision 3) pins `wine-crossover-26.3.0-2` and `26.3.0-1`; 26.3.0-2 is a prerelease in `cartouche-wine` until its Mac checks pass.
 
 ## Verification
 

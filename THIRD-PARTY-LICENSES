@@ -108,10 +108,11 @@ Cartouche Wine (built from CodeWeavers' CrossOver sources)
   Where: not part of the app and not in the repository. Built by CI
          (.github/workflows/wine-crossover.yml on a macos-15-intel runner with
          Xcode 16.4) with the scripts in packaging/wine-crossover/. CI
-         publishes the asset wine-crossover-26.3.0-1-x86_64.tar.xz on a
-         GitHub release. The app downloads it, on the user's request, checks
-         its SHA-256 against runners.json and unpacks it into the runners
-         folder. The build has not run yet, so no asset is published yet.
+         publishes the assets wine-crossover-26.3.0-1-x86_64.tar.xz and
+         wine-crossover-26.3.0-2-x86_64.tar.xz on GitHub releases of
+         BRYANN2K/cartouche-wine. The app downloads one on the user's
+         request, checks its SHA-256 against runners.json and unpacks it
+         into the runners folder.
   The asset holds LICENSE, COPYING.LIB and AUTHORS from the Wine sources, and
   SOURCE.md.
   Source offer. SOURCE.md in the asset names the tarball URL and its hash. The
