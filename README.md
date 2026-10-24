@@ -27,7 +27,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/status-0.1.0%20in%20validation-E8B44A?style=flat-square" alt="Status: 0.1.0 in validation">
+  <img src="https://img.shields.io/github/v/release/BRYANN2K/cartouche?style=flat-square&label=release" alt="Latest release">
   <img src="https://img.shields.io/badge/macOS-15%2B%20%C2%B7%20Apple%20silicon-1D1E25?style=flat-square&logo=apple&logoColor=white" alt="macOS 15 or later, Apple silicon">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-4B4F5E?style=flat-square" alt="License: GPL-3.0"></a>
   <a href="https://ko-fi.com/bryann2k"><img src="https://img.shields.io/badge/Ko--fi-support-FF4D5E?style=flat-square&logo=ko-fi&logoColor=white" alt="Support on Ko-fi"></a>
