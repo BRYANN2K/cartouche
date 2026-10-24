@@ -195,7 +195,6 @@ struct SteamStepRow: View {
     var body: some View {
         StatusRow(
             title: String(localized: "Cartouche in Steam"),
-            tone: tone,
             detail: step.detail,
             secondaryAction: secondary,
             action: primary
@@ -206,14 +205,6 @@ struct SteamStepRow: View {
             step.followUpkeep()
         }
         .onChange(of: step.upkeepRunning) { step.followUpkeep() }
-    }
-
-    private var tone: StatusTone? {
-        switch step.phase {
-        case .done: .ok
-        case .blocked, .notApplied, .failed, .notProton, .needsRepair: .warning
-        case .idle, .working, .updatesItself: nil
-        }
     }
 
     private var secondary: StatusAction? {
