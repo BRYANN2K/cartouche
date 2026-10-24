@@ -22664,6 +22664,28 @@
         }
       }
     },
+    "Opening Steam to bring your games in." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouverture de Steam pour importer vos jeux."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apertura di Steam per importare i tuoi giochi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在打开 Steam 以导入你的游戏。"
+          }
+        }
+      }
+    },
     "Option acts as Alt" : {
       "localizations" : {
         "fr" : {
@@ -27406,24 +27428,24 @@
         }
       }
     },
-    "Set up Cartouche in Steam, then open Steam to bring your games in." : {
+    "Set Up quits Steam, adds Cartouche, then reopens Steam to bring your games in." : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Configurez Cartouche dans Steam, puis ouvrez Steam pour importer vos jeux."
+            "value" : "Configurer quitte Steam, ajoute Cartouche, puis rouvre Steam pour importer vos jeux."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Configura Cartouche in Steam, poi apri Steam per importare i tuoi giochi."
+            "value" : "Configura chiude Steam, aggiunge Cartouche e riapre Steam per importare i tuoi giochi."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "先在 Steam 中设置 Cartouche，然后打开 Steam 以导入你的游戏。"
+            "value" : "设置会退出 Steam、添加 Cartouche，然后重新打开 Steam 以导入你的游戏。"
           }
         }
       }
@@ -28502,6 +28524,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请先登录 Steam。"
+          }
+        }
+      }
+    },
+    "Sign in to Steam. Setup goes on once you are signed in." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connectez-vous à Steam. La configuration reprend une fois connecté."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi a Steam. La configurazione riprende dopo l'accesso."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请登录 Steam。登录后设置将继续。"
           }
         }
       }

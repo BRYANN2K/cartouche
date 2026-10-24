@@ -24,6 +24,7 @@ final class SteamStep {
 
     private(set) var phase: Phase = .idle
     var waitingForWine = false
+    var waitingForSteam = false
     @ObservationIgnored var checkAccess: @MainActor () throws -> Void = {}
     @ObservationIgnored var beforeInstall: @MainActor () async throws -> Void = {}
     @ObservationIgnored var didSetUp: @MainActor () -> Void = {}
@@ -63,10 +64,11 @@ final class SteamStep {
 
     private var center: PermissionCenter { flow.center }
 
-    var canContinue: Bool { phase != .working }
+    var canContinue: Bool { phase != .working || waitingForSteam }
 
     var detail: String {
         switch phase {
+        case .working where waitingForSteam: String(localized: "Sign in to Steam. Setup goes on once you are signed in.")
         case .working where waitingForWine: String(localized: "Waiting for Cartouche Wine to finish")
         case .idle, .working: String(localized: "Cartouche adds its tools to the Steam app")
         case .blocked(let remedy):

@@ -44,6 +44,8 @@ struct ConsoleSetup: Sendable {
 struct SteamControl: Sendable {
     var isRunning: @Sendable () -> Bool
     var restart: @Sendable () async -> Bool
+    var signedIn: @Sendable () -> Bool = { true }
+    var open: @Sendable () -> Bool = { false }
 
     static var inert: SteamControl {
         SteamControl(isRunning: { false }, restart: { false })
@@ -59,6 +61,13 @@ struct SteamControl: Sendable {
                 guard stopped != nil else { return false }
                 let opened = try? Shell.run("/usr/bin/open", ["-g", "-j", SupportPaths.Steam.app.path(percentEncoded: false), "--args", "-silent"])
                 return opened?.succeeded == true
+            },
+            signedIn: {
+                SteamLocalFiles().account() != nil
+                    && FileManager.default.fileExists(atPath: SupportPaths.Steam.innerApp.path(percentEncoded: false))
+            },
+            open: {
+                (try? Shell.run("/usr/bin/open", [SupportPaths.Steam.app.path(percentEncoded: false)]))?.succeeded == true
             })
     }
 }
@@ -142,6 +151,12 @@ final class OnboardingModel {
         state = store.load() ?? OnboardingState()
         steamStep.beforeInstall = { [weak self] in
             guard let self else { return }
+            if !self.steam.signedIn() {
+                self.steamStep.waitingForSteam = true
+                defer { self.steamStep.waitingForSteam = false }
+                if !self.steam.isRunning() { _ = self.steam.open() }
+                while !self.steam.signedIn() { try await Task.sleep(for: .seconds(1)) }
+            }
             self.steamStep.waitingForWine = self.setup.runner.working
             defer { self.steamStep.waitingForWine = false }
             while self.setup.runner.working { try await Task.sleep(for: .milliseconds(100)) }
@@ -392,10 +407,12 @@ final class OnboardingModel {
     // An empty library says what brings the games in: Steam opened once Cartouche is in it
     var steamLibraryDetail: String {
         switch steamLibraryGames {
+        case 0 where restartingSteam:
+            String(localized: "Opening Steam to bring your games in.")
         case 0 where steamStep.phase == .done:
             String(localized: "Waiting for Steam to load your games.")
         case 0:
-            String(localized: "Set up Cartouche in Steam, then open Steam to bring your games in.")
+            String(localized: "Set Up quits Steam, adds Cartouche, then reopens Steam to bring your games in.")
         case 1:
             String(localized: "1 game in the library")
         default:
