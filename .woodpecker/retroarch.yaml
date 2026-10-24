@@ -1,0 +1,32 @@
+# Port of the scan and kit jobs of .github/workflows/retroarch.yml for the Mac
+# agent. The two-run reproducibility build stays manual on the Mac.
+labels:
+  platform: darwin/arm64
+
+when:
+  - event: push
+    branch: main
+    path: [.gitmodules, vendor/RetroArch, 'retroarch/**', .woodpecker/retroarch.yaml]
+  - event: pull_request
+    path: [.gitmodules, vendor/RetroArch, 'retroarch/**', .woodpecker/retroarch.yaml]
+  - event: manual
+
+steps:
+  - name: scan
+    image: bash
+    commands:
+      - git submodule update --init --depth 1 vendor/RetroArch
+      - make -s retroarch-scancheck
+
+  - name: kit
+    image: bash
+    commands:
+      - xcodebuild -version
+      - sh .woodpecker/cache.sh restore retroarch-rig
+      - make retroarch-rig retroarch-testcore
+      - |
+        if [ "$CI_PIPELINE_EVENT" != pull_request ] && [ "$CI_COMMIT_BRANCH" = main ]; then
+          sh .woodpecker/cache.sh save retroarch-rig
+        fi
+      - CARTOUCHE_RETROARCH="$CI_WORKSPACE/build/retroarch-rig/retroarch" CARTOUCHE_TEST_CORE="$CI_WORKSPACE/build/retroarch-rig/cartouche_test_libretro.dylib" make -s retroarch-tests
+      - make -s retroarch-l10ncheck

@@ -1,0 +1,111 @@
+# Port of .github/workflows/app.yml (called by ci.yml) for the Woodpecker Mac
+# agent: local backend, platform darwin/arm64, no containers. Gitignored
+# inputs (Dobby, Wine trees, Proton tarball, innoextract, libarchive, fonts)
+# come from the persistent cache in $CARTOUCHE_CI_CACHE, see .woodpecker/cache.sh.
+# A first run on an empty cache must be a manual run with CARTOUCHE_CI_COLD=1.
+labels:
+  platform: darwin/arm64
+
+when:
+  - event: pull_request
+  - event: push
+    branch: main
+  - event: manual
+
+variables:
+  - &env
+    DOBBY_COMMIT: 5dfc8546954ce3b3198132ab13fddb89ee92cdd7
+    FONT_TOOLS: afdko==4.0.3 fonttools==4.66.1
+    ARTIFACTS: dobby wine proton innoextract libarchive fonts
+
+steps:
+  - name: toolchain
+    image: bash
+    environment: *env
+    commands:
+      - xcodebuild -version
+      - swift --version
+      - echo "macOS SDK $(xcrun --sdk macosx --show-sdk-version)"
+      - for t in cmake i686-w64-mingw32-gcc x86_64-w64-mingw32-gcc bison flex fontforge node python3 git; do command -v "$t" >/dev/null || { echo "missing $t on the Mac agent, see the infra runbook" >&2; exit 1; }; done
+
+  - name: restore-cache
+    image: bash
+    environment: *env
+    commands:
+      - |
+        cache="$${CARTOUCHE_CI_CACHE:-$HOME/Library/Caches/woodpecker-cartouche}"
+        if [ ! -f "$cache/wine/key" ] && [ "$${CARTOUCHE_CI_COLD:-}" != 1 ]; then
+          echo "The Mac build cache $cache is empty." >&2
+          echo "Seed it once (infra runbook), or start a manual pipeline on main with CARTOUCHE_CI_COLD=1 (about 60 min)." >&2
+          exit 1
+        fi
+      - sh .woodpecker/cache.sh restore $ARTIFACTS
+
+  - name: build
+    image: bash
+    environment: *env
+    commands:
+      - git clone -q --no-checkout https://github.com/jmpews/Dobby.git vendor/dobby
+      - git -C vendor/dobby checkout -q "$DOBBY_COMMIT"
+      - test -f build/dobby/libdobby.a || make dobby
+      - make all
+      - make overlay-shim
+      - make iconmaker appinfo
+      - make bridge
+      - make innoextract
+      - make libarchive
+      - |
+        if [ ! -f build/fonts.stamp ]; then
+          venv="$${CARTOUCHE_CI_CACHE:-$HOME/Library/Caches/woodpecker-cartouche}/fontvenv-$(echo "$FONT_TOOLS" | shasum -a 256 | cut -c1-12)"
+          [ -x "$venv/bin/python" ] || { python3 -m venv "$venv" && "$venv/bin/pip" install -q $FONT_TOOLS; }
+          export PATH="$venv/bin:$PATH"
+        fi
+        make fonts
+      - make app-payload
+
+  - name: save-cache
+    image: bash
+    environment: *env
+    when:
+      - event: push
+        branch: main
+      - event: manual
+        branch: main
+    commands:
+      - sh .woodpecker/cache.sh save $ARTIFACTS
+
+  - name: swift-tests
+    image: bash
+    directory: app
+    commands:
+      - swift build --build-tests
+      - swift test --skip-build --no-parallel
+
+  - name: app-bundle
+    image: bash
+    commands:
+      - make app
+      - codesign --verify --strict --deep --verbose=2 out/Cartouche.app
+      - make -s mincheck
+      - make -s l10ncheck
+
+  - name: c-suites
+    image: bash
+    commands:
+      - |
+        for t in sigcheck callscheck webpatch-fixtures peicon-fixtures panel-behavior spawn-env \
+          activatecheck compatcheck fps-counter-tests compatsvc-check libexport-check services-check \
+          webuicheck shortcutcheck launch-shell envcheck buildcheck settingscheck routecheck bridgecheck \
+          gamedrivecheck launchercheck seedcheck packagingcheck; do
+          make -s "$t"
+        done
+
+  - name: installer-tests
+    image: bash
+    commands:
+      - make -s installer-tests
+
+  - name: redistribution
+    image: bash
+    commands:
+      - sh packaging/redist-scan.sh out/Cartouche.app
