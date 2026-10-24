@@ -1,67 +1,80 @@
-// Anti-cheat as ProtonDB and AreWeAntiCheatYet report it for Linux. Cartouche has no Mac data on anti-cheat, so no line here may claim what happens on a Mac.
-
 import Foundation
 
 struct AntiCheatSummary: Equatable, Sendable {
-
     enum Level: Equatable, Sendable {
-        case onlineWorks
-        case onlineFails
-        case untested
-        case blocked
+        case onlineWorks, onlineFails, untested, blocked
     }
 
     let level: Level
     let title: String
     let details: [String]
+    var protonDBInfo: String? = nil
+    var protonDBURL: URL? = nil
+
+    func withProtonDB(_ entry: ProtonDBEntry?, appID: Int) -> Self {
+        var result = self
+        result.protonDBURL = URL(string: "https://www.protondb.com/app/\(appID)")
+        if let entry, entry.onlineTried > 0,
+           entry.onlinePlayed >= 0, entry.onlinePlayed <= entry.onlineTried {
+            result.protonDBInfo = String(localized: "ProtonDB: \(entry.onlinePlayed)/\(entry.onlineTried) successful multiplayer reports (\(entry.fetched)).")
+        } else {
+            result.protonDBInfo = String(localized: "No multiplayer reports available from ProtonDB.")
+        }
+        return result
+    }
+
+    init(names: [String], blocked: Bool) {
+        level = blocked ? .blocked : .untested
+        title = blocked ? String(localized: "Anti-cheat is not compatible with Wine")
+            : String(localized: "Anti-cheat compatibility is unverified")
+        details = [ListFormatter.localizedString(byJoining: names),
+            blocked ? String(localized: "Online modes requiring this anti-cheat are unavailable. Offline modes may still work.")
+                : String(localized: "Online play has not been verified with Cartouche.")]
+    }
 
     init?(record: CompatRecord?) {
         guard let entry = record?.areweanticheatyet else { return nil }
-        let pdb = record?.protondb
-        let names = ListFormatter.localizedString(byJoining: entry.anticheats)
-        let blockedByStatus = entry.status == .denied || entry.status == .broken
-
-        if pdb?.verdict == .doesntRun {
-            level = .blocked
-            title = String(localized: "Doesn’t run on Linux")
-        } else if blockedByStatus {
-            level = .blocked
-            title = String(localized: "Anti-cheat blocks Linux")
-        } else if let pdb, pdb.onlineTried > 0 {
-            if pdb.onlinePlayed * 2 >= pdb.onlineTried {
-                level = .onlineWorks
-                title = String(localized: "Online works on Linux, \(pdb.onlinePlayed) of \(pdb.onlineTried) reports")
-            } else {
-                level = .onlineFails
-                title = String(localized: "Online fails on Linux in \(pdb.onlineTried - pdb.onlinePlayed) of \(pdb.onlineTried) reports")
-            }
-        } else {
-            level = .untested
-            title = String(localized: "Online untested on Linux")
+        // A positive Proton verdict does not establish support in Cartouche.
+        let unsupported = entry.anticheats.contains { name in
+            let name = name.lowercased().filter { $0.isLetter || $0.isNumber }
+            return ["easyanticheat", "battleye", "eaanticheat", "vanguard", "faceit", "hyperion"].contains(name)
         }
-
-        var details: [String] = []
-        if let pdb {
-            details.append(pdb.verdict == .doesntRun
-                ? String(localized: "\(pdb.reports - pdb.works) of \(pdb.reports) recent ProtonDB reports say it doesn’t run on Linux.")
-                : String(localized: "Runs on Linux in \(pdb.works) of \(pdb.reports) recent ProtonDB reports."))
-            if pdb.onlineTried == 0 {
-                details.append(String(localized: "No recent ProtonDB report tried online play on Linux."))
-            }
-        }
-        details.append(Self.statusLine(entry.status, names))
-        self.details = details
-    }
-
-    static func statusLine(_ status: AntiCheatEntry.Status, _ names: String) -> String {
-        switch status {
-        case .supported: String(localized: "AreWeAntiCheatYet lists \(names) as supported on Linux.")
-        case .running: String(localized: "AreWeAntiCheatYet lists \(names) as running on Linux without official support.")
-        case .planned: String(localized: "AreWeAntiCheatYet lists Linux support for \(names) as planned.")
-        case .broken: String(localized: "AreWeAntiCheatYet lists \(names) as broken on Linux.")
-        case .denied: String(localized: "AreWeAntiCheatYet lists \(names) as denied on Linux by the developer.")
-        }
+        self.init(names: entry.anticheats, blocked: unsupported)
     }
 
     var lines: [String] { [title] + details }
+}
+
+enum ProtonDBCatalog {
+    static let entries: [String: ProtonDBEntry] = {
+        guard let url = Bundle.module.url(forResource: "protondb-online", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let entries = try? JSONDecoder().decode([String: ProtonDBEntry].self, from: data) else { return [:] }
+        return entries
+    }()
+
+    static func entry(appID: Int, current: ProtonDBEntry?) -> ProtonDBEntry? {
+        guard let bundled = entries[String(appID)] else { return current }
+        guard let current, current.fetched >= bundled.fetched else { return bundled }
+        return current
+    }
+}
+
+// Heroic's Mac-specific interpretation of AreWeAntiCheatYet, distributed under MIT.
+// The snapshot remains usable when the separate compatibility release is unavailable.
+enum MacAntiCheatCatalog {
+    struct Entry: Decodable {
+        let status: String
+        let anticheats: [String]
+    }
+    static let entries: [String: Entry] = {
+        guard let url = Bundle.module.url(forResource: "mac-anticheat", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let entries = try? JSONDecoder().decode([String: Entry].self, from: data) else { return [:] }
+        return entries
+    }()
+    static func summary(appID: Int) -> AntiCheatSummary? {
+        guard let entry = entries[String(appID)] else { return nil }
+        return AntiCheatSummary(names: entry.anticheats, blocked: ["Denied", "Broken"].contains(entry.status))
+    }
 }

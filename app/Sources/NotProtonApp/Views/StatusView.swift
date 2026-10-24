@@ -1,4 +1,5 @@
 import SwiftUI
+import CartoucheIdentity
 
 enum StatusTone: Sendable {
     case ok, info, warning, bad, neutral
@@ -172,7 +173,6 @@ struct StatusView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .navigationTitle("Steam")
         .confirmationDialog(
             String(localized: "Block Steam client updates?"),
             isPresented: asking(.blockUpdates),
@@ -217,7 +217,7 @@ struct StatusView: View {
             titleVisibility: .visible
         ) {
             Button("Continue Anyway") {
-                Task { await status.installIntoSteam() }
+                Task { await status.installIntoSteam(repairing: status.pendingRepair) }
             }
             Button("Cancel", role: .cancel) {}
         } message: {
@@ -225,6 +225,19 @@ struct StatusView: View {
                 CrossOverLicense.notActivatedAdvice
                     + String(localized: " Cartouche can be deployed, but the CrossOver compatibility tool cannot be installed without a valid license.")
             )
+        }
+        .confirmationDialog(
+            String(localized: "Quit Steam?"),
+            isPresented: asking(.quitSteam),
+            titleVisibility: .visible
+        ) {
+            Button(status.pendingSteamAction.flatMap { SteamIntegrationLine.label(for: $0, quitsSteam: true) }
+                   ?? String(localized: "Quit Steam")) {
+                Task { await status.confirmQuitSteam() }
+            }
+            Button("Cancel", role: .cancel) { status.cancelQuitSteam() }
+        } message: {
+            Text("Steam closes while Cartouche updates its files. Open Steam again when Cartouche is done.")
         }
         .task { if status.snapshot == nil { await status.refresh() } }
         .confirmationDialog(
@@ -267,7 +280,10 @@ struct StatusView: View {
                     }
                 )
             } else if let outcome = status.outcome {
-                StatusRow(title: String(localized: "Done"), value: outcome, tone: .ok)
+                StatusRow(
+                    title: String(localized: "Done"), value: outcome, tone: .ok,
+                    action: status.steamStoppedByRun ? openSteamAction : nil
+                )
             }
 
             if let failure = status.templateCleanupFailure {
@@ -285,7 +301,11 @@ struct StatusView: View {
 
             SteamIntegrationBanner(inSettings: true)
 
-            Section("Steam") {
+            Section {
+                integrationRow(snapshot)
+            }
+
+            Section {
                 StatusRow(
                     title: String(localized: "Location"),
                     value: SupportPaths.Steam.app.path(percentEncoded: false),
@@ -295,14 +315,6 @@ struct StatusView: View {
                         isEnabled: status.isIdle
                     ) { Task { await status.chooseSteam() } }
                 )
-                steamRow(snapshot.steam, payload: snapshot.payload)
-                if snapshot.steamRunning {
-                    StatusRow(
-                        title: String(localized: "Steam is running"),
-                        value: String(localized: "Close Steam before continuing."),
-                        tone: .info
-                    )
-                }
                 updateBlockRow(snapshot.updateBlocked)
                 StatusRow(
                     title: String(localized: "Controller permission"),
@@ -312,8 +324,17 @@ struct StatusView: View {
                         isEnabled: status.isIdle
                     ) { Task { await status.resetControllerPermission() } }
                 )
-                Button("Fetch Valve Binaries") { Task { await status.fetchValveBinaries() } }
-                    .disabled(!status.canInstall)
+                // Blocked content makes every install action refuse, and the Cartouche line says why
+                if !snapshot.installContent.blocksInstallation {
+                    StatusRow(
+                        title: String(localized: "Valve binaries"),
+                        value: String(localized: "Download Valve’s Steam Play files again if some are missing."),
+                        action: StatusAction(
+                            label: String(localized: "Fetch Valve Binaries"),
+                            isEnabled: status.canInstall
+                        ) { Task { await status.fetchValveBinaries() } }
+                    )
+                }
             }
 
             componentsSection(snapshot.payload)
@@ -321,10 +342,10 @@ struct StatusView: View {
             Section("Compatibility Tool") {
                 if let runners, !hasWineTool(runners), let build = wineToolBuild(runners) {
                     StatusRow(
-                        title: "Wine CrossOver",
+                        title: RunnerManifest.Build.cartoucheName,
                         value: String(localized: "None installed. Steam needs one to run Windows games."),
                         action: StatusAction(
-                            label: String(localized: "Install Wine CrossOver"),
+                            label: String(localized: "Install Cartouche Wine"),
                             isProminent: true,
                             isEnabled: status.isIdle && !runners.busy.contains(build.id)
                         ) { Task { await runners.perform(.download, on: build.id); await status.refresh() } })
@@ -377,126 +398,24 @@ struct StatusView: View {
         }
     }
 
-    private func installAction(prominent: Bool, label: String = String(localized: "Install")) -> StatusAction {
-        StatusAction(
-            label: label,
-            isProminent: prominent,
-            help: String(localized: "Install Cartouche into Steam."),
-            isEnabled: status.canInstall
-        ) {
-            Task { await status.requestInstall() }
-        }
+    private var openSteamAction: StatusAction {
+        StatusAction(label: String(localized: "Open Steam")) { Task { await status.openSteam() } }
     }
 
-    @ViewBuilder
-    private func steamRow(_ deployment: SteamDeployment, payload: PayloadState) -> some View {
-        switch deployment {
-        case .notInstalled:
-            if let content = status.snapshot?.installContent, content.blocksInstallation {
-                installedContentRow(content, deployment: deployment, payload: payload)
-            } else {
-                deploymentRow(deployment, payload: payload)
+    private func integrationRow(_ snapshot: StatusSnapshot) -> some View {
+        let line = SteamIntegrationLine.make(snapshot, canInstall: status.canInstall, upkeep: status.upkeep)
+        return StatusRow(
+            title: String(localized: "Steam Integration"),
+            value: line.value,
+            tone: line.tone,
+            detail: line.detail,
+            action: line.action.map { action in
+                StatusAction(label: line.label ?? "", isProminent: true, help: line.help, isEnabled: line.isEnabled) {
+                    Task { await status.request(action, quittingSteam: line.quitsSteam) }
+                }
             }
-        case .installed, .outdated:
-            if let content = status.snapshot?.installContent, content != .unchecked {
-                installedContentRow(content, deployment: deployment, payload: payload)
-            } else {
-                deploymentRow(deployment, payload: payload)
-            }
-        default:
-            deploymentRow(deployment, payload: payload)
-        }
-    }
-
-    @ViewBuilder
-    private func installedContentRow(_ content: DeploymentContent.Status, deployment: SteamDeployment, payload: PayloadState) -> some View {
-        switch content {
-        case .unchecked, .current:
-            let version: String? = switch deployment {
-            case .installed(let version): version
-            case .outdated(let deployed, _): deployed
-            default: nil
-            }
-            deploymentRow(.installed(version: version), payload: payload)
-        case .newerInstalled:
-            StatusRow(title: "Cartouche", value: String(localized: "A newer build is installed."), tone: .neutral,
-                      detail: String(localized: "Use the newer Cartouche app to update or repair the installed files."))
-        case .unavailable(let reason):
-            StatusRow(title: "Cartouche", value: String(localized: "Could not check installed files."), tone: .warning, detail: reason)
-        case .update(let files):
-            StatusRow(title: "Cartouche", value: String(localized: "Update available."), tone: .warning,
-                      detail: String(localized: "This app includes newer files than those installed for Steam."),
-                      action: installAction(prominent: true, label: String(localized: "Update")))
-                .help(files.joined(separator: "\n"))
-        case .repair(let files):
-            StatusRow(title: "Cartouche", value: String(localized: "Installed files differ from this build."), tone: .warning,
-                      detail: String(localized: "Restore the files included with this app."),
-                      action: installAction(prominent: true, label: String(localized: "Repair")))
-                .help(files.joined(separator: "\n"))
-        case .unrecorded(let files):
-            StatusRow(title: "Cartouche", value: String(localized: "Update available."), tone: .warning,
-                      detail: String(localized: "This app includes updated files for Steam."),
-                      action: installAction(prominent: true, label: String(localized: "Update")))
-                .help(files.joined(separator: "\n"))
-        }
-    }
-
-    @ViewBuilder
-    private func deploymentRow(_ deployment: SteamDeployment, payload: PayloadState) -> some View {
-        switch deployment {
-        case .steamMissing:
-            StatusRow(title: "Cartouche", value: String(localized: "Steam not found."), tone: .bad)
-        case .notInstalled:
-            StatusRow(
-                title: "Cartouche",
-                value: String(localized: "Not installed."),
-                tone: .neutral,
-                action: installAction(prominent: true)
-            )
-        case .installed(let version):
-            if payload.isSteamComplete {
-                StatusRow(
-                    title: "Cartouche",
-                    value: String(localized: "Installed") + (version.map { " (\($0))" } ?? ""),
-                    tone: .ok
-                )
-            } else {
-                StatusRow(
-                    title: "Cartouche",
-                    value: String(localized: "Steam integration needs repair."),
-                    tone: .warning,
-                    detail: steamRepairDetail(payload),
-                    action: installAction(prominent: true)
-                )
-            }
-        case .outdated(_, let bundled):
-            StatusRow(
-                title: "Cartouche",
-                value: String(localized: "Update available (\(bundled))."),
-                tone: .warning,
-                action: installAction(prominent: true)
-            )
-        case .foreign:
-            StatusRow(
-                title: "Cartouche",
-                value: String(localized: "Another dylib is present."),
-                tone: .warning,
-                detail: String(localized: "Repair your Steam install before installing Cartouche.")
-            )
-        case .notProton:
-            StatusRow(
-                title: "Cartouche",
-                value: String(localized: "Steam uses NotProton."),
-                tone: .warning,
-                detail: String(localized: "Cartouche replaces NotProton inside Steam. NotProton's app and data stay on this Mac. To switch back, remove Cartouche and install NotProton again."),
-                action: StatusAction(
-                    label: String(localized: "Replace NotProton"),
-                    isProminent: true,
-                    help: String(localized: "Remove NotProton from Steam and install Cartouche."),
-                    isEnabled: status.canInstall
-                ) { Task { await status.replaceNotProton() } }
-            )
-        }
+        )
+        .help(line.files.joined(separator: "\n"))
     }
 
     private func updateBlockRow(_ blocked: Bool) -> some View {
@@ -536,13 +455,6 @@ struct StatusView: View {
             lines = bytes > 0 ? [String(localized: "Templates \(bytes.formatted(.byteCount(style: .file)))")] : []
         }
         return ([String(localized: "Runner \(runner.formatted(.byteCount(style: .file)))")] + lines).joined(separator: "\n")
-    }
-
-    private func steamRepairDetail(_ payload: PayloadState) -> String {
-        if let problem = payload.manifestProblem { return problem }
-        var names = payload.missingSteamFiles
-        if payload.signatureDatabase == nil { names.append(String(localized: "Signature database")) }
-        return String(localized: "Missing: \(names.joined(separator: ", ")). Install to restore these files for your macOS user.")
     }
 
     private func fetchAction() -> StatusAction {
@@ -592,5 +504,127 @@ struct StatusView: View {
                 }
             }
         }
+    }
+}
+
+// The one Cartouche line in Settings > Steam: a plain status and at most one action.
+struct SteamIntegrationLine: Equatable {
+    enum Action: Equatable, Sendable {
+        case install, update, repair, replaceNotProton
+    }
+
+    var value: String
+    var tone: StatusTone
+    var detail: String?
+    var files: [String] = []
+    var action: Action?
+    var quitsSteam = false
+    var isEnabled = false
+
+    var label: String? { action.flatMap { Self.label(for: $0, quitsSteam: quitsSteam) } }
+
+    var help: String? {
+        switch action {
+        case .replaceNotProton: String(localized: "Remove NotProton from Steam and install Cartouche.")
+        case .install, .update, .repair: String(localized: "Install Cartouche into Steam.")
+        case nil: nil
+        }
+    }
+
+    static func label(for action: Action, quitsSteam: Bool) -> String? {
+        switch (action, quitsSteam) {
+        case (.install, false): String(localized: "Install")
+        case (.install, true): String(localized: "Quit Steam and Install")
+        case (.update, false): String(localized: "Update")
+        case (.update, true): String(localized: "Quit Steam and Update")
+        case (.repair, false): String(localized: "Repair")
+        case (.repair, true): String(localized: "Quit Steam and Repair")
+        case (.replaceNotProton, _): String(localized: "Replace NotProton")
+        }
+    }
+
+    static func make(_ snapshot: StatusSnapshot, canInstall: Bool, upkeep: SteamUpkeep.State = .idle) -> Self {
+        var line = base(snapshot)
+        if let action = line.action {
+            line.isEnabled = canInstall
+            line.quitsSteam = snapshot.steamRunning && action != .replaceNotProton
+        }
+        let installed = snapshot.steamIntegrationVersion ?? String(localized: "Legacy")
+        let versions = installed == CARTOUCHE_STEAM_INTEGRATION_VERSION
+            ? String(localized: "Version \(installed)")
+            : "\(installed) → \(CARTOUCHE_STEAM_INTEGRATION_VERSION)"
+        if line.action == .update {
+            line.detail = versions
+        } else if line.action == .repair {
+            line.detail = [line.detail, versions].compactMap { $0 }.joined(separator: "\n")
+        }
+        if line.action == nil { line.quitsSteam = false }
+        return line
+    }
+
+    private static func base(_ snapshot: StatusSnapshot) -> Self {
+        switch snapshot.steam {
+        case .steamMissing:
+            return Self(value: String(localized: "Steam not found."), tone: .bad)
+        case .foreign:
+            return Self(value: String(localized: "Another dylib is present."), tone: .warning,
+                        detail: String(localized: "Repair your Steam install before installing Cartouche."))
+        case .notProton:
+            return Self(value: String(localized: "Steam uses NotProton."), tone: .warning,
+                        detail: String(localized: "Cartouche replaces NotProton inside Steam. NotProton's app and data stay on this Mac. To switch back, remove Cartouche and install NotProton again."),
+                        action: .replaceNotProton)
+        case .notInstalled:
+            guard snapshot.installContent.blocksInstallation else {
+                return Self(value: String(localized: "Not installed."), tone: .neutral, action: .install)
+            }
+            return content(snapshot, version: nil)
+        case .installed(let version):
+            return content(snapshot, version: snapshot.steamIntegrationVersion ?? version)
+        case .outdated(let deployed, let bundled):
+            guard snapshot.installContent != .unchecked else {
+                return Self(value: String(localized: "Update available (\(bundled))."), tone: .warning, action: .update)
+            }
+            return content(snapshot, version: deployed)
+        }
+    }
+
+    private static func content(_ snapshot: StatusSnapshot, version: String?) -> Self {
+        switch snapshot.installContent {
+        case .unchecked, .current:
+            let payload = snapshot.payload
+            guard payload.isSteamComplete else {
+                return Self(value: String(localized: "Steam integration needs repair."), tone: .warning,
+                            detail: missingDetail(payload), action: .repair)
+            }
+            return Self(value: String(localized: "Installed") + (version.map { " (\($0))" } ?? ""), tone: .ok)
+        case .newerInstalled:
+            return Self(value: String(localized: "A newer build is installed."), tone: .neutral,
+                        detail: String(localized: "Use the newer Cartouche app to update or repair the installed files."))
+        case .unavailable(let reason):
+            return Self(value: String(localized: "Could not check installed files."), tone: .warning, detail: reason)
+        case .update(let files):
+            return Self(value: String(localized: "Update available."), tone: .warning,
+                        detail: String(localized: "This app includes newer files than those installed for Steam."),
+                        files: files, action: .update)
+        case .repair(let files):
+            return Self(value: String(localized: "Cartouche in Steam needs a repair."), tone: .warning,
+                        detail: String(localized: "Restore the files included with this app."),
+                        files: files, action: .repair)
+        case .mismatchedDylib(let files):
+            return Self(value: String(localized: "Cartouche in Steam needs a repair."), tone: .warning,
+                        detail: String(localized: "Steam has a Cartouche build that this app did not install. Repair installs this app’s build."),
+                        files: files, action: .repair)
+        case .unrecorded(let files):
+            return Self(value: String(localized: "Update available."), tone: .warning,
+                        detail: String(localized: "This app includes updated files for Steam."),
+                        files: files, action: .update)
+        }
+    }
+
+    private static func missingDetail(_ payload: PayloadState) -> String {
+        if let problem = payload.manifestProblem { return problem }
+        var names = payload.missingSteamFiles
+        if payload.signatureDatabase == nil { names.append(String(localized: "Signature database")) }
+        return String(localized: "Missing: \(names.joined(separator: ", ")). Install to restore these files for your macOS user.")
     }
 }

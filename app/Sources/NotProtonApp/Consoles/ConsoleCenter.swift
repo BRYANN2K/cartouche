@@ -14,6 +14,11 @@ final class ConsoleCenter {
     private(set) var games: [ConsoleGame] = []
     private(set) var ownedROMs: Set<String> = []
     private(set) var downloading: Set<String> = []
+    private(set) var preparing: [String: String] = [:]
+    @ObservationIgnored private var preparations: [String: Task<Void, Error>] = [:]
+    @ObservationIgnored var installEmulator: @Sendable (StandaloneEmulator) async throws -> InstalledEmulator = {
+        try await EmulatorInstaller().install($0)
+    }
     var found: [String: Int] = [:]
     var problem: String?
     var folderChoices = WatchedFolders()
@@ -151,9 +156,16 @@ final class ConsoleCenter {
 
     @discardableResult
     func addGames(_ new: [ConsoleGame]) async -> [ConsoleGame] {
+        problem = nil
         let consoles = new.map(\.console).reduce(into: [String]()) { if !$0.contains($1) { $0.append($1) } }
-        await add(consoles.filter { !isAdded($0) })
-        let ready = new.filter { isAdded($0.console) }
+        let missing = consoles.filter { !isAdded($0) }
+        if !missing.isEmpty { await add(missing) }
+        var readyConsoles: Set<String> = []
+        for id in consoles where isAdded(id) {
+            if await prepareConsole(id) { readyConsoles.insert(id) }
+        }
+        guard !Task.isCancelled else { return [] }
+        let ready = new.filter { readyConsoles.contains($0.console) }
         do {
             let added = try await store.add(ready)
             await reload()
@@ -162,6 +174,59 @@ final class ConsoleCenter {
             problem = error.localizedDescription
             return []
         }
+    }
+
+    @discardableResult
+    func prepareConsole(_ id: String) async -> Bool {
+        guard let console = ConsoleCatalog.console(id) else { return false }
+        let task: Task<Void, Error>
+        if let existing = preparations[id] {
+            task = existing
+        } else {
+            task = Task { try await self.prepareRuntime(console) }
+            preparations[id] = task
+        }
+        do {
+            try await withTaskCancellationHandler { try await task.value } onCancel: { task.cancel() }
+            preparations[id] = nil
+            return true
+        } catch {
+            preparations[id] = nil
+            if !Task.isCancelled { problem = error.localizedDescription }
+            return false
+        }
+    }
+
+    private func prepareRuntime(_ console: Console) async throws {
+        preparing[console.id] = String(localized: "Preparing \(console.name)…")
+        defer { preparing[console.id] = nil }
+        await emulators.refresh()
+        try Task.checkCancellation()
+        if let chosen = emulators.choice(for: console), chosen != EmulatorChoice.retroArch,
+           !emulators.installed.contains(where: { $0.id == chosen }), let emulator = EmulatorCatalog.emulator(chosen) {
+            try await installRuntime(emulator, for: console)
+            return
+        }
+        switch emulators.route(for: console) {
+        case .standalone:
+            return
+        case .retroArch:
+            if !emulators.coreReady(console) { try await cores.install(console.core) }
+        case .missing(let emulator):
+            try await installRuntime(emulator, for: console)
+        }
+    }
+
+    private func installRuntime(_ emulator: StandaloneEmulator, for console: Console) async throws {
+        preparing[console.id] = String(localized: "Installing \(emulator.name)…")
+        _ = try await installEmulator(emulator)
+        try Task.checkCancellation()
+        await emulators.refresh()
+        guard emulators.installed.contains(where: { $0.id == emulator.id }) else {
+            throw StepFailure(step: String(localized: "Install \(emulator.name)"),
+                              detail: String(localized: "The installed emulator could not be found in Applications."))
+        }
+        emulators.choose(emulator.id, for: console)
     }
 
     func game(_ id: String) -> ConsoleGame? { games.first { $0.id == id } }
@@ -175,7 +240,7 @@ final class ConsoleCenter {
     }
 
     static func libraryGame(_ game: ConsoleGame) -> Game {
-        var entry = Game(id: game.id, source: .console(game.console), name: game.name, installed: game.exists)
+        var entry = Game(id: game.id, source: .console(game.console), name: SwitchArtwork.displayName(game), installed: game.exists)
         entry.lastPlayed = game.lastPlayed
         entry.playtimeMinutes = Int(game.playSeconds / 60)
         entry.console = game

@@ -158,7 +158,7 @@ enum PortingToolkitSource {
 
     static func receipt(version: String, runners: URL = SupportPaths.runners) -> Receipt? {
         let file = folder(version: version, runners: runners).appending(path: receiptName)
-        return (try? Data(contentsOf: file)).flatMap { try? JSONDecoder().decode(Receipt.self, from: $0) }
+        return JSONFile.load(Receipt.self, from: file)
     }
 
     static func copiedVersions(in runners: URL = SupportPaths.runners) -> [String] {
@@ -169,7 +169,16 @@ enum PortingToolkitSource {
             .sorted { $0.localizedStandardCompare($1) == .orderedAscending }
     }
 
-    // Only lib/external is read: the rest of a toolkit app is its own Wine, unused here
+    static let graphicsDLLs = ["d3d10", "d3d11", "d3d12", "d3d12core", "dxgi", "nvapi64", "nvngx-on-metalfx"]
+
+    static func graphicsPath(inLib lib: URL) -> String? {
+        let pe = lib.appending(path: "wine/x86_64-windows")
+        guard ["d3d11", "d3d12", "dxgi"].allSatisfy({
+            FileManager.default.fileExists(atPath: pe.appending(path: "\($0).dll").path(percentEncoded: false))
+        }) else { return nil }
+        return [pe, lib.appending(path: "wine/x86_64-unix")].map { $0.path(percentEncoded: false) }.joined(separator: ":")
+    }
+
     @discardableResult
     static func copy(_ install: PortingToolkitInstall, runners: URL = SupportPaths.runners) throws -> Receipt {
         let fm = FileManager.default
@@ -180,6 +189,17 @@ enum PortingToolkitSource {
         do {
             try fm.createDirectory(at: staging.appending(path: "lib"), withIntermediateDirectories: true)
             try fm.copyItem(at: install.lib.appending(path: "external"), to: staging.appending(path: "lib/external"))
+            for name in Self.graphicsDLLs {
+                let source = install.lib.appending(path: "wine/x86_64-windows/\(name).dll")
+                guard fm.fileExists(atPath: source.path(percentEncoded: false)) else { continue }
+                let pe = staging.appending(path: "lib/wine/x86_64-windows")
+                let unix = staging.appending(path: "lib/wine/x86_64-unix")
+                try fm.createDirectory(at: pe, withIntermediateDirectories: true)
+                try fm.createDirectory(at: unix, withIntermediateDirectories: true)
+                try fm.copyItem(at: source, to: pe.appending(path: "\(name).dll"))
+                try fm.createSymbolicLink(atPath: unix.appending(path: "\(name).so").path(percentEncoded: false),
+                                          withDestinationPath: "../../external/libd3dshared.dylib")
+            }
         } catch {
             throw StepFailure(step: step, detail: String(localized: "\(install.origin.path(percentEncoded: false)) could not be copied. ") + error.localizedDescription)
         }
@@ -228,7 +248,8 @@ enum PortingToolkitSource {
         for version in copiedVersions(in: runners).reversed() {
             let shared = libFolder(version: version, runners: runners)
                 .appending(path: "external/libd3dshared.dylib")
-            if FileManager.default.fileExists(atPath: shared.path(percentEncoded: false)) { return shared }
+            if FileManager.default.fileExists(atPath: shared.path(percentEncoded: false)),
+               graphicsPath(inLib: shared.deletingLastPathComponent().deletingLastPathComponent()) != nil { return shared }
         }
         return nil
     }

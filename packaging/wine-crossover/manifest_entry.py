@@ -47,7 +47,7 @@ def main(argv=None):
     p.add_argument("--id", required=True)
     p.add_argument("--url", required=True)
     p.add_argument("--root", required=True)
-    p.add_argument("--name", default="Wine CrossOver")
+    p.add_argument("--name", default="Cartouche Wine")
     p.add_argument("--version", required=True)
     p.add_argument("--display-version", required=True)
     p.add_argument("--origin", default="cartouche", choices=["cartouche", "winehq"])

@@ -51,7 +51,7 @@ enum WineRunnerInstaller {
     static func receipt(for id: String, runners: URL = SupportPaths.runners) -> Receipt? {
         guard let folder = installedFolder(for: id, runners: runners) else { return nil }
         let file = folder.appending(path: receiptName)
-        let receipt = (try? Data(contentsOf: file)).flatMap { try? JSONDecoder().decode(Receipt.self, from: $0) }
+        let receipt = JSONFile.load(Receipt.self, from: file)
         return receipt?.id == id ? receipt : nil
     }
 
@@ -78,6 +78,11 @@ enum WineRunnerInstaller {
               let receipt = receipt(for: id, runners: runners), let loader = receipt.loader else { return }
         var files = receipt.files
         files[loader] = try Digest.sha256(of: root.appending(path: loader))
+        for entry in WineSteamPatches.entries where files[entry.path] == entry.clean {
+            if Digest.sha256IfPresent(root.appending(path: entry.path)) == entry.patched {
+                files[entry.path] = entry.patched
+            }
+        }
         let updated = Receipt(id: receipt.id, archiveSHA256: receipt.archiveSHA256, files: files, loader: loader)
         try atomicReplace(root.appending(path: receiptName), with: JSONEncoder().encode(updated), step: step)
     }

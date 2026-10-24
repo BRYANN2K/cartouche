@@ -9,7 +9,8 @@ comme sur macOS. Les noms de produits et les identifiants techniques restent inc
 | Windows Installers (source de bibliothèque) | Jeux hors boutique | La rubrique contient les **jeux installés**, pas une collection de fichiers setup.exe. |
 | installer (fichier / processus) | programme d’installation | Terme Windows usuel ; jamais « installateur » pour le logiciel. |
 | launcher | lanceur | Compréhensible sans emprunt inutile. Les noms Epic Games Launcher / GOG Galaxy restent inchangés. |
-| runner | version de Wine | Les choix réels sont Wine CrossOver, WineHQ et CrossOver ; « runner » n’est pas utile au joueur. |
+| runner | version de Wine | Les choix réels sont Cartouche Wine, WineHQ et CrossOver ; « runner » n’est pas utile au joueur. |
+| Cartouche Wine | Cartouche Wine | Nom de notre version de Wine (issue des sources CrossOver de CodeWeavers), jamais traduit ni remplacé par « Wine CrossOver » ; « CrossOver » seul désigne l’application payante de CodeWeavers. |
 | compatibility tool | outil de compatibilité | Outil exposé à Steam Play ; distinct de la version de Wine. |
 | graphics backend | moteur de rendu | D3DMetal, DXMT ou DXVK. « Rendu graphique » désigne l’image, pas le composant. |
 | build | version | Sauf identifiants et valeurs techniques inchangés. |

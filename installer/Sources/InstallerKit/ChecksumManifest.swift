@@ -23,18 +23,45 @@ public enum ChecksumResult: Sendable, Equatable {
     case ok
     case mismatch(expected: String, actual: String)
     case absent
+    // The file is there but could not be read to the end (permissions, I/O error).
+    case unreadable
 }
 
 public enum Checksums {
 
     public static func findManifest(in folder: URL) -> URL? {
+        candidates(in: folder).first
+    }
+
+    // The installer's own manifest: of the .md5 files in the folder or one level down, the one naming the most
+    // files that sit directly in the folder (parts, setup). An unrelated .md5 nearby is never picked.
+    public static func installerManifest(in folder: URL) -> ChecksumManifest? {
+        var best: (manifest: ChecksumManifest, score: Int)?
+        for url in candidates(in: folder).sorted(by: { $0.path < $1.path }) {
+            guard let manifest = try? parse(url) else { continue }
+            let score = manifest.entries.filter { isDirectlyIn(folder, $0.file) }.count
+            if score > (best?.score ?? 0) { best = (manifest, score) }
+        }
+        return best?.manifest
+    }
+
+    static func isDirectlyIn(_ folder: URL, _ file: URL) -> Bool {
+        let key = { (url: URL) in
+            var path = url.standardizedFileURL.path(percentEncoded: false)
+            while path.count > 1, path.hasSuffix("/") { path.removeLast() }
+            return path
+        }
+        return key(file.deletingLastPathComponent()) == key(folder)
+    }
+
+    private static func candidates(in folder: URL) -> [URL] {
         let fm = FileManager.default
         let top = (try? fm.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.isDirectoryKey])) ?? []
-        let candidates = top + top.flatMap { url -> [URL] in
+        let all = top + top.flatMap { url -> [URL] in
             guard (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true else { return [] }
             return (try? fm.contentsOfDirectory(at: url, includingPropertiesForKeys: nil)) ?? []
         }
-        return candidates.first { $0.pathExtension.lowercased() == "md5" }
+        return all.filter { $0.pathExtension.lowercased() == "md5" }
     }
 
     // Lines look like `d8396f99… *..\data-01.bin`. Paths are Windows-style and relative to the manifest, comments start with ';' or '#'.
@@ -68,6 +95,10 @@ public enum Checksums {
         return hasher.finalize().map { String(format: "%02x", $0) }.joined()
     }
 
+    public static func unreadable(_ results: [URL: ChecksumResult]) -> [String] {
+        results.compactMap { url, result in result == .unreadable ? url.lastPathComponent : nil }.sorted()
+    }
+
     public static func damaged(_ results: [URL: ChecksumResult]) -> [String] {
         results.compactMap { url, result in
             if case .mismatch = result { return url.lastPathComponent }
@@ -95,12 +126,7 @@ public enum Checksums {
             // A manifest can name thousands of files; hash a few at a time.
             while running < 8, let entry = iterator.next() {
                 running += 1
-                group.addTask {
-                    guard let values = try? entry.file.resourceValues(forKeys: [.isRegularFileKey]),
-                          values.isRegularFile == true else { return (entry.file, .absent) }
-                    guard let actual = try? md5(of: entry.file, progress: progress) else { return (entry.file, .absent) }
-                    return (entry.file, actual == entry.md5 ? .ok : .mismatch(expected: entry.md5, actual: actual))
-                }
+                group.addTask { (entry.file, check(entry, progress: progress)) }
             }
             var results: [URL: ChecksumResult] = [:]
             while let (url, result) = try await group.next() {
@@ -108,17 +134,19 @@ public enum Checksums {
                 running -= 1
                 if let entry = iterator.next() {
                     running += 1
-                    group.addTask {
-                        guard let values = try? entry.file.resourceValues(forKeys: [.isRegularFileKey]),
-                              values.isRegularFile == true else { return (entry.file, .absent) }
-                        guard let actual = try? md5(of: entry.file, progress: progress) else { return (entry.file, .absent) }
-                        return (entry.file, actual == entry.md5 ? .ok : .mismatch(expected: entry.md5, actual: actual))
-                    }
+                    group.addTask { (entry.file, check(entry, progress: progress)) }
                 }
             }
-            // A cancelled run marks files .absent instead of throwing; don't report that.
+            // A cancelled run marks files .unreadable instead of throwing; don't report that.
             try Task.checkCancellation()
             return results
         }
+    }
+
+    private static func check(_ entry: ChecksumEntry, progress: (@Sendable (Int64) -> Void)?) -> ChecksumResult {
+        guard let values = try? entry.file.resourceValues(forKeys: [.isRegularFileKey]),
+              values.isRegularFile == true else { return .absent }
+        guard let actual = try? md5(of: entry.file, progress: progress) else { return .unreadable }
+        return actual == entry.md5 ? .ok : .mismatch(expected: entry.md5, actual: actual)
     }
 }

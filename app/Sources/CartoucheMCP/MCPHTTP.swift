@@ -1,5 +1,6 @@
 import Foundation
 import Network
+import RetroArchKit
 
 // POST /mcp with a JSON-RPC body and a bearer token, loopback only; off by default, token made once, shown in Settings > Agents.
 public final class MCPHTTPServer: @unchecked Sendable {
@@ -26,7 +27,7 @@ public final class MCPHTTPServer: @unchecked Sendable {
         var authorization: String? { headers["authorization"] }
     }
 
-    private let handler: @Sendable (Data) async -> Data
+    private let handler: @Sendable (Data, MCPPeer) async -> Data
     private let token: String
     private let lock = NSLock()
     private var listener: NWListener?
@@ -41,9 +42,22 @@ public final class MCPHTTPServer: @unchecked Sendable {
     // The listener can only say "port in use" asynchronously, after start() already returned.
     public var onState: (@Sendable (String) -> Void)?
 
-    public init(token: String, handler: @escaping @Sendable (Data) async -> Data) {
+    public convenience init(token: String, handler: @escaping @Sendable (Data) async -> Data) {
+        self.init(token: token, serve: { data, _ in await handler(data) })
+    }
+
+    // Every request is its own connection: the Mcp-Session-Id given at initialize keys the peer.
+    public init(token: String, serve: @escaping @Sendable (Data, MCPPeer) async -> Data) {
         self.token = token
-        self.handler = handler
+        self.handler = serve
+    }
+
+    static let sessionHeader = "Mcp-Session-Id"
+
+    static func peer(session: String?) -> MCPPeer { MCPPeer(transport: "HTTP", session: session ?? "") }
+
+    static func isInitialize(_ body: Data) -> Bool {
+        (try? JSONDecoder().decode(JSONValue.self, from: body))?["method"]?.string == "initialize"
     }
 
     // Loopback only: the listener never sees packets from another interface.
@@ -156,21 +170,30 @@ public final class MCPHTTPServer: @unchecked Sendable {
         guard request.method == "POST" else {
             return Self.response(405, #"{"error":"method not allowed"}"#)
         }
-        let reply = await handler(request.body)
-        guard !reply.isEmpty else {
-            return Self.response(202, "")
+        var session = request.headers[Self.sessionHeader.lowercased()].map { String($0.prefix(128)) }
+        var extra: [String: String] = [:]
+        if Self.isInitialize(request.body) {
+            session = UUID().uuidString
+            extra[Self.sessionHeader] = session
         }
-        return Self.response(200, reply, type: "application/json")
+        let reply = await handler(request.body, Self.peer(session: session))
+        guard !reply.isEmpty else {
+            return Self.response(202, "", headers: extra)
+        }
+        return Self.response(200, reply, type: "application/json", headers: extra)
     }
 
-    static func response(_ status: Int, _ body: Data, type: String = "application/json") -> Data {
-        response(status, body.isEmpty ? "" : String(decoding: body, as: UTF8.self), type: type)
+    static func response(_ status: Int, _ body: Data, type: String = "application/json",
+                         headers: [String: String] = [:]) -> Data {
+        response(status, body.isEmpty ? "" : String(decoding: body, as: UTF8.self), type: type, headers: headers)
     }
 
-    static func response(_ status: Int, _ body: String, type: String = "application/json") -> Data {
+    static func response(_ status: Int, _ body: String, type: String = "application/json",
+                         headers: [String: String] = [:]) -> Data {
         let phrases = [200: "OK", 202: "Accepted", 400: "Bad Request", 401: "Unauthorized",
                        403: "Forbidden", 404: "Not Found", 405: "Method Not Allowed"]
         var head = "HTTP/1.1 \(status) \(phrases[status] ?? "Error")\r\n"
+        for (name, value) in headers.sorted(by: { $0.key < $1.key }) { head += "\(name): \(value)\r\n" }
         if !body.isEmpty {
             head += "Content-Type: \(type)\r\nContent-Length: \(body.utf8.count)\r\n"
         }

@@ -96,6 +96,62 @@ struct InstalledGameImportTests {
         #expect(FileManager.default.fileExists(atPath: exe))
     }
 
+    @Test("The drop sheet's program and storage reach the import: the review shows them and the job uses them")
+    func dropChoicesHandOff() async throws {
+        let (center, game, _) = try importCenter("import-handoff")
+        let exe = game.appending(path: "Disco Elysium.exe").standardizedFileURL.path
+        let returned = Box(0)
+        center.open([game], decided: InstallSheetModel.Decided(exe: URL(filePath: exe), storage: .copy), back: { returned.value += 1 })
+        #expect(await waitFor { center.sheet.step == .review })
+        #expect(center.sheet.skippedAnalysis)
+        #expect(center.sheet.decided != nil)
+        #expect(center.sheet.chosenExe == exe)
+        #expect(center.sheet.storage == .copy)
+
+        let texts = try await renderedTexts(InstallSheet(center: center), size: CGSize(width: 620, height: 640),
+                                            named: "import-handoff-review")
+        #expect(seen(texts, "Starts with"))
+        #expect(seen(texts, "Disco Elysium.exe"))
+        #expect(seen(texts, "Copy into Cartouche"))
+        #expect(seen(texts, "Change"))
+        #expect(!seen(texts, "Which file starts the game?"))
+
+        center.sheet.runnerID = "r"
+        center.sheet.showInSteam = false
+        #expect(center.sheet.canInstall)
+        center.sheet.install()
+        let job = try #require(center.sheet.job)
+        let plan = try #require(job.request.importing)
+        #expect(plan.exe.path == exe)
+        #expect(plan.copy)
+        #expect(await waitFor { !job.isRunning && job.phase != .waiting })
+        #expect(returned.value == 0)
+    }
+
+    @Test("Back from a review the drop sheet decided returns to Add Games; Change asks again")
+    func dropChoicesBack() async throws {
+        let (center, game, _) = try importCenter("import-handoff-back")
+        let exe = game.appending(path: "Disco Elysium.exe")
+        let returned = Box(0)
+        center.open([game], decided: InstallSheetModel.Decided(exe: exe, storage: .inPlace), back: { returned.value += 1 })
+        #expect(await waitFor { center.sheet.step == .review })
+        center.sheet.changeChoices()
+        #expect(center.sheet.decided == nil)
+        #expect(center.sheet.chosenExe == exe.standardizedFileURL.path)
+        center.sheet.back()
+        #expect(!center.isSheetPresented)
+        center.sheetDismissed()
+        #expect(returned.value == 1)
+        #expect(center.sheet.step == .drop)
+
+        // A program the folder no longer lists is asked for again, from the analysis
+        center.open([game], decided: InstallSheetModel.Decided(exe: game.appending(path: "Gone.exe"), storage: .inPlace), back: { returned.value += 1 })
+        #expect(await waitFor { center.sheet.analysis != nil && !center.sheet.isAnalyzing })
+        #expect(center.sheet.decided == nil)
+        #expect(center.sheet.step == .analysis)
+        #expect(center.sheet.chosenExe == exe.standardizedFileURL.path)
+    }
+
     @Test("The noisy GameSite folder is named by Unity's app.info and matched in the index")
     func engineInfoIdentifies() async throws {
         let (center, _, _) = try importCenter("import-engine-info")
@@ -205,11 +261,20 @@ struct InstalledGameImportTests {
 @Suite("Installed game import flow", .serialized, .enabled(if: rosettaAvailable, "Rosetta is not installed, so arch -x86_64 cannot run"))
 struct InstalledGameImportFlowTests {
 
-    private func run(_ label: String, copy: Bool) async throws -> (FakeInstall, URL, InstallJob, VerbLog, [InstalledGame]) {
+    private func run(_ label: String, copy: Bool, staging: URL? = nil) async throws -> (FakeInstall, URL, InstallJob, VerbLog, [InstalledGame]) {
         let fake = try FakeInstall(label)
-        let game = try installedGame(in: fake.work, trap: fake.trap)
+        var game = try installedGame(in: fake.work, trap: fake.trap)
         let verbs = VerbLog()
-        let center = InstallCenter(engine: fake.engine(winetricks: verbs), notifier: RecordingNotifier())
+        var engine = fake.engine(winetricks: verbs)
+        if let staging {
+            // Where a dropped archive lands once extracted
+            let extracted = staging.appending(path: "Disco Elysium Archive/Disco Elysium")
+            try FileManager.default.createDirectory(at: extracted.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try FileManager.default.moveItem(at: game, to: extracted)
+            game = extracted
+            engine.dropStaging = staging
+        }
+        let center = InstallCenter(engine: engine, notifier: RecordingNotifier())
         var ready: [InstalledGame] = []
         center.onGameReady = { ready.append($0) }
         var request = InstallRequest(setup: game, source: game, name: "Disco Elysium", appID: 632_470, gogID: nil,
@@ -255,6 +320,28 @@ struct InstalledGameImportFlowTests {
         #expect(job.progress.bytes == DroppedFolder.size(of: game))
         #expect(FileManager.default.fileExists(atPath: copy.appending(path: "Disco Elysium_Data/Plugins/x86_64/steam_api64.dll").path))
         #expect(FileManager.default.fileExists(atPath: game.appending(path: "Disco Elysium.exe").path))
+        #expect(!FileManager.default.fileExists(atPath: fake.trap.path))
+    }
+
+    @Test("Extracted from a dropped archive and used in place: the game moves out of Caches into its prefix",
+          arguments: [false, true])
+    func extractedArchive(copy: Bool) async throws {
+        let staging = try scratchDirectory("import-staged-root").appending(path: "Library/Caches/Cartouche/DropStaging")
+        let (fake, game, job, verbs, _) = try await run("import-staged-\(copy)", copy: copy, staging: staging)
+        #expect(job.phase == .ready)
+        #expect(verbs.calls == [["vcrun2022"]])
+        let record = try #require(InstalledGames.all(in: fake.installs).first)
+        let home = URL(filePath: record.prefix).appending(path: "drive_c/Games/Disco Elysium")
+        #expect(record.exe == home.appending(path: "Disco Elysium.exe").path)
+        #expect(record.gameFolder == nil)
+        #expect(!record.exe.contains("/Library/Caches/"))
+        #expect(FileManager.default.fileExists(atPath: home.appending(path: "Disco Elysium_Data/Plugins/x86_64/steam_api64.dll").path))
+        #expect(!FileManager.default.fileExists(atPath: game.path), "nothing of the game is left in the staging")
+        // The emptied archive folder is cleared once the record is written
+        #expect(await waitFor { !FileManager.default.fileExists(atPath: game.deletingLastPathComponent().path) })
+        let launcher = try String(contentsOf: record.launcher, encoding: .utf8)
+        #expect(launcher.contains(GameLauncher.quote(home.appending(path: "Disco Elysium.exe").path)))
+        #expect(!launcher.contains(staging.path))
         #expect(!FileManager.default.fileExists(atPath: fake.trap.path))
     }
 

@@ -1,5 +1,6 @@
 
 import Foundation
+import InstallerKit
 
 extension LibraryModel {
 
@@ -13,11 +14,22 @@ extension LibraryModel {
         game.source != .installer && game.steamAppID.map(macBuilds.contains) ?? false
     }
 
-    // Install runners allow ready free Wine builds that Steam games are not offered.
-    var installRunners: [Runner] { InstallRunners.choices(RunnerRegistry(runners: runners)) }
+    // Ready free Wine builds, Cartouche Wine first. Steam offers the same list.
+    var installRunners: [Runner] { InstallRunners.choices(RunnerRegistry(runners: runners), manifest: runnerManifest) }
 
-    func resolution(for game: Game) -> GameSetupResolver.Resolution {
-        var choice = setup(for: game.id)
+    // Install runners, then any other ready tool Steam already has. GPTK stays out:
+    // it is the D3DMetal library, not a Wine loader.
+    var steamRunners: [Runner] {
+        var seen = Set<String>()
+        let extra = runners.filter { runner in
+            runner.isOffered || (runner.state == .ready && runner.isInstalled &&
+                backendTools.contains { $0.build == runner.id })
+        }
+        return (installRunners + extra).filter { seen.insert($0.id).inserted }
+    }
+
+    func resolution(for game: Game, choice selected: GameSetupChoice? = nil) -> GameSetupResolver.Resolution {
+        var choice = selected ?? setup(for: game.id)
         if game.source == .installer {
             // Rosetta, as installs run; defaults to the setup the install itself used
             choice.translation = .rosetta
@@ -28,7 +40,8 @@ extension LibraryModel {
         }
         if game.source.isStore { choice.translation = .rosetta }
         return GameSetupResolver.resolve(choice, defaults: setupDefaults, runners: runners,
-                                         availability: backendAvailability, hasMacBuild: hasMacBuild(game))
+                                         availability: backendAvailability, hasMacBuild: hasMacBuild(game),
+                                         offered: game.source.isStore ? installRunners : steamRunners)
     }
 
     func graphicsChoices(for game: Game) -> [GraphicsBackend] {
@@ -60,9 +73,14 @@ extension LibraryModel {
     // An installer game never goes through Steam: its own launcher is rewritten.
     func tellSteam(_ id: String) {
         guard let game = game(id), game.source != .installer, let appID = game.steamAppID else { return }
+        let setup = resolution(for: game).setup
         do {
-            try GameSetupApplier.apply(resolution(for: game).setup, appID: appID, tools: backendTools,
-                                       requests: compatRequestsFile, setups: setupsFolder)
+            let outcome = try GameSetupApplier.apply(setup, appID: appID, tools: backendTools,
+                                                     requests: compatRequestsFile, setups: setupsFolder)
+            // A Windows choice with no tool would leave Steam on the old mapping while the menu shows the new one.
+            if setup.version == .windows, let runner = setup.runner, outcome.tool == nil {
+                problem = String(localized: "\(runner.name) \(runner.displayVersion) isn’t available to Steam yet. Steam keeps the previous choice.")
+            }
         } catch {
             problem = String(localized: "Cartouche couldn’t pass this setup to Steam: \(error.localizedDescription)")
         }
@@ -97,7 +115,7 @@ extension LibraryModel {
     func applyInstallerSetup(_ setup: GameSetupChoice, for game: Game) {
         setupNotices[game.id] = nil
         guard game.id.hasPrefix("installer:") else { return }
-        let folder = GameFolder(root: installsFolder.appending(path: String(game.id.dropFirst("installer:".count))))
+        let folder = GameFolder.of(slug: String(game.id.dropFirst("installer:".count)), in: installsFolder)
         guard var record = InstalledGames.record(in: folder) else { return }
         var choice = setup
         choice.translation = .rosetta
@@ -110,7 +128,7 @@ extension LibraryModel {
             return
         }
         guard let wine = InstallRunners.wine(for: runner, runners: runnersFolder) else {
-            problem = String(localized: "\(runner.kind.name) \(runner.displayVersion) can’t start Windows games yet. Choose another runner in the game’s setup.")
+            problem = String(localized: "\(runner.name) \(runner.displayVersion) can’t start Windows games yet. Choose another runner in the game’s setup.")
             return
         }
         // An older Wine than the one that last ran the prefix: warned, still allowed
@@ -122,7 +140,7 @@ extension LibraryModel {
         do {
             try GameLauncher.write(exe: record.exeURL, folder: folder, wine: wine,
                                    backend: resolved.backend, environment: resolved.environment,
-                                   backends: backendsFolder)
+                                   backends: backendsFolder, runners: runnersFolder)
             record.runnerID = runner.id
             record.graphics = resolved.backend?.rawValue
             record.wineVersion = runner.version
@@ -132,6 +150,31 @@ extension LibraryModel {
         } catch {
             problem = String(localized: "Cartouche couldn’t apply this setup: \(error.localizedDescription)")
         }
+    }
+
+    // Launchers written before every Wine variable was exported, or for graphics this Mac can no
+    // longer load, follow the game's resolved setup. Only on the runner the record names; the files
+    // are read and written off the main actor. Run once the runners and their availability are known.
+    func refreshInstallerLaunchers() async {
+        let installs = installsFolder
+        let records = await Task.detached { InstalledGames.all(in: installs) }.value
+        let refreshes: [LauncherRefresh] = records.map(Game.init(installed:)).compactMap { game in
+            guard let folder = GameFolder.of(game, in: installs) else { return nil }
+            let resolved = resolution(for: game).setup
+            guard let runner = resolved.runner, runner.id == game.installRunnerID, let backend = resolved.backend,
+                  let wine = InstallRunners.wine(for: runner, runners: runnersFolder) else { return nil }
+            return LauncherRefresh(folder: folder, wine: wine, backend: backend, environment: resolved.environment,
+                                   backends: backendsFolder, runners: runnersFolder)
+        }
+        guard !refreshes.isEmpty else { return }
+        let games = await Task.detached { () -> [InstalledGame]? in
+            var changed = false
+            for refresh in refreshes {
+                if (try? refresh.apply()) == true { changed = true }
+            }
+            return changed ? InstalledGames.all(in: installs) : nil
+        }.value
+        if let games { showInstalledGames(games) }
     }
 
     // Settings > Compatibility's defaults become Steam's tool for every other Windows game
@@ -144,5 +187,34 @@ extension LibraryModel {
         } catch {
             problem = String(localized: "Cartouche couldn’t pass this setup to Steam: \(error.localizedDescription)")
         }
+    }
+}
+
+struct LauncherRefresh: Sendable {
+    let folder: GameFolder
+    let wine: WineRunner
+    let backend: GraphicsBackend
+    let environment: [String: String]
+    let backends: URL
+    let runners: URL
+
+    // True when the launcher or the record was rewritten; a launcher that already matches stays as it is.
+    func apply() throws -> Bool {
+        guard var record = InstalledGames.record(in: folder) else { return false }
+        let expected = GameLauncher.script(exe: record.exeURL, prefix: folder.prefix, wine: wine, backend: backend,
+                                           environment: environment, backends: backends, runners: runners)
+        var changed = false
+        if (try? String(contentsOf: folder.launcher, encoding: .utf8)) != expected {
+            SetupEnvironment.prepare(backend, prefix: folder.prefix, backends: backends)
+            try GameLauncher.write(exe: record.exeURL, folder: folder, wine: wine, backend: backend,
+                                   environment: environment, backends: backends, runners: runners)
+            changed = true
+        }
+        if record.graphics != backend.rawValue {
+            record.graphics = backend.rawValue
+            try InstalledGames.save(record, in: folder)
+            changed = true
+        }
+        return changed
     }
 }

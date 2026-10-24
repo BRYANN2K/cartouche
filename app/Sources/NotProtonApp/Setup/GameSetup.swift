@@ -66,7 +66,7 @@ struct BackendAvailability: Equatable, Sendable {
                     out.hasGamePortingToolkit = true
                 }
             case .wineBuild:
-                // CrossOver Wine can load D3DMetal where a WineHQ build cannot: from its own
+                // Cartouche Wine can load D3DMetal where a WineHQ build cannot: from its own
                 // apple_gptk when the tree carries it, else from the user's toolkit copy.
                 guard manifest.build(id: runner.id)?.origin == .cartouche else { break }
                 out.crossOverWine.insert(runner.id)
@@ -124,8 +124,16 @@ enum BackendSupport {
         return preference.filter(offered.contains)
     }
 
+    // D3DMetal held back only for want of the user's Game Porting Toolkit: Cartouche Wine under Rosetta.
+    static func needsToolkit(
+        for runner: Runner, translation: GameSetupChoice.Translation, availability: BackendAvailability
+    ) -> Bool {
+        runner.kind == .wineBuild && translation == .rosetta && availability.crossOverWine.contains(runner.id)
+            && !availability.d3dMetalRunners.contains(runner.id)
+    }
+
     // Why a listed backend is not offered for this runner, or nil when it is. The reasons name the
-    // missing part — CrossOver Wine, the toolkit files, a download — not the backend.
+    // missing part — Cartouche Wine, the toolkit files, a download — not the backend.
     static func missing(
         _ backend: GraphicsBackend, for runner: Runner,
         translation: GameSetupChoice.Translation, availability: BackendAvailability
@@ -145,14 +153,14 @@ enum BackendSupport {
                 return String(localized: "Needs Rosetta translation")
             }
             if !crossOverCapable, availability.hasGamePortingToolkit {
-                return String(localized: "Needs CrossOver Wine")
+                return String(localized: "Needs Cartouche Wine")
             }
             if !crossOverCapable {
-                return String(localized: "Needs CrossOver Wine and Game Porting Toolkit")
+                return String(localized: "Needs Cartouche Wine and Game Porting Toolkit")
             }
             return String(localized: "Needs Game Porting Toolkit")
         case .dxmt:
-            if !crossOverCapable { return String(localized: "Needs CrossOver Wine") }
+            if !crossOverCapable { return String(localized: "Needs Cartouche Wine") }
             if translation == .fex { return String(localized: "Needs Rosetta translation") }
             return String(localized: "Needs the DXMT download")
         case .dxvk:

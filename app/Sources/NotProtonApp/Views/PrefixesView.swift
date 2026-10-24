@@ -18,7 +18,7 @@ struct PrefixesView: View {
                     String(localized: "No Prefixes"),
                     systemImage: "externaldrive",
                     description: Text(
-                        String(localized: "A prefix appears here once a Windows game has been launched through Cartouche.")
+                        String(localized: "Each Windows game Cartouche installs, imports or plays from Steam or a store keeps its own prefix. They show here once a game has one.")
                     )
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -26,7 +26,6 @@ struct PrefixesView: View {
                 table
             }
         }
-        .navigationTitle("Prefixes")
         .safeAreaInset(edge: .bottom) {
             if let failed = model.report {
                 report(
@@ -177,7 +176,7 @@ struct PrefixesView: View {
         } label: {
             Label("Tools", systemImage: "wrench.and.screwdriver")
         }
-        .disabled(model.selectedPrefix == nil || model.isBusy)
+        .disabled(model.selectedPrefix?.canRunTools != true || model.isBusy)
         .help("Run a program or open a Wine tool in the selected prefix.")
 
         Button("Reveal in Finder", systemImage: "folder") {
@@ -197,8 +196,8 @@ struct PrefixesView: View {
         prefix.lastUsed?.formatted(date: .abbreviated, time: .omitted) ?? String(localized: "Never")
     }
 
-    private var libraryWidth: CGFloat {
-        TextWidth.widest(model.prefixes.map(\.library.displayName)) ?? 120
+    private var sourceWidth: CGFloat {
+        TextWidth.widest(model.prefixes.map(\.source.label)) ?? 120
     }
 
     private var toolWidth: CGFloat {
@@ -225,10 +224,9 @@ struct PrefixesView: View {
     private struct PrefixRow: Identifiable {
         let prefix: WinePrefix
         let tool: String
-        let appID: Int
+        let source: String
         let size: Int64
         let title: String
-        let library: String
         let lastUsed: Date
 
         var id: WinePrefix.ID { prefix.id }
@@ -239,10 +237,9 @@ struct PrefixesView: View {
             PrefixRow(
                 prefix: prefix,
                 tool: model.lastTool(prefix) ?? "",
-                appID: Int(prefix.appID) ?? 0,
+                source: prefix.source.label,
                 size: model.usage[prefix.id]?.bytes ?? -1,
                 title: prefix.title,
-                library: prefix.library.displayName,
                 lastUsed: prefix.lastUsed ?? .distantPast
             )
         }
@@ -282,28 +279,17 @@ struct PrefixesView: View {
             }
             .width(min: 60, ideal: gameWidth)
 
-            TableColumn("Tool", value: \.tool) { row in
-                let prefix = row.prefix
-                if let tool = model.lastTool(prefix) {
-                    Text(tool).foregroundStyle(.secondary).help(tool)
-                } else {
-                    Text("None")
-                        .foregroundStyle(contrast == .increased ? .secondary : .tertiary)
-                }
+            TableColumn("Source", value: \.source) { row in
+                Text(row.source)
+                    .foregroundStyle(.secondary)
+                    .help(origin(row.prefix))
+            }
+            .width(min: 44, ideal: sourceWidth)
+
+            TableColumn("Runner", value: \.tool) { row in
+                runnerCell(row.prefix)
             }
             .width(min: 60, ideal: toolWidth)
-
-            TableColumn("App ID", value: \.appID) { row in
-                Text(row.prefix.appID).monospacedDigit().foregroundStyle(.secondary)
-            }
-            .width(min: 50, ideal: 80)
-
-            TableColumn("Library", value: \.library) { row in
-                Text(row.library)
-                    .foregroundStyle(.secondary)
-                    .help(row.library)
-            }
-            .width(min: 44, ideal: libraryWidth)
 
             TableColumn("Private Size", value: \.size) { row in
                 if let usage = model.usage[row.id] {
@@ -341,8 +327,10 @@ struct PrefixesView: View {
         let targets = model.prefixes.filter { ids.contains($0.id) }
         Group {
             if let prefix = single(ids) {
-                toolButtons(for: prefix)
-                Divider()
+                if prefix.canRunTools {
+                    toolButtons(for: prefix)
+                    Divider()
+                }
                 Button("Reveal in Finder") { model.reveal(prefix) }
                 Menu("Open Log") {
                     ForEach(PrefixLog.allCases, id: \.self) { log in
@@ -356,17 +344,44 @@ struct PrefixesView: View {
                 Button(PrefixPrompt.backUpButton(targets)) {
                     model.pendingConfirmation = .backUp(targets)
                 }
-                if model.tools.count > 1 {
-                    Menu(PrefixPrompt.rebuildButton(targets)) { rebuildChoices(targets) }
-                } else {
-                    rebuildChoices(targets, label: PrefixPrompt.rebuildButton(targets))
+                if targets.allSatisfy(\.canRebuild) {
+                    rebuildMenu(targets)
                 }
-                Button(PrefixPrompt.deleteButton(targets), role: .destructive) {
-                    model.pendingConfirmation = .delete(targets)
+                if targets.allSatisfy(\.canDelete) {
+                    Button(PrefixPrompt.deleteButton(targets), role: .destructive) {
+                        model.pendingConfirmation = .delete(targets)
+                    }
                 }
             }
         }
         .disabled(model.isBusy)
+    }
+
+    @ViewBuilder
+    private func rebuildMenu(_ targets: [WinePrefix]) -> some View {
+        if model.tools.count > 1 {
+            Menu(PrefixPrompt.rebuildButton(targets)) { rebuildChoices(targets) }
+        } else {
+            rebuildChoices(targets, label: PrefixPrompt.rebuildButton(targets))
+        }
+    }
+
+    @ViewBuilder
+    private func runnerCell(_ prefix: WinePrefix) -> some View {
+        if let tool = model.lastTool(prefix) {
+            Text(tool).foregroundStyle(.secondary).help(tool)
+        } else if case .store = prefix.source {
+            Text("Game’s setup").foregroundStyle(.secondary)
+        } else {
+            Text("None")
+                .foregroundStyle(contrast == .increased ? .secondary : .tertiary)
+        }
+    }
+
+    // Where the prefix sits: a Steam game's library and app ID, or the folder of a game Cartouche made.
+    private func origin(_ prefix: WinePrefix) -> String {
+        guard prefix.source == .steam else { return prefix.root.path(percentEncoded: false) }
+        return "\(prefix.library.displayName) · \(prefix.appID)"
     }
 
     @ViewBuilder

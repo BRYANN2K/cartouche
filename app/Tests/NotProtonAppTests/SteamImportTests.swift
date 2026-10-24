@@ -32,6 +32,17 @@ struct VDFTests {
 @Suite("Steam library import")
 struct SteamImportTests {
 
+    @Test("An incomplete download is not installed even when the running client's export says installed")
+    func incompleteDownload() throws {
+        let fixture = try SteamFixture("incomplete-download")
+        defer { fixture.remove() }
+        try fixture.writeExport()
+        let manifest = fixture.steam.appending(path: "steamapps/appmanifest_1245620.acf")
+        try Data("\"AppState\" { \"appid\" \"1245620\" \"name\" \"Elden Ring\" \"StateFlags\" \"1026\" }".utf8).write(to: manifest)
+        let game = try #require(fixture.importer(running: true).load().games.first { $0.steamAppID == 1245620 })
+        #expect(!game.installed)
+    }
+
     @Test("Steam's files give the account, the installed games on every library, play data and collections")
     func localFiles() throws {
         let fixture = try SteamFixture("files")
@@ -55,6 +66,29 @@ struct SteamImportTests {
 
         // Deleted collections and Steam's own Favorites are left out; removed games are applied
         #expect(files.collections(account) == [SteamCollection(id: "uc-souls", name: "Souls", apps: [1_245_620, 1_174_180])])
+    }
+
+    @Test("An install folder follows a rewritten manifest and still refuses one that leaves common/")
+    func installFolderFollowsManifest() throws {
+        let work = try scratchDirectory("install-folder")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let steamapps = work.appending(path: "steamapps")
+        for dir in ["First", "Second"] {
+            try FileManager.default.createDirectory(at: steamapps.appending(path: "common/\(dir)"), withIntermediateDirectories: true)
+        }
+        let manifest = steamapps.appending(path: "appmanifest_99.acf")
+        func write(_ dir: String, at time: TimeInterval) throws {
+            try Data("\"AppState\" { \"appid\" \"99\" \"name\" \"Game\" \"installdir\" \"\(dir)\" }".utf8).write(to: manifest)
+            try FileManager.default.setAttributes([.modificationDate: Date(timeIntervalSince1970: time)],
+                                                  ofItemAtPath: manifest.path(percentEncoded: false))
+        }
+        let files = SteamLocalFiles(userData: work)
+        try write("First", at: 1_000)
+        #expect(files.installFolder(appID: 99)?.lastPathComponent == "First")
+        try write("Second", at: 2_000)
+        #expect(files.installFolder(appID: 99)?.lastPathComponent == "Second")
+        try write("../common", at: 3_000)
+        #expect(files.installFolder(appID: 99) == nil)
     }
 
     @Test("Import from Steam: the export lists every owned game, and the toolbar names the count and the account")
@@ -148,9 +182,9 @@ struct SteamImportTests {
     func runningUsesTheExport() throws {
         let fixture = try SteamFixture("running")
         defer { fixture.remove() }
-        try fixture.writeExport(installed: [1_593_500])
+        try fixture.writeExport(installed: [1_245_620])
         let result = fixture.importer(running: true).load()
-        #expect(result.games.filter(\.installed).map(\.name) == ["God of War"])
+        #expect(result.games.filter(\.installed).map(\.name) == ["Elden Ring"])
     }
 
     @Test("Without any export, only the installed manifests show; localconfig is play data, not ownership")

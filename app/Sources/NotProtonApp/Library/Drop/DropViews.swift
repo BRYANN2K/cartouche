@@ -260,6 +260,8 @@ private struct InstalledGameCard: View {
     @Binding var chosenExe: URL?
     @Binding var storage: GameStorage
 
+    private var isExtracted: Bool { StagedGames.isStaged(game.folder) }
+
     var body: some View {
         HStack(alignment: .top, spacing: 18) {
             CoverView(game: Game(id: "drop:\(game.folder.path(percentEncoded: false))", source: .installer,
@@ -289,19 +291,22 @@ private struct InstalledGameCard: View {
                         .labelsHidden()
                         .fixedSize()
                     }
-                    PanelRow(title: Text("Storage")) {
-                        Picker("Storage", selection: $storage) {
-                            ForEach(GameStorage.allCases) { Text($0.title).tag($0) }
+                    // An extracted archive always moves into Cartouche's games folder: nothing to choose.
+                    if !isExtracted {
+                        PanelRow(title: Text("Storage")) {
+                            Picker("Storage", selection: $storage) {
+                                ForEach(GameStorage.allCases) { Text($0.title).tag($0) }
+                            }
+                            .pickerStyle(.segmented)
+                            .labelsHidden()
                         }
-                        .pickerStyle(.segmented)
-                        .labelsHidden()
+                        Text(storage == .inPlace
+                             ? "The game stays where it is. Cartouche only adds it to the library."
+                             : "A copy goes into Cartouche’s games folder, \(DownloadSummary.size(game.bytes)). The original is not touched.")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Glass.label2)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                    Text(storage == .inPlace
-                         ? "The game stays where it is. Cartouche only adds it to the library."
-                         : "A copy goes into Cartouche’s games folder, \(DownloadSummary.size(game.bytes)). The original is not touched.")
-                        .font(.system(size: 12))
-                        .foregroundStyle(Glass.label2)
-                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(12)
                 .groupBackground()
@@ -394,7 +399,7 @@ private struct MixedPart: View {
             }
         case .installedGame(let game):
             section(Text("Installed game"), action: Text("Import…")) {
-                actions.importGame(game, game.executables.first ?? game.folder, .inPlace)
+                actions.importGame(game, nil, nil)
             } content: {
                 InstallerCard(installer: DroppedInstaller(setup: game.folder, name: game.name, parts: 0))
             }

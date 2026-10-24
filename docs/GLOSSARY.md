@@ -6,10 +6,12 @@ Plain definitions of the terms used in Cartouche docs and specs. Read by contrib
 
 **Runner.** The program that runs Windows software on the Mac. Cartouche has three kinds: CrossOver, a Wine build, and Apple's Game Porting Toolkit.
 
+**Cartouche Wine.** Cartouche's own Wine build, the default runner. Built from CodeWeavers' CrossOver sources (LGPL). It is not CrossOver, CodeWeavers' paid app. Its runner IDs keep the `wine-crossover-` prefix. Version 26.3.0-2, in progress, adds SDL3 for controllers and bundles Wine Mono and Wine Gecko. The name is never translated.
+
 **Wine.** An open-source layer that runs Windows programs on other systems. Most runners are Wine builds.
 
 **Backend.** The layer that turns a game's graphics calls into Metal, the Mac graphics API. The user picks one per game.
-- **D3DMetal.** Apple's translation layer, part of the Game Porting Toolkit and CrossOver. Strongest for DirectX 12. Never redistributed by Cartouche.
+- **D3DMetal.** Apple's translation layer, part of the Game Porting Toolkit and CrossOver. Strongest for DirectX 12. Never redistributed by Cartouche. With Cartouche Wine it comes only from the user's own Game Porting Toolkit.
 - **DXMT.** An open-source DirectX 11 to Metal layer. Strongest for DirectX 11.
 - **DXVK.** Translates DirectX to Vulkan, which runs on Metal through MoltenVK. Good for older games.
 - **wined3d.** Wine's own translation to OpenGL. A fallback.
@@ -17,6 +19,14 @@ Plain definitions of the terms used in Cartouche docs and specs. Read by contrib
 **Prefix.** A folder that holds one Windows environment: a fake C: drive, registry and settings. Cartouche uses one prefix per installed game.
 
 **Setup.** A game's chosen runner, backend, CPU translation and environment variables. Also the section of the game panel that shows them. Not to be confused with `setup.exe`, a Windows installer.
+
+**Game panel.** The column on the right of the library. PC games and console games share it: artwork, the title, one line of source, status and size, then modules in a fixed order (ADR 0037). A module that does not apply is omitted. It does not swap places with another.
+
+**Starts With.** The program an installed game launches (French: Programme de lancement). Chosen at install and changeable later from the game menu or the panel.
+
+**Direct unpack.** Cartouche extracts a supported installer's data parts itself instead of running its setup. If it fails, Try Again runs the original setup under Wine.
+
+**Repair (Steam).** The one action in Settings > Steam and onboarding that reinstalls Cartouche's files in Steam when they do not match the app.
 
 **Compatibility tool.** A Steam feature that runs a Windows game with a given program. Cartouche registers one tool per valid runner and backend pair, named `<runner> · <backend>`.
 
@@ -60,7 +70,7 @@ Plain definitions of the terms used in Cartouche docs and specs. Read by contrib
 
 ## Agents
 
-**MCP (Model Context Protocol).** An open protocol that lets AI agents call tools in an app. Cartouche's own MCP server is planned (P11). RetroArch has one, which Cartouche uses and relays.
+**MCP (Model Context Protocol).** An open protocol that lets AI agents call tools in an app. Cartouche's own MCP server is merged (P11). RetroArch has one, which Cartouche uses and relays.
 
 ## Project process
 

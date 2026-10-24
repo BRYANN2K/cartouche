@@ -9,6 +9,7 @@ struct CompatEstimate: Equatable, Sendable {
     let reportCount: Int
     let sameChipCount: Int
     let chip: String
+    var closestMatch = false
 
     enum Result: Equatable, Sendable {
         case estimate(CompatEstimate)
@@ -28,12 +29,12 @@ struct CompatEstimate: Equatable, Sendable {
         guard let chip, let mine = gpu[chip] else { return .unknownMac }
 
         func distance(_ r: MacReport) -> Double { abs(log(gpu[r.chip]! / mine)) }
-        var near = rows.filter { distance($0) <= log(reach) }
-        let usedFallback = near.count < fewest
-        if usedFallback {
-            near = Array(rows.enumerated()
-                .sorted { (distance($0.element), $0.offset) < (distance($1.element), $1.offset) }
-                .prefix(fallback).map(\.element))
+        let exact = rows.filter { $0.chip == chip }
+        var near = exact.isEmpty ? rows.filter { distance($0) <= log(reach) } : exact
+        let usedFallback = near.isEmpty
+        if usedFallback, let nearest = rows.map(distance).min() {
+            // Sparse data must not pull the same distant five reports into every Mac.
+            near = rows.filter { abs(distance($0) - nearest) < 0.000_001 }
         }
 
         let ratings = near.map(\.rating).sorted()
@@ -55,8 +56,22 @@ struct CompatEstimate: Equatable, Sendable {
             settings: settings,
             reportCount: near.count,
             sameChipCount: near.filter { $0.chip == chip }.count,
-            chip: chip
+            chip: chip, closestMatch: usedFallback
         ))
+    }
+}
+
+enum MacGPUProfiles {
+    static let bundled: [String: Double] = {
+        guard let url = Bundle.module.url(forResource: "gpu-strength", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let profiles = try? JSONDecoder().decode([String: Double].self, from: data)
+        else { return [:] }
+        return profiles.filter { $0.value.isFinite && $0.value > 0 }
+    }()
+
+    static func current(_ published: [String: Double]?) -> [String: Double] {
+        bundled.merging((published ?? [:]).filter { $0.value.isFinite && $0.value > 0 }) { _, new in new }
     }
 }
 

@@ -196,4 +196,15 @@ struct EngineMetadataTests {
         try write(Data(" binary DisplayName\":\"Dark Fleet\" more ".utf8), "Fleet.egstore/fleet.manifest", in: dir)
         #expect(EngineMetadata.name(in: dir) == "Dark Fleet")
     }
+
+    @Test("Epic: the hidden .egstore folder is found at the root or one level down")
+    func epicHidden() throws {
+        let top = try tempFolder([".egstore/abc.item": #"{"DisplayName":"Hidden Store"}"#])
+        #expect(EngineMetadata.name(in: top) == "Hidden Store")
+        let nested = try tempFolder(["Game/.egstore/abc.item": #"{"DisplayName":"Nested Store"}"#])
+        #expect(EngineMetadata.name(in: nested) == "Nested Store")
+        // Other hidden trees stay out of the walk.
+        let other = try tempFolder([".cache/Game.exe": "MZ"])
+        #expect(EngineMetadata.mainExe(in: other) == nil)
+    }
 }

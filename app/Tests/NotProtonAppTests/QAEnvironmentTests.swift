@@ -268,7 +268,8 @@ struct QAEnvironmentTests {
     // (shown or opened by the user, never fetched), the User-Agent contact,
     // package defaults the app overrides at injection points (CoreSource.qa,
     // DatabaseSource.qa, OfficialRelease's base, Thumbnails.base), and Info.plist's
-    // SUFeedURL — Sparkle never runs in a QA build, so nothing fetches it.
+    // SUFeedURL — Sparkle never runs in a QA build, so nothing fetches it — and
+    // CartoucheRunnerManifestURL, which RunnerManifest.feed passes through QAEnvironment.url.
     // A fetched endpoint must instead sit inside
     // QAEnvironment.url(...) on its own line (the run script uses the variable).
     private static let allowedLiterals: [String: [String]] = [
@@ -278,7 +279,10 @@ struct QAEnvironmentTests {
         "app/Sources/NotProtonApp/Compatibility/CompatibilityCredits.swift": ["https://macgamingdb.app"],
         "app/Sources/NotProtonApp/Compatibility/MacGamingDB.swift": ["https://cartouche.bryann2k.dev"],
         "app/Sources/NotProtonApp/Runners/PortingToolkitSource.swift": ["https://developer.apple.com"],
-        "app/Info.plist": ["https://github.com/BRYANN2K/cartouche/"],
+        "app/Info.plist": [
+            "https://github.com/BRYANN2K/cartouche/",
+            "https://github.com/BRYANN2K/cartouche-wine/releases/download/manifest/",
+        ],
         "retroarch/Sources/RetroArchKit/Settings/ConsolesSettingsView.swift": ["https://github.com/libretro/RetroArch"],
         "retroarch/Sources/RetroArchKit/Identify/ContentDatabase.swift": ["https://raw.githubusercontent.com/libretro/"],
         "retroarch/Sources/RetroArchKit/Library/Thumbnails.swift": ["https://thumbnails.libretro.com/"],

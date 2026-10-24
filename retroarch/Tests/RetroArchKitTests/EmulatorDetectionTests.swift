@@ -8,6 +8,19 @@ import Testing
 @Suite("Standalone emulator detection")
 struct EmulatorDetectionTests {
 
+    @Test("Eden's published empty executable field uses its catalog executable")
+    func emptyExecutable() throws {
+        let work = try scratchFolder("eden-executable")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let app = try FakeEmulators.app("eden", in: work, bundleID: "com.yuzu-emu.yuzu")
+        let file = app.appending(path: "Contents/Info.plist")
+        let data = try Data(contentsOf: file)
+        var plist = try #require(PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any])
+        plist["CFBundleExecutable"] = ""
+        try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0).write(to: file)
+        #expect(EmulatorDetector.read(app)?.executable.lastPathComponent == "eden")
+    }
+
     @Test func detectionReadsBundleIdentifierAndVersion() throws {
         let work = try scratchFolder("detect")
         defer { try? FileManager.default.removeItem(at: work) }

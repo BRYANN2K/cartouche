@@ -47,6 +47,7 @@ struct GameCard: View {
     let menu: () -> [GameMenuItem]
     let perform: (GameAction) -> Void
     var antiCheatBlocked = false
+    var layoutShape: CoverShape? = nil
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
@@ -82,12 +83,14 @@ struct GameCard: View {
         if activity.playing?.id == game.id {
             HStack(spacing: 5) {
                 Circle().fill(Color.green).frame(width: 6, height: 6)
-                Text(activity.download(for: game)?.cardStatus ?? game.status())
+                Text(activity.download(for: game)?.cardStatus ?? String(localized: "Playing"))
             }
             .foregroundStyle(Color.green)
+        } else if GameMenu.steamLaunching(game, activity: activity) {
+            Text("Launching…").foregroundStyle(Glass.label2)
         } else {
             let download = activity.download(for: game)
-            Text(download?.cardStatus ?? (antiCheatBlocked ? String(localized: "Anti-cheat blocks Linux") : game.status()))
+            Text(download?.cardStatus ?? (antiCheatBlocked ? String(localized: "Anti-cheat unsupported") : game.status()))
                 .foregroundStyle(download?.isFailed == true || (download == nil && antiCheatBlocked) ? Color.red : Glass.label2)
         }
     }
@@ -99,7 +102,7 @@ struct GameCard: View {
         let download = activity.download(for: game)
         return CoverView(game: game, override: override)
             .saturation(inColor ? 1 : 0)
-            .aspectRatio(game.coverShape.aspectRatio, contentMode: .fit)
+            .aspectRatio((layoutShape ?? game.coverShape).aspectRatio, contentMode: .fit)
             .frame(maxWidth: .infinity)
             .overlay {
                 if let download {

@@ -66,6 +66,22 @@ struct AnalysisTests {
         #expect(!analysis.canInstall)
     }
 
+    // root reads a mode-000 file anyway, so the case cannot be staged there.
+    @Test("A part that cannot be read is unreadable, not absent, and is not OK", .enabled(if: getuid() != 0))
+    func unreadableIsNotOK() async throws {
+        let dir = try tempFolder(["setup.exe": "MZ", "data-01.bin": "a", "data-02.bin": "b", "data-03.bin": "c", "MD5/checksums.md5": manifest(optional: true)])
+        let locked = dir.appending(path: "data-02.bin")
+        try FileManager.default.setAttributes([.posixPermissions: 0], ofItemAtPath: locked.path(percentEncoded: false))
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: locked.path(percentEncoded: false)) }
+        let results = try await Checksums.verify(try Checksums.parse(dir.appending(path: "MD5/checksums.md5")), root: dir)
+        #expect(results[locked.standardizedFileURL] == .unreadable)
+        let analysis = try await Analyzer.analyze(dir, tool: "/x/innoextract", runner: noInno)
+        #expect(analysis.unreadable == ["data-02.bin"])
+        #expect(analysis.missing.isEmpty)
+        #expect(!analysis.checksumsOK)
+        #expect(!analysis.canInstall)
+    }
+
     @Test("No setup.exe blocks Install")
     func noSetup() async throws {
         let dir = try tempFolder(["data-01.bin": "a"])

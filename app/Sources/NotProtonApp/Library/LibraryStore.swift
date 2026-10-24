@@ -52,6 +52,30 @@ struct LibraryChoices: Codable, Equatable, Sendable {
     var setups: [String: GameSetupChoice] = [:]
 }
 
+// One bad field or entry must not cost the whole file: the rest keeps loading
+extension LibraryChoices {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        favorites = c.lenient(Set<String>.self, forKey: .favorites) ?? []
+        hidden = c.lenient(Set<String>.self, forKey: .hidden) ?? []
+        covers = c.lenient([String: String].self, forKey: .covers) ?? [:]
+        setups = (c.lenient([String: Lenient<GameSetupChoice>].self, forKey: .setups) ?? [:]).compactMapValues(\.value)
+    }
+}
+
+extension GameSetupChoice {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        runnerID = c.lenient(String.self, forKey: .runnerID)
+        graphics = c.lenient(GraphicsBackend.self, forKey: .graphics)
+        translation = c.lenient(Translation.self, forKey: .translation)
+        metalHUD = c.lenient(Bool.self, forKey: .metalHUD)
+        version = c.lenient(GameVersion.self, forKey: .version)
+        environment = c.lenient([String: String].self, forKey: .environment)
+        advanced = c.lenient(AdvancedGameOptions.self, forKey: .advanced)
+    }
+}
+
 struct LibraryStore: Sendable {
 
     var folder: URL = SupportPaths.support
@@ -60,10 +84,7 @@ struct LibraryStore: Sendable {
     var coverFolder: URL { folder.appending(path: "covers") }
 
     func load() -> LibraryChoices {
-        guard let data = try? Data(contentsOf: file),
-              let choices = try? JSONDecoder().decode(LibraryChoices.self, from: data)
-        else { return LibraryChoices() }
-        return choices
+        JSONFile.load(LibraryChoices.self, from: file) ?? LibraryChoices()
     }
 
     func save(_ choices: LibraryChoices) throws {

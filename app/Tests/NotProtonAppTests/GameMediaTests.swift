@@ -28,6 +28,23 @@ struct GameMediaTests {
         #expect(await offline.local(shot, appID: 42, online: false) == screenshot)
     }
 
+    @Test("A store answer with success false is not kept, so the next look asks again")
+    func unsuccessfulListNotCached() async throws {
+        let fixture = try SteamFixture("panel-media-unsuccessful")
+        defer { fixture.remove() }
+        let list = fixture.caches.appending(path: "42/media/screenshots.json")
+        let refused = try JSONSerialization.data(withJSONObject: ["42": ["success": false]])
+        #expect(await GameMediaStore(covers: fixture.covers { _ in (refused, 200) }).screenshots(42, online: true).isEmpty)
+        #expect(!FileManager.default.fileExists(atPath: list.path(percentEncoded: false)))
+
+        let shot = "https://example.com/screenshot.jpg"
+        let good = try JSONSerialization.data(withJSONObject: ["42": ["success": true, "data": [
+            "screenshots": [["path_full": shot]]]]])
+        #expect(await GameMediaStore(covers: fixture.covers { _ in (good, 200) }).screenshots(42, online: true)
+            == [URL(string: shot)!])
+        #expect(GameMediaStore.succeeded(good, appID: 42) && !GameMediaStore.succeeded(refused, appID: 42))
+    }
+
     @Test("Missing media and failed store responses do not create picture files")
     func missingPictures() async throws {
         let fixture = try SteamFixture("panel-media-missing")

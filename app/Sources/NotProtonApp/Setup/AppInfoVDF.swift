@@ -77,6 +77,8 @@ enum AppInfoVDF {
     static func readStringTable(_ b: [UInt8], at offset: Int) throws -> [String] {
         var c = Cursor(b: b, p: offset)
         let count = try c.u32()
+        // Each string takes at least its NUL byte
+        guard Int(count) <= c.end - c.p else { throw ParseError.truncated }
         var out: [String] = []
         out.reserveCapacity(Int(count))
         for _ in 0..<count { out.append(try c.cstring()) }

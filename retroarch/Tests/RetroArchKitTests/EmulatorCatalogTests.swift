@@ -8,7 +8,7 @@ import Testing
 struct EmulatorCatalogTests {
 
     @Test func everyEmulatorNamesItsAppArgumentsAndConsoles() {
-        #expect(EmulatorCatalog.all.map(\.id) == ["dolphin", "pcsx2", "ppsspp", "azahar", "xemu", "ryubing"])
+        #expect(EmulatorCatalog.all.map(\.id) == ["dolphin", "pcsx2", "ppsspp", "azahar", "xemu", "eden", "ryubing"])
         for emulator in EmulatorCatalog.all {
             #expect(!emulator.bundleIDs.isEmpty && !emulator.appNames.isEmpty, "\(emulator.id) cannot be found")
             #expect(emulator.arguments.filter { $0 == StandaloneEmulator.rom }.count == 1, "\(emulator.id) does not pass the game once")
@@ -30,6 +30,7 @@ struct EmulatorCatalogTests {
             "ppsspp": ["--pause-menu-exit", path],
             "azahar": [path],
             "xemu": ["-dvd_path", path],
+            "eden": ["-g", path],
             "ryubing": [path],
         ]
         for emulator in EmulatorCatalog.all {
@@ -44,7 +45,7 @@ struct EmulatorCatalogTests {
         #expect(EmulatorCatalog.emulators(for: "psp").map(\.id) == ["ppsspp"])
         #expect(EmulatorCatalog.emulators(for: "3ds").map(\.id) == ["azahar"])
         #expect(EmulatorCatalog.emulators(for: "xbox").map(\.id) == ["xemu"])
-        #expect(EmulatorCatalog.emulators(for: "switch").map(\.id) == ["ryubing"])
+        #expect(EmulatorCatalog.emulators(for: "switch").map(\.id) == ["eden", "ryubing"])
         #expect(EmulatorCatalog.emulators(for: "snes").isEmpty)
         for name in ["Dolphin", "PCSX2", "PPSSPP", "Azahar", "xemu", "Ryubing"] {
             #expect(EmulatorCatalog.names.contains(name))

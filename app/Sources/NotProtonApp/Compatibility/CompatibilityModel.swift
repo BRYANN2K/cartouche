@@ -75,6 +75,8 @@ final class CompatibilityModel {
         return outcome
     }
 
+    var gpuStrength: [String: Double] { MacGPUProfiles.current(data?.gpuStrength) }
+
     func record(appID: Int) -> CompatRecord? { data?.record(appID: appID) }
 
     // Reading the site's feed follows the same choice as fetching Mac reports; a failure keeps the last valid copy

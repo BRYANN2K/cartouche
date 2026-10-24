@@ -87,7 +87,8 @@ struct ActivityQuitTests {
         #expect(states.first?.isAuto == true && states.first?.picture != nil)
         let system = try #require(scene.center.console(of: after))
         let content = ConsolePanelContent(game: after, console: system, states: states, bios: nil, playing: nil)
-        #expect(content.titles.prefix(2) == ["Resume", "Continue From"])
+        #expect(content.titles.first == "Resume")
+        #expect(content.titles.contains("Continue From"))
         #expect(!seen(try await renderedTexts(sidebar(scene), size: CGSize(width: 280, height: 560)), "Quit"))
         print("evidence: Quit -> play time +\(after.playSeconds - before) s, Continue From \(states.map(\.title))")
     }

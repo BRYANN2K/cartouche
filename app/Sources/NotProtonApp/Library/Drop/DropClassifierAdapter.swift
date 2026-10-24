@@ -1,6 +1,6 @@
 // The app's drop backend: InstallerKit's DropClassifier over the bundled
 // libarchive. Archives stage on the workspace's volume and land in DropStaging
-// so the "Use in Place" and "Copy into Cartouche" flows can read them afterwards.
+// for the import flow to read; the import then moves the game out of Caches.
 
 import Foundation
 import InstallerKit

@@ -90,15 +90,19 @@ enum ActivitySlot: Equatable, Sendable {
     case playing(RunningGame)
     case installing(InstallActivity)
     case store(StoreActivity)
+    // A store job that failed, until Try Again or Dismiss
+    case storeFailed(StoreFailure)
     case downloads([DownloadActivity])
     // Background work onboarding left running: runner download, prefix boot, cores
     case setup(SetupActivity)
 
     static func pick(playing: RunningGame?, install: InstallActivity?, store: StoreActivity?,
+                     storeFailed: StoreFailure? = nil,
                      downloads: [DownloadActivity], setup: SetupActivity? = nil) -> ActivitySlot? {
         if let playing { return .playing(playing) }
         if let install { return .installing(install) }
         if let store { return .store(store) }
+        if let storeFailed { return .storeFailed(storeFailed) }
         if !downloads.isEmpty { return .downloads(downloads) }
         if let setup { return .setup(setup) }
         return nil
@@ -176,6 +180,7 @@ struct ActivityMenuSection: Equatable, Sendable {
     }
 
     static func all(playing: RunningGame?, install: InstallActivity?, store: StoreActivity?,
+                    storeFailures: [StoreFailure] = [],
                     downloads: [DownloadActivity], setup: SetupActivity? = nil) -> [ActivityMenuSection] {
         var sections: [ActivityMenuSection] = []
         if let playing {
@@ -184,8 +189,10 @@ struct ActivityMenuSection: Equatable, Sendable {
         if let install {
             sections.append(ActivityMenuSection(kind: .installing, lines: [Line(title: install.title, detail: "\(Int(install.fraction * 100))%")]))
         }
-        if let store {
-            sections.append(ActivityMenuSection(kind: .store, lines: [Line(title: store.title, detail: Self.detail(store))]))
+        let failed = storeFailures.map { Line(title: $0.title, detail: $0.label) }
+        if store != nil || !failed.isEmpty {
+            let running = store.map { [Line(title: $0.title, detail: Self.detail($0))] } ?? []
+            sections.append(ActivityMenuSection(kind: .store, lines: running + failed))
         }
         if !downloads.isEmpty {
             sections.append(ActivityMenuSection(kind: .downloads, lines: downloads.map {

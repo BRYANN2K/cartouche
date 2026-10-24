@@ -10,6 +10,10 @@ import InstallerKit
 struct VerificationFile: Codable, Sendable, Equatable {
     var path: String
     var bytes: Int64
+    // Set when the script lists the path more than once (language, component or task variants),
+    // or once for one language: every variant's size. Such a file passes at any of them, and its
+    // absence is a choice, not damage.
+    var variants: [Int64]? = nil
 }
 
 // Which evidence produced the status; full verification comes from manifest/crc/supplied.
@@ -98,7 +102,9 @@ enum GameVerify {
             if delay > .zero { try await Task.sleep(for: delay) }
             let url = root.appending(path: file.path)
             let values = try? url.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])
-            if values?.isRegularFile != true || Int64(values?.fileSize ?? -1) != file.bytes {
+            if values?.isRegularFile != true {
+                if file.variants == nil { bad.append(file.path) }
+            } else if !(file.variants ?? [file.bytes]).contains(Int64(values?.fileSize ?? -1)) {
                 bad.append(file.path)
             }
             done += 1
@@ -146,14 +152,36 @@ enum GameVerify {
         return ChecksumManifest(source: manifest, entries: entries, mentionsOptionalParts: false)
     }
 
-    // The script's file list narrowed to what lands in the install dir: the app section.
+    // The script's file list with its language-specific files marked; call off the main actor.
+    static func scriptEntries(_ setup: URL, tool: String?, runner: any ToolRunning) throws -> [InnoFileEntry] {
+        let entries = try InnoInspector.listSizes(setup, tool: tool, runner: runner)
+        return InnoInspector.markingLanguageFiles(entries, setup: setup, tool: tool, runner: runner)
+    }
+
+    // The script's file list narrowed to what lands in the install dir: the app section. A path
+    // listed more than once (one per language, component or task) becomes one entry with its variants;
+    // a path tied to one language is optional the same way.
     static func installedFiles(from entries: [InnoFileEntry]) -> [VerificationFile] {
-        entries.compactMap { entry in
+        var files: [VerificationFile] = []
+        var index: [String: Int] = [:]
+        for entry in entries {
             let path = entry.path.replacingOccurrences(of: "\\", with: "/")
-            guard path.lowercased().hasPrefix("app/") else { return nil }
+            guard path.lowercased().hasPrefix("app/") else { continue }
             let rel = String(path.dropFirst(4))
-            return rel.isEmpty ? nil : VerificationFile(path: rel, bytes: entry.bytes)
+            guard !rel.isEmpty else { continue }
+            // Windows paths ignore case, so APP\Data and app\data are one destination.
+            let key = rel.lowercased()
+            guard let at = index[key] else {
+                index[key] = files.count
+                files.append(VerificationFile(path: rel, bytes: entry.bytes,
+                                              variants: entry.languageSpecific ? [entry.bytes] : nil))
+                continue
+            }
+            var sizes = files[at].variants ?? [files[at].bytes]
+            if !sizes.contains(entry.bytes) { sizes.append(entry.bytes) }
+            files[at].variants = sizes
         }
+        return files
     }
 
     static func relative(_ url: URL, under root: URL) -> String {

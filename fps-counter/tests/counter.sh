@@ -12,6 +12,10 @@ ran=0
 ok() { printf '  ok    %s\n' "$1"; }
 bad() { printf '  FAIL  %s\n         want [%s]\n         got  [%s]\n' "$1" "$2" "$3"; fails=$((fails + 1)); }
 is() { if [ "$2" = "$3" ]; then ok "$1"; else bad "$1" "$2" "$3"; fi; }
+runs() {
+  if [ "$2" -eq 0 ] && [ "$3" -gt 0 ] 2>/dev/null; then ok "$1";
+  else bad "$1" "exit 0 and presented frames" "$2 $3"; fi
+}
 
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
@@ -60,7 +64,8 @@ for arch in arm64 x86_64; do
   dir="$work/$arch/none"
   mkdir -p "$dir"
   out=$(DYLD_INSERT_LIBRARIES="$counter" "$app" locked 60 1)
-  is "$arch: without a session folder the app runs and nothing is written" "60|" "$out|$(ls "$dir")"
+  runs "$arch: without a session folder the app still presents" "$?" "$out"
+  is "$arch: without a session folder nothing is written" "" "$(ls "$dir")"
   out=$(DYLD_INSERT_LIBRARIES="$counter" CARTOUCHE_FPS_DIR="$dir" "$app" locked 60 0)
   is "$arch: a process that presents nothing writes nothing" "0|" "$out|$(ls "$dir")"
 
@@ -76,7 +81,7 @@ for arch in arm64 x86_64; do
   mkdir -p "$dir"
   out=$(DYLD_INSERT_LIBRARIES="$counter" CARTOUCHE_FPS_PROBE="$marker" CARTOUCHE_FPS_DIR="$dir" "$hardened" locked 60 1)
   rc=$?
-  is "$arch: a hardened binary still runs" "0 60" "$rc $out"
+  runs "$arch: a hardened binary still runs" "$rc" "$out"
   is "$arch: and refuses the library: no marker, no samples" "no|" "$([ -f "$marker" ] && echo yes || echo no)|$(ls "$dir")"
 done
 

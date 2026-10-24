@@ -61,6 +61,7 @@ struct StandaloneConsoleTests {
                          actions: GameActionRunner(model: scene.library, open: { _ in }))
             .environment(scene.center)
             .environment(\.covers, scene.covers)
+            .environment(\.glassMode, .classic)
             .frame(width: 360, height: 980)
     }
 

@@ -70,6 +70,8 @@ final class InstallJob: Identifiable {
     // How far the mismatch fallback got: 0 = original run, 1 = shipped helpers with their
     // original settings, 2 = guided real installer under Wine (the last resort).
     var verificationFallback = 0
+    // The last run was a direct unpack that could not run or did not finish: retries use the standard method.
+    var directUnpackFailed = false
     // When the prefix's first boot started — the "Preparing Windows environment" phase's elapsed time.
     var bootStarted: Date?
     // The boot's prefix.log once the file exists; the check runs off the main actor so views never stat it.
@@ -77,6 +79,12 @@ final class InstallJob: Identifiable {
 
     @ObservationIgnored var run: InstallRun?
     @ObservationIgnored var task: Task<Void, Never>?
+    // Set by the engine when the attempt ends stopped; the phase only turns .stopped once the cleanup is done.
+    @ObservationIgnored var stopRequested = false
+    // The one cleanup of a stopped attempt, shared by every path that ends it.
+    @ObservationIgnored var cleanup: Task<Void, Never>?
+    // Folder names other jobs in the queue still own: a fresh attempt never takes or clears them.
+    @ObservationIgnored var heldFolders: Set<String> = []
 
     init(request: InstallRequest, inputs: InstallInputs) {
         self.request = request

@@ -6,11 +6,12 @@ struct WinePrefixesSettingsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Picker("Wine Prefixes", selection: $showsBackups) {
-                Text("Prefixes").tag(false)
-                Text("Prefix Backups").tag(true)
+            Picker("Show", selection: $showsBackups) {
+                Text("Games").tag(false)
+                Text("Backups").tag(true)
             }
             .pickerStyle(.segmented)
+            .labelsHidden()
             .fixedSize()
             .padding(20)
             if showsBackups {
@@ -19,6 +20,7 @@ struct WinePrefixesSettingsView: View {
                 PrefixesView()
             }
         }
+        .navigationTitle("Wine Prefixes")
         .onChange(of: showsBackups) { model.forgetOutcome() }
     }
 }

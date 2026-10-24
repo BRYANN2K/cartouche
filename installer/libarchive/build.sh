@@ -3,8 +3,13 @@
 # Cartouche.app/Contents/Helpers. liblzma and zstd are built from the pinned
 # sources and linked in statically, so the dylib needs only system libraries
 # at run time. Usage: build.sh <work dir> <output dylib>
-# Needs cmake (CI installs it with Homebrew).
+# Needs cmake and the Xcode command line tools; the app workflow installs cmake
+# with Homebrew when the runner lacks it.
 set -eu
+
+for tool in cmake curl lipo otool install_name_tool; do
+    command -v "$tool" >/dev/null 2>&1 || { echo "libarchive: '$tool' is required (install Xcode CLT and cmake)" >&2; exit 1; }
+done
 
 here=$(cd "$(dirname "$0")" && pwd)
 work=$1

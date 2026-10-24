@@ -77,6 +77,8 @@ private extension Data {
 private struct FakeEngine: ArchiveEngine {
     var probeResult: ArchiveProbe
     var failure: ArchiveError?
+    // Bytes really written per file, when the declared size lies.
+    var writes: Int64?
     func probe(_ volumes: [URL]) throws -> ArchiveProbe {
         if let failure { throw failure }
         return probeResult
@@ -95,8 +97,9 @@ private struct FakeEngine: ArchiveEngine {
             } else {
                 try FileManager.default.createDirectory(at: dest.deletingLastPathComponent(),
                                                         withIntermediateDirectories: true)
-                try Data(repeating: 0x61, count: Int(entry.size)).write(to: dest)
-                written += entry.size
+                let size = writes ?? entry.size
+                try Data(repeating: 0x61, count: Int(size)).write(to: dest)
+                written += size
                 bytesDone(written)
             }
         }
@@ -156,6 +159,21 @@ struct VolumeSetTests {
         let set = ArchiveVolumes.set(for: here.appending(path: "rom.z02"),
                                      listing: listing(["rom.zip", "rom.z01", "rom.z02"]))
         #expect(set?.volumes.map(\.lastPathComponent) == ["rom.zip", "rom.z01", "rom.z02"])
+    }
+
+    @Test func hugeOrOverflowingVolumeNumbersAreIgnored() {
+        let rNN = ArchiveVolumes.set(for: here.appending(path: "game.rar"),
+                                     listing: listing(["game.rar", "game.r00", "game.r9223372036854775807"]))
+        #expect(rNN?.volumes.map(\.lastPathComponent) == ["game.rar", "game.r00"])
+        let part = ArchiveVolumes.set(for: here.appending(path: "game.part1.rar"),
+                                      listing: listing(["game.part1.rar", "game.part99999999.rar"]))
+        #expect(part?.volumes.map(\.lastPathComponent) == ["game.part1.rar"])
+        let zero = ArchiveVolumes.set(for: here.appending(path: "game.part0.rar"),
+                                      listing: listing(["game.part0.rar"]))
+        #expect(zero?.volumes.isEmpty == true)
+        let disk = ArchiveVolumes.set(for: here.appending(path: "rom.z99999999999999999999"),
+                                      listing: listing(["rom.zip", "rom.z99999999999999999999"]))
+        #expect(disk?.volumes.map(\.lastPathComponent) == ["rom.zip"])
     }
 
     @Test func singleStaysSingle() throws {
@@ -263,6 +281,43 @@ struct ExtractorTests {
         #expect((try? FileManager.default.contentsOfDirectory(atPath: dst.path))?.isEmpty == true)
     }
 
+    @Test func writtenBytesAreHeldToTheLimit() throws {
+        let src = try tempFolder(["game.zip": "x"])
+        let dst = try tempFolder([:])
+        var limits = EntryRouting.Limits()
+        limits.maxBytes = 1000
+        let entries = probe([("game/a", 1, .file), ("game/b", 1, .file), ("game/c", 1, .file)])
+        let extractor = ArchiveExtractor(engine: FakeEngine(probeResult: entries, writes: 800),
+                                         limits: limits, freeBytes: { _ in Int64.max / 4 })
+        #expect(throws: ArchiveError.damaged("archive expands past its limit")) {
+            try extractor.extract(src.appending(path: "game.zip"), to: dst)
+        }
+        #expect((try? FileManager.default.contentsOfDirectory(atPath: dst.path))?.isEmpty == true)
+    }
+
+    @Test func negativeDeclaredSizesDoNotLowerTheTotal() throws {
+        let src = try tempFolder(["game.zip": "x"])
+        let dst = try tempFolder([:])
+        var limits = EntryRouting.Limits()
+        limits.maxBytes = 1000
+        let entries = probe([("game/neg", -1000, .file), ("game/big", 1500, .file)])
+        let extractor = ArchiveExtractor(engine: FakeEngine(probeResult: entries, writes: 1),
+                                         limits: limits, freeBytes: { _ in Int64.max / 4 })
+        #expect(throws: ArchiveError.damaged("archive expands past its limit")) {
+            try extractor.extract(src.appending(path: "game.zip"), to: dst)
+        }
+    }
+
+    @Test func probeHonoursCancellation() throws {
+        let src = try tempFolder(["game.zip": "x"])
+        let extractor = ArchiveExtractor(engine: FakeEngine(probeResult: probe([("f", 1, .file)])),
+                                         freeBytes: { _ in Int64.max / 4 })
+        #expect(throws: CancellationError.self) {
+            try extractor.probe(src.appending(path: "game.zip"), isCancelled: { true })
+        }
+        #expect(try extractor.probe(src.appending(path: "game.zip"), isCancelled: { false }).entries.count == 1)
+    }
+
     @Test func missingVolumeIsNamed() throws {
         let src = try tempFolder(["g.part1.rar": "x", "g.part3.rar": "x"])
         let dst = try tempFolder([:])
@@ -300,6 +355,14 @@ struct LiveArchiveTests {
             #expect(probe.entries.filter { $0.kind == .file }.count == 6)
         }
         #expect(try engine().probe([try fixture("plain.tar")]).format == .tar)
+    }
+
+    @Test(.enabled(if: liveOK)) func probeStopsWhenCancelled() throws {
+        for file in ["plain.tgz", "plain.tar.zst"] {
+            #expect(throws: CancellationError.self) {
+                try engine().probe([try fixture(file)], isCancelled: { true })
+            }
+        }
     }
 
     @Test(.enabled(if: liveOK)) func zip64() throws {

@@ -58,12 +58,8 @@ enum Glass {
     static let fill = Color(light: .init(white: 0, alpha: 0.05), dark: .init(white: 1, alpha: 0.08))
     static let fill2 = Color(light: .init(white: 0, alpha: 0.09), dark: .init(white: 1, alpha: 0.14))
     static let separator = Color(light: .init(white: 0, alpha: 0.08), dark: .init(white: 1, alpha: 0.09))
-    static let label2 = Color(light: .init(srgbRed: 0.235, green: 0.235, blue: 0.263, alpha: 0.66),
-                              dark: .init(srgbRed: 0.922, green: 0.922, blue: 0.961, alpha: 0.62))
-    static let label3 = Color(light: .init(srgbRed: 0.235, green: 0.235, blue: 0.263, alpha: 0.38),
-                              dark: .init(srgbRed: 0.922, green: 0.922, blue: 0.961, alpha: 0.36))
-    static let panelTint = Color(light: .init(white: 1, alpha: 0.30),
-                                 dark: .init(srgbRed: 0.133, green: 0.133, blue: 0.149, alpha: 0.62))
+    static let label2 = Color(nsColor: .secondaryLabelColor)
+    static let label3 = Color(nsColor: .tertiaryLabelColor)
     static let edge = Color(light: .init(white: 0, alpha: 0.08), dark: .init(white: 1, alpha: 0.12))
 }
 
@@ -81,6 +77,7 @@ private struct FloatingPanel: ViewModifier {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var contrast
     var radius: CGFloat
+    var liquid: Bool
 
     func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
@@ -88,10 +85,8 @@ private struct FloatingPanel: ViewModifier {
             if reduceTransparency || contrast == .increased {
                 content.background(Glass.window, in: shape)
                     .overlay { shape.strokeBorder(contrast == .increased ? Glass.label3 : Glass.edge, lineWidth: contrast == .increased ? 1 : 0.5) }
-            } else if #available(macOS 26, *), mode == .liquid {
-                content
-                    .background(Glass.window.opacity(0.28), in: shape)
-                    .glassEffect(.regular.tint(Glass.panelTint), in: shape)
+            } else if #available(macOS 26, *), mode == .liquid, liquid {
+                content.glassEffect(.regular, in: shape)
             } else {
                 content
                     .background(.regularMaterial, in: shape)
@@ -99,7 +94,7 @@ private struct FloatingPanel: ViewModifier {
             }
         }
         .clipShape(shape)
-        .shadow(color: .black.opacity(0.22), radius: 16, y: 8)
+        .shadow(color: .black.opacity(0.10), radius: 8, y: 3)
     }
 }
 
@@ -144,7 +139,7 @@ private struct CapsuleField: ViewModifier {
                 .background(Color(nsColor: .controlBackgroundColor), in: .capsule)
                 .overlay { Capsule().strokeBorder(Glass.edge, lineWidth: 0.5) }
         } else if #available(macOS 26, *), mode == .liquid {
-            content.glassEffect(.regular.tint(Glass.panelTint), in: .capsule)
+            content.glassEffect(.regular, in: .capsule)
         } else {
             content
                 .background(.regularMaterial, in: .capsule)
@@ -170,7 +165,7 @@ struct PillButtonStyle: ButtonStyle {
     }
 }
 
-// The toolbar's round "+": the search capsule's glass in a circle, no hover wash
+// Round actions share the system glass interaction.
 struct RoundGlassStyle: ButtonStyle {
     var size: CGFloat = 34
 
@@ -186,33 +181,33 @@ private struct RoundGlassBody<Label: View>: View {
 
     @Environment(\.glassMode) private var mode
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.accessibilityShowBorders) private var showBorders
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
         let core = label
-            .foregroundStyle(.white)
+            .foregroundStyle(Color.primary)
             .frame(width: size, height: size)
             .contentShape(.circle)
         Group {
-            if reduceTransparency {
+            if reduceTransparency || contrast == .increased {
                 core.background(Color(nsColor: .controlBackgroundColor), in: .circle)
-                    .overlay { Circle().strokeBorder(Glass.edge, lineWidth: 0.5) }
-                    .foregroundStyle(Color.primary)
+                    .overlay { Circle().strokeBorder(Glass.edge, lineWidth: 1) }
             } else if #available(macOS 26, *), mode == .liquid {
-                core.glassEffect(.regular.tint(Glass.panelTint), in: .circle)
+                core.glassEffect(.regular.interactive(isEnabled), in: .circle)
             } else {
                 core.background(.regularMaterial, in: .circle)
-                    .overlay { Circle().strokeBorder(Glass.edge, lineWidth: 0.5) }
+                    .scaleEffect(pressed && !reduceMotion ? 0.96 : 1)
             }
         }
-        .brightness(pressed ? -0.06 : 0)
-        .scaleEffect(pressed ? 0.94 : 1)
+        .overlay { if showBorders { Circle().strokeBorder(Color.primary, lineWidth: 1) } }
         .opacity(isEnabled ? 1 : 0.45)
-        .animation(.spring(duration: 0.2, bounce: 0), value: pressed)
     }
 }
 
-// The panel's Play capsule: tinted glass, 38 pt tall, with the mockup's soft accent glow
+// The panel's primary action keeps a solid fallback for accessibility and older systems.
 struct PlayCapsuleStyle: ButtonStyle {
     var tint: Color = .accentColor
 
@@ -226,27 +221,29 @@ private struct PlayCapsuleBody<Label: View>: View {
     let pressed: Bool
     let tint: Color
 
+    @Environment(\.glassMode) private var mode
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.accessibilityShowBorders) private var showBorders
     @Environment(\.isEnabled) private var isEnabled
 
-    // A solid tint, not tinted glass: glass washes the accent out over a warm backdrop
     var body: some View {
-        label
+        let core = label
             .font(.system(size: 14, weight: .semibold))
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity)
             .frame(height: 38)
-            .background(tint.opacity(0.88), in: .capsule)
-            .overlay {
-                Capsule().strokeBorder(
-                    LinearGradient(colors: [.white.opacity(0.3), .white.opacity(0)], startPoint: .top, endPoint: .center),
-                    lineWidth: 1)
-            }
             .contentShape(.capsule)
-            .shadow(color: tint.opacity(isEnabled ? 0.35 : 0), radius: 9, y: 6)
-            .brightness(pressed ? -0.08 : 0)
-            .scaleEffect(pressed ? 0.97 : 1)
-            .opacity(isEnabled ? 1 : 0.45)
-            .animation(.spring(duration: 0.2, bounce: 0), value: pressed)
+        Group {
+            if #available(macOS 26, *), mode == .liquid, !reduceTransparency, contrast != .increased {
+                core.glassEffect(.regular.tint(tint).interactive(isEnabled), in: .capsule)
+            } else {
+                core.background(tint, in: .capsule)
+                    .brightness(pressed ? -0.08 : 0)
+            }
+        }
+        .overlay { if showBorders { Capsule().strokeBorder(Color.primary, lineWidth: 1) } }
+        .opacity(isEnabled ? 1 : 0.45)
     }
 }
 
@@ -255,13 +252,8 @@ struct RoundFillStyle: ButtonStyle {
     var size: CGFloat = 38
 
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 14, weight: .semibold))
-            .frame(width: size, height: size)
-            .background(Glass.fill2, in: .circle)
-            .contentShape(.circle)
-            .scaleEffect(configuration.isPressed ? 0.94 : 1)
-            .animation(.spring(duration: 0.2, bounce: 0), value: configuration.isPressed)
+        RoundGlassBody(label: configuration.label.font(.system(size: 14, weight: .semibold)),
+                       pressed: configuration.isPressed, size: size)
     }
 }
 
@@ -336,12 +328,27 @@ struct SheetHeader: View {
     }
 }
 
-// Content fades as it scrolls under an edge, and only then; a list that fits neither scrolls nor bounces
+// Use one continuous fade; the macOS 27 toolbar backdrop otherwise adds a hard edge.
 private struct SoftScrollEdges: ViewModifier {
     var top: CGFloat
     var bottom: CGFloat
 
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(macOS 26, *) {
+            content
+                .modifier(ClassicScrollEdges(top: top, bottom: bottom))
+                .scrollEdgeEffectHidden(true, for: [.top, .bottom])
+        } else {
+            content.modifier(ClassicScrollEdges(top: top, bottom: bottom))
+        }
+    }
+}
+
+private struct ClassicScrollEdges: ViewModifier {
+    var top: CGFloat
+    var bottom: CGFloat
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var under = Under()
 
     struct Under: Equatable {
@@ -361,27 +368,14 @@ private struct SoftScrollEdges: ViewModifier {
             }
             .mask {
                 VStack(spacing: 0) {
-                    LinearGradient(colors: [under.top ? .black.opacity(0) : .black, .black], startPoint: .top, endPoint: .bottom)
+                    LinearGradient(colors: [under.top ? .clear : .black, .black], startPoint: .top, endPoint: .bottom)
                         .frame(height: top)
                     Color.black
-                    LinearGradient(colors: [.black, under.bottom ? .black.opacity(0) : .black], startPoint: .top, endPoint: .bottom)
+                    LinearGradient(colors: [.black, under.bottom ? .clear : .black], startPoint: .top, endPoint: .bottom)
                         .frame(height: bottom)
                 }
-                .animation(.easeOut(duration: 0.2), value: under)
+                .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: under)
             }
-            .modifier(SystemSoftEdges(enabled: !reduceTransparency))
-    }
-}
-
-private struct SystemSoftEdges: ViewModifier {
-    let enabled: Bool
-
-    func body(content: Content) -> some View {
-        if #available(macOS 26, *), enabled {
-            content.scrollEdgeEffectStyle(.soft, for: [.top, .bottom])
-        } else {
-            content
-        }
     }
 }
 
@@ -398,7 +392,9 @@ extension ButtonStyle where Self == PillButtonStyle {
 }
 
 extension View {
-    func floatingPanel(radius: CGFloat = Glass.panelRadius) -> some View { modifier(FloatingPanel(radius: radius)) }
+    func floatingPanel(radius: CGFloat = Glass.panelRadius, liquid: Bool = true) -> some View {
+        modifier(FloatingPanel(radius: radius, liquid: liquid))
+    }
 
     func groupBackground(radius: CGFloat = 12, tint: Color? = nil) -> some View {
         modifier(GroupBackground(radius: radius, tint: tint))
@@ -515,7 +511,7 @@ private struct BigCapsuleBody<Label: View>: View {
 // and the control up to the trailing edge; a control too wide for that goes under its label
 struct PanelRow<Control: View>: View {
     let title: Text
-    var labelWidth: CGFloat = 76
+    var labelWidth: CGFloat = 60
     @ViewBuilder let control: () -> Control
 
     var body: some View {

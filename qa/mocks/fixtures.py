@@ -385,7 +385,7 @@ def runners_json():
             },
             {
                 "id": "wine-crossover-26.3.0-1", "kind": "wineBuild", "origin": "cartouche",
-                "name": "Wine CrossOver", "version": "26.3.0-1", "displayVersion": "26.3",
+                "name": "Cartouche Wine", "version": "26.3.0-1", "displayVersion": "26.3",
                 "url": "https://github.com/BRYANN2K/cartouche/releases/download/wine-crossover-26.3.0-1/wine-crossover-26.3.0-1-x86_64.tar.xz",
                 "size": len(crossover), "sha256": _sha(crossover),
                 "root": "wine", "loader": "bin/wine",

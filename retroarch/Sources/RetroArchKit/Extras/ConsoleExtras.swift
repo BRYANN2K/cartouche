@@ -188,9 +188,9 @@ public final class ConsoleExtras {
                     problem = String(localized: "iCloud Drive is off on this Mac. Turn it on in System Settings, then try again.", bundle: .module)
                     return
                 }
-                try await Task.detached { try cloud.turnOn() }.value
+                try await Task.detached { try await cloud.turnOn() }.value
             } else {
-                try await Task.detached { try cloud.turnOff() }.value
+                try await Task.detached { try await cloud.turnOff() }.value
             }
             change { $0.cloudSaves = on }
         } catch {

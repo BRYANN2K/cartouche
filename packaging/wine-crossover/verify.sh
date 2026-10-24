@@ -1,5 +1,5 @@
 #!/bin/sh
-# Checks a packaged Wine CrossOver the way the app will get it: the archive
+# Checks a packaged Cartouche Wine the way the app will get it: the archive
 # matches its .sha256, unpacks into one folder with the notices, depends on
 # nothing outside itself, and its wine runs.
 #

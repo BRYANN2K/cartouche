@@ -1,3 +1,4 @@
+import RetroArchKit
 import SwiftUI
 
 struct GamePanel: View {
@@ -8,6 +9,9 @@ struct GamePanel: View {
 
     @State private var showingDetails = false
     @State private var showingCompare = false
+    @State private var showingMore = false
+    @State private var showingJoin = false
+    @State private var consoleDetails: (id: String, states: [SaveState], bios: BIOSStatus?)?
     @Environment(PerformanceModel.self) private var performance: PerformanceModel?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.activity) private var activity
@@ -15,38 +19,111 @@ struct GamePanel: View {
     @Environment(ControlsCenter.self) private var controls: ControlsCenter?
     @Environment(StoreCenter.self) private var stores: StoreCenter?
     @Environment(ContributionsModel.self) private var contributions: ContributionsModel?
+    @Environment(\.gameVerification) private var verification
 
     private var content: GamePanelContent {
-        GamePanelContent(game: game, compat: compat.panel(appID: game.steamAppID ?? game.compatAppID ?? -1, method: .wine),
-                         setup: model.setup(for: game.id), play: performance?.play(appID: game.steamAppID))
+        GamePanelContent(game: game, compat: compat.panel(appID: game.steamAppID ?? game.compatAppID ?? -1, method: game.version == .mac ? .native : .wine),
+                         setup: model.setup(for: game.id), play: performance?.play(appID: game.steamAppID ?? game.compatAppID))
+    }
+
+    private var launching: Bool { GameMenu.steamLaunching(game, activity: activity) }
+
+    private var running: Bool {
+        GamePanelContent.isRunning(game, store: stores?.playing.contains(game.id) == true,
+                                   local: actions.installs.isPlaying(game),
+                                   steam: GameMenu.steamRunning(game, in: model, activity: activity))
+    }
+
+    private var consoleContent: ConsolePanelContent? {
+        guard let console = game.console, let consoles, let consoleDetails, consoleDetails.id == console.id,
+              let system = consoles.console(of: console) else { return nil }
+        var content = ConsolePanelContent(game: console, console: system, states: consoleDetails.states,
+                                          bios: consoleDetails.bios,
+                                          playing: consoles.isPlaying(console.id) ? consoles.playing : nil,
+                                          route: consoles.route(for: system))
+        content.signedIn = consoles.extras.username != nil
+        content.progress = consoles.extras.progress(for: console)
+        return content
+    }
+
+    private var showsAdvanced: Bool {
+        guard game.console == nil else { return false }
+        let setup = model.resolution(for: game).setup
+        guard setup.version == .windows else { return false }
+        return !AdvancedSupport.options(runner: setup.runner, backend: setup.backend,
+                                       translation: setup.translation, availability: model.backendAvailability).isEmpty
     }
 
     var body: some View {
-        if let console = game.console, let consoles {
-            ConsolePanel(game: game, console: console, center: consoles, model: model, actions: actions)
-        } else {
-            pcBody
+        let content = content
+        ZStack(alignment: .top) {
+            if game.console == nil || consoleContent != nil {
+                scroll(content)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .task(id: game.id) {
+            InstallCenter.shared.refreshBusy(for: [game], in: model.installsFolder)
+            if game.source == .installer { model.refreshExeOptions(for: [game], force: true) }
+            if let appID = game.steamAppID ?? game.compatAppID { await compat.openGame(appID: appID) }
+            await performance?.refresh()
+            await stores?.loadDetails(game)
+            if let console = game.console, let consoles, let system = consoles.console(of: console) {
+                await consoles.refreshEmulators(for: system)
+            }
+        }
+        .task(id: game.console.map { "\($0.id)#\(consoles?.statesChanged ?? 0)" } ?? "") {
+            guard let console = game.console, let consoles else { return }
+            async let states = consoles.states(for: console)
+            async let bios = consoles.bios(for: console)
+            consoleDetails = await (console.id, states, bios)
+        }
+        .task(id: game.console?.id) {
+            guard let console = game.console, let consoles else { return }
+            await consoles.extras.refresh(console)
+        }
+        .sheet(isPresented: $showingDetails) {
+            GameDetailsSheet(content: content, compat: compat, model: model)
+        }
+        .sheet(isPresented: $showingCompare) {
+            if let play = content.play { CompareSetupsSheet(game: game, play: play, model: model) }
+        }
+        .sheet(isPresented: $showingMore) {
+            if let console = game.console, let consoleContent, let consoles {
+                ConsoleMoreSheet(game: console, content: consoleContent, center: consoles)
+            }
+        }
+        .sheet(isPresented: $showingJoin) {
+            if let consoles { NetplayJoinSheet(center: consoles) }
+        }
+        .netplayExplanations(consoles?.netplayFlow)
+        .onChange(of: game.id) {
+            showingMore = false
+            showingJoin = false
         }
     }
 
-    private var pcBody: some View {
-        let content = content
-        return ScrollView {
+    private func scroll(_ content: GamePanelContent) -> some View {
+        ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                if let appID = game.steamAppID ?? game.compatAppID {
-                    GameMediaCarousel(game: game, appID: appID, online: !model.isOffline)
-                } else {
-                    PanelHero(game: game)
-                }
+                panelHero
                 VStack(alignment: .leading, spacing: 0) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(game.name)
+                        HStack(spacing: 8) {
+                            Text(game.name)
                             .font(.system(size: 22, weight: .bold))
                             .tracking(-0.44)
                             .textSelection(.enabled)
-                        Text(content.subtitle())
+                            if game.source == .installer && game.installed {
+                                GameVerificationBadge(game: game)
+                            }
+                        }
+                        Text(consoleContent?.subtitle() ?? content.metadataLine())
                             .font(.system(size: 12))
                             .foregroundStyle(Glass.label2)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                            .help(content.storageLine ?? "")
                         if let notice = content.compat.ageNotice {
                             Text(notice)
                                 .font(.system(size: 11))
@@ -57,8 +134,9 @@ struct GamePanel: View {
                     .padding(.top, 4)
                     .padding(.bottom, 14)
                     if game.source == .installer && game.installed {
-                        GameVerificationRow(game: game)
-                        // A cleaned-up name no match could vouch for: offered, never taken.
+                        if verification?.progress(for: game.id) != nil {
+                            GameVerificationRow(game: game)
+                        }
                         if let suggested = model.nameSuggestions[game.id] {
                             HStack {
                                 Text(String(localized: "Identified as \(suggested)?"))
@@ -72,58 +150,83 @@ struct GamePanel: View {
                             .padding(.bottom, 14)
                         }
                     }
-                    ForEach(content.sections, id: \.self) { section in
-                        block(section, content)
-                    }
-                    if let contributions, contributions.isAvailable {
-                        CommunityBlock(game: game, model: model, compat: compat, contributions: contributions)
-                    }
-                    AdvancedGameRows(game: game, model: model)
-                    if let controls {
-                        group(String(localized: "Controls")) { ControlsRow(game: game, center: controls) }
+                    if let console = game.console, let consoles, let consoleContent {
+                        ConsolePanel(game: game, console: console, content: consoleContent, center: consoles,
+                                     model: model, actions: actions, showingMore: $showingMore, showingJoin: $showingJoin)
+                    } else if game.console == nil {
+                        let modules = content.modules(showsAdvanced: showsAdvanced)
+                        let communityBefore = modules.first { $0 == .advanced || $0 == .controls }
+                        ForEach(modules, id: \.self) { section in
+                            if section == communityBefore, let contributions, contributions.isAvailable {
+                                CommunityBlock(game: game, model: model, compat: compat, contributions: contributions)
+                            }
+                            block(section, content)
+                        }
                     }
                 }
                 .padding(EdgeInsets(top: 6, leading: 16, bottom: 20, trailing: 16))
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .scrollIndicators(.never)
+        // The page grows once saves and art arrive. Keep the title in view, including on that growth.
+        .defaultScrollAnchor(.top, for: .initialOffset)
+        .defaultScrollAnchor(.top, for: .sizeChanges)
         .softScrollEdges(top: 24, bottom: 32)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .id(game.id)
         .transition(.opacity)
-        .task(id: game.id) {
-            InstallCenter.shared.refreshBusy(for: [game], in: model.installsFolder)
-            if let appID = game.steamAppID ?? game.compatAppID { await compat.openGame(appID: appID) }
-            await performance?.refresh()
-        }
-        .sheet(isPresented: $showingDetails) {
-            GameDetailsSheet(content: content, compat: compat, model: model)
-        }
-        .sheet(isPresented: $showingCompare) {
-            if let play = content.play { CompareSetupsSheet(game: game, play: play, model: model) }
+    }
+
+    @ViewBuilder
+    private var panelHero: some View {
+        if let console = game.console {
+            PanelHero(game: game, overlay: LookOverlay(look: console.setup.look))
+                .accessibilityLabel(Text("\(game.name) screenshot"))
+        } else if game.source == .gog {
+            GameMediaCarousel(game: game, appID: Int(game.id.split(separator: ":").last ?? "") ?? 0, online: !model.isOffline)
+        } else if let appID = game.steamAppID ?? game.compatAppID {
+            GameMediaCarousel(game: game, appID: appID, online: !model.isOffline)
+        } else {
+            PanelHero(game: game)
         }
     }
 
     @ViewBuilder
-    private func block(_ section: GamePanelContent.Section, _ content: GamePanelContent) -> some View {
+    private func block(_ section: PanelModule, _ content: GamePanelContent) -> some View {
         switch section {
         case .play:
             if let download = activity.download(for: game) {
                 DownloadBlock(download: download, center: activity)
+            } else if game.source == .steam, !game.installed,
+                      let install = SteamInstallCenter.shared.status, install.game.id == game.id,
+                      install.state != "cancelled" {
+                SteamInstallBlock(status: install) { model.installRequest = game }
             } else if let stores, let boot = stores.boots[game.id] {
                 BootBlock(game: game, boot: boot, stores: stores)
             } else {
+                let running = self.running
                 HStack(spacing: 8) {
                     Button {
-                        actions.perform(game.installed ? .play : .install, on: game)
+                        actions.perform(running ? .stopGame : (game.installed ? .play : .install), on: game)
                     } label: {
-                        Label(content.playLabel, systemImage: game.installed ? "play.fill" : "arrow.down")
+                        if launching {
+                            HStack(spacing: 8) {
+                                ProgressView().controlSize(.small)
+                                Text("Launching…")
+                            }
+                        } else {
+                            Label(content.actionLabel(running: running),
+                                  systemImage: running ? "stop.fill" : (game.installed ? "play.fill" : "arrow.down"))
+                        }
                     }
-                    .buttonStyle(PlayCapsuleStyle())
+                    .buttonStyle(PlayCapsuleStyle(tint: running ? .red : .accentColor))
                     .couchRing(controls?.couch.ringsPlay == true, radius: 19)
-                    .disabled(!game.installed && model.isOffline)
+                    .disabled(launching || (!game.installed && model.isOffline))
                     .help(!game.installed && model.isOffline ? Text("Connect to the internet to download") : Text(verbatim: ""))
                     Menu {
-                        GameMenuContent(items: GameMenu.items(for: game, in: model, stores: stores, consoles: consoles)) { actions.perform($0, on: game) }
+                        GameMenuContent(items: GameMenu.items(for: game, in: model, stores: stores, installs: actions.installs,
+                                                              consoles: consoles, activity: activity)) { actions.perform($0, on: game) }
                     } label: {
                         Image(systemName: "ellipsis")
                     }
@@ -140,6 +243,25 @@ struct GamePanel: View {
                 group(section.title) {
                     YourPlayRows(play: play) { showingCompare = true }
                 }
+            } else if game.installed {
+                group(section.title) {
+                    WeightedHStack(weights: [1.3, 1, 1]) {
+                        StatCell(title: Text("Average"), value: "–")
+                        StatCell(title: Text("1% low"), value: "–")
+                        StatCell(title: Text("Played"), value: "–")
+                    }
+                    Text("No sessions yet")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Glass.label2)
+                }
+            }
+        case .bios, .continueFrom, .playTogether, .more:
+            EmptyView()
+        case .advanced:
+            AdvancedGameRows(game: game, model: model)
+        case .controls:
+            if let controls {
+                group(section.title) { ControlsRow(game: game, center: controls) }
             }
         case .expected:
             group(section.title) {
@@ -173,7 +295,9 @@ struct GamePanel: View {
             }
         case .setup:
             group(section.title) {
-                SetupRows(game: game, model: model, suggestion: content.suggestedBackend)
+                SetupRows(game: game, model: model, suggestion: content.reportedBackend, actions: actions)
+                    .disabled(running || launching)
+                    .help(running ? Text("Stop the game to change its setup.") : Text(verbatim: ""))
             }
         }
     }
@@ -190,9 +314,8 @@ struct PanelHero<Overlay: View>: View {
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: Glass.panelRadius - Glass.inset, style: .continuous)
-        // Steam's hero art is about 3:1; at 172 pt the panel's widths keep it near 2:1, centered on the subject
         Color.clear
-            .frame(height: 172)
+            .aspectRatio(GameMediaStore.aspect, contentMode: .fit)
             .overlay { CoverView(game: game, kind: .hero) }
             .overlay { overlay }
             .clipShape(shape)
@@ -209,7 +332,6 @@ extension PanelHero where Overlay == EmptyView {
     }
 }
 
-// A titled card in the panel: the mockup's .group-h over a .form
 struct PanelGroup<Content: View>: View {
     let title: String
     @ViewBuilder let content: () -> Content
@@ -223,6 +345,29 @@ struct PanelGroup<Content: View>: View {
                 .groupBackground()
         }
         .padding(.bottom, 18)
+    }
+}
+
+// The game's Wine Tools as its menu lists them, one pill each
+struct WineToolsRow: View {
+    let items: [GameMenuItem]
+    let perform: (GameAction) -> Void
+
+    var body: some View {
+        let tools = items.filter { !$0.isDivider }
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 8, alignment: .leading)],
+                  alignment: .leading, spacing: 8) {
+            ForEach(Array(tools.enumerated()), id: \.offset) { _, item in
+                Button(item.title) { item.action.map(perform) }
+                    .buttonStyle(.pill)
+                    .disabled(item.disabled)
+                    .opacity(item.disabled ? 0.45 : 1)
+            }
+        }
+        if tools.contains(where: \.disabled) {
+            Text("Stop the game to change its prefix.")
+                .font(.system(size: 11)).foregroundStyle(Glass.label2)
+        }
     }
 }
 
@@ -264,14 +409,19 @@ struct SetupRows: View {
     let game: Game
     @Bindable var model: LibraryModel
     let suggestion: GraphicsBackend?
+    var actions: GameActionRunner? = nil
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.openSettings) private var openSettings
+    @Environment(RunnersModel.self) private var runnerCatalog: RunnersModel?
+    @Environment(StoreCenter.self) private var stores: StoreCenter?
+    @Environment(\.activity) private var activity
+    @State private var changingRunner = false
 
     var body: some View {
         let setup = model.setup(for: game.id)
         let resolved = model.resolution(for: game).setup
-        let runners = game.source == .installer ? model.installRunners : model.runners.filter(\.isOffered)
+        let runners = game.source == .installer || game.source.isStore ? model.installRunners : model.steamRunners
         VStack(alignment: .leading, spacing: 8) {
             if model.hasMacBuild(game) {
                 PanelRow(title: Text("Run")) {
@@ -300,6 +450,26 @@ struct SetupRows: View {
         .transaction(value: resolved.version) { $0.animation = nil }
     }
 
+    private func chooseRunner(_ id: String) {
+        var choice = model.setup(for: game.id)
+        choice.runnerID = id
+        model.setSetup(choice, for: game.id)
+    }
+
+    private func downloadRunner(_ id: String, catalog: RunnersModel) async {
+        changingRunner = true
+        defer { changingRunner = false }
+        await catalog.perform(.download, on: id)
+        await model.reloadRunners?()
+        let offered = game.source == .steam ? model.steamRunners : model.installRunners
+        guard offered.contains(where: { $0.id == id }) else {
+            model.problem = catalog.message ?? String(localized: "The runner could not be installed.")
+            return
+        }
+        guard !GameMenu.isRunning(game, in: model, stores: stores, activity: activity) else { return }
+        chooseRunner(id)
+    }
+
     // Only pairs this Mac can run are offered: no D3DMetal without a copy of it, no FEX before macOS 26
     @ViewBuilder
     private func windowsRows(_ setup: GameSetupChoice, _ resolved: GameSetup, _ runners: [Runner]) -> some View {
@@ -313,21 +483,42 @@ struct SetupRows: View {
                 }
                 .buttonStyle(.pill)
             } else {
-                Picker("Runner", selection: Binding(
-                    get: { resolved.runner?.id ?? "" },
-                    set: { var s = setup; s.runnerID = $0; model.setSetup(s, for: game.id) }
-                )) {
+                SetupChoiceMenu(title: changingRunner ? String(localized: "Downloading…") :
+                                    resolved.runner.map(RunnerChoices.label) ?? String(localized: "Choose Runner"),
+                                accessibilityTitle: "Runner") {
                     ForEach(runners) { runner in
-                        Text(verbatim: "\(runner.kind.name) \(runner.displayVersion)").tag(runner.id)
+                        Toggle(isOn: Binding(get: { resolved.runner?.id == runner.id },
+                                             set: { if $0 { chooseRunner(runner.id) } })) {
+                            Text(verbatim: RunnerChoices.title(id: runner.id, name: runner.name, version: runner.displayVersion))
+                        }
+                    }
+                    if let catalog = runnerCatalog {
+                        let downloads = RunnerChoices.downloads(manifest: catalog.manifest, installed: model.runners, steam: false)
+                        if !downloads.isEmpty {
+                            Section("Download a Runner") {
+                                ForEach(downloads) { build in
+                                    Button {
+                                        Task { await downloadRunner(build.id, catalog: catalog) }
+                                    } label: {
+                                        Text(verbatim: RunnerChoices.title(id: build.id, name: build.name, version: build.displayVersion))
+                                    }
+                                    .disabled(catalog.busy.contains(build.id) || model.isOffline)
+                                }
+                            }
+                        }
+                    }
+                    Divider()
+                    Button("Manage Runners…") {
+                        SettingsRoute.shared.tab = .compatibility
+                        openSettings()
                     }
                 }
-                .labelsHidden()
-                .fixedSize()
+                .disabled(changingRunner)
             }
         }
         PanelRow(title: Text("Graphics")) {
             GraphicsMenu(selected: resolved.backend ?? backends.first ?? .d3dmetal,
-                         offered: backends) { backend in
+                         offered: backends, controlWidth: SetupMenuLabel.controlWidth) { backend in
                 var s = setup; s.graphics = backend; model.setSetup(s, for: game.id)
             }
             .accessibilityLabel(Text("Graphics"))
@@ -349,13 +540,28 @@ struct SetupRows: View {
                 .labelsHidden()
             }
         }
-        if let suggestion, suggestion != resolved.backend, backends.contains(suggestion), resolved.runner != nil {
+        if let suggestion, let runner = resolved.runner,
+           let action = GamePanelContent.suggestionAction(
+               suggestion, current: resolved.backend, offered: backends,
+               needsToolkit: BackendSupport.needsToolkit(for: runner, translation: resolved.translation,
+                                                         availability: model.backendAvailability)) {
             HStack {
                 Text("Most players use \(suggestion.label)").font(.system(size: 12)).foregroundStyle(Glass.label2)
                 Spacer()
-                Button("Use") { var s = setup; s.graphics = suggestion; model.setSetup(s, for: game.id) }
+                switch action {
+                case .use(let backend):
+                    Button("Use") { var s = setup; s.graphics = backend; model.setSetup(s, for: game.id) }
+                        .buttonStyle(.pill)
+                        .controlSize(.small)
+                case .getD3DMetal:
+                    // The Game Porting Toolkit import lives with the runners
+                    Button("Get D3DMetal…") {
+                        SettingsRoute.shared.tab = .compatibility
+                        openSettings()
+                    }
                     .buttonStyle(.pill)
                     .controlSize(.small)
+                }
             }
         }
     }
@@ -401,5 +607,48 @@ private struct BootBlock: View {
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .groupBackground()
+    }
+}
+
+private struct SteamInstallBlock: View {
+    let status: SteamInstallCenter.Status
+    let retry: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            switch status.state {
+            case "license":
+                Text("License agreements").font(.headline)
+                ForEach(status.licenses) { license in
+                    Link("Read agreement", destination: license.url)
+                }
+                HStack {
+                    Button("Cancel", role: .cancel) { SteamInstallCenter.shared.cancel() }
+                    Button("Accept and Install") { SteamInstallCenter.shared.accept() }
+                        .disabled(status.licenses.isEmpty)
+                }
+            case "failed":
+                Text(status.message ?? String(localized: "Installation failed.")).foregroundStyle(.secondary)
+                Button("Try Again", action: retry)
+            default:
+                HStack(spacing: 8) {
+                    HStack(spacing: 8) {
+                        ProgressView().controlSize(.small)
+                        Text(status.state == "queued" ? "Download queued" : "Preparing installation…")
+                            .font(.system(size: 12, weight: .medium))
+                            .lineLimit(1)
+                    }
+                    .padding(.horizontal, 12)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 38)
+                    .capsuleField()
+                    Button("Cancel", systemImage: "xmark") { SteamInstallCenter.shared.cancel() }
+                        .labelStyle(.iconOnly)
+                        .buttonStyle(RoundFillStyle())
+                        .help(Text("Cancel Installation"))
+                }
+            }
+        }
+        .padding(.bottom, 22)
     }
 }

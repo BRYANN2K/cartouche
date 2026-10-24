@@ -1,4 +1,4 @@
-// Source names and licenses stay as written in the data file.
+// Source names and the data file's licenses stay as written there.
 
 import Foundation
 
@@ -13,15 +13,14 @@ enum CompatibilityCredits {
 
     static let macGamingDB = License(
         source: "MacGamingDB",
-        license: "No data license published",
+        license: String(localized: "No data license published"),
         url: "https://macgamingdb.app",
-        attribution: "Mac reports read live from MacGamingDB (macgamingdb.app) when you open a game. "
-            + "Cartouche keeps them on this Mac only and does not redistribute them."
+        attribution: String(localized: "Mac reports read live from MacGamingDB (macgamingdb.app) when you open a game. Cartouche keeps them on this Mac only and does not redistribute them.")
     )
 
     // MacGamingDB, AppleGamingWiki (CC BY-NC-SA 3.0), ProtonDB (ODbL), AreWeAntiCheatYet (MIT)
     static func credits(_ data: CompatData?) -> [String] {
-        [macGamingDB.source] + (data?.sources.all.map(\.credit) ?? [])
+        [macGamingDB.source] + (data?.sources.all.map(\.credit) ?? ["ProtonDB (ODbL)"]) + ["Heroic MacAnticheatData (MIT)"]
     }
 
     static func sourcesLine(_ data: CompatData?) -> String {

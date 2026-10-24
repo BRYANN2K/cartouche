@@ -43,6 +43,38 @@ struct ConsoleUninstallTests {
         return (srm, state)
     }
 
+    @Test("Saves and states are matched by their exact stem: Dr never takes Dr. Mario's")
+    func exactStem() throws {
+        for name in ["Dr.srm", "Dr.rtc", "Dr.sav"] { #expect(ConsoleUninstall.isSave(name, of: "Dr"), "\(name)") }
+        for name in ["Dr. Mario.srm", "Dr. Mario", "Dr.srm.bak", "Dr.", "Drx.srm"] {
+            #expect(!ConsoleUninstall.isSave(name, of: "Dr"), "\(name)")
+        }
+        for name in ["Dr.state", "Dr.state1", "Dr.state12.png", "Dr.state.auto", "Dr.state.auto.png", "Dr.state.png"] {
+            #expect(ConsoleUninstall.isState(name, of: "Dr"), "\(name)")
+        }
+        for name in ["Dr. Mario.state1", "Dr.state1x", "Dr.statefoo", "Dr.state1.png.bak"] {
+            #expect(!ConsoleUninstall.isState(name, of: "Dr"), "\(name)")
+        }
+
+        let work = try scratchDirectory("exact-stem")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let paths = RetroArchPaths(root: work.appending(path: "cartouche"))
+        let core = "Mesen"
+        var files: [String: URL] = [:]
+        for (key, folder, name) in [("dr-srm", paths.saves, "Dr.srm"), ("mario-srm", paths.saves, "Dr. Mario.srm"),
+                                    ("dr-state", paths.states, "Dr.state2"), ("mario-state", paths.states, "Dr. Mario.state1")] {
+            let url = folder.appending(path: "\(core)/\(name)")
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try Data("x".utf8).write(to: url)
+            files[key] = url.resolvingSymlinksInPath()
+        }
+        let dr = ConsoleGame(console: "nes", name: "Dr", databaseName: nil,
+                             file: work.appending(path: "Dr.nes"), identifiedBy: .chosen)
+        #expect(dr.contentName == "Dr")
+        let found = Set(ConsoleUninstall.saveFiles(for: dr, in: paths).map { $0.resolvingSymlinksInPath() })
+        #expect(found == [files["dr-srm"]!, files["dr-state"]!])
+    }
+
     @Test("A file in the user's folders shows Remove from Library…; a copy in Cartouche's shows Move ROM to Trash…")
     func itemTitle() async throws {
         let scene = try await ConsoleScene("remove-title")

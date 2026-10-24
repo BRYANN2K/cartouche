@@ -70,7 +70,8 @@ public struct EmulatorDetector: Sendable {
             identifier.map { emulator.bundleIDs.contains($0) } ?? false
         }) ?? EmulatorCatalog.all.first(where: { $0.appNames.contains(name) })
         else { return nil }
-        let executableName = info["CFBundleExecutable"] as? String ?? name
+        let executableName = (info["CFBundleExecutable"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+            ?? emulator.executableName
         let executable = app.appending(path: "Contents/MacOS/\(executableName)")
         guard FileManager.default.isExecutableFile(atPath: executable.path(percentEncoded: false)) else { return nil }
         let version = (info["CFBundleShortVersionString"] as? String ?? info["CFBundleVersion"] as? String)

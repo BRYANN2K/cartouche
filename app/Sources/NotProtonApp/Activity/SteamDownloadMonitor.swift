@@ -43,6 +43,7 @@ actor SteamDownloadMonitor {
         snapshot.steamRunning = isSteamRunning()
         if !snapshot.steamRunning {
             snapshot.runningAppID = nil
+            snapshot.launchingAppIDs = []
             snapshot.trackedPIDs = [:]
             for i in snapshot.downloads.indices where snapshot.downloads[i].state == .downloading {
                 snapshot.downloads[i].state = .paused
@@ -57,6 +58,7 @@ actor SteamDownloadMonitor {
 
     static func interval(after snapshot: SteamActivitySnapshot) -> Duration {
         guard snapshot.steamRunning else { return closedInterval }
+        if !snapshot.launchingAppIDs.isEmpty || snapshot.runningAppID != nil { return activeInterval }
         if snapshot.downloads.contains(where: { $0.state == .downloading }) { return activeInterval }
         return snapshot.downloads.isEmpty ? idleInterval : waitingInterval
     }

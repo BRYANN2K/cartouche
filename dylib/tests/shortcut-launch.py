@@ -4,6 +4,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import struct
+import zlib
 
 
 with tempfile.TemporaryDirectory(prefix="np-shortcut-icons-") as temporary:
@@ -48,4 +50,31 @@ with tempfile.TemporaryDirectory(prefix="np-shortcut-icons-") as temporary:
     assert (support / "shortcut-icons/100/game.icns").read_bytes() == b"game art"
     assert not (support / "launchers").exists()
 
-print("shortcut-launch: Steam-made shortcuts get artwork, custom icons and bad arguments are left alone")
+def png(side):
+    def chunk(kind, data):
+        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+    rows = b"".join(b"\0" + b"\x80\x40\x20\xff" * side for _ in range(side))
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", side, side, 8, 6, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(rows)) + chunk(b"IEND", b""))
+
+
+# Bad inputs and unwritable outputs end with status 1 and a message, never a trap
+with tempfile.TemporaryDirectory(prefix="np-iconmaker-") as temporary:
+    root = Path(temporary)
+    iconmaker = str(Path(sys.argv[1]).resolve())
+    image = root / "art.png"
+    image.write_bytes(png(8))
+    (root / "notes.txt").write_text("not an image")
+    blocker = root / "blocker"
+    blocker.write_text("a file where a folder should be")
+    for args in ([str(root / "missing.png"), str(root / "a.icns")],
+                 [str(root / "notes.txt"), str(root / "b.icns")],
+                 [str(image), str(blocker / "c.icns")],
+                 [str(image)]):
+        done = subprocess.run([iconmaker, *args], capture_output=True, text=True, timeout=30)
+        assert done.returncode == 1, (args, done.returncode, done.stderr)
+        assert "iconmaker" in done.stderr
+    assert not list(root.glob("*.iconset"))
+
+
+print("shortcut-launch: Steam-made shortcuts get artwork, custom icons and bad arguments are left alone, iconmaker fails cleanly")

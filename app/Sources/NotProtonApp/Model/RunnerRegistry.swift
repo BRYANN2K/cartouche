@@ -32,7 +32,8 @@ struct RunnerRegistry: Sendable {
         fexAvailable: Bool = CompatTool.Flavor.fexAvailable,
         free: FreeRunnerScan? = nil
     ) -> RunnerRegistry {
-        let installs = CrossOverSource.discover(roots: roots, manual: manual, pins: pins)
+        let installs = CrossOverSource.discover(
+            roots: roots, manual: manual, pins: pins, excluding: [runners, SupportPaths.Steam.compatTools])
         let installed = RunnerStore.installedBuilds(in: runners, pins: pins)
         let problems = RunnerStore.problems(of: installed, runners: runners) {
             RunnerPatcher.verify(build: $0, root: $1, bridge: bridge)

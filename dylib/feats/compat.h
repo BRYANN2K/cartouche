@@ -51,6 +51,10 @@ void *np_compat_user(const void *compat_mgr);
 // insertion point come back unchanged.
 uint32_t np_compat_tool_off(uint32_t reference_off);
 
+// False when the probed layout was refused (it shifted past what a registration
+// buffer holds). Tool entries are then neither read nor written.
+bool np_compat_tool_layout_ok(void);
+
 // Live stride of the manager's tool array.
 size_t np_compat_tool_stride(void);
 
@@ -151,6 +155,10 @@ const char *np_compat_tool_dir(void);
 
 // True when the launch command runs a Cartouche compatibility tool.
 int np_compat_runs_tool(const char *cmd);
+
+// True when `path` is the run script of a Cartouche compatibility tool,
+// .../compatibilitytools.d/cartouche-proton*/run (or /./run), as a process's argv holds it.
+int np_compat_is_tool_run_path(const char *path);
 
 // True when the app is set to run with a Cartouche compatibility tool.
 int np_compat_app_runs_tool(uint32_t appid);

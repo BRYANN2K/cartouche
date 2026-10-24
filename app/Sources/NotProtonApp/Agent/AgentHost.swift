@@ -100,16 +100,16 @@ final class AgentControlModel {
         }
     }
 
-    private func pipe() -> @Sendable (Data) async -> Data {
+    private func pipe() -> @Sendable (Data, MCPPeer) async -> Data {
         let server = server
-        return { data in await server.handle(data: data) }
+        return { data, peer in await server.handle(data: data, peer: peer) }
     }
 
     func start() {
         service.enabled = true
         if socket == nil {
             let helper = MCPSocketServer.bundledHelper()
-            let server = MCPSocketServer(socket: socketURL, handler: pipe()) { path in
+            let server = MCPSocketServer(socket: socketURL, serve: pipe()) { path in
                 path == helper
             }
             do {
@@ -121,7 +121,7 @@ final class AgentControlModel {
             }
         }
         if httpEnabled, http == nil {
-            let server = MCPHTTPServer(token: token, handler: pipe())
+            let server = MCPHTTPServer(token: token, serve: pipe())
             // Ready and failure arrive asynchronously on the listener queue.
             server.onState = { [weak self] state in
                 Task { @MainActor in self?.httpState = state }
@@ -184,15 +184,13 @@ struct AgentHandling: @unchecked Sendable, MCPHandling {
 
     let service: AgentService
     var serverVersion: String { "cartouche-mcp/1" }
-    // Last initialized client, mirrored off-actor so the protocol's sync accessor can read it.
-    private let clientBox = ClientBox()
 
-    var clientName: String { clientBox.name }
-
-    func initialize(client: String) async {
-        clientBox.name = client
-        await MainActor.run { service.clientName = client }
+    // Any same-user process can run the helper and any token holder can call HTTP: the name is the client's own claim.
+    func label(claimed: String, transport: String) -> String {
+        String(localized: "An agent claiming to be “\(claimed)” (\(transport))")
     }
+
+    func initialize(client: String) async {}
 
     func tools(client: String) async -> [MCPToolInfo] {
         await MainActor.run {
@@ -213,17 +211,7 @@ struct AgentHandling: @unchecked Sendable, MCPHandling {
     }
 
     func readResource(_ uri: String, client: String) async throws -> String {
-        try await service.readResource(uri)
-    }
-}
-
-// Off-actor name mirror; levels and approvals are the real boundary - any same-user process could run the bundled helper.
-final class ClientBox: @unchecked Sendable {
-    private var storage = "agent"
-    private let lock = NSLock()
-    var name: String {
-        get { lock.withLock { storage } }
-        set { lock.withLock { storage = newValue } }
+        try await service.readResource(uri, client: client)
     }
 }
 

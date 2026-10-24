@@ -52,7 +52,8 @@ if let plan = DirectUnpack.plan(inno: inno, scan: scan) {
     ]
 }
 
-if let manifest = Checksums.findManifest(in: folder), let parsed = try? Checksums.parse(manifest) {
+if let parsed = Checksums.installerManifest(in: folder) {
+    let manifest = parsed.source
     var m: [String: Any] = ["file": manifest.resolvingSymlinksInPath().path(percentEncoded: false).replacingOccurrences(of: (folder.resolvingSymlinksInPath().path(percentEncoded: false) as NSString).appendingPathComponent(""), with: ""),
                             "entries": parsed.entries.count, "mentionsOptionalParts": parsed.mentionsOptionalParts]
     if args.contains("--verify") {

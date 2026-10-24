@@ -5,6 +5,10 @@ import InstallerKit
 
 struct InstallEngine: Sendable {
 
+    // A Wine process log keeps its head and drops its middle past this size
+    static let outputLimit: Int64 = 32 << 20
+
+    // Where new games go; the library moves it when the user picks another games location
     var installs: URL = GameFolder.installs
     var runners: URL = SupportPaths.runners
     var registry: @Sendable () -> RunnerRegistry = { RunnerRegistry.refresh(free: .standard) }
@@ -20,9 +24,11 @@ struct InstallEngine: Sendable {
     var winetricks: @Sendable (_ verbs: [String], _ prefix: URL, _ wine: WineRunner, _ log: URL) async throws -> InstallRun
         = InstallerWinetricks.run
     var innoextract: @Sendable () -> String? = { Innoextract.path() }
-    var toolRunner: @Sendable () -> any ToolRunning = { ProcessToolRunner(timeout: 900) }
+    var toolRunner: @Sendable () -> any ToolRunning = { CancellableToolRunner(timeout: 900) }
     var unpackerDriver: @Sendable () -> URL? = { InstallPayload.unpackerDriver() }
     var freeSpace: @Sendable (URL) -> Int64? = { Disk.freeBytes(at: $0) }
+    // Dropped archives unpack here; a game imported from it moves into its prefix.
+    var dropStaging: URL = SupportPaths.dropStaging
 
     // The registry's signature checks run codesign, so the list never builds on the caller's actor.
     func runnerIDs() async -> [String] {
@@ -30,19 +36,26 @@ struct InstallEngine: Sendable {
         return await Task.detached { InstallRunners.choices(registry()).map(\.id) }.value
     }
 
-    // reserved: the folders other live jobs own, which this run must not clear or reuse.
     @MainActor
-    func run(_ job: InstallJob, reserved: Set<URL> = []) async {
+    func run(_ job: InstallJob) async {
+        job.stopRequested = false
+        await runAttempt(job)
+        await settle(job)
+    }
+
+    @MainActor
+    private func runAttempt(_ job: InstallJob) async {
         let request = job.request
         let inputs = job.inputs
         job.problem = nil
         job.diagnosis = nil
+        job.directUnpackFailed = false
         job.progress = InstallProgress(expected: request.expectedBytes)
         job.run = nil
         job.bootLog = nil
 
         if let plan = request.importing {
-            await runImport(job, plan, reserved: reserved)
+            await runImport(job, plan)
             return
         }
 
@@ -55,6 +68,11 @@ struct InstallEngine: Sendable {
                     job.fail(String(localized: "\(first) is damaged. Download it again."))
                     return
                 }
+                // A part that cannot be read to the end would stop the unpack halfway: as bad as damaged.
+                if let first = Checksums.unreadable(results).first {
+                    job.fail(String(localized: "\(first) could not be read to the end. Download it again, then drop it here."))
+                    return
+                }
             } catch {
                 stopped(job)
                 return
@@ -62,7 +80,7 @@ struct InstallEngine: Sendable {
         }
         guard !Task.isCancelled else { stopped(job); return }
 
-        guard let made = await makePrefix(job, reserved: reserved) else { return }
+        guard let made = await makePrefix(job) else { return }
         let (folder, wine) = made
         do {
             if inputs.shortSource { try WineInstall.mapSource(request.source, prefix: folder.prefix) }
@@ -105,7 +123,7 @@ struct InstallEngine: Sendable {
         job.phase = .installing
         let launch = WineInstall.runSetup(request.setup, runner: wine, prefix: folder.prefix, inputs: job.inputs, base: environment)
         let journal = ProcessJournal(file: folder.root.appending(path: "processes.log"))
-        let run = InstallRun(launch, output: folder.wineOutput, outputLimit: 32 << 20)
+        let run = InstallRun(launch, output: folder.wineOutput, outputLimit: Self.outputLimit)
         job.run = run
         do { try run.start() } catch {
             job.fail(error.localizedDescription)
@@ -159,11 +177,11 @@ struct InstallEngine: Sendable {
             return
         }
         guard let tool = innoextract() else {
-            job.fail(String(localized: "innoextract is missing, so the installer's helper files could not be read."))
+            directUnpackFailed(job, String(localized: "innoextract is missing, so the installer's helper files could not be read."))
             return
         }
         guard let driver = unpackerDriver() else {
-            job.fail(String(localized: "\(DirectUnpack.driverName) is missing from the app's resources."))
+            directUnpackFailed(job, String(localized: "\(DirectUnpack.driverName) is missing from the app's resources."))
             return
         }
 
@@ -175,7 +193,7 @@ struct InstallEngine: Sendable {
                                     folder: folder, driver: driver, tool: tool)
         } catch {
             if Task.isCancelled { stopped(job); return }
-            job.fail(error.localizedDescription)
+            directUnpackFailed(job, error.localizedDescription)
             return
         }
         guard !Task.isCancelled else { stopped(job); return }
@@ -188,11 +206,11 @@ struct InstallEngine: Sendable {
                 runner: wine, prefix: folder.prefix, inputs: job.inputs, base: environment
             )
             let log = folder.root.appending(path: "unpack-\(index + 1)-\(part.lastPathComponent).log")
-            let run = InstallRun(launch, output: log, outputLimit: 32 << 20)
+            let run = InstallRun(launch, output: log, outputLimit: Self.outputLimit)
             job.run = run
             do { try run.start() } catch {
                 journal?.close()
-                job.fail(error.localizedDescription)
+                directUnpackFailed(job, error.localizedDescription)
                 return
             }
             if keepAwake { Self.keepAwake(while: run.pid) }
@@ -209,8 +227,7 @@ struct InstallEngine: Sendable {
             }
             guard status == 0 else {
                 journal?.close()
-                job.diagnosis = DirectUnpack.diagnose(status: status, log: InstallLog.read(log))
-                job.phase = .failed
+                directUnpackFailed(job, diagnosis: DirectUnpack.diagnose(status: status, log: InstallLog.read(log)))
                 return
             }
         }
@@ -223,8 +240,8 @@ struct InstallEngine: Sendable {
         let sections = folder.root.appending(path: "installer-sections")
         let appTree = sections.appending(path: DirectUnpack.appSection)
         if FileManager.default.fileExists(atPath: appTree.path(percentEncoded: false)) {
-            do { try Self.copyContents(of: appTree, into: installDir) } catch {
-                job.fail(String(localized: "The unpacked files could not be moved into place. \(error.localizedDescription)"))
+            do { try Self.mergeContents(of: appTree, into: installDir) } catch {
+                directUnpackFailed(job, String(localized: "The unpacked files could not be moved into place. \(error.localizedDescription)"))
                 return
             }
         }
@@ -239,12 +256,18 @@ struct InstallEngine: Sendable {
                                folder: GameFolder, driver: URL, tool: String) async throws {
         let sections = folder.root.appending(path: "installer-sections")
         let runner = toolRunner()
-        try await Task.detached {
-            try Innoextract.extract(setup: setup, section: DirectUnpack.helperSection, into: sections, tool: tool, runner: runner)
-            try Innoextract.extract(setup: setup, section: DirectUnpack.appSection, into: sections, tool: tool, runner: runner)
-        }.value
+        // Stop terminates innoextract at once; the attempt's cleanup then runs as for any stop.
+        try await withTaskCancellationHandler {
+            try await Task.detached {
+                try Innoextract.extract(setup: setup, section: DirectUnpack.helperSection, into: sections, tool: tool, runner: runner)
+                try Innoextract.extract(setup: setup, section: DirectUnpack.appSection, into: sections, tool: tool, runner: runner)
+            }.value
+        } onCancel: {
+            (runner as? CancellableToolRunner)?.cancel()
+        }
+        try Task.checkCancellation()
         let helpers = folder.prefix.appending(path: DirectUnpack.helperUnixDir)
-        try Self.copyContents(of: sections.appending(path: DirectUnpack.helperSection), into: helpers)
+        try Self.mergeContents(of: sections.appending(path: DirectUnpack.helperSection), into: helpers)
         // ADR 0025: a native tool may stand in for a shipped helper only on an exact allowlisted
         // hash. The allowlist is empty today, so the shipped Windows helpers always run.
         let staged = (try? FileManager.default.contentsOfDirectory(at: helpers, includingPropertiesForKeys: nil)) ?? []
@@ -261,15 +284,35 @@ struct InstallEngine: Sendable {
         }
     }
 
-    // Moves every top-level entry into the destination, replacing same-named items.
-    private static func copyContents(of source: URL, into dest: URL) throws {
+    // Copies the tree over the destination: folders on both sides merge, only same-named files are replaced.
+    static func mergeContents(of source: URL, into dest: URL) throws {
         let fm = FileManager.default
         try fm.createDirectory(at: dest, withIntermediateDirectories: true)
         for item in try fm.contentsOfDirectory(atPath: source.path(percentEncoded: false)) {
-            let to = dest.appending(path: item)
-            if fm.fileExists(atPath: to.path(percentEncoded: false)) { try fm.removeItem(at: to) }
-            try fm.copyItem(at: source.appending(path: item), to: to)
+            let from = source.appending(path: item), to = dest.appending(path: item)
+            if isFolder(from), isFolder(to) {
+                try mergeContents(of: from, into: to)
+                continue
+            }
+            if (try? fm.attributesOfItem(atPath: to.path(percentEncoded: false))) != nil { try fm.removeItem(at: to) }
+            try fm.copyItem(at: from, to: to)
         }
+    }
+
+    private static func isFolder(_ url: URL) -> Bool {
+        let values = try? url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
+        return values?.isDirectory == true && values?.isSymbolicLink != true
+    }
+
+    // Direct unpacking could not run or did not finish: the job fails with the reason, and any
+    // retry runs the original setup under Wine with its own helpers (InstallCenter.useStandardMethod).
+    @MainActor
+    private func directUnpackFailed(_ job: InstallJob, _ problem: String? = nil, diagnosis: InstallDiagnosis? = nil) {
+        let note = String(localized: "Unpacking directly did not work. A retry runs the original setup under Wine, with its own helpers.")
+        AppLog.note("installer: direct unpack of \(job.title) failed: \(problem ?? diagnosis?.detail ?? "no detail"); a retry runs setup")
+        job.directUnpackFailed = true
+        job.diagnosis = diagnosis
+        job.fail(problem.map { $0 + " " + note } ?? note)
     }
 
     private func killPrefix(_ wine: WineRunner, prefix: URL) async {
@@ -300,6 +343,7 @@ struct InstallEngine: Sendable {
             manifestRel = GameVerify.relative(url, under: installDir)
         }
         let files = await scriptFiles(for: job)
+        guard !Task.isCancelled else { stopped(job); return false }
 
         if let manifest {
             job.phase = .verifying
@@ -357,9 +401,13 @@ struct InstallEngine: Sendable {
     private func scriptFiles(for job: InstallJob) async -> [VerificationFile] {
         guard job.request.importing == nil else { return [] }
         let setup = job.request.setup, tool = innoextract(), runner = toolRunner()
-        let entries = try? await Task.detached { () throws -> [InnoFileEntry] in
-            try InnoInspector.listSizes(setup, tool: tool, runner: runner)
-        }.value
+        let entries = try? await withTaskCancellationHandler {
+            try await Task.detached { () throws -> [InnoFileEntry] in
+                try GameVerify.scriptEntries(setup, tool: tool, runner: runner)
+            }.value
+        } onCancel: {
+            (runner as? CancellableToolRunner)?.cancel()
+        }
         return GameVerify.installedFiles(from: entries ?? [])
     }
 
@@ -367,6 +415,13 @@ struct InstallEngine: Sendable {
     // not-verified outcome and the mismatched files land in the folder's log.
     @MainActor
     func resumeAfterMismatch(_ job: InstallJob) async {
+        job.stopRequested = false
+        await resumeAttempt(job)
+        await settle(job)
+    }
+
+    @MainActor
+    private func resumeAttempt(_ job: InstallJob) async {
         guard job.phase == .failed, let outcome = job.verification, !outcome.mismatched.isEmpty,
               let folder = job.folder, let installDir = job.verificationDir else { return }
         let load = registry
@@ -384,7 +439,8 @@ struct InstallEngine: Sendable {
         for file in outcome.mismatched { AppLog.note("verification: mismatch \(file)") }
         job.phase = .redistributables
         if let plan = job.request.importing {
-            let exe = plan.copy ? GameCopy.rebase(plan.exe, from: plan.folder, to: installDir) : plan.exe
+            let exe = plan.copy || StagedGames.isStaged(plan.folder, staging: dropStaging)
+                ? GameCopy.rebase(plan.exe, from: plan.folder, to: installDir) : plan.exe
             guard await installRedistributables(job, exe: exe, folder: folder, wine: wine) else { return }
             job.progress.fraction = 1
             do {
@@ -401,9 +457,14 @@ struct InstallEngine: Sendable {
     // they need, and on to the launcher's choice step.
     @MainActor
     private func finishScan(_ job: InstallJob, in installDir: URL, folder: GameFolder, wine: WineRunner) async {
-        let gog = GOGInfo.find(in: installDir)
-        let primary = gog.flatMap { found in found.info.primaryExe.map { found.url.deletingLastPathComponent().appending(path: $0) } }
-        let scan = ExeDetector.scan(installFolder: installDir, prefix: folder.prefix, primary: primary)
+        let prefix = folder.prefix
+        // Both walk the unpacked tree, thousands of stats: never on the main actor.
+        let scan = await Task.detached {
+            let gog = GOGInfo.find(in: installDir)
+            let primary = gog.flatMap { found in found.info.primaryExe.map { found.url.deletingLastPathComponent().appending(path: $0) } }
+            return ExeDetector.scan(installFolder: installDir, prefix: prefix, primary: primary)
+        }.value
+        guard !Task.isCancelled else { stopped(job); return }
         job.installFolder = scan.installFolder
         job.candidates = scan.candidates
 
@@ -414,23 +475,27 @@ struct InstallEngine: Sendable {
 
     // An installed game: a fresh prefix, the files copied or left where they are, its runtimes, then the record.
     @MainActor
-    private func runImport(_ job: InstallJob, _ plan: GameImport, reserved: Set<URL>) async {
-        guard let made = await makePrefix(job, reserved: reserved) else { return }
+    private func runImport(_ job: InstallJob, _ plan: GameImport) async {
+        guard let made = await makePrefix(job) else { return }
         let (folder, wine) = made
         guard !Task.isCancelled else { stopped(job); return }
         var game = plan.folder, exe = plan.exe
-        if plan.copy {
+        // An extracted archive is never used from Caches: in place or copied, it moves into the prefix.
+        let staged = StagedGames.isStaged(plan.folder, staging: dropStaging)
+        if plan.copy || staged {
             job.phase = .installing
-            let target = WinePath.unix(InstallInputs(runnerID: "", gameName: job.request.name).installDir, prefix: folder.prefix)
-                ?? folder.prefix.appending(path: "drive_c/Games/Game")
-            do {
-                job.progress.bytes = try await GameCopy.copy(plan.folder, to: target) { bytes in
-                    Task { @MainActor in
-                        guard job.phase == .installing else { return }
-                        job.progress.bytes = bytes
-                        job.progress.fraction = min(1, Double(bytes) / Double(max(1, job.request.expectedBytes)))
-                    }
+            let target = StagedGames.home(for: job.request.name, prefix: folder.prefix)
+            let report: @Sendable (Int64) -> Void = { bytes in
+                Task { @MainActor in
+                    guard job.phase == .installing else { return }
+                    job.progress.bytes = bytes
+                    job.progress.fraction = min(1, Double(bytes) / Double(max(1, job.request.expectedBytes)))
                 }
+            }
+            do {
+                job.progress.bytes = try await staged
+                    ? GameMove.relocate(plan.folder, to: target, freeSpace: freeSpace, progress: report)
+                    : GameCopy.copy(plan.folder, to: target, progress: report)
             } catch {
                 if Task.isCancelled { stopped(job); return }
                 job.fail(String(localized: "Copying \(job.request.name) failed. \(error.localizedDescription)"))
@@ -448,11 +513,16 @@ struct InstallEngine: Sendable {
             job.steamOutcome = try await finish(job, exe: exe, showInSteam: plan.showInSteam)
         } catch {
             job.fail(error.localizedDescription)
+            return
+        }
+        if staged {
+            let source = plan.folder, staging = dropStaging
+            await Task.detached { StagedGames.discard(source, staging: staging) }.value
         }
     }
 
     @MainActor
-    private func makePrefix(_ job: InstallJob, reserved: Set<URL>) async -> (GameFolder, WineRunner)? {
+    private func makePrefix(_ job: InstallJob) async -> (GameFolder, WineRunner)? {
         job.phase = .preparing
         // Refreshing the registry checks codesignatures: the probes wait on processes, so they run detached.
         let load = registry
@@ -464,7 +534,7 @@ struct InstallEngine: Sendable {
         }
         job.inputs.runnerID = runner.id
         do {
-            let folder = try GameFolder.fresh(for: job.request.name, in: installs, reserved: reserved)
+            let folder = try GameFolder.fresh(for: job.request.name, in: installs, held: job.heldFolders)
             job.folder = folder
             // Preparing Windows environment: wineboot -u, then wineserver -w, shared if asked twice.
             let boot = WineBootstrap.begin(wine: wine, prefix: folder.prefix, base: environment,
@@ -502,15 +572,18 @@ struct InstallEngine: Sendable {
     // An installed game's needs come from its own programs' imports, never from its redist folders.
     @MainActor
     private func installRedistributables(_ job: InstallJob, exe: URL, folder: GameFolder, wine: WineRunner) async -> Bool {
-        await installRedistributables(job, steps: RuntimeScan.scan(exe: exe).steps, folder: folder, wine: wine)
+        let steps = await Task.detached { RuntimeScan.scan(exe: exe).steps }.value
+        return await installRedistributables(job, steps: steps, folder: folder, wine: wine)
     }
 
     // The bundled runtime installers found after a setup ran; .NET is left out because Wine Mono covers it.
     @MainActor
     private func installRedistributables(_ job: InstallJob, in game: URL, folder: GameFolder, wine: WineRunner) async -> Bool {
-        var seen: Set<String> = []
-        let steps = Redistributables.find(in: game).filter { $0.family != .dotNet }
-            .compactMap { seen.insert($0.verb).inserted ? RuntimeStep(verb: $0.verb, label: $0.label) : nil }
+        let steps = await Task.detached {
+            var seen: Set<String> = []
+            return Redistributables.find(in: game).filter { $0.family != .dotNet }
+                .compactMap { seen.insert($0.verb).inserted ? RuntimeStep(verb: $0.verb, label: $0.label) : nil }
+        }.value
         return await installRedistributables(job, steps: steps, folder: folder, wine: wine)
     }
 
@@ -605,7 +678,7 @@ struct InstallEngine: Sendable {
                                               availability: backendAvailability(registry, runners))
         let backend = setupDefaults().graphics.flatMap { offered.contains($0) ? $0 : nil } ?? offered.first ?? .wined3d
         SetupEnvironment.prepare(backend, prefix: folder.prefix)
-        try GameLauncher.write(exe: exe, folder: folder, wine: wine, backend: backend)
+        try GameLauncher.write(exe: exe, folder: folder, wine: wine, backend: backend, runners: runners)
         var game = InstalledGame(
             id: folder.root.lastPathComponent, name: request.name, appID: request.appID, gogID: request.gogID,
             runnerID: inputs.runnerID, graphics: backend.rawValue,
@@ -614,7 +687,9 @@ struct InstallEngine: Sendable {
             exe: exe.path(percentEncoded: false), installedAt: Date(),
             installerFolder: request.source.path(percentEncoded: false),
             redistributables: runtimeSteps.filter { $0.status == .installed }.map(\.verb),
-            gameFolder: request.importing.flatMap { $0.copy ? nil : $0.folder.path(percentEncoded: false) },
+            gameFolder: request.importing.flatMap {
+                $0.copy || StagedGames.isStaged($0.folder, staging: dropStaging) ? nil : $0.folder.path(percentEncoded: false)
+            },
             verification: verification
         )
         var outcome: SteamShortcuts.Outcome?
@@ -635,10 +710,53 @@ struct InstallEngine: Sendable {
 
     @MainActor
     private func stopped(_ job: InstallJob) {
-        job.phase = .stopped
-        if let folder = job.folder, !folder.isFinished,
-           FileManager.default.fileExists(atPath: folder.attempt.path(percentEncoded: false)) {
-            try? FileManager.default.removeItem(at: folder.root)
+        job.stopRequested = true
+    }
+
+    // A stopped or cancelled attempt ends once its Wine session is gone and its folder removed, so a retry starts clean.
+    @MainActor
+    private func settle(_ job: InstallJob) async {
+        guard job.phase != .ready, Task.isCancelled || job.stopRequested else { return }
+        await discard(job)
+    }
+
+    // Every path that ends an attempt stopped waits on the same cleanup, so it runs once.
+    @MainActor
+    func discard(_ job: InstallJob) async {
+        if let running = job.cleanup {
+            await running.value
+            return
+        }
+        let cleanup = Task { await removeAttempt(job) }
+        job.cleanup = cleanup
+        await cleanup.value
+        job.cleanup = nil
+    }
+
+    // wineserver -k on this prefix first, so nothing writes into the folder once it is gone.
+    // Only a folder Cartouche marked as an unfinished attempt is removed.
+    @MainActor
+    private func removeAttempt(_ job: InstallJob) async {
+        guard let folder = job.folder else {
+            job.phase = .stopped
+            return
+        }
+        let load = registry, runners = runners, environment = environment, runnerID = job.inputs.runnerID
+        do {
+            try await Task.detached {
+                guard !folder.isFinished else { return }
+                if let runner = load().runner(id: runnerID),
+                   let wine = InstallRunners.wine(for: runner, runners: runners) {
+                    let env = WineInstall.environment(runner: wine, prefix: folder.prefix, inputs: nil, base: environment)
+                    await WineServer.kill(server: wine.server, env: env)
+                }
+                if folder.isUnfinishedAttempt { try FileManager.default.removeItem(at: folder.root) }
+            }.value
+            job.folder = nil
+            job.run = nil
+            job.phase = .stopped
+        } catch {
+            job.fail(error.localizedDescription)
         }
     }
 

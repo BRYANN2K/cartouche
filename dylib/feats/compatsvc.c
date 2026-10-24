@@ -7,6 +7,7 @@
 #include "webui.h"
 #include "../resolver/anchor.h"
 #include "../util/log.h"
+#include "../util/ptr.h"
 
 // Route names carry the interface version the page asks for.
 #define ROUTE_GET_COMPAT_TOOLS     "CompatManager.GetCompatTools#1"
@@ -139,6 +140,10 @@ static const char *tool_name(const void *tool) {
 }
 
 static int get_compat_tools(uintptr_t request, uintptr_t response) {
+    if (!np_plausible_ptr(request)) {
+        NP_ERR("compatsvc: a tools request at 0x%lx is no message", (unsigned long)request);
+        return RESULT_FAIL;
+    }
     uint32_t has_bits = *(const uint32_t *)(request + REQ_HAS_BITS_OFF);
     uint32_t appid    = (has_bits & REQ_HAS_APPID)
                       ? *(const uint32_t *)(request + REQ_APPID_OFF) : 0;
@@ -150,6 +155,12 @@ static int get_compat_tools(uintptr_t request, uintptr_t response) {
         NP_WARN("compatsvc: app %u asked for tools before any manager was seen, so "
                 "the page gets an empty list", appid);
         return RESULT_OK;
+    }
+
+    if (!np_compat_tool_layout_ok()) {
+        NP_ERR("compatsvc: the client's tool layout was refused, so app %u gets no list",
+               appid);
+        return RESULT_FAIL;
     }
 
     const uint8_t *array = *(const uint8_t **)(mgr + COMPAT_MANAGER_TOOL_ARRAY_OFF);
@@ -261,22 +272,46 @@ done:
     return result;
 }
 
-// Reads a protobuf string field.
+// Longest tool name a specify request may carry.
+#define TOOL_NAME_MAX 256
+
+// Reads a protobuf string field: a libc++ std::string behind an arena-tagged pointer
+// (bit 0). Byte 23 is the short size, or has its top bit set for the long form
+// {data, size, cap}. NULL when the field does not look like that.
 static const char *string_field(uintptr_t field) {
+    if (!np_plausible_ptr(field)) return NULL;
     uintptr_t str = *(const uintptr_t *)field & ~(uintptr_t)1;
     if (!str) return "";
+    if (!np_plausible_ptr(str)) return NULL;
 
-    const int8_t *bytes = (const int8_t *)str;
-    return bytes[23] < 0 ? *(const char *const *)str : (const char *)str;
+    const uint8_t *bytes = (const uint8_t *)str;
+    if (!(bytes[23] & 0x80)) {
+        if (bytes[23] > 22 || bytes[bytes[23]] != '\0') return NULL;
+        return (const char *)str;
+    }
+    const char *data = *(const char *const *)str;
+    size_t len = *(const size_t *)(str + 8);
+    if (!np_plausible_addr((uintptr_t)data) || len > TOOL_NAME_MAX || data[len] != '\0')
+        return NULL;
+    return data;
 }
 
 // The page takes the result code as the answer and refetches the tool list.
 static int specify_compat_tool(uintptr_t request, uintptr_t response) {
+    (void)response;
+    if (!np_plausible_ptr(request)) {
+        NP_ERR("compatsvc: a specify request at 0x%lx is no message", (unsigned long)request);
+        return RESULT_FAIL;
+    }
     uint32_t has_bits = *(const uint32_t *)(request + REQ_HAS_BITS_OFF);
     uint32_t appid    = (has_bits & SPECIFY_HAS_APPID)
                       ? *(const uint32_t *)(request + SPECIFY_APPID_OFF) : 0;
     const char *tool  = string_field(request + SPECIFY_TOOL_NAME_OFF);
-    (void)response;
+    if (!tool) {
+        NP_ERR("compatsvc: the tool name asked for app %u is not a string this reads",
+               appid);
+        return RESULT_FAIL;
+    }
 
     uint8_t *mgr = (uint8_t *)np_compat_manager();
     if (!mgr) {
@@ -315,7 +350,12 @@ void np_compatsvc_register(const struct mach_header_64 *mh, intptr_t slide,
         return;
     }
 
-    np_webui_register_route(ROUTE_GET_COMPAT_TOOLS, request, response, get_compat_tools);
+    if (!np_webui_register_route(ROUTE_GET_COMPAT_TOOLS, request, response,
+                                 get_compat_tools)) {
+        g_routes = NP_COMPATSVC_ABSENT;
+        NP_ERR("compatsvc: %s could not be served", ROUTE_GET_COMPAT_TOOLS);
+        return;
+    }
 
     uintptr_t specify_request  = np_rtti_vptr(mh, slide, text_base, text_size,
                                               TYPE_SPECIFY_REQUEST);
@@ -330,8 +370,12 @@ void np_compatsvc_register(const struct mach_header_64 *mh, intptr_t slide,
         return;
     }
 
-    np_webui_register_route(ROUTE_SPECIFY_COMPAT_TOOL, specify_request,
-                            specify_response, specify_compat_tool);
+    if (!np_webui_register_route(ROUTE_SPECIFY_COMPAT_TOOL, specify_request,
+                                 specify_response, specify_compat_tool)) {
+        g_routes = NP_COMPATSVC_ABSENT;
+        NP_ERR("compatsvc: %s could not be served", ROUTE_SPECIFY_COMPAT_TOOL);
+        return;
+    }
 
     g_routes = NP_COMPATSVC_READY;
 

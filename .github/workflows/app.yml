@@ -20,9 +20,14 @@ env:
 jobs:
   build:
     name: full app build
-    # The MACOS_RUNNER and XCODE_APP repository variables can point at another image
-    runs-on: ${{ vars.MACOS_RUNNER || 'xcode-27' }}
-    timeout-minutes: 30
+    # The MACOS_RUNNER and XCODE_APP repository variables can point at another image,
+    # or at a self-hosted Mac: MACOS_RUNNER takes one label or a JSON list such as
+    # ["self-hosted", "macOS"], XCODE_APP the Xcode there (xcode-select runs with sudo).
+    # Unset, the job runs on the xcode-27 image as before.
+    runs-on: ${{ startsWith(vars.MACOS_RUNNER, '[') && fromJSON(vars.MACOS_RUNNER) || vars.MACOS_RUNNER || 'xcode-27' }}
+    # A cold run builds Boost, xz, zstd and libarchive from source; the caches below
+    # keep later runs well under this.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -37,6 +42,10 @@ jobs:
 
       - name: Install cross compilers
         run: brew install mingw-w64 bison flex
+
+      # Dobby, innoextract and libarchive build with cmake
+      - name: Install cmake
+        run: command -v cmake >/dev/null || brew install cmake
 
       - name: Clone Dobby at the pinned commit
         run: |
@@ -82,10 +91,47 @@ jobs:
       - name: Build the bridge
         run: make bridge
 
+      # The caches hold the built outputs, keyed on their pins and build scripts, and
+      # are saved right after the build so a later failing step does not lose them.
+      # A restore predates the checkout, so touch it or make would rebuild it.
+      - name: Restore innoextract build cache
+        id: innoextract-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: out/innoextract
+          key: innoextract-xcode-27-${{ runner.arch }}-${{ hashFiles('installer/innoextract/pins', 'installer/innoextract/build.sh') }}
+
+      # build.sh builds Boost and xz from the pinned sources, not Homebrew's
       - name: Build innoextract
         run: |
-          brew install boost xz
+          if [ "${{ steps.innoextract-cache.outputs.cache-hit }}" = true ]; then touch out/innoextract; fi
           make innoextract
+
+      - name: Save innoextract build cache
+        if: steps.innoextract-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: out/innoextract
+          key: innoextract-xcode-27-${{ runner.arch }}-${{ hashFiles('installer/innoextract/pins', 'installer/innoextract/build.sh') }}
+
+      - name: Restore libarchive build cache
+        id: libarchive-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: out/libarchive.dylib
+          key: libarchive-xcode-27-${{ runner.arch }}-${{ hashFiles('installer/libarchive/pins', 'installer/libarchive/build.sh') }}
+
+      - name: Build libarchive
+        run: |
+          if [ "${{ steps.libarchive-cache.outputs.cache-hit }}" = true ]; then touch out/libarchive.dylib; fi
+          make libarchive
+
+      - name: Save libarchive build cache
+        if: steps.libarchive-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: out/libarchive.dylib
+          key: libarchive-xcode-27-${{ runner.arch }}-${{ hashFiles('installer/libarchive/pins', 'installer/libarchive/build.sh') }}
 
       - name: Save the Wine trees
         if: steps.wine-cache.outputs.cache-hit != 'true'
@@ -97,7 +143,19 @@ jobs:
             scratch/wine-build-arm64
           key: wine-xcode-27-${{ hashFiles('bridge/setup-wine-tree.sh', 'bridge/register-components.diff') }}
 
+      # fonts/build.sh skips the build when build/fonts.stamp matches fonts/;
+      # the workflow hash covers the pinned FONT_TOOLS
+      - name: Restore fonts build cache
+        id: fonts-cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            build/fonts
+            build/fonts.stamp
+          key: fonts-${{ hashFiles('fonts/**') }}-${{ hashFiles('.github/workflows/app.yml') }}
+
       - name: Install font tools
+        if: steps.fonts-cache.outputs.cache-hit != 'true'
         run: |
           brew install fontforge gpatch
           python3 -m venv scratch/fontvenv
@@ -131,6 +189,9 @@ jobs:
           make -s compatcheck
           make -s fps-counter-tests
           make -s compatsvc-check
+          make -s libexport-check
+          make -s services-check
+          make -s webuicheck
           make -s shortcutcheck
           make -s launch-shell
           make -s envcheck

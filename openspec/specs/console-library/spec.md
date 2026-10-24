@@ -55,7 +55,7 @@ Console games SHALL show box art, title screen and screenshot from libretro-thum
 - **THEN** the same covers still show
 
 ### Requirement: Console game panel
-The panel SHALL show Play or Resume, Continue From with the pictures RetroArch saved with each state, play time, achievement count, Setup (core, look, input lag, Hardcore, disc for multi-disc games), Controls, and a BIOS warning when one is missing; other options SHALL be behind More….
+A console game SHALL use the same panel chrome as a PC game (ADR 0037). For RetroArch the order is Play, BIOS when firmware is missing, Continue From when a save state exists, Setup (core, look, input lag, Hardcore, disc for multi-disc games), Your Play (play time and achievements), Controls, Play Together, then More… for the rest. Continue From SHALL show the pictures RetroArch saved with each state. A standalone emulator SHALL omit BIOS, Continue From and Play Together.
 
 #### Scenario: Resume from a state
 - **WHEN** the user clicks the Slot 3 picture under Continue From

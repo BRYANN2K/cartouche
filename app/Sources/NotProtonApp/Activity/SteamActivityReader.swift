@@ -6,6 +6,7 @@ struct SteamActivitySnapshot: Equatable, Sendable {
     var downloads: [DownloadActivity] = []
     var installed: Set<Int> = []
     var runningAppID: Int?
+    var launchingAppIDs: Set<Int> = []
     // Live state, not file state: the monitor fills it, so reads straight off disk assume Steam runs
     var steamRunning = true
     // The processes Steam tracks for the running game, each with the time Steam logged it, still alive and still tracing back to the game
@@ -27,10 +28,13 @@ struct SteamActivityReader: Sendable {
     }
 
     var files = SteamLocalFiles()
+    var steamStartedAt: @Sendable () -> Date? = GameProcesses.steamStartedAt
 
     var contentLog: URL { files.userData.appending(path: "logs/content_log.txt") }
     var registry: URL { files.userData.appending(path: "registry.vdf") }
     var processLog: URL { files.userData.appending(path: "logs/gameprocess_log.txt") }
+
+    var consoleLog: URL { files.userData.appending(path: "logs/console_log.txt") }
 
     func read() -> SteamActivitySnapshot {
         var snapshot = SteamActivitySnapshot()
@@ -52,7 +56,8 @@ struct SteamActivityReader: Sendable {
         var tracked: [Int: [pid_t: Date]] = [:]
         for (appID, pids) in GameProcesses.tracked(inLog: Self.tail(of: processLog)) {
             let folder = files.installFolder(appID: appID).map { GameProcesses.folderPrefix($0) }
-            let trusted = pids.filter { pid, added in GameProcesses.trusted(pid, added: added, folder: folder) }
+            let prefix = files.compatPrefix(appID: appID)?.pfx
+            let trusted = pids.filter { pid, added in GameProcesses.trusted(pid, added: added, folder: folder, winePrefix: prefix) }
             if !trusted.isEmpty { tracked[appID] = trusted }
         }
         if let (appID, pids) = tracked.min(by: { $0.key < $1.key }) {
@@ -61,7 +66,32 @@ struct SteamActivityReader: Sendable {
         } else if let running = runningFromRegistry() {
             snapshot.runningAppID = running
         }
+        if let started = steamStartedAt() {
+            snapshot.launchingAppIDs = Self.launches(Self.tail(of: consoleLog), since: started)
+            if let running = snapshot.runningAppID { snapshot.launchingAppIDs.remove(running) }
+        }
         return snapshot
+    }
+
+    static func launches(_ text: String, since started: Date) -> Set<Int> {
+        var pending: [Int: Int] = [:]
+        for line in text.split(separator: "\n") {
+            guard let stamp = GameProcesses.logStamp(line), stamp >= started.addingTimeInterval(-1),
+                  let marker = line.range(of: "GameAction [AppID "),
+                  let end = line[marker.upperBound...].firstIndex(of: "]") else { continue }
+            let fields = line[marker.upperBound..<end].components(separatedBy: ", ActionID ")
+            guard fields.count == 2, let appID = Int(fields[0]), let action = Int(fields[1]) else { continue }
+            let event = line[line.index(after: end)...].lowercased()
+            guard event.contains("launchapp") else { continue }
+            let finished = event.contains("changed task to completed") || event.contains("failed")
+                || event.contains("canceled") || event.contains("cancelled") || event.contains("aborted")
+            if finished {
+                if pending[appID] == action { pending[appID] = nil }
+            } else if event.contains("changed task to") || event.contains("waiting for user response") {
+                if action >= (pending[appID] ?? -1) { pending[appID] = action }
+            }
+        }
+        return Set(pending.keys)
     }
 
     static func download(appID: Int, name: String, state: VDF, log: LogState?) -> DownloadActivity? {

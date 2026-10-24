@@ -147,12 +147,7 @@ extension ConsoleCenter {
         self.found = counts
         folderCounts = perFolder
         if !new.isEmpty {
-            do {
-                try await store.add(new)
-            } catch {
-                problem = error.localizedDescription
-            }
-            await reload()
+            await addGames(new)
         }
         return busy
     }

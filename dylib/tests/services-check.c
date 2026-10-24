@@ -51,14 +51,19 @@ uintptr_t np_webui_new_message(uintptr_t vptr) {
 // Every type resolves, so both services find their message vtables.
 uintptr_t np_rtti_vptr(const struct mach_header_64 *mh, intptr_t slide,
                        uintptr_t text_base, size_t text_size, const char *name) {
-    (void)mh; (void)slide; (void)text_base; (void)text_size; (void)name;
-    return 1;
+    (void)mh; (void)slide; (void)text_base; (void)text_size;
+    static char types[24][100];
+    static int count;
+    for (int i = 0; i < count; i++) if (!strcmp(types[i], name)) return (uintptr_t)(i + 1);
+    snprintf(types[count], sizeof types[0], "%s", name);
+    return (uintptr_t)++count;
 }
 
 // Compat layer: only reached once a route handler runs, which this check does not do.
 void *np_compat_manager(void) { return NULL; }
 uint32_t np_compat_tool_off(uint32_t ref) { return ref; }
 size_t np_compat_tool_stride(void) { return 0x130; }
+bool np_compat_tool_layout_ok(void) { return true; }
 uint32_t np_compat_enabled_off(void) { return 0x7B0; }
 uint32_t np_compat_manager_tools_max(void) { return 40; }
 uint32_t np_compat_valid_platforms(void *mgr, uint32_t appid) {
@@ -120,7 +125,10 @@ int main(void) {
     check(np_libexport_routes() == NP_LIBEXPORT_READY,
           "libexport settles ready after compatsvc");
 
-    check(reg_count == 4, "the two services register four routes in total");
+    check(reg_count == 6, "the two services register six routes in total");
+    for (int i = 0; i < reg_count; i++)
+        for (int j = i + 1; j < reg_count; j++)
+            check(reg_reqs[i] != reg_reqs[j], "request vtables cannot collide in the job dispatcher");
 
     int get = route_at("CompatManager.GetCompatTools#1");
     int set = route_at("CompatManager.SpecifyCompatTool#1");
@@ -143,12 +151,12 @@ int main(void) {
     // A second pass does not duplicate either service's routes.
     np_compatsvc_register(NULL, 0, 0, 0);
     np_libexport_register(NULL, 0, 0, 0);
-    check(reg_count == 4, "a second registration pass adds nothing");
+    check(reg_count == 6, "a second registration pass adds nothing");
 
     if (failures) {
         printf("==> services: %d check(s) failed\n", failures);
         return 1;
     }
-    printf("==> services: compatsvc and libexport register all four routes side by side\n");
+    printf("==> services: compatsvc and libexport register all six routes side by side\n");
     return 0;
 }

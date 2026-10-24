@@ -50,7 +50,7 @@ final class WineRunnerInstallerTests {
     static func build(id: String, for archive: URL, sha256: String? = nil, size: Int64? = nil) throws -> RunnerManifest.Build {
         let bytes = try FileManager.default.attributesOfItem(atPath: archive.path(percentEncoded: false))[.size] as! Int64
         return RunnerManifest.Build(
-            id: id, kind: "wineBuild", origin: .cartouche, name: "Wine CrossOver", version: "26.3.0",
+            id: id, kind: "wineBuild", origin: .cartouche, name: "Cartouche Wine", version: "26.3.0",
             displayVersion: "26.3", url: archive, size: size ?? bytes, sha256: try sha256 ?? Digest.sha256(of: archive),
             root: id, loader: "bin/wine", flavors: ["rosetta"]
         )

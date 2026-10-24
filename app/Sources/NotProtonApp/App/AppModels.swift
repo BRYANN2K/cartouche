@@ -28,12 +28,16 @@ extension CartoucheApp {
             install: { [systemStatus] in try await OnboardingSteam.install(through: systemStatus) },
             relaunch: { [relaunch] route in Task { await relaunch.relaunch(to: route) } },
             replace: { [systemStatus] in try await OnboardingSteam.replaceNotProton(through: systemStatus) },
-            usesNotProton: { SteamBundle.usesNotProton() })
+            usesNotProton: { SteamBundle.usesNotProton() },
+            repair: { [systemStatus] in try await OnboardingSteam.repair(through: systemStatus) },
+            needsRepair: { [systemStatus] in systemStatus.needsRepairInSteam },
+            updatesItself: { [systemStatus] in systemStatus.updatesItself },
+            upkeepFailed: { [systemStatus] in systemStatus.upkeep == .failed })
         let consoleSetup: ConsoleSetup = .live(paths: consoles.paths)
         let setup = SetupTasks(
             installRunner: { [runners, library] build in
-                await runners.download(build.id)
-                guard WineRunnerInstaller.isInstalled(build.id) else {
+                let prepared = await runners.download(build.id)
+                guard prepared else {
                     let detail = await runners.message
                     throw StepFailure(
                         step: WineRunnerInstaller.step,
@@ -76,8 +80,8 @@ extension CartoucheApp {
                 build: { RunnerOffer.recommended(RunnerManifest.current()) },
                 isInstalled: { WineRunnerInstaller.isInstalled($0) },
                 install: { [runners, library] build in
-                    await runners.download(build.id)
-                    guard WineRunnerInstaller.isInstalled(build.id) else {
+                    let prepared = await runners.download(build.id)
+                    guard prepared else {
                         let detail = await runners.message
                         throw StepFailure(
                             step: WineRunnerInstaller.step,
@@ -99,13 +103,23 @@ extension CartoucheApp {
 
     // Runners are read through the registry, off the main thread — free builds and the Game Porting Toolkit included, so game setups can offer them
     func loadRunners() async {
+        await Self.loadRunners(runners: runners, into: library)
+    }
+
+    static func loadRunners(runners: RunnersModel, into library: LibraryModel) async {
         await runners.refresh()
-        await syncRunnerList()
+        await runners.prepareMissingWineTools()
+        await syncRunnerList(runners: runners, into: library)
+        // Without a manifest Cartouche Wine reads as a plain Wine: no launcher is rewritten then
+        if !runners.manifest.builds.isEmpty { await library.refreshInstallerLaunchers() }
+        // The tool list has to include WineHQ before the pairs are read, or a Steam choice cannot be applied.
         let (tools, platforms, mappings) = await Task.detached {
-            (RunnerRegistry.backendTools(),
-             SteamAppInfo.platforms(), (SteamCompatChoice.mappings(), SteamCompatChoice.modified()))
+            _ = try? CompatToolList.sync()
+            return (RunnerRegistry.backendTools(),
+                    SteamAppInfo.platforms(), (SteamCompatChoice.mappings(), SteamCompatChoice.modified()))
         }.value
         library.backendTools = tools
+        library.steamSizes = platforms?.sizes ?? [:]
         library.macBuilds = platforms?.both ?? []
         library.adoptSteamChoices(mappings.0, written: mappings.1)
     }
@@ -118,8 +132,17 @@ extension CartoucheApp {
         let registry = runners.registry
         let manifest = runners.manifest
         library.runners = registry.runners
+        library.runnerManifest = manifest
         library.backendAvailability = await Task.detached {
-            BackendAvailability.current(registry: registry, manifest: manifest)
+            let availability = BackendAvailability.current(registry: registry, manifest: manifest)
+            for runner in InstallRunners.choices(registry, manifest: manifest) {
+                guard let wine = InstallRunners.wine(for: runner) else { continue }
+                for backend in BackendSupport.backends(for: runner, translation: .rosetta, availability: availability) {
+                    do { _ = try GraphicsRunner.prepare(wine, backend: backend, backends: BackendInstaller.folder, runners: SupportPaths.runners) }
+                    catch { AppLog.note("Could not prepare \(backend.rawValue) for \(runner.id): \(error.localizedDescription)") }
+                }
+            }
+            return availability
         }.value
     }
 }

@@ -10,7 +10,7 @@ Each phase is one OpenSpec change in `openspec/changes/`. A phase is done when e
 |---|---|---|---|
 | P0 | `p0-rebrand-cartouche` | The fork becomes Cartouche and can live next to NotProton | – |
 | P1 | `p1-runner-model` | One runner model instead of CrossOver-only code | P0 |
-| P2 | `p2-free-runners` | Wine CrossOver built from CodeWeavers' sources, WineHQ and GPTK as runners | P1 |
+| P2 | `p2-free-runners` | Cartouche Wine built from CodeWeavers' sources, WineHQ and GPTK as runners | P1 |
 | P3 | `p3-graphics-backends` | D3DMetal, DXMT, DXVK, wined3d per game; Mac or Windows version | P2 |
 | P4 | `p4-compatibility-data` | Nightly compatibility JSON and the per-Mac estimate | P0 |
 | P5 | `p5-library-app` | The SwiftUI library, built for PC and console games, covers, every state | P0 (P1 interface) |
@@ -28,29 +28,57 @@ Each phase is one OpenSpec change in `openspec/changes/`. A phase is done when e
 | P17 | `p17-mac-permissions` | Every macOS permission asked at the right moment, explained, recoverable | P0 |
 | P18 | `p18-onboarding` | First launch: install, Gatekeeper, detection, choices, permissions | P5, P17 |
 
-## Current status (2026-10-20)
+## Current status (2026-10-21, end of day)
 
-P0–P18 have code on main. P10 remains in `openspec/changes/`; the other phase changes are archived. Archival is not proof that every original criterion passed. The old P5 Steam export-writer gap is closed by 451e393 / de0e6ec; real Steam verification remains pending. Real-service, real-game and clean-machine checks remain in phase evidence.
+P0–P18 have code on main. P10 remains in `openspec/changes/`; the other phase changes are archived. Archival is not proof that every original criterion passed. Merged code and fixture tests do not replace real-service, real-game or clean-machine release checks.
 
-Merged follow-ups include review fixes, already-installed Windows-game import (in place by default or copied), external-unpacker detection and prefix preparation, NotProton replacement, and Wine publication from BRYANN2K/cartouche-wine.
+The work merged on the integration branch on 2026-10-21 has not been compiled or run yet. Every item below marked "merged" is pending build and live check.
 
-Accepted follow-up status before v0.1.0:
+### Merged before 2026-10-21
 
-- Merged in 95b4e47: CrossOver Wine default for new games when installed, backend reasons and serialized first boot before launch (ADR 0015); real-hardware checks pending.
-- Shared archive import with bundled pinned universal libarchive and DropClassifier (ADRs 0016, 0023; backend merged in 95b4e47, app wiring pending). Verify zip/zip64, 7z, tar.*, RAR4/RAR5 and conditional multi-volume/solid coverage; encrypted archives are refused.
-- Direct extraction for supported installers with external unpackers (ADR 0017; app implementation merged in 3bb5921, missing-driver/failed-part fallback and app end-to-end verification pending).
-- Merged in 307ad2c: Managed-game uninstall to the Trash, optional save copy, and safe in-place removal (ADR 0018).
-- Merged in 307ad2c: Ranked local identification and privacy-gated Steam search (ADR 0019).
-- Merged in 307ad2c: PE-based runtimes, one winetricks verb at a time, timeout, Skip, Wine Mono for .NET (ADR 0020).
-- Full Steam library export through a token-protected WebUI route and cached/stale presentation when Steam is closed (ADRs 0021–0022; merged in 451e393 / de0e6ec, real Steam check pending).
-- Installer detection by static inspection with evidence and confidence (ADR 0028; the corrected decision tree in `docs/research/research-verified.md` is approved).
-- Crash reports stay local (ADR 0029): a post-crash prompt with Show Report and Copy Summary, plus a Collect Diagnostics zip; implemented in main 1c25236.
-- Planned, pending research-upscaling: a game-panel Advanced section for all Windows games. Six approved options gated per runner and backend, no frame generation (ADRs 0030–0031).
-- Approved, implementation pending: onboarding v2 — seven steps (Welcome+scan, Windows games with Wine CrossOver default and GPTK disk image, Stores, Consoles, Controller, Permissions/storage/privacy, Ready), downloads as background tasks, resume after relaunch (ADR 0032; `openspec/changes/onboarding-v2`).
-- In review on `fix/steam-compat-tools` (not merged): the Steam export page script fetches its token at run time (`/cartouche/steam-export-token`, no-store, backoff 15 s→300 s), and Wine CrossOver builds register as Steam compatibility tools.
-- In progress: Settings rework — the legacy Setup and Prefix menus and the Steam Play Setup window move into Settings (Steam and Wine Prefixes), the CrossOver.app requirement is removed, and one integration banner remains.
-- French localization is merged (e7f8ba5) with `docs/l10n/glossary-fr.md`.
-- QA persona runs (`qa/`, beginner/medium/senior) are postponed.
+- Cartouche Wine default/recommendation, pinned downloads and serialized first boot (ADR 0015); published builds register Steam compatibility tools. WineHQ/GPTK Steam support still depends on pinned hook offsets.
+- Unified Add Games and live `InstallerKitDropClassifier` wiring (7b9f842 / 539fbe3): installers, installed folders, ROMs, mixed inputs and archive staging through bundled universal libarchive (ADRs 0016, 0023–0024). Encrypted archives are refused.
+- Direct extraction for supported installers that unpack with their own helper programs (3bb5921), with live output verification and standard/guided recovery (93aa900 / 04d6b6f; ADRs 0017, 0025–0026). Unknown helpers remain the shipped Windows versions.
+- Managed uninstall, safe in-place removal, save retention, ranked identification, privacy-gated cover search and PE runtime selection (ADRs 0018–0020). Imported games also support rename/re-identification; game-session cleanup preserves unrelated store clients.
+- Full Steam owned-library export, account-matched cached/stale presentation, runtime token fetch with no-store/backoff, and Cartouche Wine compatibility tools (ADRs 0021–0022; 9214df4). Steam download progress, pause/resume and cancellation are wired.
+- Installer inspection and detection, plus hermetic universal innoextract 1.10 with Inno support through 6.4.0 (8014773). Boost/liblzma are static pinned builds; no Homebrew runtime dependency.
+- Local crash reports, Copy Summary and Collect Diagnostics (ADR 0029), and Your Play setup comparisons.
+- Capability-gated Advanced options for Windows-game sources (397990d / a46a8bb; ADRs 0030–0031): MetalFX, AVX advertisement, MSync, high resolution and HUD. DLSS requires verified DXMT extension DLLs; D3DMetal DLSS and frame generation are not offered.
+- Onboarding v2 (d7b3404; ADR 0032): seven steps, pinned Cartouche Wine recommendation, GPTK disk-image import, background tasks, durable choices and pending-work recovery. App Management is asked immediately before the Steam write in Stores. Welcome has Skip Setup; Ready opens the library.
+- Settings rework (a9ceae3): Steam and Wine Prefixes replace legacy setup/prefix menus and the Steam Play Setup window. Prefix backups can be restored; CrossOver.app is no longer required for the free runner path.
+- Main-actor process-wait and console ownership-probe fixes (64e0e19 / 2d09f81), real-ROM-only console detection, console/emulator uninstall, and reviewed French localization (22fda08 / b0a048c; `docs/l10n/glossary-fr.md`).
+
+### Bugs from the 2026-10-21 tests
+
+| Item | Subject | Status |
+|---|---|---|
+| I, H | Steam export token refused; Wine-build tools not seen by the app | Merged on main (cb248b2), pending live check after Repair |
+| J | Controller not seen in Windows games | SDL3 runtime fix merged on main (1b05e2d); Cartouche Wine 26.3.0-2 in progress |
+| A | D3DMetal with Cartouche Wine (Silksong) | Merged: launch scripts export the toolkit path, Get D3DMetal… |
+| L | Play becomes Stop | Merged |
+| E, F | One Steam repair action in Settings and onboarding | Merged |
+| B | Extracted drops left in Caches | Merged, with migration of existing records |
+| G | Starts With (Programme de lancement) | Merged |
+| K | Installer cancel cleanup and retry | Merged |
+| C | Banner after a dev `make deploy` | Not a code bug; Repair fixes it |
+| D | Source label wording | No change |
+| M | Mods and patches | Moved to 0.1.1 |
+
+Also merged: drop handoff and Back to Add Games, direct-unpack fallback on Try Again (ADR 0034), the Cartouche Wine name (ADR 0033), French for the RetroArch console strings, and the release pipeline (libarchive and innoextract mandatory). Security and robustness fixes from the code review are merged: pinned and signature-checked RetroArch, core changes held, iCloud saves, per-client MCP names, Keychain, dylib hardening, InstallerKit hardening, tolerant `library.json`, prefix backups kept.
+
+### Still required before v0.1.0
+
+- First Mac build of the integration branch, then fixes for any failing tests.
+- Live checks: Steam export after Repair; a controller with Cartouche Wine 26.3.0-2; D3DMetal on Silksong; installer with an external unpacker: install, cancel and direct-unpack fallback; CarX Street setup under Cartouche Wine.
+- Cartouche Wine 26.3.0-2 (SDL3 for controllers, bundled Wine Mono and Wine Gecko) is in progress, not released.
+- Maintainer tasks: GitHub billing or a self-hosted runner (`MACOS_RUNNER`), the signing certificate and secrets, the Sparkle EdDSA key, the Homebrew tap repository. See `docs/RELEASE.md`.
+- Earlier evidence still open: real Steam owned-list freshness and account switching, tool registration and download controls; real runner first boot and frame-counter injection; user-supplied RAR coverage; real store sign-ins, two-Mac cloud saves, netplay and RetroAchievements; permissions on supported macOS versions; onboarding captures. QA persona runs (`qa/`) remain postponed, not passed.
+
+### After v0.1.0
+
+- 0.1.1: mods and patches (M). Run an .exe in the game's prefix, per-game DLL overrides, open the game's C: drive.
+- Cartouche Wine 26.3.0-3: GStreamer. Plan in `docs/research/26.3.0-3-wine-gstreamer.md`.
+- ISDone/unarc installer crash: research finds a Rosetta and WoW64 thunk race that the CrossOver 26.3 sources already work around. No new Wine patch is planned. The CarX Street setup check under Cartouche Wine confirms it or not.
 
 The app repository stays private until v0.1.0. Wine build recipes and assets are public in BRYANN2K/cartouche-wine. The landing page is https://cartouche.bryann2k.dev, linked from About.
 

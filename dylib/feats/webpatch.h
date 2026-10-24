@@ -5,6 +5,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+// Steam's data directory (~/Library/Application Support/Steam). An absolute path is
+// only Steam's steamui when it lies under it; until this is set, none is.
+void np_webpatch_set_steam_root(const char *root);
+
 int np_webpatch_should_patch(const char *path);
 
 // Sets the default picker fallback for this thread. Names with characters outside

@@ -51,7 +51,6 @@ final class AgentService {
     private(set) var actions: [AgentAction] = []
     private(set) var pending: [AgentApproval] = []
     private var timeouts: [UUID: Task<Void, Never>] = [:]
-    var clientName = "agent"
     var home: URL
 
     init(backend: AgentBackend, level: AgentLevel = .readOnly,
@@ -198,13 +197,13 @@ final class AgentService {
 
     // MARK: - resources/read
 
-    func readResource(_ uri: String) throws -> String {
+    func readResource(_ uri: String, client: String = "agent") throws -> String {
         let text: JSONValue
         switch uri {
         case "cartouche://status":
             text = [
                 "level": .string(level.rawValue),
-                "client": .string(clientName),
+                "client": .string(client),
                 "tools": .number(Double(tools.count)),
                 "pending": .number(Double(pending.count)),
             ]

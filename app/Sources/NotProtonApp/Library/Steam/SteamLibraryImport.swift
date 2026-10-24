@@ -72,19 +72,24 @@ struct SteamLibraryImporter: Sendable {
             account == nil || e.steamid.isEmpty || e.steamid == account?.steamID ? e : nil
         }
         let installed = Dictionary(files.installed().map { ($0.appID, $0) }, uniquingKeysWith: { a, _ in a })
+        let manifests = Set(files.manifests().map(\.appID))
         let play = account.map(files.playData) ?? [:]
 
         var games: [Int: Game] = [:]
         for app in saved?.apps ?? [] where !SteamLocalFiles.isTool(appID: app.appid, name: app.name) {
             // Closed, the export may be old, so Steam's manifests say what is installed
-            let isInstalled = running ? app.installed : installed[app.appid] != nil
+            let isInstalled = running
+                ? app.installed && (!manifests.contains(app.appid) || installed[app.appid] != nil)
+                : installed[app.appid] != nil
             var game = Game.steam(app.appid, name: app.name, installed: isInstalled)
+            game.storageBytes = installed[app.appid]?.sizeOnDisk
             game.lastPlayed = SteamLocalFiles.date(app.lastPlayed)
             game.playtimeMinutes = app.playtime ?? 0
             games[app.appid] = game
         }
         for app in installed.values where games[app.appID] == nil {
             var game = Game.steam(app.appID, name: app.name, installed: true)
+            game.storageBytes = app.sizeOnDisk
             game.lastPlayed = app.lastPlayed
             games[app.appID] = game
         }

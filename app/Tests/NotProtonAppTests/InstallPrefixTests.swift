@@ -48,9 +48,49 @@ struct InstallPrefixTests {
         let installs = try scratchDirectory("installs")
         let first = try GameFolder.fresh(for: "Sample", in: installs)
         try Data("still choosing a launcher".utf8).write(to: first.prefix.appending(path: "system.reg"))
-        let second = try GameFolder.fresh(for: "Sample", in: installs, reserved: [first.root.standardizedFileURL])
+        let second = try GameFolder.fresh(for: "Sample", in: installs, held: [first.root.lastPathComponent])
         #expect(second.root.lastPathComponent == "sample-2")
         #expect(FileManager.default.fileExists(atPath: first.prefix.appending(path: "system.reg").path))
+    }
+
+    @Test("An attempt older than the marker, a prefix next to Cartouche's install logs, is cleared before the retry")
+    func legacyOrphan() throws {
+        let installs = try scratchDirectory("orphan-installs")
+        let orphan = GameFolder(root: installs.appending(path: "sample"))
+        try FileManager.default.createDirectory(at: orphan.prefix, withIntermediateDirectories: true)
+        try Data("boot".utf8).write(to: orphan.root.appending(path: "prefix.log"))
+        try Data("partial".utf8).write(to: orphan.root.appending(path: "unpack-1-data-01.bin.log"))
+        #expect(orphan.isUnfinishedAttempt)
+        let retry = try GameFolder.fresh(for: "Sample", in: installs)
+        #expect(retry == orphan)
+        #expect(!FileManager.default.fileExists(atPath: retry.root.appending(path: "unpack-1-data-01.bin.log").path))
+        try Data("{}".utf8).write(to: retry.record)
+        #expect(!retry.isUnfinishedAttempt)
+    }
+
+    @Test("A folder with a pfx that Cartouche did not mark or log into is never removed")
+    func foreignPrefixKept() throws {
+        let installs = try scratchDirectory("foreign-prefix")
+        let foreign = GameFolder(root: installs.appending(path: "sample"))
+        try FileManager.default.createDirectory(at: foreign.prefix.appending(path: "drive_c"), withIntermediateDirectories: true)
+        try Data("mine".utf8).write(to: foreign.prefix.appending(path: "system.reg"))
+        try Data("other tool".utf8).write(to: foreign.root.appending(path: "unarc-01.log"))
+        #expect(!foreign.isUnfinishedAttempt)
+        let folder = try GameFolder.fresh(for: "Sample", in: installs)
+        #expect(folder.root.lastPathComponent == "sample-2")
+        #expect(FileManager.default.fileExists(atPath: foreign.prefix.appending(path: "system.reg").path))
+    }
+
+    @Test("A prefix with Cartouche's logs and a launcher but no record may be a game whose record was lost: it is kept")
+    func lostRecordKept() throws {
+        let installs = try scratchDirectory("lost-record")
+        let game = GameFolder(root: installs.appending(path: "sample"))
+        try FileManager.default.createDirectory(at: game.prefix, withIntermediateDirectories: true)
+        try Data("boot".utf8).write(to: game.root.appending(path: "prefix.log"))
+        try Data("#!/bin/sh\n".utf8).write(to: game.launcher)
+        #expect(!game.isUnfinishedAttempt)
+        #expect(try GameFolder.fresh(for: "Sample", in: installs).root.lastPathComponent == "sample-2")
+        #expect(FileManager.default.fileExists(atPath: game.launcher.path))
     }
 
     @Test("A folder Cartouche did not mark is left alone")
@@ -94,14 +134,14 @@ struct InstallPrefixTests {
 
     static func manifest(origin: RunnerManifest.Build.Origin, id: String = "wine-crossover-26.3.0-1") -> RunnerManifest {
         RunnerManifest(format: 1, revision: 1, builds: [
-            .init(id: id, kind: "wineBuild", origin: origin, name: "Wine CrossOver", version: "26.3.0",
+            .init(id: id, kind: "wineBuild", origin: origin, name: "Cartouche Wine", version: "26.3.0",
                   displayVersion: "26.3",
                   url: URL(string: "https://github.com/BRYANN2K/cartouche-wine/releases/download/\(id)/\(id)-x86_64.tar.xz")!,
                   size: 0, sha256: RunnerManifest.pendingSHA256, root: id, loader: "bin/wine", flavors: ["rosetta"]),
         ])
     }
 
-    @Test("Cartouche's CrossOver Wine is the first install choice, ahead of a licensed CrossOver and WineHQ builds")
+    @Test("Cartouche Wine is the first install choice, ahead of a licensed CrossOver and WineHQ builds")
     func cartoucheFirst() throws {
         let runners = try scratchDirectory("runners")
         let crossOver = try fakeRunner(in: runners)
@@ -115,7 +155,7 @@ struct InstallPrefixTests {
                 == [crossOver.id, winehq.id, ours.id])
     }
 
-    @Test("A new game takes the CrossOver Wine default; a game's own stored runner still wins")
+    @Test("A new game takes the Cartouche Wine default; a game's own stored runner still wins")
     func defaultRunner() throws {
         let ours = Self.freeWine("wine-crossover-26.3.0-1")
         let winehq = Self.freeWine("wine-stable-11.0_1")

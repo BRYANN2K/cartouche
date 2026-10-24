@@ -79,7 +79,7 @@ actor ControlsStore {
 
     func all() -> [String: GameControls] {
         if let cached { return cached }
-        let loaded = (try? Data(contentsOf: file)).flatMap { try? JSONDecoder().decode([String: GameControls].self, from: $0) } ?? [:]
+        let loaded = JSONFile.load([String: GameControls].self, from: file) ?? [:]
         cached = loaded
         return loaded
     }
@@ -104,7 +104,7 @@ struct ControlsFiles: Sendable {
 
     func folder(of game: Game) -> GameFolder? {
         guard game.source == .installer, game.id.hasPrefix("installer:") else { return nil }
-        return GameFolder(root: installs.appending(path: String(game.id.dropFirst("installer:".count))))
+        return GameFolder.of(slug: String(game.id.dropFirst("installer:".count)), in: installs)
     }
 
     func apply(_ controls: GameControls, to game: Game) throws {

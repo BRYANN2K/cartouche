@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Checks runners.json before it is published next to the compatibility data.
+"""Checks runners.json before it is published.
 
     runner_manifest.py check <runners.json> [--published <previous runners.json>]
 

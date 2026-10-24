@@ -39,11 +39,11 @@ struct RunnerManifestTests {
         #expect(stable.cpuFlavors == [.rosetta])
     }
 
-    @Test("An entry CI writes for Wine CrossOver reads as the build to download")
+    @Test("An entry CI wrote under the old Wine CrossOver name reads as Cartouche Wine, the build to download")
     func ciEntry() throws {
         let manifest = try RunnerManifest.read(Self.manifest([Self.entry()]))
         let build = try #require(manifest.builds.first)
-        #expect(build.title == "Wine CrossOver 26.3")
+        #expect(build.title == "Cartouche Wine 26.3")
         #expect(build.origin == .cartouche)
         #expect(build.root == "wine-crossover-26.3.0-1")
     }
@@ -87,12 +87,12 @@ struct RunnerManifestTests {
         }
     }
 
-    @Test("The bundled manifest lists Cartouche's CrossOver Wine with its release archive pinned")
+    @Test("The bundled manifest lists Cartouche Wine with its release archive pinned")
     func shippedCrossOver() throws {
         let manifest = try RunnerManifest.bundled()
         let ours = try #require(manifest.build(id: "wine-crossover-26.3.0-1"))
         #expect(ours.origin == .cartouche)
-        #expect(ours.name == "Wine CrossOver" && ours.displayVersion == "26.3")
+        #expect(ours.name == "Cartouche Wine" && ours.displayVersion == "26.3")
         #expect(ours.root == "wine-crossover-26.3.0-1" && ours.loader == "bin/wine")
         #expect(ours.cpuFlavors == [.rosetta])
         #expect(ours.size == 149_444_708)
@@ -169,7 +169,7 @@ struct RunnerManifestTests {
         let work = try scratchDirectory("manifest")
         defer { try? FileManager.default.removeItem(at: work) }
         let cache = work.appending(path: "runners.json")
-        let url = URL(string: "https://github.com/BRYANN2K/cartouche/releases/download/compat-data/runners.json")!
+        let url = URL(string: "https://github.com/BRYANN2K/cartouche-wine/releases/download/manifest/runners.json")!
         let shipped = try RunnerManifest.bundled()
         // The refreshed copy must carry the shipped pin verbatim: rewriting it is refused.
         let pinned = try #require(shipped.build(id: "wine-crossover-26.3.0-1"))
@@ -199,12 +199,50 @@ struct RunnerManifestTests {
         #expect(missing == .unavailable)
     }
 
+    @Test("A signed manifest from cartouche-wine adding the next revision offers it as an update")
+    func remoteRevisionOffersUpdate() async throws {
+        let work = try scratchDirectory("manifest-update")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let cache = work.appending(path: "runners.json")
+        let url = try #require(RunnerManifest.feed(
+            fromInfoValue: "https://github.com/BRYANN2K/cartouche-wine/releases/download/manifest/runners.json"))
+        let shipped = try RunnerManifest.bundled()
+        let pinned = try #require(shipped.build(id: "wine-crossover-26.3.0-1"))
+        let next = "wine-crossover-26.3.0-2"
+        let newer = try Self.manifest([
+            Self.entry(url: pinned.url.absoluteString, size: pinned.size, sha256: pinned.sha256),
+            Self.entry(id: next,
+                       url: "https://github.com/BRYANN2K/cartouche-wine/releases/download/\(next)/\(next)-x86_64.tar.xz",
+                       root: next),
+        ], revision: shipped.revision + 1)
+        let signing = Curve25519.Signing.PrivateKey()
+        let (key, feed) = try Self.feed(manifest: newer, key: signing)
+        let asked = LockedURLs()
+
+        let outcome = await RunnerManifest.refresh(from: url, cache: cache, fetch: { asked.add($0); return try await feed($0) }, key: key)
+        #expect(outcome == .updated(revision: shipped.revision + 1))
+        #expect(asked.all == [url, RunnerManifest.signatureFile(for: url)])
+
+        let merged = RunnerManifest.current(cache: cache, key: key)
+        let installed: Set<String> = ["wine-crossover-26.3.0-1"]
+        #expect(RunnerUpdate.offers(installed: installed, manifest: merged)["wine-crossover-26.3.0-1"]?.id == next)
+        // Without the remote copy only the bundled builds are known
+        #expect(RunnerUpdate.offers(installed: installed, manifest: shipped)["wine-crossover-26.3.0-1"]?.id != next)
+    }
+
+    final class LockedURLs: @unchecked Sendable {
+        private let lock = NSLock()
+        private var list: [URL] = []
+        func add(_ url: URL) { lock.withLock { list.append(url) } }
+        var all: [URL] { lock.withLock { list } }
+    }
+
     @Test("A manifest with a missing or wrong signature is refused and the bundled copy stays")
     func unsignedOrForged() async throws {
         let work = try scratchDirectory("manifest-unsigned")
         defer { try? FileManager.default.removeItem(at: work) }
         let cache = work.appending(path: "runners.json")
-        let url = URL(string: "https://github.com/BRYANN2K/cartouche/releases/download/compat-data/runners.json")!
+        let url = URL(string: "https://github.com/BRYANN2K/cartouche-wine/releases/download/manifest/runners.json")!
         let shipped = try RunnerManifest.bundled()
         let newer = try Self.manifest([Self.entry()], revision: shipped.revision + 1)
         let key = Curve25519.Signing.PrivateKey().publicKey
@@ -258,7 +296,7 @@ struct RunnerManifestTests {
 
     @Test("The signature file sits beside the manifest and parses base64 or sign_update output")
     func signatureFile() throws {
-        let url = URL(string: "https://github.com/BRYANN2K/cartouche/releases/download/compat-data/runners.json")!
+        let url = URL(string: "https://github.com/BRYANN2K/cartouche-wine/releases/download/manifest/runners.json")!
         #expect(RunnerManifest.signatureFile(for: url).absoluteString == url.absoluteString + ".sig")
 
         let signature = try Curve25519.Signing.PrivateKey().signature(for: Data("manifest".utf8))
@@ -268,10 +306,26 @@ struct RunnerManifestTests {
         #expect(RunnerManifest.signature(from: Data("%%%".utf8)) == nil)
     }
 
-    @Test("The refreshed copy sits next to the compatibility file")
-    func feed() {
-        let compat = URL(string: "https://github.com/BRYANN2K/cartouche/releases/download/compat-data/compat.json.gz")!
-        #expect(RunnerManifest.feed(fromCompatibilityFeed: compat).absoluteString
-            == "https://github.com/BRYANN2K/cartouche/releases/download/compat-data/runners.json")
+    @Test("The refreshed copy comes from the manifest release of the public cartouche-wine repository")
+    func feed() throws {
+        let plist = try PropertyListSerialization.propertyList(
+            from: Data(contentsOf: CompatFixture.repo.appending(path: "app/Info.plist")), format: nil)
+        let value = (plist as? [String: Any])?[RunnerManifest.feedKey]
+        let feed = try #require(RunnerManifest.feed(fromInfoValue: value))
+        #expect(feed.absoluteString
+            == "https://github.com/BRYANN2K/cartouche-wine/releases/download/manifest/runners.json")
+        #expect(RunnerManifest.signatureFile(for: feed).absoluteString
+            == "https://github.com/BRYANN2K/cartouche-wine/releases/download/manifest/runners.json.sig")
+
+        // Only https on an allowed host, and only a runners.json, is ever fetched
+        for refused: Any? in [
+            nil, 42, "",
+            "http://github.com/BRYANN2K/cartouche-wine/releases/download/manifest/runners.json",
+            "https://objects.githubusercontent.com/manifest/runners.json",
+            "https://example.org/BRYANN2K/cartouche-wine/releases/download/manifest/runners.json",
+            "https://github.com/BRYANN2K/cartouche-wine/releases/download/manifest/compat.json.gz",
+        ] {
+            #expect(RunnerManifest.feed(fromInfoValue: refused) == nil, "\(String(describing: refused))")
+        }
     }
 }

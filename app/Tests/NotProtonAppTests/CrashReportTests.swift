@@ -131,6 +131,19 @@ struct CrashReportTests {
         #expect(report.frames[0].address == 4370001000)
     }
 
+    @Test("A frame whose image base plus offset overflows has no address instead of trapping")
+    func overflowingAddress() throws {
+        let work = try scratchDirectory("crash-overflow")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let file = try IPSFixture.write(into: work, mtime: Date())
+        let text = try String(contentsOf: file, encoding: .utf8)
+            .replacingOccurrences(of: #""base":4370000000"#, with: #""base":\#(UInt64.max - 10)"#)
+        try text.write(to: file, atomically: true, encoding: .utf8)
+        let report = try #require(CrashReports.parse(file, logs: try logs(work), home: IPSFixture.home))
+        #expect(report.frames[0].address == nil)
+        #expect(report.frames[1].address == 6610000777)
+    }
+
     @Test("The summary carries versions, the exception, app frames first, and the log tails")
     func summary() throws {
         let work = try scratchDirectory("crash-summary")

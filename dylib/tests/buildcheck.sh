@@ -6,7 +6,7 @@ SRC="${1:-$(dirname "$0")/../feats/compat_run.sh}"
 
 extract() { sed -n "/^$1() {\$/,/^}\$/p" "$SRC"; }
 functions=""
-for name in alert_safe last_wine_build refuse_other_build claim_prefix; do
+for name in alert_safe last_wine_build note_runner_change claim_prefix; do
 	body=$(extract "$name")
 	[ -n "$body" ] || { echo "FAIL: $name not found in $SRC"; exit 1; }
 	functions="$functions
@@ -37,7 +37,7 @@ wine_clone() {
 }
 wine_clone wine-crossover-26.3.0-1 wine-crossover-26.3.0-1 202608011200
 wine_clone wine-older-9.0 older-9.0 202605011200
-printf 'cartouche-proton\t27.0.0.40921-fex\tfex\tCrossOver Preview (FEX)\ncartouche-proton-26.3\t26.3.0.39832\trosetta\tCrossOver 26.3\ncartouche-proton-wine-crossover-26.3.0-1\twine-crossover-26.3.0-1\trosetta\tWine CrossOver 26.3\ncartouche-proton-older-9.0\tolder-9.0\trosetta\tWine 9.0\n' \
+printf 'cartouche-proton\t27.0.0.40921-fex\tfex\tCrossOver Preview (FEX)\ncartouche-proton-26.3\t26.3.0.39832\trosetta\tCrossOver 26.3\ncartouche-proton-wine-crossover-26.3.0-1\twine-crossover-26.3.0-1\trosetta\tCartouche Wine 26.3\ncartouche-proton-older-9.0\tolder-9.0\trosetta\tWine 9.0\n' \
 	> "$np_support/tools"
 mtime() { stat -f %m "$np_support/runners/crossover-$1/CrossOver/share/wine/wine.inf"; }
 wine_mtime() { stat -f %m "$np_support/runners/$1/share/wine/wine.inf"; }
@@ -62,7 +62,7 @@ launch() {
 		# shellcheck disable=SC2329 # called by the extracted refusal
 		show_alert() { printf 'alert: %s\n' "$2"; }
 		eval "$functions"
-		refuse_other_build
+		note_runner_change
 		claim_prefix
 	) > "$data/out" 2>&1 && status=0 || status=$?
 	echo "status=$status"
@@ -75,33 +75,54 @@ is "a fresh prefix is claimed" "status=0
 26.3.0.39832" "$(launch 26.3.0.39832 "" "")"
 is "a prefix this build last updated is claimed" "status=0
 26.3.0.39832" "$(launch 26.3.0.39832 "$(mtime 26.3.0.39832)" "")"
-is "a prefix another clone updated is refused and named" "status=1
-last run by CrossOver Preview (FEX)" "$(launch 26.3.0.39832 "$(mtime 27.0.0.40921-fex)" "")"
-is "a prefix no clone updated is refused" "status=1
-last run by another build" "$(launch 26.3.0.39832 1 "")"
+is "another runner reuses the existing prefix" "status=0
+26.3.0.39832" "$(launch 26.3.0.39832 "$(mtime 27.0.0.40921-fex)" "")"
+is "an unknown previous runner reuses the existing prefix" "status=0
+26.3.0.39832" "$(launch 26.3.0.39832 1 "")"
 is "updates the user disabled say nothing, so the prefix is claimed" "status=0
 26.3.0.39832" "$(launch 26.3.0.39832 disable "")"
 
 clone 27.0.0.40921 202608211200
-is "a prefix either of two clones updated names neither" "status=1
-last run by another build" "$(launch 26.3.0.39832 "$(mtime 27.0.0.40921)" "")"
+is "ambiguous previous runners do not block a change" "status=0
+26.3.0.39832" "$(launch 26.3.0.39832 "$(mtime 27.0.0.40921)" "")"
 
 echo "== prefixes a downloaded build updated =="
-is "a prefix the downloaded build updated names it" "status=1
-last run by Wine CrossOver 26.3" "$(launch 26.3.0.39832 "$(wine_mtime wine-crossover-26.3.0-1)" "")"
-is "the older wine- folder shape resolves through its receipt" "status=1
-last run by Wine 9.0" "$(launch 26.3.0.39832 "$(wine_mtime wine-older-9.0)" "")"
+is "a downloaded build can be changed" "status=0
+26.3.0.39832" "$(launch 26.3.0.39832 "$(wine_mtime wine-crossover-26.3.0-1)" "")"
+is "the older wine- folder shape resolves through its receipt" "status=0
+26.3.0.39832" "$(launch 26.3.0.39832 "$(wine_mtime wine-older-9.0)" "")"
 
 echo "== prefixes with a record =="
 is "the record wins over the Wine that updated the prefix" "status=0
 27.0.0.40921-fex" "$(launch 27.0.0.40921-fex "$(mtime 26.3.0.39832)" "27.0.0.40921-fex
 CrossOver Preview (FEX)
 ")"
-is "a record for another build is refused" "status=1
-last run by CrossOver Preview (FEX)
-27.0.0.40921-fex" "$(launch 26.3.0.39832 "" "27.0.0.40921-fex
+is "a recorded runner can be changed" "status=0
+26.3.0.39832" "$(launch 26.3.0.39832 "" "27.0.0.40921-fex
 CrossOver Preview (FEX)
 ")"
+
+echo "== shared game files and saves =="
+data=$(mktemp -d "$work/shared.XXXXXX")
+mkdir -p "$data/pfx/drive_c/users/steamuser/Documents" "$data/game"
+printf 'save data' > "$data/pfx/drive_c/users/steamuser/Documents/slot.sav"
+printf 'game data' > "$data/game/Game.exe"
+before=$(stat -f %i "$data/game/Game.exe")
+(
+    eval "$functions"
+    STEAM_COMPAT_DATA_PATH=$data
+    np_build=runner-a np_display=A log=/dev/null
+    claim_prefix
+    np_build=runner-b np_display=B
+    note_runner_change
+    claim_prefix
+    np_build=runner-a np_display=A
+    note_runner_change
+    claim_prefix
+)
+is "game files are reused in place" "$before" "$(stat -f %i "$data/game/Game.exe")"
+is "saved games survive switching back" "save data" "$(cat "$data/pfx/drive_c/users/steamuser/Documents/slot.sav")"
+is "the record follows the chosen runner" "runner-a" "$(head -1 "$data/cartouche-build")"
 
 echo "== runner root and loader =="
 # The resolution blocks run top to bottom exactly as the launch does.

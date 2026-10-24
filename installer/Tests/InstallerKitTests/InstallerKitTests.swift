@@ -22,6 +22,43 @@ func tempFolder(_ files: [String: String]) throws -> URL {
     #expect(scan.totalSize == 4)
 }
 
+@Test func unrelatedNumberedBinsAreNotParts() throws {
+    let dir = try tempFolder([
+        "setup.exe": "MZ", "data-01.bin": "a", "data-02.bin": "b", "data-03.bin": "c",
+        "bios2.bin": "x", "firmware_1.bin": "y",
+    ])
+    let scan = try PartScanner.scan(dir)
+    #expect(scan.parts.map(\.url.lastPathComponent) == ["data-01.bin", "data-02.bin", "data-03.bin"])
+    #expect(scan.missing.isEmpty)
+}
+
+@Test func partsFollowTheManifestOrTheSetupName() throws {
+    // The manifest names the fg- group, even though a bigger unrelated group sits next to it.
+    let setupFolder = try tempFolder([
+        "setup.exe": "MZ", "data-01.bin": "a", "data-02.bin": "b",
+        "track01.bin": "x", "track02.bin": "y", "track03.bin": "z",
+        "MD5/game.md5": "0cc175b9c0f1b6a831c399e269772661 *..\\data-01.bin\r\n92eb5ffee6ae2fec3ad71c777531578f *..\\data-02.bin\r\n",
+        "Music/album.md5": "0cc175b9c0f1b6a831c399e269772661 *cover.jpg\r\n",
+    ])
+    #expect(try PartScanner.scan(setupFolder).parts.map(\.url.lastPathComponent) == ["data-01.bin", "data-02.bin"])
+    #expect(Checksums.installerManifest(in: setupFolder)?.source.lastPathComponent == "game.md5")
+
+    // No manifest: the group carrying the setup's name.
+    let gog = try tempFolder([
+        "setup_game_1.0.exe": "MZ", "setup_game_1.0-1.bin": "a", "setup_game_1.0-2.bin": "b",
+        "other-1.bin": "x", "other-2.bin": "y", "other-3.bin": "z",
+    ])
+    #expect(try PartScanner.scan(gog).parts.map(\.url.lastPathComponent) == ["setup_game_1.0-1.bin", "setup_game_1.0-2.bin"])
+}
+
+@Test func anUnrelatedManifestIsNotTheInstallers() throws {
+    let dir = try tempFolder([
+        "setup.exe": "MZ", "data-01.bin": "a",
+        "Music/album.md5": "0cc175b9c0f1b6a831c399e269772661 *cover.jpg\r\n",
+    ])
+    #expect(Checksums.installerManifest(in: dir) == nil)
+}
+
 @Test func findsSplitArchives() throws {
     let dir = try tempFolder(["setup.exe": "", "data.bin.001": "", "data.bin.002": ""])
     #expect(try PartScanner.scan(dir).parts.count == 2)

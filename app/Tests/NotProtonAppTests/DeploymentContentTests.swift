@@ -15,6 +15,40 @@ struct DeploymentContentTests {
         return [.init(source: source, destination: destination, name: "run")]
     }
 
+    @Test("Downloaded Wine uses its actual engine for integrity checks, and damaged builtins are still detected")
+    func downloadedWineRoot() throws {
+        let work = try scratchDirectory("downloaded-wine-content")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let runners = work.appending(path: "runners")
+        let id = "wine-crossover-26.3.0-2"
+        let root = WineRunnerInstaller.folder(for: id, runners: runners)
+        let source = work.appending(path: "source")
+        try Data("bridge".utf8).write(to: source)
+        for arch in ["i386-windows", "x86_64-windows", "x86_64-unix"] {
+            try FileManager.default.createDirectory(at: root.appending(path: "lib/wine/\(arch)"), withIntermediateDirectories: true)
+        }
+        let receipt = WineRunnerInstaller.Receipt(id: id, archiveSHA256: "pin", files: [:])
+        try JSONEncoder().encode(receipt).write(to: root.appending(path: WineRunnerInstaller.receiptName))
+        let payload = InstallPayload.Located(dylib: source, overlayShim: source, iconmaker: source, appinfo: source,
+                                            run: source, builtAt: 1, fpsCounter: nil, signatures: [], fontsRoot: work, fonts: [])
+        let paths = ["i386-windows/lsteamclient.dll", "x86_64-windows/lsteamclient.dll", "x86_64-unix/lsteamclient.so"]
+        let bridge = BridgePayload.Located(sources: [(source: source, bridgePaths: paths)])
+        let tool = InstalledTool(tool: CompatTool(name: "cartouche-proton-\(id)", flavor: .rosetta, display: "Cartouche Wine"), build: id)
+        let files = DeploymentContent.files(payload: payload, bridgePayload: bridge, app: work.appending(path: "Steam.app"),
+                                            bridge: work.appending(path: "bridge"), signatures: work, fonts: work,
+                                            overlayShim: work, iconmaker: work, appinfo: work, compatTools: work,
+                                            tools: [tool], runners: runners)
+        let builtins = files.filter { $0.name.hasPrefix(id + "/") }
+        #expect(builtins.count == 3)
+        for file in builtins {
+            #expect(file.destination.path.hasPrefix(root.path))
+            try Data("bridge".utf8).write(to: file.destination)
+            #expect(try file.matches())
+        }
+        try Data("damaged".utf8).write(to: builtins[0].destination)
+        #expect(try !builtins[0].matches())
+    }
+
     @Test("Same-version builds with different contents offer an update by build time")
     func newerBuild() throws {
         let root = try scratchDirectory("content")
@@ -43,6 +77,18 @@ struct DeploymentContentTests {
                     installed: .init(version: "1.0.2", builtAt: 100)) == .newerInstalled)
         #expect(try DeploymentContent.inspect(files: [], bundled: build, installed: nil,
                     legacyVersion: "1.0.10") == .newerInstalled)
+    }
+
+    @Test("Integration revisions are explicit, migrate legacy records, and cannot downgrade a newer app")
+    func integrationVersions() throws {
+        let bundled = DeploymentContent.Build(version: "0.1.0", builtAt: 200, integrationVersion: "0.1.0-2")
+        let old = DeploymentContent.Build(version: "0.1.0", builtAt: 100, integrationVersion: "0.1.0-1")
+        #expect(try DeploymentContent.inspect(files: [], bundled: bundled, installed: old) == .update(["Steam integration 0.1.0-2"]))
+        #expect(bundled.isNewer(than: .init(version: "0.1.0", builtAt: 100)))
+        #expect(!bundled.isNewer(than: .init(version: "0.1.0", builtAt: 300)))
+        #expect(!bundled.isNewer(than: .init(version: "0.2.0", builtAt: 100)))
+        let encoded = try JSONEncoder().encode(bundled)
+        #expect(try JSONDecoder().decode(DeploymentContent.Build.self, from: encoded) == bundled)
     }
 
     @Test("A changed or missing file from the recorded build offers repair")
@@ -136,6 +182,24 @@ struct DeploymentContentTests {
         #expect(throws: StepFailure.self) {
             try DeploymentContent.inspect(files: [file], bundled: build, installed: staleRecord)
         }
+        #expect(try DeploymentContent.inspect(files: [file], bundled: build, installed: staleRecord,
+                                              recordMismatch: .report) == .mismatchedDylib(["cartouche.dylib"]))
+        #expect(try DeploymentContent.inspect(files: [file], bundled: build, installed: staleRecord,
+                                              recordMismatch: .accept) == .update(["cartouche.dylib"]))
+    }
+
+    @MainActor
+    @Test("A dylib that does not match the build record stays repairable")
+    func mismatchedDylibInstallAction() {
+        let status = SystemStatus()
+        let payload = PayloadState(expected: 0, present: 0, missing: [], overlayShimPresent: true,
+                                   iconmakerPresent: true, appinfoPresent: true, signatureDatabase: "fixture",
+                                   legacyCompatPresent: 0, legacyCompatExpected: 0, manifestProblem: nil)
+        status.snapshot = StatusSnapshot(steam: .installed(version: "1.0.1"), steamRunning: false, updateBlocked: false,
+                                         crossOver: [], runner: .none, payload: payload,
+                                         installContent: .mismatchedDylib(["cartouche.dylib"]))
+        #expect(!DeploymentContent.Status.mismatchedDylib([]).blocksInstallation)
+        #expect(status.canInstall)
     }
 
     @MainActor

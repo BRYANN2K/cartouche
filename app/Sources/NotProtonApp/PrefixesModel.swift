@@ -22,6 +22,7 @@ final class PrefixesModel {
     private(set) var currentTools: [String: InstalledTool] = [:]
 
     func lastTool(_ prefix: WinePrefix) -> String? {
+        guard prefix.source == .steam else { return prefix.runner }
         if let tool = currentTools[prefix.id] { return tool.display }
         guard let record = records[prefix.id] else { return nil }
         return record.display ?? RunnerRegistry.displayVersion(forID: record.build)
@@ -62,6 +63,8 @@ final class PrefixesModel {
     }
 
     private let libraries: @Sendable () -> [SteamLibrary]
+    // The prefixes of the games Cartouche installed or runs from a store: live ones, then backup-only ones.
+    private let games: @Sendable (Bool) -> [WinePrefix]
     private let installedTools: @Sendable () -> [InstalledTool]
     private let rebuild: @Sendable (WinePrefix, InstalledTool, Bool) throws -> URL?
     private let makeBackup: @Sendable (WinePrefix) throws -> URL
@@ -74,12 +77,19 @@ final class PrefixesModel {
         },
         makeBackup: @escaping @Sendable (WinePrefix) throws -> URL = {
             try PrefixTools.backUp($0)
-        }
+        },
+        games: @escaping @Sendable (Bool) -> [WinePrefix] = { _ in [] }
     ) {
         self.libraries = libraries
+        self.games = games
         self.installedTools = installedTools
         self.rebuild = rebuild
         self.makeBackup = makeBackup
+    }
+
+    // The pane in Settings: Steam's libraries and every game Cartouche installed or runs from a store.
+    static func live() -> PrefixesModel {
+        PrefixesModel(games: { PrefixStore.games(live: $0) })
     }
 
     private var loadGeneration = 0
@@ -89,8 +99,15 @@ final class PrefixesModel {
         isLoading = true
         defer { if run == loadGeneration { isLoading = false } }
 
-        let roots = libraries()
-        let found = await Task.detached { PrefixStore.all(libraries: roots) }.value
+        let listLibraries = libraries
+        let listGames = games
+        let (found, orphans) = await Task.detached {
+            let roots = listLibraries()
+            let live = (PrefixStore.all(libraries: roots) + listGames(true)).sorted {
+                ($0.lastUsed ?? .distantPast, $0.appID) > ($1.lastUsed ?? .distantPast, $1.appID)
+            }
+            return (live, PrefixStore.backupOnly(libraries: roots) + listGames(false))
+        }.value
         guard run == loadGeneration else { return }
         prefixes = found
         usage = usage.filter { id, _ in found.contains { $0.id == id } }
@@ -100,7 +117,8 @@ final class PrefixesModel {
             var records: [String: PrefixBuildRecord] = [:]
             var stale = Set<String>()
             var current: [String: InstalledTool] = [:]
-            for prefix in found {
+            // Only Steam's prefixes carry a compatibility tool's build record.
+            for prefix in found where prefix.source == .steam {
                 guard let record = PrefixTools.lastBuild(of: prefix) else { continue }
                 records[prefix.id] = record
                 if let tool = PrefixTools.tool(for: prefix, among: tools) {
@@ -116,7 +134,7 @@ final class PrefixesModel {
         selection = selection.filter { id in found.contains { $0.id == id } }
 
         var kept: [PrefixBackup] = []
-        for prefix in found {
+        for prefix in found + orphans {
             let details = await Task.detached { PrefixStore.backupDetails(of: prefix) }.value
             guard run == loadGeneration else { return }
             kept.append(contentsOf: details)
@@ -152,12 +170,22 @@ final class PrefixesModel {
         PrefixTools.open(log, for: prefix)
     }
 
+    // An installer game's prefix holds the game itself: PrefixTools.delete refuses it, so the
+    // pane says why instead of removing anything.
     func delete(_ targets: [WinePrefix]) async {
         await eachInTurn(targets, { try PrefixTools.delete($0) }) { deleted in
+            let steam = deleted.allSatisfy { $0.prefix.source == .steam }
             if deleted.count == 1 {
-                return String(localized: "Deleted the prefix for \(deleted[0].prefix.title). Steam will make a new prefix if the game is launched again.")
+                let title = deleted[0].prefix.title
+                guard steam else {
+                    return String(localized: "Deleted the prefix for \(title). Cartouche will make a new one the next time the game is played.")
+                }
+                return String(localized: "Deleted the prefix for \(title). Steam will make a new prefix if the game is launched again.")
             }
             guard deleted.count > 1 else { return nil }
+            guard steam else {
+                return String(localized: "Deleted \(deleted.count) prefixes. A new one is made the next time each game is played.")
+            }
             return String(localized: "Deleted \(deleted.count) prefixes. Steam will make a new prefix if a game is launched again.")
         }
     }
@@ -177,7 +205,9 @@ final class PrefixesModel {
         return Task { await recreate(targets, as: tool, keepBackup: keepBackup) }
     }
 
+    // A Steam compatibility tool rebuilds Steam's own prefixes only; any other is left as it is.
     func recreate(_ targets: [WinePrefix], as tool: InstalledTool, keepBackup: Bool = true) async {
+        let targets = targets.filter(\.canRebuild)
         let make = rebuild
         await eachInTurn(targets, { try make($0, tool, keepBackup) }) { rebuilt in
             let kept = rebuilt.compactMap(\.made)
@@ -283,18 +313,7 @@ final class PrefixesModel {
     }
 
     func chooseExecutable(for prefix: WinePrefix) {
-        let panel = NSOpenPanel()
-        panel.canChooseFiles = true
-        panel.canChooseDirectories = false
-        panel.allowsMultipleSelection = false
-        let types = PrefixTools.runnableTypes
-        if !types.isEmpty { panel.allowedContentTypes = types }
-        panel.prompt = String(localized: "Run")
-        panel.message = String(localized: "Choose a Windows program to run in \(prefix.title).")
-        panel.directoryURL = PrefixStore.installDirectory(of: prefix)
-            ?? prefix.pfx.appending(path: "drive_c")
-
-        guard panel.runModal() == .OK, let picked = panel.url else { return }
+        guard let picked = PrefixTools.chooseProgram(for: prefix) else { return }
         run(picked, in: prefix)
     }
 

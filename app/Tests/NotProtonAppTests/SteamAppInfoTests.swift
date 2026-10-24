@@ -85,6 +85,28 @@ struct SteamAppInfoTests {
         #expect(!found.windows.contains(99) && !found.mac.contains(99), "an app with no common section is neither")
     }
 
+    @Test("Storage estimates use public depots for the selected OS, excluding optional DLC and other languages")
+    func storageSizes() {
+        typealias V = AppInfoVDF.Value
+        func depot(_ bytes: V, os: String? = nil, language: String? = nil, dlc: Bool = false) -> V {
+            var config: [String: V] = [:]
+            if let os { config["oslist"] = .string(os) }
+            if let language { config["language"] = .string(language) }
+            var depot: [String: V] = ["config": .section(config), "manifests": .section(["public": .section(["size": bytes])])]
+            if dlc { depot["dlcappid"] = .number(99) }
+            return .section(depot)
+        }
+        let app: [String: V] = ["depots": .section([
+            "1": depot(.string("10000000000")),
+            "2": depot(.number(2_000_000_000), os: "macos"),
+            "3": depot(.number(4_000_000_000), os: "windows"),
+            "4": depot(.number(20_000_000_000), dlc: true),
+            "5": depot(.number(1_000_000_000), language: "german"),
+            "6": depot(.string("invalid")), "7": depot(.number(-1))
+        ])]
+        #expect(SteamAppInfo.storage(app) == .init(windows: 14_000_000_000, mac: 12_000_000_000))
+    }
+
     @Test("A cache cut short or of an unknown format is refused rather than read in part")
     func refusals() throws {
         #expect(throws: SteamAppInfo.Failure.self) { try SteamAppInfo.platforms(Self.cache(.v28, ended: false)) }
@@ -93,6 +115,23 @@ struct SteamAppInfoTests {
         #expect(throws: SteamAppInfo.Failure.self) { try SteamAppInfo.platforms(unknown) }
         let cut = Array(Self.cache(.v29).prefix(40))
         #expect(throws: SteamAppInfo.Failure.self) { try SteamAppInfo.platforms(cut) }
+    }
+
+    @Test("A string table claiming more strings than bytes left is refused before anything is reserved")
+    func hugeStringTableCount() throws {
+        var bytes = Bytes()
+        bytes.u32(0xffff_ffff)
+        bytes.cstring("appinfo")
+        #expect(throws: AppInfoVDF.ParseError.truncated) { try AppInfoVDF.readStringTable(bytes.bytes, at: 0) }
+        var table = Self.cache(.v29)
+        let start = table.count - Self.table.reduce(4) { $0 + $1.utf8.count + 1 }
+        table.replaceSubrange(start..<start + 4, with: [0xff, 0xff, 0xff, 0x7f])
+        #expect(throws: SteamAppInfo.Failure.self) { try SteamAppInfo.platforms(table) }
+        var exact = Bytes()
+        exact.u32(2)
+        exact.cstring("a")
+        exact.cstring("b")
+        #expect(try AppInfoVDF.readStringTable(exact.bytes, at: 0) == ["a", "b"])
     }
 
     @Test("The file is read from a path, and a missing one gives nothing")
@@ -104,6 +143,51 @@ struct SteamAppInfoTests {
         #expect(SteamAppInfo.platforms(at: file)?.both == [1_086_940, 1_091_500, 367_520])
         #expect(SteamAppInfo.platforms(at: work.appending(path: "none.vdf")) == nil)
         #expect(SteamAppInfo.cache.path(percentEncoded: false).hasSuffix("/Steam/appcache/appinfo.vdf"))
+    }
+
+    @Test("File results are reused until the URL, modification time, or size changes")
+    func fileCacheInvalidation() throws {
+        let work = try scratchDirectory("appinfo-cache")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let file = work.appending(path: "appinfo.vdf")
+        let other = work.appending(path: "other.vdf")
+        let modified = Date(timeIntervalSince1970: 1_700_000_000)
+        var bytes = Self.cache(.v28)
+        try Data(bytes).write(to: file)
+        try FileManager.default.setAttributes([.modificationDate: modified], ofItemAtPath: file.path)
+        var reads = 0
+        let cache = SteamAppInfo.FileCache { url in
+            reads += 1
+            return try Data(contentsOf: url)
+        }
+        let first = cache.platforms(at: file)
+        #expect(first?.windows.contains(1_245_620) == true)
+        #expect(cache.platforms(at: file) == first)
+        #expect(reads == 1)
+
+        // Same size, newer modification time, different first app ID.
+        bytes[8] += 1
+        try Data(bytes).write(to: file)
+        let newer = modified.addingTimeInterval(10)
+        try FileManager.default.setAttributes([.modificationDate: newer], ofItemAtPath: file.path)
+        #expect(cache.platforms(at: file)?.windows.contains(1_245_621) == true)
+        #expect(reads == 2)
+
+        // A changed size invalidates even when the modification time stays fixed.
+        bytes.append(0)
+        try Data(bytes).write(to: file)
+        try FileManager.default.setAttributes([.modificationDate: newer], ofItemAtPath: file.path)
+        #expect(cache.platforms(at: file)?.windows.contains(1_245_621) == true)
+        #expect(reads == 3)
+        #expect(cache.platforms(at: file) != nil)
+        #expect(reads == 3)
+
+        // A different URL must not borrow the first file's matching stamp.
+        bytes[8] -= 1
+        try Data(bytes).write(to: other)
+        try FileManager.default.setAttributes([.modificationDate: newer], ofItemAtPath: other.path)
+        #expect(cache.platforms(at: other)?.windows.contains(1_245_620) == true)
+        #expect(reads == 4)
     }
 
     @Test("In the library a game with a Mac build reads Mac version until the Windows version is picked")

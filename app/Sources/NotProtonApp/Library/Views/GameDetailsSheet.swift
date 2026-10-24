@@ -12,7 +12,7 @@ struct GameDetailsSheet: View {
     private var thisMac: String? { compat.chip }
 
     private var chips: [String] {
-        let gpu = compat.data?.gpuStrength ?? [:]
+        let gpu = compat.gpuStrength
         return gpu.keys.sorted { (gpu[$0]!, $0) < (gpu[$1]!, $1) }
     }
 
@@ -39,9 +39,9 @@ struct GameDetailsSheet: View {
     private func block(_ section: GamePanelContent.DetailsSection) -> some View {
         switch section {
         case .expected:
-            Section(section.title) {
-                let result = CompatEstimate.compute(reports: content.compat.mac?.reports ?? [], method: .wine,
-                                                    chip: chip ?? thisMac, gpu: compat.data?.gpuStrength ?? [:])
+            Section(chip == nil || chip == thisMac ? section.title : String(localized: "Expected on \(chip!)")) {
+                let result = CompatEstimate.compute(reports: content.compat.mac?.reports ?? [], method: content.compat.method,
+                                                    chip: chip ?? thisMac, gpu: compat.gpuStrength)
                 let (estimate, line) = GamePanelContent.estimate(result, macReportsOn: content.compat.macReportsOn)
                 if let estimate {
                     EstimateRow(estimate: estimate)
@@ -66,6 +66,9 @@ struct GameDetailsSheet: View {
                     LabeledContent(rating.label, value: GamePanelContent.reportCount(content.compat.mac?.reviewCount ?? 0))
                 }
                 ForEach(content.layers) { LayerRow(layer: $0, isBest: $0.layer == content.bestLayer) }
+                if let url = content.compat.mac?.reportURL {
+                    Link("View Reports on MacGamingDB", destination: url)
+                }
             }
         case .appleGamingWiki:
             Section(section.title) {
@@ -78,6 +81,11 @@ struct GameDetailsSheet: View {
                 Section(section.title) {
                     Text(summary.title)
                     ForEach(summary.details, id: \.self) { Text($0).foregroundStyle(.secondary) }
+                    if let info = summary.protonDBInfo { Text(info).foregroundStyle(.secondary) }
+                    if let url = summary.protonDBURL {
+                        Link("View Reports on ProtonDB", destination: url)
+                        Text("Community multiplayer reports; anti-cheat support in Cartouche is unverified.").foregroundStyle(.secondary)
+                    }
                 }
             }
         case .advanced:

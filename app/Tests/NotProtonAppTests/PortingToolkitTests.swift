@@ -44,7 +44,9 @@ final class PortingToolkitTests {
         try fm.createSymbolicLink(atPath: framework.appending(path: "D3DMetal").path(percentEncoded: false), withDestinationPath: "Versions/Current/D3DMetal")
         try Data("fixture shared".utf8).write(to: lib.appending(path: "external/libd3dshared.dylib"))
         try fm.createDirectory(at: lib.appending(path: "wine/x86_64-windows"), withIntermediateDirectories: true)
-        try Data("MZ fixture".utf8).write(to: lib.appending(path: "wine/x86_64-windows/d3d12.dll"))
+        for name in ["d3d11", "d3d12", "dxgi"] {
+            try Data("MZ fixture".utf8).write(to: lib.appending(path: "wine/x86_64-windows/\(name).dll"))
+        }
         return lib
     }
 
@@ -86,18 +88,20 @@ final class PortingToolkitTests {
         #expect(before.state == .available)
         #expect(before.version == "4.0b3")
 
-        // Only external/ is copied: the toolkit's own Wine tree is never read
+        // Graphics DLLs and the Metal framework must stay together.
         let receipt = try PortingToolkitSource.copy(try #require(found.first), runners: runners)
         #expect(Set(receipt.files.keys) == [
             "lib/external/D3DMetal.framework/Versions/A/D3DMetal",
             "lib/external/D3DMetal.framework/Versions/A/Resources/Info.plist",
             "lib/external/libd3dshared.dylib",
+            "lib/wine/x86_64-windows/d3d11.dll",
+            "lib/wine/x86_64-windows/d3d12.dll",
+            "lib/wine/x86_64-windows/dxgi.dll",
         ])
 
         let copy = PortingToolkitSource.folder(version: "4.0b3", runners: runners)
         #expect(copy.lastPathComponent == "gptk-4.0b3")
-        #expect(!FileManager.default.fileExists(
-            atPath: copy.appending(path: "lib/wine").path(percentEncoded: false)))
+        #expect(PortingToolkitSource.graphicsPath(inLib: copy.appending(path: "lib")) != nil)
         #expect(try FileManager.default.destinationOfSymbolicLink(
             atPath: copy.appending(path: "lib/external/D3DMetal.framework/D3DMetal").path(percentEncoded: false))
             == "Versions/Current/D3DMetal")

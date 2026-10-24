@@ -82,10 +82,53 @@ struct CoreManagerTests {
         let bot = try await Buildbot()
         let first = try await bot.cores.install("snes9x")
         try bot.serve("snes9x", build: "2")
-        let second = try await bot.cores.update("snes9x")
+        let second = try await bot.cores.update("snes9x", accept: true)
         #expect(first.sha256 != second.sha256)
+        #expect(second.replaces == first.sha256)
         #expect(await bot.cores.record("snes9x") == second)
         #expect(await bot.cores.check("snes9x") == .verified)
+        #expect(try Data(contentsOf: bot.cores.url("snes9x")) == fakeCore("2"))
+    }
+
+    @Test func aDifferentServerBuildIsNotTakenWithoutTheGoAhead() async throws {
+        let bot = try await Buildbot()
+        let first = try await bot.cores.install("snes9x")
+        try bot.serve("snes9x", build: "2")
+        await #expect(throws: CoreError.changedOnServer(core: "snes9x")) { try await bot.cores.update("snes9x") }
+        #expect(await bot.cores.record("snes9x") == first)
+        #expect(try Data(contentsOf: bot.cores.url("snes9x")) == fakeCore("1"))
+
+        // A core changed on disk is not silently replaced by a different server build at play either
+        try (fakeCore("1") + Data("patched".utf8)).write(to: bot.cores.url("snes9x"))
+        await #expect(throws: CoreError.changedOnServer(core: "snes9x")) { try await bot.cores.install("snes9x") }
+        #expect(await bot.cores.record("snes9x") == first)
+    }
+
+    @Test func theSameServerBuildRepairsAChangedCore() async throws {
+        let bot = try await Buildbot()
+        let first = try await bot.cores.install("snes9x")
+        try (fakeCore("1") + Data("patched".utf8)).write(to: bot.cores.url("snes9x"))
+        let repaired = try await bot.cores.install("snes9x")
+        #expect(repaired.sha256 == first.sha256 && repaired.replaces == nil)
+        #expect(await bot.cores.check("snes9x") == .verified)
+    }
+
+    @MainActor
+    @Test func settingsAcceptsAChangedBuildOnTheSecondPress() async throws {
+        let bot = try await Buildbot()
+        let shelf = ConsoleShelf(paths: bot.paths, cores: bot.cores)
+        try await shelf.add("snes")
+        try bot.serve("snes9x", build: "2")
+        let model = ConsolesSettingsModel(paths: bot.paths, includedApp: Fixtures.fakeRetroArch, cores: bot.cores,
+                                          official: OfficialRelease(paths: bot.paths), probe: { _ in nil })
+        let snes = try #require(ConsoleCatalog.all.first { $0.id == "snes" })
+
+        await model.updateCore(of: snes)
+        #expect(model.problem == CoreError.changedOnServer(core: "snes9x").localizedDescription)
+        #expect(try Data(contentsOf: bot.cores.url("snes9x")) == fakeCore("1"))
+
+        await model.updateCore(of: snes)
+        #expect(model.problem == nil)
         #expect(try Data(contentsOf: bot.cores.url("snes9x")) == fakeCore("2"))
     }
 

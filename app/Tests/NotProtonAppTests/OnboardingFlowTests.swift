@@ -128,7 +128,7 @@ struct OnboardingFlowTests {
         model.next()  // Continue
         #expect(model.step == .stores)
         #expect(model.setup.runner.started)
-        #expect(model.setup.activity?.title == "Wine CrossOver 26.3")
+        #expect(model.setup.activity?.title == "Cartouche Wine 26.3")
         while model.setup.runner.working {
             try await Task.sleep(for: .milliseconds(10))
         }
@@ -292,10 +292,12 @@ struct OnboardingFlowTests {
         #expect(scene.folders.paths.count == 2)
     }
 
-    @Test("Only the manifest-pinned Wine CrossOver is recommended, never WineHQ")
+    @Test("Only the manifest-pinned Cartouche Wine is recommended, never WineHQ")
     func crossOverDefault() throws {
         let manifest = try RunnerManifest.bundled()
-        #expect(RunnerOffer.recommended(manifest)?.id == "wine-crossover-26.3.0-1")
+        #expect(RunnerOffer.recommended(manifest)?.id == "wine-crossover-26.3.0-2")
+        let reversed = RunnerManifest(format: manifest.format, revision: manifest.revision, builds: manifest.builds.reversed())
+        #expect(RunnerOffer.recommended(reversed)?.id == "wine-crossover-26.3.0-2")
         let wineHQOnly = RunnerManifest(format: manifest.format, revision: manifest.revision,
                                       builds: manifest.builds.filter { $0.origin == .winehq })
         #expect(RunnerOffer.recommended(wineHQOnly) == nil)
@@ -318,7 +320,7 @@ struct OnboardingFlowTests {
         await scene.render(model, named: "onboarding-windows-games")
         // Continue's task strip names the pinned runner immediately, before work yields.
         model.next()
-        #expect(model.setup.activity?.title == "Wine CrossOver 26.3")
+        #expect(model.setup.activity?.title == "Cartouche Wine 26.3")
         await scene.render(model, named: "onboarding-wine-background", modes: [.classic])
         model.back()
 

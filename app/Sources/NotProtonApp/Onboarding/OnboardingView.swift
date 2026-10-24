@@ -224,19 +224,33 @@ private struct FoundRow<Trailing: View>: View {
     var detail: Text?
     var monospaced = false
     var mark: PlatformMark?
+    var stacked = false
     @ViewBuilder var trailing: Trailing
 
+    private var label: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            title.font(monospaced ? .system(size: 12, weight: .medium).monospaced() : .system(size: 13, weight: .medium))
+            if let detail {
+                detail.font(.system(size: 12)).foregroundStyle(Glass.label2).fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            if let mark { PlatformMarkView(mark: mark).foregroundStyle(Color.accentColor) }
-            VStack(alignment: .leading, spacing: 2) {
-                title.font(monospaced ? .system(size: 12, weight: .medium).monospaced() : .system(size: 13, weight: .medium))
-                if let detail {
-                    detail.font(.system(size: 12)).foregroundStyle(Glass.label2).fixedSize(horizontal: false, vertical: true)
+        Group {
+            if stacked {
+                VStack(alignment: .leading, spacing: 10) {
+                    label
+                    trailing.frame(maxWidth: .infinity)
+                }
+            } else {
+                HStack(alignment: .center, spacing: 12) {
+                    if let mark { PlatformMarkView(mark: mark).foregroundStyle(Color.accentColor) }
+                    label
+                    Spacer(minLength: 12)
+                    trailing
                 }
             }
-            Spacer(minLength: 12)
-            trailing
         }
         .frame(minHeight: 38)
         .padding(.vertical, 7)
@@ -481,7 +495,7 @@ private struct RunnerChoiceSwitch: ToggleStyle {
             .frame(width: 38, height: 24)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(Text("Wine CrossOver"))
+        .accessibilityLabel(Text("Cartouche Wine"))
         .accessibilityValue(configuration.isOn ? Text("On") : Text("Off"))
     }
 }
@@ -501,19 +515,17 @@ private struct StoresStep: View {
                         .padding(.vertical, 6)
                         .padding(.horizontal, 6)
                     FoundRow(title: Text("Steam library"),
-                             detail: Text(model.steamLibraryGames == 1
-                                          ? String(localized: "1 game in the library")
-                                          : String(localized: "\(model.steamLibraryGames) games in the library"))) {
+                             detail: Text(model.steamLibraryDetail)) {
                         if model.steamLibraryGames > 0 {
                             Found(label: Text("Imported"))
                         } else {
                             Text("Waiting for Steam").foregroundStyle(Glass.label2)
                         }
                     }
-                    if model.steamStep.phase == .done {
-                        FoundRow(title: Text("Restart Steam"),
-                                 detail: Text("The new compatibility tools load when Steam restarts.")) {
-                            restartButtons
+                    if model.steamRestarted == false {
+                        FoundRow(title: Text("Steam could not be opened")) {
+                            Button("Open Steam") { Task { await model.restartSteamNow() } }
+                                .buttonStyle(.pill)
                         }
                     }
                 } else {
@@ -528,22 +540,6 @@ private struct StoresStep: View {
         }
     }
 
-    @ViewBuilder
-    private var restartButtons: some View {
-        if model.steamRestarted == true {
-            Found(label: Text("Restarted"))
-        } else if model.restartingSteam {
-            ProgressView().controlSize(.small).accessibilityLabel(Text("Restarting"))
-        } else {
-            HStack {
-                Button("Restart Now") { Task { await model.restartSteamNow() } }
-                    .disabled(!model.steamRunning)
-                Button("Later") { model.next() }
-            }.buttonStyle(.pill)
-        }
-    }
-
-    @ViewBuilder
     private var storeTiles: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Other stores").groupHeader()
@@ -767,9 +763,20 @@ private struct ControllerStep: View {
                     .font(.system(size: 12))
                     .foregroundStyle(Glass.label2)
             }
+            OnboardingControllerOptions(model: model)
+        }
+        .onAppear { model.setDiagramVisible(true) }
+        .onDisappear { model.setDiagramVisible(false) }
+    }
+}
+
+struct OnboardingControllerOptions: View {
+    @Bindable var model: OnboardingModel
+
+    var body: some View {
             RowGroup {
                 FoundRow(title: Text("Button glyphs"),
-                         detail: Text("PlayStation shows ○△□×, Xbox shows ABXY.")) {
+                         detail: Text("PlayStation shows ○△□×, Xbox shows ABXY."), stacked: true) {
                     Picker(selection: Binding<PadFamily>(
                         get: { model.padFamily },
                         set: { model.setPadGlyphs($0) })) {
@@ -779,10 +786,10 @@ private struct ControllerStep: View {
                     } label: { Text("Glyphs") }
                     .pickerStyle(.segmented)
                     .labelsHidden()
-                    .frame(width: 240)
+                    .frame(maxWidth: .infinity)
                 }
                 FoundRow(title: Text("Layout"),
-                         detail: Text("Preview the layout. Customize each game in Controls.")) {
+                         detail: Text("Preview the layout. Customize each game in Controls."), stacked: true) {
                     Picker(selection: Binding<ControllerLayout.Preset>(
                         get: { model.padPreset },
                         set: { model.setPadPreset($0) })) {
@@ -790,7 +797,7 @@ private struct ControllerStep: View {
                     } label: { Text("Layout") }
                     .pickerStyle(.segmented)
                     .labelsHidden()
-                    .frame(width: 240)
+                    .frame(maxWidth: .infinity)
                 }
                 FoundRow(title: Text("Keyboard-only games"),
                          detail: Text("Play them with the controller — needs Accessibility later.")) {
@@ -799,9 +806,6 @@ private struct ControllerStep: View {
                         .labelsHidden()
                 }
             }
-        }
-        .onAppear { model.setDiagramVisible(true) }
-        .onDisappear { model.setDiagramVisible(false) }
     }
 }
 

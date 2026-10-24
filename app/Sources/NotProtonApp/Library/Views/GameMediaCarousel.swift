@@ -11,12 +11,13 @@ enum MediaSlide: Hashable, Sendable {
 
 struct GameMediaStore: Sendable {
     var covers: CoverStore
+    var namespace: String? = nil
     // The covers' own fetch, so tests and QA stub both the same way
     var fetch: HTTPFetch.Fetch { covers.fetch }
     // The store's screenshot list is kept a week; the pictures themselves for good
     static let listTTL: TimeInterval = 7 * 24 * 3600
 
-    private func folder(_ appID: Int) -> URL { covers.cache.appending(path: "\(appID)/media", directoryHint: .isDirectory) }
+    private func folder(_ appID: Int) -> URL { covers.cache.appending(path: "\(namespace ?? String(appID))/media", directoryHint: .isDirectory) }
 
     // The header image's own shape, 460 by 215, so it shows uncropped
     static let aspect: CGFloat = 460.0 / 215.0
@@ -58,12 +59,19 @@ struct GameMediaStore: Sendable {
         let age = (try? FileManager.default.attributesOfItem(atPath: list.path(percentEncoded: false)))?[.modificationDate] as? Date
         var data = try? Data(contentsOf: list)
         if online, age.map({ Date().timeIntervalSince($0) > Self.listTTL }) ?? true,
-           let (fresh, status) = try? await fetch(Self.storeAPI(appID)), status == 200 {
+           let (fresh, status) = try? await fetch(Self.storeAPI(appID)), status == 200, Self.succeeded(fresh, appID: appID) {
             data = fresh
             try? FileManager.default.createDirectory(at: folder(appID), withIntermediateDirectories: true)
             try? fresh.write(to: list, options: .atomic)
         }
         return data.map { Self.parse($0, appID: appID) } ?? []
+    }
+
+    // The store answers 200 with success false when it has nothing for now: that is not kept
+    static func succeeded(_ data: Data, appID: Int) -> Bool {
+        guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let entry = root[String(appID)] as? [String: Any] else { return false }
+        return entry["success"] as? Bool == true
     }
 
     static func parse(_ data: Data, appID: Int) -> [URL] {
@@ -99,7 +107,9 @@ struct GameMediaCarousel: View {
     @State private var size: CGSize = .zero
     @FocusState private var focused: Bool
 
-    private var store: GameMediaStore { GameMediaStore(covers: covers) }
+    private var store: GameMediaStore {
+        GameMediaStore(covers: covers, namespace: game.source == .gog ? game.id.replacingOccurrences(of: ":", with: "-") : nil)
+    }
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: Glass.panelRadius - Glass.inset, style: .continuous)
@@ -118,10 +128,10 @@ struct GameMediaCarousel: View {
         .onKeyPress(.leftArrow) { step(-1) }
         .onKeyPress(.rightArrow) { step(1) }
         .padding(Glass.inset)
-        .task(id: appID) {
+        .task(id: game.id + (game.mediaScreenshots ?? []).map(\.absoluteString).joined()) {
             current = .header
             slides = [.header]
-            let shots = await store.screenshots(appID, online: online)
+            let shots = game.source == .gog ? game.mediaScreenshots ?? [] : await store.screenshots(appID, online: online)
             guard !Task.isCancelled else { return }
             slides = [.header] + shots.map(MediaSlide.screenshot)
         }
@@ -227,10 +237,15 @@ private struct SlideView: View {
                 }
             }
             .clipped()
-            .task(id: slide) {
+            .task(id: game.mediaHeader?.absoluteString ?? String(describing: slide)) {
                 let file: URL?
                 switch slide {
-                case .header: file = await store.header(appID, online: online)
+                case .header:
+                    if game.source == .gog {
+                        file = if let header = game.mediaHeader { await store.local(header, appID: appID, online: online) } else { nil }
+                    } else {
+                        file = await store.header(appID, online: online)
+                    }
                 case .screenshot(let remote): file = await store.local(remote, appID: appID, online: online)
                 }
                 if let file { image = await Task.detached { CoverImages.image(file) }.value }

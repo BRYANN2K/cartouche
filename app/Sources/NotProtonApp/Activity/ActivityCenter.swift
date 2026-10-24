@@ -12,9 +12,13 @@ final class ActivityCenter {
     nonisolated static let finishFlash: Duration = .milliseconds(1100)
 
     private(set) var steamGame: RunningGame?
+    private(set) var steamLaunching: Set<Int> = []
     @ObservationIgnored var consoleSource: @MainActor () -> RunningGame? = { nil }
     @ObservationIgnored var storeSource: @MainActor () -> StoreActivity? = { nil }
     @ObservationIgnored var stopStore: @MainActor (StoreActivity) -> Void = { _ in }
+    @ObservationIgnored var storeFailures: @MainActor () -> [StoreFailure] = { [] }
+    @ObservationIgnored var retryStore: @MainActor (StoreFailure) -> Void = { _ in }
+    @ObservationIgnored var dismissStore: @MainActor (StoreFailure) -> Void = { _ in }
     // Onboarding's background work (runner, cores, toolkit import) reports here
     @ObservationIgnored var setupSource: @MainActor () -> SetupActivity? = { nil }
     private(set) var downloads: [DownloadActivity] = []
@@ -33,6 +37,7 @@ final class ActivityCenter {
     // Notifications only go out while Cartouche is in the background
     @ObservationIgnored var isAppActive: @MainActor () -> Bool = { NSApp?.isActive ?? false }
     @ObservationIgnored var onDownloadFinished: @MainActor (Int) -> Void = { _ in }
+    @ObservationIgnored var onSteamSnapshot: @MainActor (SteamActivitySnapshot) -> Void = { _ in }
     @ObservationIgnored var onGameEnded: @MainActor () -> Void = {}
     @ObservationIgnored var quitConsole: @MainActor () async -> Void = {}
     @ObservationIgnored var now: () -> Date = { Date() }
@@ -60,12 +65,12 @@ final class ActivityCenter {
 
     var slot: ActivitySlot? {
         ActivitySlot.pick(playing: playing, install: installs.activity, store: storeSource(),
-                          downloads: downloads, setup: setupSource())
+                          storeFailed: storeFailures().first, downloads: downloads, setup: setupSource())
     }
 
     var menuSections: [ActivityMenuSection] {
         ActivityMenuSection.all(playing: playing, install: installs.activity, store: storeSource(),
-                                downloads: downloads, setup: setupSource())
+                                storeFailures: storeFailures(), downloads: downloads, setup: setupSource())
     }
 
     func download(for game: Game) -> DownloadActivity? {
@@ -114,6 +119,10 @@ final class ActivityCenter {
     }
 
     func apply(_ snapshot: SteamActivitySnapshot) {
+        onSteamSnapshot(snapshot)
+        var launching = snapshot.steamRunning ? snapshot.launchingAppIDs : []
+        if let running = snapshot.runningAppID { launching.remove(running) }
+        if steamLaunching != launching { steamLaunching = launching }
         if steamRunning != snapshot.steamRunning { steamRunning = snapshot.steamRunning }
         let before = Dictionary(downloads.map { ($0.appID, $0) }, uniquingKeysWith: { first, _ in first })
         var next = snapshot.downloads.map(settle)
@@ -241,10 +250,16 @@ final class ActivityCenter {
         case .console:
             await quitConsole()
         case .steam(let appID):
-            let processes = processes, tracked = tracked
-            let folder = reader.files.installFolder(appID: appID)
-            let quit = await Task.detached { processes.quit(appID: appID, tracked: tracked, installFolder: folder) }.value
-            if quit > 0 { steamGame = nil }
+            await quitSteamGame(appID)
         }
+    }
+
+    func quitSteamGame(_ appID: Int) async {
+        let processes = processes, tracked = steamGame?.target == .steam(appID: appID) ? tracked : [:], files = reader.files
+        let quit = await Task.detached {
+            processes.quit(appID: appID, tracked: tracked, installFolder: files.installFolder(appID: appID),
+                           winePrefix: files.compatPrefix(appID: appID)?.pfx)
+        }.value
+        if quit > 0, steamGame?.target == .steam(appID: appID) { steamGame = nil }
     }
 }

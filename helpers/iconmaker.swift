@@ -60,71 +60,74 @@ let sizes: [(side: Int, scale: Int, name: String)] = [
     (512, 2, "icon_512x512@2x.png"),
 ]
 
-let fm = FileManager.default
-let iconsetURL: URL
-if #available(macOS 13.0, *) {
-    iconsetURL = URL(filePath: outputPath + ".iconset")
-} else {
-    iconsetURL = URL(fileURLWithPath: outputPath + ".iconset")
-}
-try? fm.removeItem(at: iconsetURL)
-try fm.createDirectory(at: iconsetURL, withIntermediateDirectories: true)
-
-for entry in sizes {
-    let px = entry.side * entry.scale
-    let s = CGFloat(px)
-    let r = s * maskRadius
-
-    let rep = NSBitmapImageRep(
-        bitmapDataPlanes: nil, pixelsWide: px, pixelsHigh: px,
-        bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true,
-        isPlanar: false, colorSpaceName: .deviceRGB,
-        bytesPerRow: 0, bitsPerPixel: 0
-    )!
-
-    let ctx = NSGraphicsContext(bitmapImageRep: rep)!
-    NSGraphicsContext.current = ctx
-
-    let rect = NSRect(x: 0, y: 0, width: s, height: s)
-    let path = NSBezierPath(roundedRect: rect, xRadius: r, yRadius: r)
-    path.addClip()
-
-    let srcSize = srcImage.size
-    let scale = max(s / srcSize.width, s / srcSize.height)
-    let drawW = srcSize.width * scale
-    let drawH = srcSize.height * scale
-    let drawRect = NSRect(
-        x: (s - drawW) / 2, y: (s - drawH) / 2,
-        width: drawW, height: drawH
-    )
-    srcImage.draw(in: drawRect)
-
-    ctx.flushGraphics()
-    NSGraphicsContext.current = nil
-
-    guard let png = rep.representation(using: .png, properties: [:]) else {
-        fputs("iconmaker: failed to render \(entry.name)\n", stderr)
-        exit(1)
-    }
-
-    let fileURL: URL
-    if #available(macOS 13.0, *) {
-        fileURL = iconsetURL.appending(path: entry.name)
-    } else {
-        fileURL = iconsetURL.appendingPathComponent(entry.name)
-    }
-    try png.write(to: fileURL)
+struct IconError: Error, CustomStringConvertible {
+    let description: String
 }
 
-let proc = Process()
-proc.executableURL = URL(fileURLWithPath: "/usr/bin/iconutil")
-proc.arguments = ["-c", "icns", iconsetURL.path, "-o", outputPath]
-try proc.run()
-proc.waitUntilExit()
+// Every failure (unwritable output folder, full disk, missing iconutil) ends
+// here as exit 1, the status compat_run.sh and PlaceholderCover treat as "no icon".
+@MainActor
+private func writeIcns(_ srcImage: NSImage, to outputPath: String, iconset iconsetURL: URL) throws {
+    let fm = FileManager.default
+    try? fm.removeItem(at: iconsetURL)
+    try fm.createDirectory(at: iconsetURL, withIntermediateDirectories: true)
 
-try? fm.removeItem(at: iconsetURL)
+    for entry in sizes {
+        let px = entry.side * entry.scale
+        let s = CGFloat(px)
+        let r = s * maskRadius
 
-if proc.terminationStatus != 0 {
-    fputs("iconmaker: iconutil failed with status \(proc.terminationStatus)\n", stderr)
+        guard let rep = NSBitmapImageRep(
+            bitmapDataPlanes: nil, pixelsWide: px, pixelsHigh: px,
+            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true,
+            isPlanar: false, colorSpaceName: .deviceRGB,
+            bytesPerRow: 0, bitsPerPixel: 0
+        ), let ctx = NSGraphicsContext(bitmapImageRep: rep) else {
+            throw IconError(description: "cannot allocate a \(px)px bitmap")
+        }
+        NSGraphicsContext.current = ctx
+
+        let rect = NSRect(x: 0, y: 0, width: s, height: s)
+        let path = NSBezierPath(roundedRect: rect, xRadius: r, yRadius: r)
+        path.addClip()
+
+        let srcSize = srcImage.size
+        let scale = max(s / srcSize.width, s / srcSize.height)
+        let drawW = srcSize.width * scale
+        let drawH = srcSize.height * scale
+        let drawRect = NSRect(
+            x: (s - drawW) / 2, y: (s - drawH) / 2,
+            width: drawW, height: drawH
+        )
+        srcImage.draw(in: drawRect)
+
+        ctx.flushGraphics()
+        NSGraphicsContext.current = nil
+
+        guard let png = rep.representation(using: .png, properties: [:]) else {
+            throw IconError(description: "failed to render \(entry.name)")
+        }
+        try png.write(to: iconsetURL.appendingPathComponent(entry.name))
+    }
+
+    let proc = Process()
+    proc.executableURL = URL(fileURLWithPath: "/usr/bin/iconutil")
+    proc.arguments = ["-c", "icns", iconsetURL.path, "-o", outputPath]
+    try proc.run()
+    proc.waitUntilExit()
+    if proc.terminationStatus != 0 {
+        throw IconError(description: "iconutil failed with status \(proc.terminationStatus)")
+    }
+}
+
+let iconsetURL = URL(fileURLWithPath: outputPath + ".iconset")
+do {
+    try MainActor.assumeIsolated {
+        try writeIcns(srcImage, to: outputPath, iconset: iconsetURL)
+    }
+    try? FileManager.default.removeItem(at: iconsetURL)
+} catch {
+    try? FileManager.default.removeItem(at: iconsetURL)
+    fputs("iconmaker: cannot write \(outputPath): \(error)\n", stderr)
     exit(1)
 }

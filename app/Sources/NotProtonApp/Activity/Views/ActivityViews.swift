@@ -44,6 +44,7 @@ struct ActivitySlotView: View {
         case .store: 2
         case .downloads: 3
         case .setup: 4
+        case .storeFailed: 5
         }
     }
 
@@ -56,6 +57,10 @@ struct ActivitySlotView: View {
             case .store(let activity):
                 StoreInstallCard(activity: activity, stop: { center.stopStore(activity) },
                                  show: { library.reveal(gameID: activity.gameID) })
+            case .storeFailed(let failure):
+                StoreFailedCard(failure: failure, retry: { center.retryStore(failure) },
+                                dismiss: { center.dismissStore(failure) },
+                                show: { library.reveal(gameID: failure.gameID) })
             case .downloads(let downloads):
                 DownloadsCard(summary: DownloadSummary(downloads: downloads),
                               live: center.steamRunning,
@@ -157,6 +162,42 @@ struct StoreInstallCard: View {
             .help(Text("Show in the library"))
             Button("Stop", action: stop)
                 .buttonStyle(.pill)
+        }
+        .accessibilityElement(children: .contain)
+    }
+}
+
+// A failed store job keeps its place with the client's reason until Try Again or Dismiss.
+struct StoreFailedCard: View {
+    let failure: StoreFailure
+    let retry: () -> Void
+    let dismiss: () -> Void
+    let show: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                DownloadRing(fraction: 0, mark: .failed)
+                Button(action: show) {
+                    SlotHeader(label: failure.label, title: failure.title)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help(Text("Show in the library"))
+            }
+            Text(verbatim: failure.reason)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(3)
+                .fixedSize(horizontal: false, vertical: true)
+                .textSelection(.enabled)
+            HStack(spacing: 6) {
+                if failure.canRetry {
+                    Button("Try Again", action: retry).buttonStyle(.pillProminent)
+                }
+                Button("Dismiss", action: dismiss).buttonStyle(.pill)
+            }
         }
         .accessibilityElement(children: .contain)
     }

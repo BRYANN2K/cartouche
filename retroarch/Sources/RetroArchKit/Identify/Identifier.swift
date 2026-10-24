@@ -110,6 +110,8 @@ public struct Identifier: Sendable {
     private func identifyCartridge(_ file: URL, ext: String) async -> Identification {
         let candidates = offered(ext)
         guard !candidates.isEmpty else { return unknown(file, ext: ext) }
+        // There is no Switch libretro database to compare a full-file checksum against.
+        if candidates.count == 1, candidates[0].id == "switch" { return unknown(file, ext: ext) }
         // Without its format's fixed header a cartridge-named file is not a
         // game: no console is offered and nothing counts it.
         guard CartHeader.plausible(file, ext: ext) else {

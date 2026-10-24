@@ -11,36 +11,29 @@ private struct InstallSheetHost: ViewModifier {
     let library: LibraryModel
     let compat: CompatibilityModel
     @Bindable var center: InstallCenter
-    @State private var pendingConsoles = false
 
     func body(content: Content) -> some View {
         content
-            .sheet(isPresented: $center.isSheetPresented, onDismiss: {
-                if pendingConsoles {
-                    pendingConsoles = false
-                    library.addGames = .consoles
-                }
-            }) { InstallSheet(center: center) }
-            .onChange(of: library.addGames) {
-                if library.addGames == .windows {
-                    library.addGames = nil
-                    center.open()
-                }
+            .sheet(isPresented: $center.isSheetPresented, onDismiss: { center.sheetDismissed() }) {
+                InstallSheet(center: center)
             }
             .task {
                 center.compat = { [compat] in compat.data }
                 center.lookupsAllowed = { [compat] in compat.choices.fetchMacReports }
                 center.onGameReady = { _ in
-                    library.showInstalledGames(InstalledGames.all())
-                    Task { await library.resolveInstallerAppIDs(lookup: center.lookup, allowed: compat.choices.fetchMacReports) }
+                    Task {
+                        await library.reloadInstalledGames()
+                        await library.resolveInstallerAppIDs(lookup: center.lookup, allowed: compat.choices.fetchMacReports)
+                    }
                 }
-                center.showConsoleGames = {
-                    center.isSheetPresented = false
-                    pendingConsoles = true
-                }
-                library.showInstalledGames(InstalledGames.all())
+                library.onGamesLocationChange = { [center] in center.engine.installs = $0 }
+                await library.reloadInstalledGames(forgetUnused: true)
                 center.refreshBusy(for: library.allGames, in: library.installsFolder)
                 Task {
+                    // Games extracted before drops moved out of Caches move now, off the main actor.
+                    let installs = library.installsFolder
+                    let moved = await Task.detached { StagedGames.migrate(installs: installs) }.value
+                    if !moved.isEmpty { await library.reloadInstalledGames() }
                     // Older records can still hold a raw folder name: the pipeline names
                     // them once, then the Steam pass fills any app ID still missing.
                     let allowed = compat.choices.fetchMacReports
@@ -53,17 +46,12 @@ private struct InstallSheetHost: ViewModifier {
     }
 }
 
-extension Binding where Value == AddGamesKind? {
-    var withoutWindows: Binding<AddGamesKind?> {
-        Binding(get: { wrappedValue == .windows ? nil : wrappedValue }, set: { wrappedValue = $0 })
-    }
-}
-
 extension LibraryModel {
 
     func showInstalledGames(_ games: [InstalledGame]) {
         otherGames.removeAll { $0.source == .installer }
         otherGames += games.map(Game.init(installed:))
+        refreshExeOptions(for: otherGames.filter { $0.source == .installer })
     }
 }
 

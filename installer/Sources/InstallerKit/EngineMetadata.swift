@@ -68,9 +68,16 @@ public enum EngineMetadata {
     // MARK: Engines
 
     // Epic's .egstore: an .item is JSON, a .manifest/.mancpn is binary with the strings visible.
+    // The folder is hidden, so it is looked up by name in the root and its subfolders rather than
+    // by letting the whole walk into hidden trees.
     static func epic(in root: URL) -> String? {
-        for dir in entries(in: root, depth: 2) where isDirectory(dir)
-            && (dir.lastPathComponent.lowercased() == ".egstore" || dir.lastPathComponent.lowercased().hasSuffix(".egstore")) {
+        let parents = [root] + entries(in: root, depth: 1).filter(isDirectory)
+        let stores = parents.flatMap { parent in
+            ((try? FileManager.default.contentsOfDirectory(at: parent, includingPropertiesForKeys: [.isDirectoryKey])) ?? [])
+                .filter { $0.lastPathComponent.lowercased().hasSuffix(".egstore") && isDirectory($0) }
+                .sorted { $0.path < $1.path }
+        }
+        for dir in stores {
             for file in children(dir) {
                 switch file.pathExtension.lowercased() {
                 case "item": if let name = jsonField("DisplayName", in: file) { return name }

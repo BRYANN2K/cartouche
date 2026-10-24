@@ -152,20 +152,34 @@ static void check_gate(const char *nm, size_t i, const np_gate_t *a,
     }
 }
 
+#define ROOT "/Users/me/Library/Application Support/Steam"
+
 static void check_paths(void) {
+    // Until the hook names Steam's root, no absolute path is Steam's steamui.
+    if (np_webpatch_should_patch(ROOT "/Steam.AppBundle/Steam/Contents/MacOS/steamui/sp.js"))
+        wrong("an absolute chunk was patched before the Steam root was known");
+    np_webpatch_set_steam_root(ROOT "/");
+
     static const struct { const char *path; int want; } cases[] = {
-        { "/Steam.AppBundle/Steam/Contents/MacOS/steamui/sp.js",                   1 },
-        { "/Steam.AppBundle/Steam/Contents/MacOS/steamui/chunk~2dcc5aaf7.js",      1 },
-        { "/Steam.AppBundle/Steam/Contents/MacOS/steamui/1129.js",                 1 },
-        { "/Steam.AppBundle/Steam/Contents/MacOS/steamui/library.js",              1 },
+        { "/tmp/x/steamui/sp.js",                                                  0 },
+        { "/Users/me/Library/Application Support/SteamX/steamui/sp.js",           0 },
+        { "/Users/other/Library/Application Support/Steam/steamui/sp.js",         0 },
+        { ROOT "/../../evil/steamui/sp.js",                                        0 },
+        { ROOT "/steamui/../../../tmp/sp.js",                                      0 },
+        { ROOT "/./steamui/sp.js",                                                 0 },
+        { "steamui/../sp.js",                                                      0 },
+        { ROOT "/Steam.AppBundle/Steam/Contents/MacOS/steamui/sp.js",                   1 },
+        { ROOT "/Steam.AppBundle/Steam/Contents/MacOS/steamui/chunk~2dcc5aaf7.js",      1 },
+        { ROOT "/Steam.AppBundle/Steam/Contents/MacOS/steamui/1129.js",                 1 },
+        { ROOT "/Steam.AppBundle/Steam/Contents/MacOS/steamui/library.js",              1 },
         { "steamui/sp.js",                                                         1 },
-        { "/Steam.AppBundle/Steam/Contents/MacOS/steamui/app/sp.js",               1 },
-        { "/Steam.AppBundle/Steam/Contents/MacOS/steamui/localization/en-json.js", 0 },
-        { "/Steam.AppBundle/Steam/Contents/MacOS/steamui/libraries/lib~00299.js",  0 },
-        { "/Steam.AppBundle/Steam/Contents/MacOS/steamui/sp.js.orig",              0 },
-        { "/Steam.AppBundle/Steam/Contents/MacOS/steamui/css/library.css",         0 },
-        { "/Steam.AppBundle/Steam/Contents/MacOS/notsteamui/sp.js",                0 },
-        { "/Steam.AppBundle/Steam/Contents/MacOS/steamui",                         0 },
+        { ROOT "/Steam.AppBundle/Steam/Contents/MacOS/steamui/app/sp.js",               1 },
+        { ROOT "/Steam.AppBundle/Steam/Contents/MacOS/steamui/localization/en-json.js", 0 },
+        { ROOT "/Steam.AppBundle/Steam/Contents/MacOS/steamui/libraries/lib~00299.js",  0 },
+        { ROOT "/Steam.AppBundle/Steam/Contents/MacOS/steamui/sp.js.orig",              0 },
+        { ROOT "/Steam.AppBundle/Steam/Contents/MacOS/steamui/css/library.css",         0 },
+        { ROOT "/Steam.AppBundle/Steam/Contents/MacOS/notsteamui/sp.js",                0 },
+        { ROOT "/Steam.AppBundle/Steam/Contents/MacOS/steamui",                         0 },
         { "sp.js",                                                                 0 },
     };
     size_t n = sizeof(cases) / sizeof(cases[0]);
@@ -181,13 +195,15 @@ static void check_paths(void) {
 
     // Only this one path is served from the app's command file
     static const struct { const char *path; int want; } commands[] = {
-        { "/Steam.AppBundle/Steam/Contents/MacOS/steamui/cartouche/steam-downloads.json", 1 },
+        { ROOT "/Steam.AppBundle/Steam/Contents/MacOS/steamui/cartouche/steam-downloads.json", 1 },
         { "steamui/cartouche/steam-downloads.json",                                       1 },
-        { "/Steam.AppBundle/Steam/Contents/MacOS/steamui/steam-downloads.json",           0 },
-        { "/Steam.AppBundle/Steam/Contents/MacOS/steamui/cartouche/steam-downloads.json.x", 0 },
-        { "/Steam.AppBundle/Steam/Contents/MacOS/steamui/cartouche/../steam-downloads.json", 0 },
-        { "/Steam.AppBundle/Steam/Contents/MacOS/steamui/cartouche/other.json",           0 },
+        { ROOT "/Steam.AppBundle/Steam/Contents/MacOS/steamui/steam-downloads.json",           0 },
+        { ROOT "/Steam.AppBundle/Steam/Contents/MacOS/steamui/cartouche/steam-downloads.json.x", 0 },
+        { ROOT "/Steam.AppBundle/Steam/Contents/MacOS/steamui/cartouche/../steam-downloads.json", 0 },
+        { ROOT "/Steam.AppBundle/Steam/Contents/MacOS/steamui/cartouche/other.json",           0 },
         { "/Users/me/cartouche/steam-downloads.json",                                     0 },
+        { "/tmp/x/steamui/cartouche/steam-downloads.json",                                0 },
+        { ROOT "/steamui/cartouche/steam-downloads.json",                                 1 },
     };
     size_t m = sizeof(commands) / sizeof(commands[0]);
     for (size_t i = 0; i < m; i++)
@@ -538,7 +554,21 @@ static void check_older_filter(const char *out_path) {
     free(out);
 }
 
+static void check_install_guard(const char *path) {
+    const char *source = "this.m_clientHandles.Add(SteamClient.Installs.RegisterForShowInstallWizard(this.OnShowInstallWizard))";
+    size_t len = 0;
+    char *out = np_webpatch_transform((const uint8_t *)source, strlen(source), &len, NULL);
+    if (!out || !strstr(out, "window.__cartoucheInstallUI=1") || !strstr(out, "__cartoucheInstallOwns"))
+        wrong("the install callback was not guarded");
+    else if (!write_file(path, out, len)) wrong("cannot write %s", path);
+    free(out);
+}
+
 int main(int argc, char **argv) {
+    if (argc == 3 && strcmp(argv[1], "--install-guard") == 0) {
+        check_install_guard(argv[2]);
+        return g_wrong;
+    }
     if (argc == 4 && strcmp(argv[1], "--extract") == 0)
         return extract(argv[2], argv[3]);
     if (argc == 4 && strcmp(argv[1], "--extract-library") == 0)

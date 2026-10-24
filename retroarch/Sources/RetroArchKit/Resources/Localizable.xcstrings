@@ -3,6 +3,12 @@
   "strings" : {
     "%@ (not installed)" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (non installé)"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -25,6 +31,12 @@
             "value" : "%1$@ is already running. Quit the open %2$@ first."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ est déjà en cours d’exécution. Quittez d’abord le %2$@ ouvert."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -41,6 +53,12 @@
     },
     "%@ is missing" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ est manquant"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -57,6 +75,12 @@
     },
     "%@ is not installed" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ n’est pas installé"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -73,6 +97,12 @@
     },
     "%@ is not the expected file" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ n’est pas le fichier attendu"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -89,6 +119,12 @@
     },
     "%@ plays in" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Émulateur pour %@"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -111,6 +147,12 @@
             "value" : "%1$@ quit at once (exit code %2$d)."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ s’est fermé immédiatement (code de sortie %2$d)."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -127,6 +169,12 @@
     },
     "Accounts" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comptes"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -143,6 +191,12 @@
     },
     "Add Console" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter une console"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -159,6 +213,12 @@
     },
     "Address" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adresse"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -175,6 +235,12 @@
     },
     "Auto" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatique"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -191,6 +257,12 @@
     },
     "BIOS found" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BIOS trouvé"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -207,6 +279,12 @@
     },
     "Cancel" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annuler"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -223,6 +301,12 @@
     },
     "Cartouche finds %@ in Applications and starts them with their own settings. It never changes those settings." : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche trouve %@ dans Applications et les lance avec leurs propres réglages. Il ne modifie jamais ces réglages."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -239,6 +323,12 @@
     },
     "Cartouche has no tool named %@." : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche n’a aucun outil nommé %@."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -255,6 +345,12 @@
     },
     "Checking RetroArch…" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vérification de RetroArch…"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -271,6 +367,12 @@
     },
     "Choose your RetroArch app." : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisissez votre app RetroArch."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -287,6 +389,12 @@
     },
     "Coach mode" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mode Coach"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -303,6 +411,12 @@
     },
     "Coach mode is off for this game." : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le mode Coach est désactivé pour ce jeu."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -319,6 +433,12 @@
     },
     "Consoles" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consoles"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -335,6 +455,12 @@
     },
     "Continue From" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reprendre"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -351,6 +477,12 @@
     },
     "Core changed since it was downloaded" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cœur modifié depuis son téléchargement"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -367,6 +499,12 @@
     },
     "Core download failed, try again later." : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Échec du téléchargement du cœur, réessayez plus tard."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -383,6 +521,12 @@
     },
     "Core not downloaded" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cœur non téléchargé"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -399,6 +543,12 @@
     },
     "Core ready" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cœur prêt"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -415,6 +565,12 @@
     },
     "Defaults" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Par défaut"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -431,6 +587,12 @@
     },
     "Download Core" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Télécharger le cœur"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -447,6 +609,12 @@
     },
     "Hardcore mode is on: Cartouche sends no input to this game." : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le mode hardcore est activé : Cartouche n’envoie aucune commande à ce jeu."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -463,6 +631,12 @@
     },
     "Included with Cartouche" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inclus avec Cartouche"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -479,6 +653,12 @@
     },
     "Needs the included RetroArch" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nécessite le RetroArch inclus"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -495,6 +675,12 @@
     },
     "Netplay name" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nom pour le jeu en réseau"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -511,6 +697,12 @@
     },
     "No BIOS needed" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun BIOS nécessaire"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -527,6 +719,12 @@
     },
     "No game is running." : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun jeu en cours."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -543,6 +741,12 @@
     },
     "None found in Applications." : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun trouvé dans Applications."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -559,6 +763,12 @@
     },
     "Not signed in" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non connecté"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -575,6 +785,12 @@
     },
     "Official release %@" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version officielle %@"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -591,6 +807,12 @@
     },
     "Original" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Original"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -607,6 +829,12 @@
     },
     "Other Emulators" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autres émulateurs"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -623,6 +851,12 @@
     },
     "Others" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autres"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -639,6 +873,12 @@
     },
     "Password" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mot de passe"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -655,6 +895,12 @@
     },
     "Plays in a standalone emulator" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se joue dans un émulateur autonome"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -677,6 +923,12 @@
             "value" : "Quit the game first to change this setting."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quittez d’abord le jeu pour modifier ce réglage."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -693,6 +945,12 @@
     },
     "Remove" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -709,6 +967,12 @@
     },
     "RetroAchievements did not answer (%lld)." : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroAchievements n’a pas répondu (%lld)."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -725,6 +989,12 @@
     },
     "RetroAchievements gave no token." : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroAchievements n’a fourni aucun jeton."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -741,6 +1011,12 @@
     },
     "RetroAchievements refused the request." : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroAchievements a refusé la demande."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -760,6 +1036,12 @@
     },
     "RetroArch %@ with MCP" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroArch %@ avec MCP"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -776,6 +1058,12 @@
     },
     "RetroArch %@ without MCP: games start, Cartouche cannot drive them" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroArch %@ sans MCP : les jeux se lancent, mais Cartouche ne peut pas les piloter"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -792,6 +1080,12 @@
     },
     "RetroArch (%@)" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroArch (%@)"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -808,6 +1102,12 @@
     },
     "RetroArch download failed, try again later." : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Échec du téléchargement de RetroArch, réessayez plus tard."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -824,6 +1124,12 @@
     },
     "RetroArch is free software under the GPL-3.0, built by Cartouche from its source code." : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroArch est un logiciel libre sous licence GPL-3.0, compilé par Cartouche à partir de son code source."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -840,6 +1146,12 @@
     },
     "RetroArch is not there." : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroArch est introuvable."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -856,6 +1168,12 @@
     },
     "RetroArch sends a picture of the game to this address and shows the translation it gets back. Use a service you trust: it sees your screen." : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroArch envoie une image du jeu à cette adresse et affiche la traduction reçue. Utilisez un service de confiance : il voit votre écran."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -872,6 +1190,12 @@
     },
     "RetroArch's default" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nom par défaut de RetroArch"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -888,6 +1212,12 @@
     },
     "Save" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrer"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -904,6 +1234,12 @@
     },
     "Save states to iCloud Drive" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "États de sauvegarde dans iCloud Drive"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -920,6 +1256,12 @@
     },
     "Saves and states follow you to your other Macs, in iCloud Drive's Cartouche folder." : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les sauvegardes et états de sauvegarde vous suivent sur vos autres Mac, dans le dossier Cartouche d’iCloud Drive."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -936,6 +1278,12 @@
     },
     "Set Up…" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurer…"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -952,6 +1300,12 @@
     },
     "Shown to friends in RetroArch's lobby" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affiché à vos amis dans la liste des salons de RetroArch"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -968,6 +1322,12 @@
     },
     "Sign In" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se connecter"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -984,6 +1344,12 @@
     },
     "Sign In to RetroAchievements" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se connecter à RetroAchievements"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1000,6 +1366,12 @@
     },
     "Sign In…" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se connecter…"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1016,6 +1388,12 @@
     },
     "Sign Out" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se déconnecter"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1032,6 +1410,12 @@
     },
     "Signed in as %@" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connecté en tant que %@"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1048,6 +1432,12 @@
     },
     "Slot %lld" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Emplacement %lld"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1062,8 +1452,36 @@
         }
       }
     },
+    "Some saves in iCloud Drive are not downloaded to this Mac yet. Try again when it is online." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Certaines sauvegardes d’iCloud Drive ne sont pas encore téléchargées sur ce Mac. Réessayez quand il sera en ligne."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alcuni salvataggi in iCloud Drive non sono ancora stati scaricati su questo Mac. Riprova quando è online."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud 云盘中的部分存档尚未下载到这台 Mac。请在联网后重试。"
+          }
+        }
+      }
+    },
     "Source Code" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code source"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1080,6 +1498,12 @@
     },
     "The %@ core changed since it was downloaded. Update it in Settings > Consoles." : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le cœur %@ a été modifié depuis son téléchargement. Mettez-le à jour dans Réglages > Consoles."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1096,6 +1520,12 @@
     },
     "The %@ core is not downloaded yet." : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le cœur %@ n’est pas encore téléchargé."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1110,8 +1540,36 @@
         }
       }
     },
+    "The %@ core on the server is not the build first downloaded, so it was not used. Choose Download Core again to accept it." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le cœur %@ sur le serveur n’est pas la version téléchargée la première fois, il n’a donc pas été utilisé. Choisissez à nouveau Télécharger le cœur pour l’accepter."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il core %@ sul server non è la build scaricata la prima volta, quindi non è stato usato. Scegli di nuovo Scarica core per accettarlo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "服务器上的 %@ 核心不是首次下载的版本，因此未使用。再次选择“下载核心”以接受它。"
+          }
+        }
+      }
+    },
     "The %@ download is not a core for this Mac." : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le téléchargement de %@ n’est pas un cœur pour ce Mac."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1128,6 +1586,12 @@
     },
     "The downloaded RetroArch could not be opened." : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d’ouvrir le RetroArch téléchargé."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1142,8 +1606,36 @@
         }
       }
     },
+    "This RetroArch could not be verified, so it was not installed." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de vérifier ce RetroArch, il n’a donc pas été installé."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile verificare questo RetroArch, quindi non è stato installato."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法验证此 RetroArch，因此未安装。"
+          }
+        }
+      }
+    },
     "This game has no value named %@." : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce jeu n’a aucune valeur nommée %@."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1160,6 +1652,12 @@
     },
     "Translation Service" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Service de traduction"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1176,6 +1674,12 @@
     },
     "Translation service" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Service de traduction"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1192,6 +1696,12 @@
     },
     "Use Your Own Copy…" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utiliser votre propre copie…"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1208,6 +1718,12 @@
     },
     "Used by Translate the screen. Not set." : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilisé par « Traduire l’écran ». Non défini."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1224,6 +1740,12 @@
     },
     "Used by Translate the screen: %@" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilisé par « Traduire l’écran » : %@"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1240,6 +1762,12 @@
     },
     "Username" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nom d’utilisateur"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1256,6 +1784,12 @@
     },
     "Your own copy: %@" : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre propre copie : %@"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1272,6 +1806,12 @@
     },
     "Your password goes to RetroAchievements once. Cartouche keeps only the sign-in token, in your keychain." : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre mot de passe est envoyé une seule fois à RetroAchievements. Cartouche ne conserve que le jeton de connexion, dans votre trousseau."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1288,6 +1828,12 @@
     },
     "iCloud Drive is off on this Mac. Turn it on in System Settings, then try again." : {
       "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud Drive est désactivé sur ce Mac. Activez-le dans Réglages Système, puis réessayez."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",

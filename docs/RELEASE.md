@@ -22,7 +22,7 @@ Release [`wine-crossover-26.3.0-1`](https://github.com/BRYANN2K/cartouche-wine/r
 
 The archive was reused without a rebuild. That run built successfully; its old 60-second cold-prefix boot check failed. Later commits changed only the boot check and publication repository name. Publication is not evidence that the new boot check passed. Keep build provenance separate from the release-tag commit.
 
-App integration is merged in main 95b4e47: the asset is pinned in runners.json; CrossOver Wine defaults for new games when installed; the original Graphics reason UI is superseded by ADR 0027 (hide unavailable choices/reasons, conditional Get More entry to install Wine CrossOver); serialized first boot gates launch. Real-hardware checks remain pending. D3DMetal requires CrossOver-capable Wine, Rosetta and the user’s own D3DMetal files; Cartouche does not redistribute those files. Do not mark the app integration or real-game checks complete based on publication alone.
+App integration is merged in main 95b4e47: the asset is pinned in runners.json; Cartouche Wine defaults for new games when installed; the original Graphics reason UI is superseded by ADR 0027 (hide unavailable choices/reasons, conditional Get More entry to install Cartouche Wine); serialized first boot gates launch. Real-hardware checks remain pending. D3DMetal requires CrossOver-capable Wine, Rosetta and the user’s own D3DMetal files; Cartouche does not redistribute those files. Do not mark the app integration or real-game checks complete based on publication alone.
 
 ## Signing certificate
 
@@ -75,12 +75,21 @@ The release-app AttributeGraph crash from blocking lsof/pgrep probes during Swif
 
 The EdDSA private key signs every archive, delta and the appcast. It was created in P0 and its public half is `SUPublicEDKey` in `app/Info.plist`.
 
-- Secret `SPARKLE_PRIVATE_KEY`: the content of the exported key file (one base64 line). Kept as a repository secret, never committed; the `release` and `runner-manifest` workflows read it.
+- Secret `SPARKLE_PRIVATE_KEY`: the content of the exported key file (one base64 line). Kept as a repository secret, never committed; the `release` workflow reads it. The public repository `BRYANN2K/cartouche-wine` holds the same secret for its `runner-manifest` workflow.
 - If it is lost, installed copies can no longer update and a remote runner manifest is no longer trusted. Users must download the next release by hand.
 
 ### Runner manifest
 
-The `runner-manifest` workflow publishes the shipped `runners.json` on the `compat-data` release when it changes on `main`. It signs the file with `sign_update` and `SPARKLE_PRIVATE_KEY` — the same key as the appcast — and uploads the signature as `runners.json.sig` next to it. The app fetches both once a day and accepts the remote manifest only when the signature verifies against `SUPublicEDKey`; a manifest whose signature is missing or wrong is refused, and the bundled `runners.json` stays in use.
+This repository is private, so users cannot download from its releases. Runner updates reach the app through the public repository `BRYANN2K/cartouche-wine`, whose `manifest` release holds `runners.json` and `runners.json.sig`. The app reads that address from `CartoucheRunnerManifestURL` in `app/Info.plist` (`https://github.com/BRYANN2K/cartouche-wine/releases/download/manifest/runners.json`). GitHub redirects the download to its object storage; the app follows the redirect, and trust comes from the signature only.
+
+To ship a new Wine build:
+
+1. Build it in `cartouche-wine`. CI publishes the archive on a prerelease.
+2. Test the prerelease archive on a Mac.
+3. Promote it with `cartouche-wine`'s `runner-manifest` workflow. The workflow adds the pinned build (URL, size, SHA-256) to `runners.json`, raises `revision`, signs the file with `sign_update` and `SPARKLE_PRIVATE_KEY` — the same key as the appcast — and uploads both files to the `manifest` release.
+4. Within a day, the app fetches both files. It accepts the manifest only when the signature verifies against `SUPublicEDKey` and the revision is higher than the one it has. Settings > Runners then shows "Update to …" on the installed build of the same series.
+
+A manifest whose signature is missing or wrong, whose revision is not higher, or that changes the pin of a build the app already lists is refused; the bundled `runners.json` stays in use. That bundled copy is the offline baseline: copy the promoted `runners.json` into `app/Sources/NotProtonApp/Resources/` before an app release. This repository no longer publishes a runner manifest.
 
 ## Homebrew tap
 

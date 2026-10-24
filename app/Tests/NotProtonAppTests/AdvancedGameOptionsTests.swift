@@ -114,4 +114,29 @@ struct AdvancedGameOptionsTests {
         #expect(!launchCalls.contains("-k"))
 
     }
+    @Test("Changing MSync accepts an idle wineserver and preserves real failures")
+    func idleServer() throws {
+        let work = try scratchDirectory("advanced-idle-server")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let prefix = work.appending(path: "pfx")
+        try FileManager.default.createDirectory(at: prefix, withIntermediateDirectories: true)
+        let server = work.appending(path: "wineserver")
+        let loader = work.appending(path: "wine")
+        try Data("#!/bin/sh\n[ \"$1\" != '-k' ]\n".utf8).write(to: server)
+        try Data("#!/bin/sh\nexit 0\n".utf8).write(to: loader)
+        for file in [server, loader] { try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: file.path) }
+        let wine = WineRunner(root: work, loader: loader, server: server, dllPath: "")
+        let env = ["WINEPREFIX": prefix.path, "WINEMSYNC": "0"]
+        try AdvancedPrefixSettings.apply(wine: wine, prefix: prefix, environment: env)
+        try FileManager.default.removeItem(at: prefix.appending(path: "cartouche-msync"))
+        let launch = work.appending(path: "launch")
+        try Data(GameLauncher.script(exe: work.appending(path: "game.exe"), prefix: prefix, wine: wine,
+                                     environment: ["WINEMSYNC": "0"]).utf8).write(to: launch)
+        #expect(try Shell.run("/bin/sh", [launch.path], environment: ["PATH": "/usr/bin:/bin"]).succeeded)
+        try FileManager.default.removeItem(at: prefix.appending(path: "cartouche-msync"))
+        try Data("#!/bin/sh\necho permission-denied >&2\nexit 1\n".utf8).write(to: server)
+        #expect(throws: CommandFailure.self) { try AdvancedPrefixSettings.apply(wine: wine, prefix: prefix, environment: env) }
+        #expect(try !Shell.run("/bin/sh", [launch.path], environment: ["PATH": "/usr/bin:/bin"]).succeeded)
+    }
+
 }

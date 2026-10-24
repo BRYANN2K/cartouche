@@ -47,7 +47,14 @@ enum SetupEnvironment {
             let own = wine.root.appending(path: "lib64/apple_gptk/external/libd3dshared.dylib")
             let shared = FileManager.default.fileExists(atPath: own.path(percentEncoded: false)) ? own
                 : PortingToolkitSource.libd3dshared(runners: runners)
-            if let shared { env["CX_APPLEGPTK_LIBD3DSHARED_PATH"] = shared.path(percentEncoded: false) }
+            if let shared {
+                env["CX_APPLEGPTK_LIBD3DSHARED_PATH"] = shared.path(percentEncoded: false)
+                if let path = PortingToolkitSource.graphicsPath(inLib: shared.deletingLastPathComponent().deletingLastPathComponent()) {
+                    env["WINEDLLPATH"] = [path, env["WINEDLLPATH"]].compactMap { $0 }.joined(separator: ":")
+                    env["WINEDLLOVERRIDES"] = [env["WINEDLLOVERRIDES"], "d3d10,d3d11,d3d12,d3d12core,dxgi=b"]
+                        .compactMap { $0 }.joined(separator: ";")
+                }
+            }
         }
         if let dlls = dlls(backend, backends: backends) {
             env["WINEDLLPATH"] = ([dlls.path] + [env["WINEDLLPATH"]])

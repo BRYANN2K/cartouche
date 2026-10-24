@@ -30,7 +30,7 @@ struct PrefixToolsTests {
     @Test("Log paths match where compat_run.sh writes them")
     func logPathsMatchRunScript() throws {
         let source = try Self.compatSource()
-        #expect(source.contains(#"log="$STEAM_COMPAT_DATA_PATH/cartouche-run.log""#))
+        #expect(source.contains(#"latest="$STEAM_COMPAT_DATA_PATH/cartouche-run.log""#))
         #expect(source.contains(#"np_support="$HOME/Library/Application Support/Cartouche""#))
         #expect(source.contains(#"loader_root="$np_support/launchers/$app_id""#))
         #expect(source.contains(#"wine_log="$loader_root/cartouche-wine.log""#))

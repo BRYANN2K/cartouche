@@ -85,6 +85,7 @@ is "the setup: name" "CrossOver 26.3 · DXMT" "$(session_value display)"
 is "the settings, and nothing else from the environment" "DXVK_HUD=fps|MTL_HUD_ENABLED=1" "$(session_value setting | tr '\n' '|' | sed 's/|$//')"
 case "$(session_value started)" in [0-9]*) ok "a start time" ;; *) bad "a start time" "seconds" "$(session_value started)" ;; esac
 is "no probe marker left" "" "$(find "$fps_dir" -name probe)"
+is "the session file is moved into place whole" "" "$(find "$fps_dir" -name session.tmp)"
 has "the log says so" "fps: ok by $runner/accepting" "$(cat "$log")"
 out=$(launch accepting locked 60 5; cat "$loader_root/cartouche-wine.log")
 is "the game runs" "300" "$out"

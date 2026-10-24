@@ -104,7 +104,7 @@ final class OnboardingScene {
             relaunch: { _ in })
     }
 
-    func model(steamBlocked: Bool = true) throws -> OnboardingModel {
+    func model(steamBlocked: Bool = true, setup suppliedSetup: SetupTasks? = nil) throws -> OnboardingModel {
         let found = findings, counts = counts
         let scan = MacScan(
             steam: { found.steam }, crossOver: { found.crossOver }, portingToolkit: { found.portingToolkit },
@@ -120,7 +120,7 @@ final class OnboardingScene {
             })
         let consoles = consoleSetup()
         // The background tasks count the same way the direct calls used to
-        let setup = SetupTasks(
+        let setup = suppliedSetup ?? SetupTasks(
             installRunner: { build in
                 counts.state.withLock {
                     $0.runnerInstalls.append(build.id)

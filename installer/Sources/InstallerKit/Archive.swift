@@ -92,6 +92,8 @@ public enum EntryDestination: Sendable, Equatable {
 
 public protocol ArchiveEngine: Sendable {
     func probe(_ volumes: [URL]) throws -> ArchiveProbe
+    // Probing a compressed tar decompresses the whole stream, so it polls for cancellation.
+    func probe(_ volumes: [URL], isCancelled: @Sendable () -> Bool) throws -> ArchiveProbe
     // route decides each entry's destination; bytesDone reports written bytes.
     func extract(
         _ volumes: [URL],
@@ -99,6 +101,13 @@ public protocol ArchiveEngine: Sendable {
         bytesDone: @Sendable (Int64) -> Void,
         isCancelled: @Sendable () -> Bool
     ) throws
+}
+
+extension ArchiveEngine {
+    public func probe(_ volumes: [URL], isCancelled: @Sendable () -> Bool) throws -> ArchiveProbe {
+        if isCancelled() { throw CancellationError() }
+        return try probe(volumes)
+    }
 }
 
 public final class LibarchiveEngine: ArchiveEngine, @unchecked Sendable {
@@ -114,12 +123,17 @@ public final class LibarchiveEngine: ArchiveEngine, @unchecked Sendable {
     deinit { ca_close(lib) }
 
     public func probe(_ volumes: [URL]) throws -> ArchiveProbe {
+        try probe(volumes, isCancelled: { Task.isCancelled })
+    }
+
+    public func probe(_ volumes: [URL], isCancelled: @Sendable () -> Bool) throws -> ArchiveProbe {
         let reader = try open(volumes)
         defer { _ = ca_read_close(reader) }
         var entries: [ArchiveEntry] = []
         var encrypted = false
         var total: Int64 = 0
         while true {
+            if isCancelled() { throw CancellationError() }
             let rc = ca_read_next(reader)
             if rc == CA_EOF { break }
             guard rc >= CA_WARN else { throw Self.map(reader) }
@@ -130,7 +144,10 @@ public final class LibarchiveEngine: ArchiveEngine, @unchecked Sendable {
                 linkTarget: (ca_entry_symlink(reader) ?? ca_entry_hardlink(reader)).map(String.init(cString:)),
                 isEncrypted: ca_entry_encrypted(reader) != 0)
             encrypted = encrypted || entry.isEncrypted
-            if entry.kind == .file { total += max(0, entry.size) }
+            if entry.kind == .file {
+                let (sum, overflow) = total.addingReportingOverflow(max(0, entry.size))
+                total = overflow ? .max : sum
+            }
             entries.append(entry)
         }
         let encryptedFlag = ca_read_has_encrypted(reader)

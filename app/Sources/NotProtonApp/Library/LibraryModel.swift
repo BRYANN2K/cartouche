@@ -2,19 +2,6 @@
 import Foundation
 import Observation
 
-enum AddGamesKind: String, Identifiable, CaseIterable, Sendable {
-    case windows, consoles
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .windows: String(localized: "Windows Game")
-        case .consoles: String(localized: "Console Games")
-        }
-    }
-}
-
 enum SidebarItem: Hashable, Sendable {
     case all
     case favorites
@@ -66,8 +53,11 @@ final class LibraryModel {
     var consoleGames: [Game] = [] { didSet { rebuildGames() } }
     var stores: [GameSource: StoreConnection] = [:]
     var runners: [Runner] = []
+    // Loaded off the main actor with runners; empty until then
+    var runnerManifest = RunnerManifest(format: RunnerManifest.format, revision: 0, builds: [])
     var backendAvailability = BackendAvailability()
     var backendTools: [BackendTool] = []
+    var steamSizes: [Int: SteamAppInfo.Storage] = [:] { didSet { rebuildGames() } }
     var macBuilds: Set<Int> = [] { didSet { rebuildGames() } }
 
     private(set) var allGames: [Game] = []
@@ -79,9 +69,11 @@ final class LibraryModel {
     var selectedGameID: String?
     var showPanel = true
     var showSidebar = true
-    var addGames: AddGamesKind?
     var showAddGames = false
+    // The console import flow, opened from Add Games for dropped console games
+    var showConsoleImport = false
     var verificationRequest: Game?
+    var installRequest: Game?
     var showAddConsoles = false
     // The game whose Change Cover sheet searches Steam; nil keeps the sheet closed
     var coverSearch: Game?
@@ -99,10 +91,24 @@ final class LibraryModel {
     var setupNotices: [String: String] = [:]
     // Re-identification's unsure answers, game ID → name the panel offers until the user renames.
     var nameSuggestions: [String: String] = [:]
+    // An installer game's programs it can start with, game ID → the last off-thread scan of its folder.
+    var exeOptions: [String: GameExecutable.Options] = [:]
+    // Installer games whose program is being changed, runtimes included: their menus wait.
+    var changingExe: Set<String> = []
+    @ObservationIgnored var exeWinetricks: GameExecutable.Winetricks = InstallerWinetricks.run
 
-    @ObservationIgnored var installsFolder: URL = GameFolder.installs
+    // Where new installer and store games go
+    var installsFolder: URL
+    // Earlier games locations that still hold games, scanned after installsFolder
+    private(set) var previousInstalls: [URL]
+    // Set by the app: the installer follows a new games location without a relaunch
+    @ObservationIgnored var onGamesLocationChange: (@MainActor (URL) -> Void)?
     @ObservationIgnored var runnersFolder: URL = SupportPaths.runners
     @ObservationIgnored var backendsFolder: URL = BackendInstaller.folder
+    // Rescans runners and Steam's tool lists; set by the app
+    @ObservationIgnored var reloadRunners: (@MainActor () async -> Void)?
+    // Set by the app: the Steam integration upkeep waits for Steam to quit
+    @ObservationIgnored var onSteamQuit: (@MainActor () async -> Void)?
 
     @ObservationIgnored let store: LibraryStore
     @ObservationIgnored let importer: SteamLibraryImporter
@@ -117,16 +123,26 @@ final class LibraryModel {
         self.store = store
         self.importer = importer
         self.defaults = defaults
+        installsFolder = GameFolder.current(defaults)
+        previousInstalls = GameFolder.previous(defaults)
         choices = store.load()
         showNotInstalled = defaults.object(forKey: Self.showNotInstalledKey) as? Bool ?? true
     }
 
     // MARK: Loading
 
+    @ObservationIgnored private var loadGeneration = 0
+    // The export's stamp read just before the last load, so the watcher's baseline cannot skip a newer export
+    @ObservationIgnored private var loadedExportStamp: Date?? = nil
     func load() async {
+        loadGeneration += 1
+        let run = loadGeneration
         if steam.games.isEmpty { loading = true }
         let importer = importer
-        let result = await Task.detached { importer.load() }.value
+        let (stamp, result) = await Task.detached { (importer.exportStamp(), importer.load()) }.value
+        // A load started later owns the result
+        guard run == loadGeneration else { return }
+        loadedExportStamp = .some(stamp)
         apply(result)
     }
 
@@ -134,6 +150,12 @@ final class LibraryModel {
         steam = result
         loading = false
         if selectedGameID == nil || game(selectedGameID) == nil { keepSelectionVisible() }
+    }
+
+    func didUninstallSteam(appID: Int) {
+        guard let index = steam.games.firstIndex(where: { $0.steamAppID == appID }) else { return }
+        steam.games[index].installed = false
+        steam.games[index].storageBytes = nil
     }
 
     func watch(every interval: Duration = .seconds(2)) {
@@ -144,6 +166,7 @@ final class LibraryModel {
             var (stamp, running) = await Task.detached {
                 (importer.exportStamp(), importer.isRunning())
             }.value
+            if let self, case .some(let loaded) = self.loadedExportStamp { stamp = loaded }
             var tick = 0
             while !Task.isCancelled {
                 try? await Task.sleep(for: interval)
@@ -161,17 +184,26 @@ final class LibraryModel {
         let (newStamp, nowRunning) = await Task.detached {
             (importer.exportStamp(), askRunning ? importer.isRunning() : was)
         }.value
+        let quit = running && !nowRunning
         if newStamp != stamp || nowRunning != running {
             stamp = newStamp
             running = nowRunning
             await load()
         }
+        if quit, let onSteamQuit { Task { await onSteamQuit() } }
     }
 
     // MARK: Games
 
     private func rebuildGames() {
-        allGames = (steam.games + otherGames).map(withVersion) + consoleGames
+        allGames = (steam.games + otherGames).map { game in
+            var game = withVersion(game)
+            if game.storageBytes == nil, let id = game.steamAppID, let sizes = steamSizes[id] {
+                let bytes = game.version == .mac ? sizes.mac : sizes.windows
+                if bytes > 0 { game.storageBytes = bytes; game.storageEstimated = true }
+            }
+            return game
+        } + consoleGames
         gamesByID = Dictionary(allGames.map { ($0.id, $0) }, uniquingKeysWith: { _, last in last })
         if let id = selectedGameID, gamesByID[id] == nil { keepSelectionVisible() }
     }
@@ -270,7 +302,8 @@ final class LibraryModel {
 
     private func section(id: String, games: [Game], titled: Bool) -> LibrarySection {
         let source = games.first?.source
-        return LibrarySection(id: id, title: titled ? source?.name : nil, shape: games.first?.coverShape ?? .portrait, games: games)
+        let shape: CoverShape = games.contains { $0.coverShape == .portrait } ? .portrait : .square
+        return LibrarySection(id: id, title: titled ? source?.name : nil, shape: shape, games: games)
     }
 
     var expiredStore: GameSource? {
@@ -411,24 +444,26 @@ final class LibraryModel {
     func resolveInstallerAppIDs(lookup: SteamLookup, allowed: Bool) async {
         guard allowed else { return }
         var changed = false
-        for var record in InstalledGames.all(in: installsFolder) where record.appID == nil {
+        let installs = installsFolder, previous = previousInstalls
+        let records = await Task.detached { InstalledGames.all(in: installs, previous: previous) }.value
+        for var record in records where record.appID == nil {
             guard let found = await lookup.match(for: record.name) else { continue }
             record.appID = found.appID
+            let folder = GameFolder.of(slug: record.id, in: installs), saving = record
             do {
-                try InstalledGames.save(record, in: GameFolder(root: installsFolder.appending(path: record.id)))
+                try await Task.detached { try InstalledGames.save(saving, in: folder) }.value
                 changed = true
             } catch {
                 AppLog.note("could not save the app ID for \(record.id): \(error.localizedDescription)")
             }
         }
-        if changed { showInstalledGames(InstalledGames.all(in: installsFolder)) }
+        if changed { await reloadInstalledGames() }
     }
 
     // A Steam cover pick fills a missing app ID on the install record; a known one stays.
     func adoptAppID(_ appID: Int, for game: Game) {
-        guard game.source == .installer, game.id.hasPrefix("installer:") else { return }
-        let folder = GameFolder(root: installsFolder.appending(path: String(game.id.dropFirst("installer:".count))))
-        guard var record = InstalledGames.record(in: folder), record.appID == nil else { return }
+        guard let folder = GameFolder.of(game, in: installsFolder),
+              var record = InstalledGames.record(in: folder), record.appID == nil else { return }
         record.appID = appID
         do {
             try InstalledGames.save(record, in: folder)
@@ -436,7 +471,45 @@ final class LibraryModel {
             AppLog.note("could not save the app ID for \(record.id): \(error.localizedDescription)")
             return
         }
-        showInstalledGames(InstalledGames.all(in: installsFolder))
+        showInstalledGames(InstalledGames.all(in: installsFolder, previous: previousInstalls))
+    }
+
+    // MARK: Games location
+
+    // Every games location, scanned off the main actor. With forgetUnused, an earlier location left without games is dropped.
+    func reloadInstalledGames(forgetUnused: Bool = false) async {
+        let installs = installsFolder, previous = previousInstalls
+        let (records, unused) = await Task.detached {
+            (InstalledGames.all(in: installs, previous: previous), forgetUnused ? GameFolder.unused(previous) : [])
+        }.value
+        // A location changed meanwhile has its own scan
+        guard installs == installsFolder else { return }
+        showInstalledGames(records)
+        guard !unused.isEmpty else { return }
+        GameFolder.forget(unused, defaults: defaults)
+        previousInstalls = GameFolder.previous(defaults)
+    }
+
+    // New installer and store games go to folder; games already installed stay where they are and keep playing.
+    // Returns why the folder can't be used, if it can't.
+    func changeGamesLocation(to folder: URL, app: URL = Bundle.main.bundleURL) async -> String? {
+        if let problem = await Task.detached(operation: { GameFolder.problem(with: folder, app: app) }).value {
+            return problem
+        }
+        GameFolder.choose(folder, leaving: installsFolder, defaults: defaults)
+        installsFolder = GameFolder.current(defaults)
+        previousInstalls = GameFolder.previous(defaults)
+        onGamesLocationChange?(installsFolder)
+        await reloadInstalledGames()
+        return nil
+    }
+
+    // A store game goes under the chosen games location; with none chosen it stays beside the store's own files.
+    func storeGameFolder(_ source: GameSource, title: String, id: String) -> URL? {
+        guard GameFolder.chosen(defaults) != nil else { return nil }
+        return installsFolder.appending(path: GameFolder.storeGamesName, directoryHint: .isDirectory)
+            .appending(path: source.id, directoryHint: .isDirectory)
+            .appending(path: "\(GameFolder.slug(title))-\(StoreFolders.safe(id))", directoryHint: .isDirectory)
     }
 
     // The Steam pick's CDN cover becomes the game's stored override, so it wins
@@ -468,6 +541,15 @@ final class LibraryModel {
         for (id, setup) in updates where game(id)?.source == .installer {
             applyInstallerSetup(setup, for: game(id)!)
         }
+    }
+
+    // Setups naming a replaced runner name its update; saved before they are shown, so a failed save changes nothing.
+    func replaceRunnerInSetups(_ old: String, with new: String) throws -> [String] {
+        let (updated, moved) = RunnerMigration.replacing(old, with: new, in: choices)
+        guard !moved.isEmpty else { return [] }
+        try store.save(updated)
+        choices = updated
+        return moved
     }
 
     private func persist() {

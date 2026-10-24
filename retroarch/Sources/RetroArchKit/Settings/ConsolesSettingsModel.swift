@@ -59,6 +59,7 @@ public final class ConsolesSettingsModel {
     @ObservationIgnored private let shelf: ConsoleShelf
     @ObservationIgnored private let official: OfficialRelease
     @ObservationIgnored private let probe: Probe
+    @ObservationIgnored private var changedOnServer: Set<String> = []
 
     public init(
         paths: RetroArchPaths, includedApp: URL, cores: CoreManager, official: OfficialRelease,
@@ -168,9 +169,21 @@ public final class ConsolesSettingsModel {
         await refreshConsoles()
     }
 
+    // A build that differs from the recorded one is refused once and named; pressing again accepts it
     public func updateCore(of console: Console) async {
-        await change { try await self.cores.update(console.core) }
+        let core = console.core
+        let accept = changedOnServer.remove(core) != nil
+        await change {
+            do {
+                try await self.cores.update(core, accept: accept)
+            } catch CoreError.changedOnServer(let core) {
+                await self.noteChangedOnServer(core)
+                throw CoreError.changedOnServer(core: core)
+            }
+        }
     }
+
+    private func noteChangedOnServer(_ core: String) { changedOnServer.insert(core) }
 
     public var addable: [Console] {
         ConsoleCatalog.all.filter { console in !consoles.contains { $0.id == console.id } }

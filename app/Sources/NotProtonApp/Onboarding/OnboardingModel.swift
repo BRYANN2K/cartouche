@@ -20,7 +20,7 @@ struct RunnerOffer: Sendable {
 
     // A pending pin is never offered: its download could only fail.
     static func recommended(_ manifest: RunnerManifest) -> RunnerManifest.Build? {
-        manifest.builds.first { $0.origin == .cartouche && $0.name == "Wine CrossOver" && $0.isPinned }
+        RunnerUpdate.latestCartouche(in: manifest)
     }
 }
 
@@ -57,8 +57,8 @@ struct SteamControl: Sendable {
                     try? SteamBundle.stopClient(step: String(localized: "Restart Steam"))
                 }.value
                 guard stopped != nil else { return false }
-                _ = try? Shell.run("/usr/bin/open", [SupportPaths.Steam.app.path(percentEncoded: false)])
-                return true
+                let opened = try? Shell.run("/usr/bin/open", ["-g", "-j", SupportPaths.Steam.app.path(percentEncoded: false), "--args", "-silent"])
+                return opened?.succeeded == true
             })
     }
 }
@@ -100,6 +100,7 @@ final class OnboardingModel {
     @ObservationIgnored let permissionFlow: PermissionFlow?
     @ObservationIgnored let stores: StoreCenter?
     @ObservationIgnored let controls: ControlsCenter?
+    @ObservationIgnored private var steamStartTask: Task<Void, Never>?
     @ObservationIgnored var steam: SteamControl
     @ObservationIgnored var isRemovable: @Sendable (URL) -> Bool
     @ObservationIgnored var openURL: @MainActor (URL) -> Void
@@ -139,9 +140,23 @@ final class OnboardingModel {
         self.isRemovable = isRemovable
         openURL = { NSWorkspace.shared.open($0) }
         state = store.load() ?? OnboardingState()
+        steamStep.beforeInstall = { [weak self] in
+            guard let self else { return }
+            while self.setup.runner.working { try await Task.sleep(for: .milliseconds(100)) }
+            if let problem = self.setup.runner.problem {
+                throw StepFailure(step: WineRunnerInstaller.step, detail: problem)
+            }
+        }
+        steamStep.didSetUp = { [weak self] in
+            self?.steamRestarted = nil
+            self?.startSteamAfterSetup()
+        }
         setup.didFinish = { [weak self] task in
             guard let self else { return }
-            if task == "runner" { self.state.runnerRequested = false }
+            if task == "runner" {
+                self.state.runnerRequested = false
+                self.startSteamAfterSetup()
+            }
             if task == "toolkit" { self.state.toolkitImage = nil }
             if task.hasPrefix("core:") {
                 let id = String(task.dropFirst(5))
@@ -176,6 +191,9 @@ final class OnboardingModel {
     }
 
     func startOver() {
+        steamStartTask?.cancel()
+        steamStartTask = nil
+        steamRestarted = nil
         let previous = state
         state = OnboardingState()
         state.addedConsoles = previous.addedConsoles
@@ -248,6 +266,7 @@ final class OnboardingModel {
     }
 
     func finish() {
+        startSteamAfterSetup()
         state.finished = true
         save()
         resumed = false
@@ -345,7 +364,18 @@ final class OnboardingModel {
 
     // MARK: Stores
 
-    var steamRunning: Bool { steam.isRunning() }
+    private func startSteamAfterSetup() {
+        guard steamStep.phase == .done, steamStartTask == nil, steamRestarted != true else { return }
+        steamStartTask = Task { [weak self] in
+            guard let self else { return }
+            defer { self.steamStartTask = nil }
+            while self.setup.runner.working {
+                do { try await Task.sleep(for: .milliseconds(100)) } catch { return }
+            }
+            guard self.setup.runner.problem == nil else { return }
+            await self.restartSteamNow()
+        }
+    }
 
     func restartSteamNow() async {
         guard !restartingSteam else { return }
@@ -356,6 +386,20 @@ final class OnboardingModel {
     }
 
     var steamLibraryGames: Int { library.steam.games.count }
+
+    // An empty library says what brings the games in: Steam opened once Cartouche is in it
+    var steamLibraryDetail: String {
+        switch steamLibraryGames {
+        case 0 where steamStep.phase == .done:
+            String(localized: "Waiting for Steam to load your games.")
+        case 0:
+            String(localized: "Set up Cartouche in Steam, then open Steam to bring your games in.")
+        case 1:
+            String(localized: "1 game in the library")
+        default:
+            String(localized: "\(steamLibraryGames) games in the library")
+        }
+    }
 
     var storeTiles: [GameSource] { StoreCenter.stores }
 
@@ -564,7 +608,7 @@ final class OnboardingModel {
     // MARK: Games location
 
     var gamesLocation: URL {
-        state.gamesFolder.map { URL(filePath: $0, directoryHint: .isDirectory) } ?? GameFolder.installs
+        state.gamesFolder.map { URL(filePath: $0, directoryHint: .isDirectory) } ?? library.installsFolder
     }
 
     var gamesLocationIsExternal: Bool {
@@ -576,23 +620,18 @@ final class OnboardingModel {
         save()
     }
 
-    // Existing games keep their paths; only new installs use the chosen folder.
+    // Existing games keep their paths and stay in the library; only new installs use the chosen folder.
     private func applyStorage() {
         guard let path = state.gamesFolder else { return }
         let target = URL(filePath: path, directoryHint: .isDirectory)
+        guard target.plainPath != library.installsFolder.plainPath else { return }
         movingStorage = true
         storageProblem = nil
+        let library = library
         Task { [weak self] in
-            do {
-                try await Task.detached {
-                    try FileManager.default.createDirectory(at: target, withIntermediateDirectories: true)
-                }.value
-                self?.store.defaults.set(target.plainPath, forKey: GameFolder.installsKey)
-                self?.movingStorage = false
-            } catch {
-                self?.movingStorage = false
-                self?.storageProblem = error.localizedDescription
-            }
+            let problem = await library.changeGamesLocation(to: target)
+            self?.movingStorage = false
+            self?.storageProblem = problem
         }
     }
 
@@ -698,13 +737,25 @@ enum OnboardingSteam {
     }
 
     @MainActor
+    static func repair(through status: SystemStatus) async throws {
+        try await run(through: status) { await status.repairInSteam() }
+    }
+
+    @MainActor
     private static func install(through status: SystemStatus, replacingNotProton: Bool) async throws {
-        await status.refresh()
-        if replacingNotProton {
-            await status.replaceNotProton()
-        } else {
-            await status.installIntoSteam()
+        try await run(through: status) {
+            if replacingNotProton {
+                await status.replaceNotProton()
+            } else {
+                await status.installIntoSteam()
+            }
         }
+    }
+
+    @MainActor
+    private static func run(through status: SystemStatus, _ work: @MainActor () async -> Void) async throws {
+        await status.refresh()
+        await work()
         guard let failure = status.failure else { return }
         if status.failureRemedy == .appManagement {
             throw WriteRefused(path: SupportPaths.Steam.deployedDylib.path(percentEncoded: false))

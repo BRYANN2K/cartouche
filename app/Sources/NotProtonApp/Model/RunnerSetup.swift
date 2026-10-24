@@ -87,8 +87,7 @@ enum RunnerSetup {
         return outcome
     }
 
-    // A downloaded Wine build needs no license and ships its ntdll already patched:
-    // add the Steam builtins, grant its loaders, register the tools.
+    // Prepare the downloaded engine before registering its Steam tools.
     @discardableResult
     static func prepareWine(
         _ build: RunnerManifest.Build,
@@ -109,6 +108,9 @@ enum RunnerSetup {
         }
 
         report(.staging)
+        if !FileManager.default.fileExists(atPath: bridge.appending(path: "x86_64-windows/lsteamclient.dll").path) {
+            _ = try BridgePayload.stage(located: BridgePayload.locate(), bridge: bridge)
+        }
         let installed = try patch(root, bridge)
         try WineRunnerInstaller.recordPreparedLoader(build.id, runners: runners)
 

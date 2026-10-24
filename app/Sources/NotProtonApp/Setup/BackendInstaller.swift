@@ -1,5 +1,6 @@
 // DXMT and DXVK pinned by size and SHA-256; nothing reaches a prefix before the archive matches its pin. D3DMetal is never downloaded.
 
+import CryptoKit
 import Foundation
 
 struct BackendManifest: PinnedManifest {
@@ -51,14 +52,88 @@ struct BackendManifest: PinnedManifest {
         }
         return found
     }
+}
 
-    static func current() -> BackendManifest {
+extension BackendManifest {
+
+    static var cacheFile: URL { SupportPaths.support.appending(path: "backends.json") }
+
+    // A graphics update changes the pin's version, URL and hash. The signature is the trust,
+    // so a higher revision replaces the bundled copy even when a pin changes.
+    static func merged(bundled: BackendManifest, refreshed: BackendManifest?) -> BackendManifest {
+        guard let refreshed, refreshed.revision > bundled.revision else { return bundled }
+        return refreshed
+    }
+
+    static func current(cache: URL = cacheFile, key: Curve25519.Signing.PublicKey? = RunnerManifest.signingKey()) -> BackendManifest {
+        let shipped: BackendManifest
         do {
-            return try bundled()
+            shipped = try bundled()
         } catch {
             AppLog.note("backends.json in the app is unreadable: \(error)")
-            return BackendManifest(format: format, revision: 0, backends: [])
+            shipped = BackendManifest(format: format, revision: 0, backends: [])
         }
+        let refreshed = verified(cache: cache, key: key).flatMap { try? read($0) }
+        return merged(bundled: shipped, refreshed: refreshed)
+    }
+
+    private static func verified(cache: URL, key: Curve25519.Signing.PublicKey?) -> Data? {
+        guard let data = try? Data(contentsOf: cache) else { return nil }
+        guard let key else { return data }
+        guard let signatureData = try? Data(contentsOf: RunnerManifest.signatureFile(for: cache)),
+              let signature = RunnerManifest.signature(from: signatureData),
+              key.isValidSignature(signature, for: data)
+        else {
+            AppLog.note("cached graphics backend manifest refused: missing or wrong signature")
+            return nil
+        }
+        return data
+    }
+
+    // compat.json.gz and backends.json are published side by side in the compat-data release.
+    static var feed: URL? { CompatibilityClient.feed.flatMap(feed(fromCompat:)) }
+
+    static func feed(fromCompat compat: URL) -> URL? {
+        let url = compat.deletingLastPathComponent().appending(path: "backends.json")
+        guard url.scheme == "https", RunnerManifest.allowedHosts.contains(url.host() ?? ""),
+              url.lastPathComponent == "backends.json"
+        else { return nil }
+        return url
+    }
+
+    static func refresh(
+        from url: URL, cache: URL = cacheFile,
+        fetch: @Sendable (URL) async throws -> (Data, Int) = HTTPFetch.download(
+            timeout: 30, resourceTimeout: 5 * 60, userAgent: "Cartouche/\(AppVersion.bundled)"),
+        key: Curve25519.Signing.PublicKey? = RunnerManifest.signingKey()
+    ) async -> RunnerManifest.RefreshOutcome {
+        guard let (data, status) = try? await fetch(url), status == 200 else { return .unavailable }
+        guard let signed = try? await fetch(RunnerManifest.signatureFile(for: url)) else { return .unavailable }
+        guard signed.1 == 200, let signature = RunnerManifest.signature(from: signed.0), let key,
+              key.isValidSignature(signature, for: data)
+        else {
+            AppLog.note("graphics backend manifest at \(url.absoluteString) refused: missing or wrong signature")
+            return .rejected
+        }
+        let published: BackendManifest
+        do {
+            published = try read(data)
+        } catch {
+            AppLog.note("graphics backend manifest at \(url.absoluteString) refused: \(error)")
+            return .rejected
+        }
+        let have = current(cache: cache, key: key)
+        guard published.revision > have.revision else { return .unchanged }
+        guard merged(bundled: have, refreshed: published) == published else { return .rejected }
+        do {
+            try FileManager.default.createDirectory(at: cache.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try atomicReplace(cache, with: data, step: "graphics backend manifest")
+            try atomicReplace(RunnerManifest.signatureFile(for: cache), with: signed.0, step: "graphics backend manifest signature")
+        } catch {
+            AppLog.note("graphics backend manifest not saved: \(error)")
+            return .unavailable
+        }
+        return .updated(revision: published.revision)
     }
 }
 
@@ -91,7 +166,20 @@ enum BackendInstaller {
 
     static func receipt(for backend: GraphicsBackend, in backends: URL = folder) -> Receipt? {
         let file = folder(for: backend, in: backends).appending(path: receiptName)
-        return (try? Data(contentsOf: file)).flatMap { try? JSONDecoder().decode(Receipt.self, from: $0) }
+        return JSONFile.load(Receipt.self, from: file)
+    }
+
+    enum Offer: Sendable, Equatable {
+        case download
+        case ready
+        case update(to: String)
+    }
+
+    // A newer pin than the receipt is an update; the same or an older one leaves the installed copy alone
+    static func offer(_ pin: BackendManifest.Pin, installed: Receipt?) -> Offer {
+        guard let installed, installed.backend == pin.backend else { return .download }
+        return installed.version.compare(pin.version, options: .numeric) == .orderedAscending
+            ? .update(to: pin.version) : .ready
     }
 
     static func installed(in backends: URL = folder) -> [Receipt] {
@@ -101,8 +189,11 @@ enum BackendInstaller {
     @discardableResult
     static func install(
         _ pin: BackendManifest.Pin, backends: URL = folder, downloads: URL = BackendInstaller.downloads,
-        session: URLSession = PinnedDownload.session
+        session: URLSession = PinnedDownload.session,
+        inUse: @escaping @Sendable (URL) -> Bool = { isInUse($0) }
     ) async throws -> Receipt {
+        let target = folder(for: pin.backend, in: backends)
+        try await Task.detached { try refuseInUse(pin, target, inUse) }.value
         let archive = try await PinnedDownload.obtain(
             pin.url, sha256: pin.sha256, size: pin.size,
             into: downloads, step: step, from: "GitHub", session: session)
@@ -111,8 +202,28 @@ enum BackendInstaller {
         let extras = await QAEnvironment.extraHashes(session: session)
         // tar and the hashing wait on a process: they never run on the caller's actor
         return try await Task.detached {
-            try unpack(archive, pin: pin, backends: backends, extraHashes: extras)
+            try refuseInUse(pin, target, inUse)
+            return try unpack(archive, pin: pin, backends: backends, extraHashes: extras)
         }.value
+    }
+
+    // Swapping the files under a running game mixes two versions in one process
+    private static func refuseInUse(_ pin: BackendManifest.Pin, _ target: URL, _ inUse: (URL) -> Bool) throws {
+        guard inUse(target) else { return }
+        throw StepFailure(step: step, detail: String(localized: "A game is using \(pin.name). Quit the game first."))
+    }
+
+    // Wine maps the backend's DLLs and dlopens its .so, so a game using it holds them open and lsof names it.
+    // An lsof that cannot run reads as busy; no receipt means nothing is installed to replace.
+    static func isInUse(_ target: URL, lsof: String = "/usr/sbin/lsof") -> Bool {
+        guard let receipt = JSONFile.load(Receipt.self, from: target.appending(path: receiptName)) else { return false }
+        let fm = FileManager.default
+        let paths = receipt.files.keys.sorted()
+            .map { target.appending(path: $0).path(percentEncoded: false) }
+            .filter { fm.fileExists(atPath: $0) }
+        guard !paths.isEmpty else { return false }
+        guard let result = try? Shell.run(lsof, ["-t", "--"] + paths), !result.outputLost else { return true }
+        return !result.stdout.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     static func unpack(

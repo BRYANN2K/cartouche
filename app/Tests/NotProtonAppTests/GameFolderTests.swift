@@ -76,7 +76,7 @@ struct GameFolderTests {
         }
         let after = try #require(took, "the game never appeared")
         #expect(after < .seconds(10))
-        #expect(scene.library.addGames == nil)
+        #expect(!scene.library.showConsoleImport)
         #expect(!scene.library.showAddConsoles)
         print("evidence: quest.gb copied into the watched folder, in Game Boy as 'Cartouche Quest' after \(after)")
 

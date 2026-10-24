@@ -73,8 +73,49 @@ enum CrossOverSource {
         )
     }
 
+    // Cartouche's own runners and their Steam copies, never a CrossOver install
+    static var ownFolders: [URL] { [SupportPaths.runners, SupportPaths.Steam.compatTools] }
+
+    static func isInside(_ bundle: URL, _ folders: [URL]) -> Bool {
+        let path = bundle.standardizedFileURL.path(percentEncoded: false)
+        return folders.contains { folder in
+            var base = folder.standardizedFileURL.path(percentEncoded: false)
+            if !base.hasSuffix("/") { base += "/" }
+            return path.hasPrefix(base)
+        }
+    }
+
+    // A Cartouche Wine build carries an install receipt and reports its runner id (wine-crossover-…) as its version.
+    static func isCartoucheBuild(_ bundle: URL, excluding own: [URL] = ownFolders) -> Bool {
+        if isInside(bundle, own) { return true }
+        let fm = FileManager.default
+        let receipts = [bundle, SupportPaths.crossOverRoot(inBundle: bundle)]
+            .map { $0.appending(path: WineRunnerInstaller.receiptName) }
+        if receipts.contains(where: { fm.fileExists(atPath: $0.path(percentEncoded: false)) }) { return true }
+        return releaseVersion(of: bundle)?.lowercased().hasPrefix("wine-") == true
+    }
+
+    // A picked copy must be an app bundle; one that names its maker must be CodeWeavers'.
+    static func isCrossOverApp(_ bundle: URL) -> Bool {
+        guard bundle.pathExtension == "app" else { return false }
+        guard let identifier = infoPlist(of: bundle)?["CFBundleIdentifier"] as? String else { return true }
+        return identifier.lowercased().hasPrefix("com.codeweavers.")
+    }
+
+    static let prunedKey = "manualCrossOverPathsPruned"
+
+    // Older versions could list Cartouche's own runner folders as CrossOver copies: those entries go, once.
+    static func pruneOwnBundlesOnce(_ defaults: UserDefaults = .standard, excluding own: [URL] = ownFolders) {
+        guard !defaults.bool(forKey: prunedKey) else { return }
+        let manual = manualBundles(defaults)
+        let kept = manual.filter { isCrossOverApp($0) && !isCartoucheBuild($0, excluding: own) }
+        if kept.count != manual.count { setManualBundles(kept, defaults) }
+        defaults.set(true, forKey: prunedKey)
+    }
+
     static func discover(
-        roots: [URL] = searchRoots, manual: [URL] = manualBundles(), pins: [RunnerBuild] = SupportedRunners.all
+        roots: [URL] = searchRoots, manual: [URL] = manualBundles(), pins: [RunnerBuild] = SupportedRunners.all,
+        excluding own: [URL] = ownFolders
     ) -> [CrossOverInstall] {
         let fm = FileManager.default
         var found: [CrossOverInstall] = []
@@ -82,7 +123,8 @@ enum CrossOverSource {
 
         func consider(_ bundle: URL, isManual: Bool) {
             let key = bundle.standardizedFileURL.path(percentEncoded: false)
-            guard !seen.contains(key), looksLikeCrossOver(bundle) else { return }
+            guard !seen.contains(key), looksLikeCrossOver(bundle),
+                  !isManual || isCrossOverApp(bundle), !isCartoucheBuild(bundle, excluding: own) else { return }
             seen.insert(key)
             found.append(inspect(bundle: bundle, isManual: isManual, pins: pins))
         }
@@ -134,12 +176,15 @@ enum CrossOverSource {
 
     // CrossOver puts the build date here and the version number in CFBundleVersion, so this is the string its download page shows.
     static func releaseVersion(of bundle: URL) -> String? {
+        infoPlist(of: bundle)?["CFBundleShortVersionString"] as? String
+    }
+
+    static func infoPlist(of bundle: URL) -> [String: Any]? {
         let plist = bundle.appending(path: "Contents/Info.plist")
         guard let data = try? Data(contentsOf: plist),
-              let object = try? PropertyListSerialization.propertyList(from: data, format: nil),
-              let dict = object as? [String: Any]
+              let object = try? PropertyListSerialization.propertyList(from: data, format: nil)
         else { return nil }
-        return dict["CFBundleShortVersionString"] as? String
+        return object as? [String: Any]
     }
 
     static func unixLoader(inBundle bundle: URL) -> URL {

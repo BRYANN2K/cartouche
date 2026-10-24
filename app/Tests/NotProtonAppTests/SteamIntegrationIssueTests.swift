@@ -44,7 +44,7 @@ struct SteamIntegrationIssueTests {
         let cases: [(DeploymentContent.Status, SteamIntegrationIssue)] = [
             (.newerInstalled, .newerInstalled), (.unavailable("fixture"), .unavailable),
             (.update(["fixture"]), .update), (.repair(["fixture"]), .repair),
-            (.unrecorded(["fixture"]), .repair)
+            (.unrecorded(["fixture"]), .repair), (.mismatchedDylib(["fixture"]), .repair)
         ]
         for (content, issue) in cases {
             var state = snapshot()
@@ -94,7 +94,7 @@ struct SteamIntegrationIssueTests {
         state.runner = .none
         state.compatibilityTools = [InstalledTool(
             tool: CompatTool(name: "cartouche-proton-wine-crossover-26.3.0-1",
-                             flavor: .rosetta, display: "Wine CrossOver 26.3"),
+                             flavor: .rosetta, display: "Cartouche Wine 26.3"),
             build: "wine-crossover-26.3.0-1")]
         #expect(SteamIntegrationIssue.current(in: state) == nil)
         state.compatibilityTools = []
@@ -112,6 +112,17 @@ struct SteamIntegrationIssueTests {
         state.damagedRunners = []
         state.runners = [runner(state: .damaged(files: ["fixture"]), installed: false)]
         #expect(SteamIntegrationIssue.current(in: state) == .damagedTools)
+    }
+
+    @Test("Inside Settings only tool problems get a banner, and it does not point to Settings")
+    func settingsBanner() {
+        let all: [SteamIntegrationIssue] = [.steamMissing, .notInstalled, .otherIntegration, .newerInstalled,
+                                            .unavailable, .update, .repair, .missingTools, .damagedTools]
+        #expect(all.filter(\.showsInSettings) == [.missingTools, .damagedTools])
+        for issue in all where issue.showsInSettings {
+            #expect(!issue.settingsMessage.contains("Settings"))
+            #expect(issue.message.contains("Settings"))
+        }
     }
 
     private func runner(state: Runner.State, installed: Bool) -> Runner {

@@ -98,7 +98,8 @@ protocol DropClassifying: Sendable {
 // What the drop sheet asks the rest of the app to do with its result
 struct DropActions {
     var install: @MainActor (DroppedInstaller) -> Void = { _ in }
-    var importGame: @MainActor (DroppedInstalledGame, URL, GameStorage) -> Void = { _, _, _ in }
+    // The program and storage the user chose, or nil when the import flow should ask
+    var importGame: @MainActor (DroppedInstalledGame, URL?, GameStorage?) -> Void = { _, _, _ in }
     var addROMs: @MainActor (DroppedROMs) -> Void = { _ in }
     var addConsole: @MainActor (String) -> Void = { _ in }
     var chooseAnother: @MainActor () -> Void = {}
@@ -138,17 +139,23 @@ final class DropModel {
                 self.phase = .detecting(progress)
             }
         }
-        work = Task { [weak self] in
+        work = Task.detached { [weak self] in
+            AppLog.note("drop detection started: \(urls.count) item(s)")
             let result: DropResult
             do {
                 result = try await classifier.classify(urls, progress: report)
             } catch {
                 result = .failed(.nothingRecognized(urls))
             }
-            guard let self, !Task.isCancelled else { return }
-            if case .installedGame(let game) = result { self.chosenExe = game.executables.first }
-            self.phase = .result(result)
+            AppLog.note("drop detection finished; cancelled=\(Task.isCancelled)")
+            guard !Task.isCancelled else { return }
+            await self?.classified(result)
         }
+    }
+
+    private func classified(_ result: DropResult) {
+        if case .installedGame(let game) = result { chosenExe = game.executables.first }
+        phase = .result(result)
     }
 
     func show(_ result: DropResult) {

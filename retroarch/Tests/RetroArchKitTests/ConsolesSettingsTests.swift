@@ -1,4 +1,5 @@
 import AppKit
+import CryptoKit
 import Foundation
 import SwiftUI
 import Testing
@@ -18,6 +19,9 @@ struct ConsolesSettingsTests {
         let server: FixtureServer
         let base: URL
         let argsLog: URL
+        // The fixture image is pinned as the real one is; its unsigned app passes a stand-in signature check
+        var pins = OfficialRelease.pins
+        var signed = true
 
         init(official: Bool = false) async throws {
             work = try scratchFolder("settings")
@@ -25,7 +29,15 @@ struct ConsolesSettingsTests {
             server = try FixtureServer()
             base = try await server.start()
             argsLog = work.appending(path: "official-args.txt")
-            if official { server.put("/stable/1.22.2/apple/osx/universal/RetroArch_Metal.dmg", try officialImage()) }
+            if official {
+                let image = try officialImage()
+                pins = ["1.22.2": ReleasePin(size: Int64(image.count), sha256: Self.sha256(image))]
+                server.put("/stable/1.22.2/apple/osx/universal/RetroArch_Metal.dmg", image)
+            }
+        }
+
+        static func sha256(_ data: Data) -> String {
+            SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
         }
 
         deinit { server.stop() }
@@ -64,7 +76,13 @@ struct ConsolesSettingsTests {
             return ConsolesSettingsModel(
                 paths: paths, includedApp: included,
                 cores: CoreManager(paths: paths, source: source, session: session),
-                official: OfficialRelease(paths: paths, base: base.appending(path: "stable/"), session: session))
+                official: official(session))
+        }
+
+        func official(_ session: URLSession = URLSession(configuration: .ephemeral)) -> OfficialRelease {
+            let signed = signed
+            return OfficialRelease(paths: paths, base: base.appending(path: "stable/"), session: session,
+                                   pins: pins, signed: { _ in signed })
         }
     }
 
@@ -130,6 +148,58 @@ struct ConsolesSettingsTests {
         await model.select(.official(version: "1.22.2"))
         #expect(model.build == .failed("RetroArch download failed, try again later."))
         #expect(model.launcher == nil)
+    }
+
+    @Test func anImageThatIsNotThePinnedOneIsNotInstalled() async throws {
+        let stage = try await Stage(official: true)
+        let pin = try #require(stage.pins["1.22.2"])
+        stage.pins["1.22.2"] = ReleasePin(size: pin.size, sha256: String(repeating: "0", count: 64))
+        let model = stage.model()
+        await model.select(.official(version: "1.22.2"))
+        #expect(model.build == .failed("This RetroArch could not be verified, so it was not installed."))
+        #expect(!stage.official().isInstalled("1.22.2"))
+    }
+
+    @Test func anAppWithoutLibretrosSignatureIsNotInstalled() async throws {
+        let stage = try await Stage(official: true)
+        stage.signed = false
+        let model = stage.model()
+        await model.select(.official(version: "1.22.2"))
+        #expect(model.build == .failed("This RetroArch could not be verified, so it was not installed."))
+        #expect(!stage.official().isInstalled("1.22.2"))
+    }
+
+    @Test func aVersionWithoutAPinIsRefusedBeforeDownloading() async throws {
+        let stage = try await Stage(official: true)
+        stage.pins = [:]
+        await #expect(throws: OfficialReleaseError.unverified) { try await stage.official().install("1.22.2") }
+        #expect(stage.server.requests.isEmpty)
+    }
+
+    @Test func everyOfferedVersionIsPinned() {
+        #expect(!OfficialRelease.versions.isEmpty)
+        for version in OfficialRelease.versions {
+            let pin = OfficialRelease.pins[version]
+            #expect(pin.map { $0.size > 0 && $0.sha256.count == 64 && $0.sha256.allSatisfy(\.isHexDigit) } == true)
+        }
+    }
+
+    // The real check: an unsigned bundle, and one signed ad hoc, are both refused
+    @Test func theSignatureCheckRefusesAnythingButLibretrosDeveloperID() throws {
+        let work = try scratchFolder("signature")
+        let app = work.appending(path: "RetroArch.app", directoryHint: .isDirectory)
+        let macos = app.appending(path: "Contents/MacOS", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: macos, withIntermediateDirectories: true)
+        try FileManager.default.copyItem(at: URL(fileURLWithPath: "/usr/bin/true"), to: macos.appending(path: "RetroArch"))
+        #expect(!OfficialRelease.signedByLibretro(app))
+
+        let codesign = Process()
+        codesign.executableURL = URL(fileURLWithPath: "/usr/bin/codesign")
+        codesign.arguments = ["-f", "-s", "-", app.path]
+        try codesign.run()
+        codesign.waitUntilExit()
+        #expect(codesign.terminationStatus == 0)
+        #expect(!OfficialRelease.signedByLibretro(app))
     }
 
     // The pane itself, drawn as the Settings window would and read back with

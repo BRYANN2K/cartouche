@@ -8,6 +8,7 @@ struct GOGAdapter: StoreAdapter {
     let context: ClientContext
     var embed = URL(string: "https://embed.gog.com")!
     var remoteConfig = URL(string: "https://remote-config.gog.com")!
+    var productsAPI = URL(string: "https://api.gog.com")!
     var gamesDB = URL(string: "https://gamesdb.gog.com")!
     // A token request must not carry another app's cookies
     var session: URLSession = URLSession(configuration: .ephemeral)
@@ -92,6 +93,54 @@ struct GOGAdapter: StoreAdapter {
               (json["isGame"] as? Bool) ?? true,
               (json["worksOn"] as? [String: Any])?["Windows"] as? Bool ?? false else { return nil }
         return StoreGame(id: id, title: title)
+    }
+
+    func details(_ game: StoreGame) async -> StoreGame {
+        var result = game
+        var url = URLComponents(url: productsAPI.appending(path: "products/\(game.id)"), resolvingAgainstBaseURL: false)!
+        url.queryItems = [URLQueryItem(name: "expand", value: "screenshots")]
+        if let json = try? await get(url.url!, token: nil) {
+            result = Self.media(json, game: result)
+            result.detailsFetchedAt = Date()
+        }
+        if let output = try? await gogdl(["info", game.id, "--platform", "windows", "--skip-dlcs"]),
+           output.succeeded, let json = StoreJSON.object(output.stdout), let size = Self.sizes(json) {
+            result.downloadBytes = size.download
+            result.diskBytes = size.disk
+            result.detailsFetchedAt = Date()
+        }
+        return result
+    }
+
+    static func media(_ json: [String: Any], game: StoreGame) -> StoreGame {
+        var result = game
+        func url(_ value: Any?) -> URL? {
+            guard let text = value as? String,
+                  let url = URL(string: text.hasPrefix("//") ? "https:" + text : text),
+                  url.scheme == "https" else { return nil }
+            return url
+        }
+        result.header = url((json["images"] as? [String: Any])?["background"]) ?? game.header
+        if let shots = json["screenshots"] as? [[String: Any]] {
+            result.screenshots = shots.compactMap { shot in
+                let images = shot["formatted_images"] as? [[String: Any]] ?? []
+                let image = images.first { $0["formatter_name"] as? String == "ggvgl_2x" }
+                    ?? images.first { $0["formatter_name"] as? String == "ggvgl" }
+                    ?? images.first
+                return url(image?["image_url"])
+            }
+        }
+        return result
+    }
+
+    static func sizes(_ json: [String: Any]) -> (download: Int64, disk: Int64)? {
+        guard let groups = json["size"] as? [String: [String: Any]] else { return nil }
+        let language = groups["en-US"] ?? groups["en"] ?? groups.keys.sorted().filter { $0 != "*" }.first.flatMap { groups[$0] }
+        let selected = [groups["*"], language].compactMap { $0 }
+        let download = selected.reduce(Int64(0)) { $0 + max(0, ($1["download_size"] as? NSNumber)?.int64Value ?? 0) }
+        let disk = selected.reduce(Int64(0)) { $0 + max(0, ($1["disk_size"] as? NSNumber)?.int64Value ?? 0) }
+        guard download > 0, disk > 0 else { return nil }
+        return (download, disk)
     }
 
     func artURL(_ game: StoreGame) async -> URL? {
@@ -223,7 +272,11 @@ struct GOGAdapter: StoreAdapter {
 
     private func gogdl(_ arguments: [String], fresh: Bool = false,
                        progress: (@Sendable (Double) -> Void)? = nil) async throws -> ClientOutput {
-        try await context.run(.gogdl, store: .gog, ["--auth-config-path", auth] + arguments, fresh: fresh) { line in
+        // gogdl writes auth-config-path directly; it does not create its parent.
+        // A fresh Cartouche HOME has no Heroic directory yet.
+        try FileManager.default.createDirectory(at: URL(filePath: auth).deletingLastPathComponent(),
+            withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        return try await context.run(.gogdl, store: .gog, ["--auth-config-path", auth] + arguments, fresh: fresh) { line in
             if let fraction = ClientProgress.fraction(line) { progress?(fraction) }
         }
     }

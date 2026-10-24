@@ -53,7 +53,7 @@ struct OnboardingState: Codable, Equatable, Sendable {
     var finished = false
 
     // v2 choices — everything stays editable in Settings afterwards
-    var wantsRunner = true        // the free Wine CrossOver build is preselected
+    var wantsRunner = true        // the free Cartouche Wine build is preselected
     var romFolder: String?        // optional folder to watch, picked on Consoles
     var watchDownloads = false     // suggest installers that finish downloading
     var controllerKeys = false     // play keyboard-only games with a controller

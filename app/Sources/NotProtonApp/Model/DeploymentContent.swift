@@ -1,3 +1,4 @@
+import CartoucheIdentity
 import Darwin
 import Foundation
 
@@ -6,10 +7,18 @@ enum DeploymentContent {
         let version: String
         let builtAt: Int64
         var dylibHashes: [String]? = nil
+        var integrationVersion: String? = nil
 
         func isNewer(than other: Build) -> Bool {
             let order = CartoucheVersion.compare(version, other.version)
-            return order == .orderedDescending || (order == .orderedSame && builtAt > other.builtAt)
+            if order != .orderedSame { return order == .orderedDescending }
+            if let integrationVersion, let old = other.integrationVersion, integrationVersion != old {
+                return CartoucheVersion.compare(integrationVersion, old) == .orderedDescending
+            }
+            // A legacy record has no integration revision: retain its build-time
+            // downgrade protection rather than treating every versioned build as newer.
+            if builtAt != other.builtAt { return builtAt > other.builtAt }
+            return integrationVersion != nil && other.integrationVersion == nil
         }
     }
 
@@ -41,6 +50,8 @@ enum DeploymentContent {
         case update([String])
         case repair([String])
         case unrecorded([String])
+        // Steam's dylib is not the one the build record names, e.g. after a dev deploy
+        case mismatchedDylib([String])
         case newerInstalled
         case unavailable(String)
 
@@ -116,14 +127,21 @@ enum DeploymentContent {
         return build
     }
 
+    enum RecordMismatch: Sendable {
+        case refuse, report, accept
+    }
+
     static func inspect(files: [File], bundled: Build, installed: Build?, legacyVersion: String? = nil,
-                        additionalDifferences: [String] = []) throws -> Status {
+                        additionalDifferences: [String] = [], recordMismatch: RecordMismatch = .refuse) throws -> Status {
         if let installed, installed.isNewer(than: bundled) { return .newerInstalled }
         if let legacyVersion, CartoucheVersion.compare(legacyVersion, bundled.version) == .orderedDescending {
             return .newerInstalled
         }
         let changed = try files.filter { try !$0.matches() }
-        let differences = changed.map(\.name) + additionalDifferences
+        var differences = changed.map(\.name) + additionalDifferences
+        if bundled.integrationVersion != installed?.integrationVersion, let integration = bundled.integrationVersion {
+            differences.append("Steam integration \(integration)")
+        }
         guard !differences.isEmpty else { return .current }
         guard let installed else {
             if let legacyVersion, CartoucheVersion.compare(legacyVersion, bundled.version) == .orderedAscending {
@@ -131,12 +149,14 @@ enum DeploymentContent {
             }
             return .unrecorded(differences)
         }
-        if let hashes = installed.dylibHashes,
+        if recordMismatch != .accept,
+            let hashes = installed.dylibHashes,
             let dylib = changed.first(where: \.allowsResigning),
             try Shell.run("/usr/bin/codesign", ["--verify", "--strict", dylib.destination.path(percentEncoded: false)]).succeeded,
             let deployed = try MachOBuild.hashesIgnoringSignature(of: dylib.destination),
             hashes != deployed
         {
+            if recordMismatch == .report { return .mismatchedDylib(differences) }
             throw StepFailure(step: String(localized: "Check installed files"),
                               detail: String(localized: "Steam's installed dylib does not match this account's build record. Finish or repair its installation with the Cartouche app that last installed it."))
         }
@@ -178,19 +198,21 @@ enum DeploymentContent {
                  name: "\($0.name)/run", executable: true)
         }
         for build in Set(tools.map(\.build)).sorted() {
-            let root = SupportPaths.clonedRoot(forBuild: build, runners: runners)
+            let downloaded = WineRunnerInstaller.installedFolder(for: build, runners: runners)
+            let root = downloaded ?? SupportPaths.clonedRoot(forBuild: build, runners: runners)
+            let label = downloaded == nil ? "crossover-\(build)" : build
             for builtin in RunnerPatcher.builtins(in: root) {
                 let path = "\(builtin.arch)/\(builtin.name)"
                 if let entry = bridgePayload.sources.first(where: { $0.bridgePaths.contains(path) }) {
                     files.append(File(source: entry.source, destination: root.appending(path: "lib/wine/\(path)"),
-                                      name: "crossover-\(build)/\(path)"))
+                                      name: "\(label)/\(path)"))
                 }
             }
         }
         return files
     }
 
-    static func current(version: String) -> Status {
+    static func current(version: String, verifying build: Build? = nil) -> Status {
         do {
             let payload = try InstallPayload.locate()
             let bridge = try BridgePayload.locate()
@@ -203,9 +225,11 @@ enum DeploymentContent {
                               appinfo: SupportPaths.appinfo, compatTools: SupportPaths.Steam.compatTools,
                               tools: RunnerRegistry.tools(), runners: SupportPaths.runners,
                               fpsCounter: SupportPaths.fpsCounter)
-            return try inspect(files: files, bundled: Build(version: version, builtAt: payload.builtAt),
-                               installed: readBuild(at: record(beside: SupportPaths.deployedVersion)),
-                               legacyVersion: SteamBundle.deployedVersion(), additionalDifferences: pinned.sorted())
+            return try inspect(files: files, bundled: Build(version: version, builtAt: payload.builtAt,
+                                                                        integrationVersion: CARTOUCHE_STEAM_INTEGRATION_VERSION),
+                               installed: build ?? readBuild(at: record(beside: SupportPaths.deployedVersion)),
+                               legacyVersion: SteamBundle.deployedVersion(), additionalDifferences: pinned.sorted(),
+                               recordMismatch: .report)
         } catch {
             return .unavailable(error.localizedDescription)
         }

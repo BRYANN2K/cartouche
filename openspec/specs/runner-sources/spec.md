@@ -1,7 +1,7 @@
 # runner-sources Specification
 
 ## Purpose
-Free runners Cartouche can install and use without CrossOver: Wine CrossOver built by CI from CodeWeavers' LGPL sources, WineHQ builds, and Apple's Game Porting Toolkit copied from the user's own install, never redistributed.
+Free runners Cartouche can install and use without CrossOver: Cartouche Wine built by CI from CodeWeavers' LGPL sources, WineHQ builds, and Apple's Game Porting Toolkit copied from the user's own install, never redistributed.
 
 ## Requirements
 
@@ -13,30 +13,30 @@ The app SHALL install only Wine builds listed in its runner manifest, and SHALL 
 - **THEN** it is used only when the detached `runners.json.sig` signature verifies against the EdDSA public key the app ships (SUPublicEDKey); a manifest with a missing or wrong signature is refused and the bundled manifest stays in use
 
 #### Scenario: Install a pinned build
-- **WHEN** the user clicks Download on "Wine CrossOver 26.3" in Runners
+- **WHEN** the user clicks Download on "Cartouche Wine 26.3" in Runners
 - **THEN** the archive is downloaded, its SHA-256 matches the manifest, and the runner appears with state ready; after explicit test-prefix initialization has finished successfully, `winecfg` reaches its window within 60 seconds on an M-series Mac (initialization time is measured separately)
 
 #### Scenario: Tampered download is rejected
 - **WHEN** the downloaded archive's SHA-256 differs from the manifest
 - **THEN** the file is deleted, the runner stays not installed, and the user sees "The download was damaged. Try again."
 
-### Requirement: Published CrossOver Wine default
-The app SHALL pin the published `wine-crossover-26.3.0-1-x86_64.tar.xz` asset from `BRYANN2K/cartouche-wine` in its runner manifest with size `149444708` bytes and SHA-256 `60400817826a053599193aa290d4e24e97213a743195f4187400bf9c74906887`. New games SHALL default to this CrossOver Wine runner. Existing explicit per-game runner choices SHALL remain unchanged.
+### Requirement: Published Cartouche Wine default
+The app SHALL pin the published `wine-crossover-26.3.0-1-x86_64.tar.xz` asset from `BRYANN2K/cartouche-wine` in its runner manifest with size `149444708` bytes and SHA-256 `60400817826a053599193aa290d4e24e97213a743195f4187400bf9c74906887`. New games SHALL default to this Cartouche Wine runner. Existing explicit per-game runner choices SHALL remain unchanged.
 
 #### Scenario: Published build is offered
 - **WHEN** the app offers its default free runner for a new game
-- **THEN** it selects CrossOver Wine and uses the published release URL, size and SHA-256 above for any required download
+- **THEN** it selects Cartouche Wine and uses the published release URL, size and SHA-256 above for any required download
 
 #### Scenario: Existing choice is preserved
 - **WHEN** a game already has an explicit runner choice and the new default becomes available
 - **THEN** that game retains its runner choice
 
 ### Requirement: Explain unavailable Graphics choices
-The Graphics menu SHALL list only offered backends and SHALL hide unavailable backends. Neither the panel nor menu SHALL show unavailable-backend reason lines. One Get More Graphics Backends… entry SHALL appear only when something is missing and SHALL lead to installing Wine CrossOver. D3DMetal eligibility still requires CrossOver-capable Wine, Rosetta and user-supplied D3DMetal files; DXMT requires CrossOver and its download. Apple files SHALL NOT be redistributed.
+The Graphics menu SHALL list only offered backends and SHALL hide unavailable backends. Neither the panel nor menu SHALL show unavailable-backend reason lines. One Get More Graphics Backends… entry SHALL appear only when something is missing and SHALL lead to installing Cartouche Wine. D3DMetal eligibility still requires CrossOver-capable Wine, Rosetta and user-supplied D3DMetal files; DXMT requires CrossOver and its download. Apple files SHALL NOT be redistributed.
 
-#### Scenario: Missing CrossOver Wine
-- **WHEN** CrossOver Wine is missing and a backend cannot be offered
-- **THEN** that backend is hidden, no reason line is shown, and one Get More Graphics Backends… entry leads to installing Wine CrossOver
+#### Scenario: Missing Cartouche Wine
+- **WHEN** Cartouche Wine is missing and a backend cannot be offered
+- **THEN** that backend is hidden, no reason line is shown, and one Get More Graphics Backends… entry leads to installing Cartouche Wine
 
 #### Scenario: Missing GPTK files
 - **WHEN** D3DMetal cannot be offered because the user’s D3DMetal files are unavailable
@@ -48,7 +48,7 @@ The Graphics menu SHALL list only offered backends and SHALL hide unavailable ba
 
 #### Scenario: Onboarding runner choice
 - **WHEN** onboarding presents the initial runner choice
-- **THEN** Wine CrossOver is preselected
+- **THEN** Cartouche Wine is preselected
 
 ### Requirement: Serialized first boot before launch
 The app SHALL treat fresh-prefix initialization as an explicit setup phase, serialized per prefix. It SHALL await successful boot completion and Wine-server completion before starting an installer or game in that prefix. A registry file or update timestamp alone SHALL NOT prove readiness. Setup SHALL show progress or phase status, logs, cancellation and retry. The Wine CI initialization limit SHALL NOT set the app’s first-boot timeout.
@@ -108,4 +108,4 @@ The app SHALL detect a Game Porting Toolkit installed by the user and offer it a
 
 #### Scenario: GPTK absent
 - **WHEN** no Game Porting Toolkit is installed
-- **THEN** Runners shows it as "Not found" with a "How to Get It" link to Apple’s page, and the default CrossOver Wine runner’s Graphics menu explains that D3DMetal needs the user’s GPTK files
+- **THEN** Runners shows it as "Not found" with a "How to Get It" link to Apple’s page, and the default Cartouche Wine runner’s Graphics menu explains that D3DMetal needs the user’s GPTK files

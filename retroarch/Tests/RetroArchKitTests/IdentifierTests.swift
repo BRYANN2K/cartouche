@@ -7,6 +7,22 @@ import Testing
 @Suite("Identifying console games")
 struct IdentifierTests {
 
+    @Test("A multi-gigabyte Switch container is offered without hashing it or claiming a database match")
+    func largeSwitchContainer() async throws {
+        let scene = try Scene("large-switch")
+        defer { try? FileManager.default.removeItem(at: scene.work) }
+        let file = try scene.write("Homebrew.nsp", Data("PFS0".utf8))
+        let handle = try FileHandle(forWritingTo: file)
+        try handle.truncate(atOffset: 4 * 1024 * 1024 * 1024)
+        try handle.close()
+        let start = ContinuousClock.now
+        let found = await scene.identifier.identify(file)
+        #expect(ContinuousClock.now - start < .seconds(2))
+        #expect(found.candidates == ["switch"])
+        #expect(!found.isRecognized)
+        #expect(found.crc == nil)
+    }
+
     struct Scene {
         let work: URL
         let paths: RetroArchPaths

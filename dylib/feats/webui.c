@@ -23,7 +23,23 @@ static inline int32_t sign_extend(uint32_t val, int bits) {
 
 #define VT_RUN_MIN 8
 
-#define MAX_ROUTES 4
+#define MAX_ROUTES 16
+
+// Routes whose access flags the custom routes copy, by name and in this order. They
+// are the client's own self-check of the authenticated clientdll transport, so they
+// need authKeyClientdll; libexport already borrows their message types.
+static const char *const AUTH_FLAG_ROUTES[] = {
+    "TransportValidation.GetLargeResponse#1",
+    "TransportValidation.CountOrderedBytes#1",
+    "TransportValidation.AddNumbers#1",
+    // Served under this name by the macOS client build 1790904859 (2026-10)
+    "TransportValidationClient.AddNumbers#1",
+    "TransportValidationClient.GetLargeResponse#1",
+    "TransportValidationClient.CountOrderedBytes#1",
+};
+
+// Served before the page holds a key, so its flags are the one value never to copy.
+#define UNAUTH_ROUTE "TransportAuth.Authenticate#1"
 
 #define REGISTRY_MAP_OFF   96
 #define MAP_ELEMENTS_OFF   48
@@ -80,6 +96,7 @@ static uintptr_t g_stock_factory;
 static uintptr_t g_clone[2 + VT_SLOTS];
 static uintptr_t g_clone_vptr;
 static uintptr_t g_route_flags;
+static int       g_route_flags_ready;
 
 static int bl_target(uint32_t insn, uintptr_t pc, uintptr_t *out) {
     if ((insn & 0xFC000000) != 0x94000000) return 0;
@@ -433,7 +450,52 @@ static int64_t job_handler(uintptr_t job, uintptr_t ctx) {
     return 1;
 }
 
-// A route the client already serves, borrowed for its job factory and its flags.
+// Access flags for the custom routes. On the macOS client (2026-10) the flag word is the same for
+// TransportAuth.Authenticate and TransportValidationClient.*, so it does not tell a pre-auth route
+// from an authenticated one; the routes take a named validation route's flags when served, else the
+// first served route's, as before. How the client really gates routes is still to be established.
+static int borrow_auth_flags(void) {
+    uintptr_t elements;
+    int bound;
+    if (!walk_routes(&elements, &bound)) return 0;
+
+    int best = -1, first = -1;
+    uintptr_t flags = 0, unauth_flags = 0;
+    int have_unauth = 0;
+    for (int i = 0; i < bound; i++) {
+        const char *name = route_at(elements, i);
+        if (!name) continue;
+        uintptr_t f = *(const uintptr_t *)(elements + (uintptr_t)i * ROUTE_STRIDE + ELEM_FLAGS_OFF);
+        if (first < 0) first = i;
+        if (strcmp(name, UNAUTH_ROUTE) == 0) {
+            unauth_flags = f;
+            have_unauth = 1;
+            NP_LOG("webui: %s flags 0x%lx", UNAUTH_ROUTE, (unsigned long)unauth_flags);
+            continue;
+        }
+        int n = (int)(sizeof AUTH_FLAG_ROUTES / sizeof AUTH_FLAG_ROUTES[0]);
+        for (int k = 0; k < n && (best < 0 || k < best); k++) {
+            if (strcmp(name, AUTH_FLAG_ROUTES[k]) != 0) continue;
+            best  = k;
+            flags = f;
+            break;
+        }
+    }
+    if (first < 0) {
+        NP_ERR("webui: the client serves no route to take access flags from; no route is added");
+        return 0;
+    }
+    const char *from = best >= 0 ? AUTH_FLAG_ROUTES[best] : route_at(elements, first);
+    if (best < 0) flags = *(const uintptr_t *)(elements + (uintptr_t)first * ROUTE_STRIDE + ELEM_FLAGS_OFF);
+
+    g_route_flags       = flags;
+    g_route_flags_ready = 1;
+    NP_LOG("webui: routes take access flags 0x%lx from %s%s", (unsigned long)flags, from,
+           have_unauth && flags == unauth_flags ? ", the same word as the pre-auth route's" : "");
+    return 1;
+}
+
+// A route the client already serves, borrowed for its job factory.
 static int borrow_from_served_route(void) {
     uintptr_t elements;
     int bound;
@@ -454,16 +516,19 @@ static int borrow_from_served_route(void) {
         if (!vptr) continue;
 
         // Two entries sit ahead of slot 0, the offset to top and the type
-        // information, and code that asks a job what it is reads them.
-        memcpy(g_clone, (const void *)(vptr - 16), 16 + 8 * (size_t)run);
+        // information, and code that asks a job what it is reads them. Every slot is
+        // copied, not just the leading run in __text: a virtual that lives elsewhere
+        // (a stub, a pure-virtual trap) must not come out as a zero.
+        // vtable_from_factory keeps all VT_SLOTS inside __DATA_CONST.
+        if (vptr - 16 < g_const_base || vptr + 8 * VT_SLOTS > g_const_end) continue;
+        memcpy(g_clone, (const void *)(vptr - 16), sizeof g_clone);
         g_clone[2 + slot] = (uintptr_t)job_handler;
         g_clone_vptr    = (uintptr_t)&g_clone[2];
         g_stock_factory = factory;
-        g_route_flags   = *(const uintptr_t *)(elem + ELEM_FLAGS_OFF);
 
         NP_LOG("webui: job built like the client's own %s, vtable 0x%lx cloned over "
-               "%d virtuals with the handler in slot %d", route_at(elements, i),
-               (unsigned long)vptr, run, slot);
+               "%d slots (%d leading in __text) with the handler in slot %d",
+               route_at(elements, i), (unsigned long)vptr, VT_SLOTS, run, slot);
         return 1;
     }
 
@@ -491,6 +556,8 @@ int np_webui_register_route(const char *name, uintptr_t request_vptr,
         return 0;
     }
 
+    if (!g_route_flags_ready && !borrow_auth_flags())
+        return 0;
     if (!g_clone_vptr && !borrow_from_served_route())
         return 0;
 

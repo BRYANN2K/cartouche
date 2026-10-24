@@ -1,5 +1,6 @@
 import CryptoKit
 import Foundation
+import os
 
 // Where cores come from: the libretro buildbot, for Apple silicon
 public struct CoreSource: Sendable, Equatable {
@@ -17,7 +18,8 @@ public struct CoreSource: Sendable, Equatable {
     )
 }
 
-// A core as it was when Cartouche downloaded it. The buildbot signs nothing, so what was seen the first time is what every launch checks against.
+// A core as it was when Cartouche downloaded it. The buildbot signs nothing, so what was seen the first time is what every launch checks against,
+// and a different build served later is only taken when the person asks for it again.
 public struct CoreRecord: Codable, Sendable, Equatable {
     public var core: String
     public var file: String
@@ -25,6 +27,8 @@ public struct CoreRecord: Codable, Sendable, Equatable {
     public var sha256: String
     public var source: URL
     public var recorded: Date
+    // The SHA-256 of the build this one replaced, when the person accepted a changed build
+    public var replaces: String?
 }
 
 public enum CoreCheck: Sendable, Equatable {
@@ -39,6 +43,7 @@ public enum CoreError: Error, Equatable, LocalizedError {
     case notACore(core: String)
     case damaged(core: String)
     case missing(core: String)
+    case changedOnServer(core: String)
 
     public var errorDescription: String? {
         switch self {
@@ -50,6 +55,8 @@ public enum CoreError: Error, Equatable, LocalizedError {
             String(localized: "The \(core) core changed since it was downloaded. Update it in Settings > Consoles.", bundle: .module)
         case .missing(let core):
             String(localized: "The \(core) core is not downloaded yet.", bundle: .module)
+        case .changedOnServer(let core):
+            String(localized: "The \(core) core on the server is not the build first downloaded, so it was not used. Choose Download Core again to accept it.", bundle: .module)
         }
     }
 }
@@ -112,9 +119,10 @@ public actor CoreManager {
         return try await download(core)
     }
 
+    /// `accept` is the person's explicit go-ahead for a build that differs from the recorded one.
     @discardableResult
-    public func update(_ core: String) async throws -> CoreRecord {
-        try await download(core, refreshInfo: true)
+    public func update(_ core: String, accept: Bool = false) async throws -> CoreRecord {
+        try await download(core, refreshInfo: true, accept: accept)
     }
 
     /// The core file and its `.info`, when they exist — both are inside Cartouche's folders.
@@ -128,7 +136,7 @@ public actor CoreManager {
         try save(records().filter { $0.core != core })
     }
 
-    private func download(_ core: String, refreshInfo: Bool = false) async throws -> CoreRecord {
+    private func download(_ core: String, refreshInfo: Bool = false, accept: Bool = false) async throws -> CoreRecord {
         try paths.create()
         let name = Self.file(core)
         let remote = source.cores.appending(path: "\(name).zip")
@@ -144,9 +152,20 @@ public actor CoreManager {
         guard Self.isMachO(fresh) else { throw CoreError.notACore(core: core) }
 
         let size = Int64(try fresh.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0)
+        let sha256 = try Self.sha256(fresh)
+        let known = self.record(core)
+        let replaces = known.flatMap { $0.sha256 == sha256 ? nil : $0.sha256 }
+        if let replaces {
+            guard accept else {
+                Self.log.warning("\(core, privacy: .public): server build \(sha256, privacy: .public) differs from recorded \(replaces, privacy: .public); kept the recorded one")
+                throw CoreError.changedOnServer(core: core)
+            }
+            Self.log.notice("\(core, privacy: .public): accepted server build \(sha256, privacy: .public) replacing \(replaces, privacy: .public)")
+        }
         let record = CoreRecord(
-            core: core, file: name, size: size, sha256: try Self.sha256(fresh), source: remote,
-            recorded: Date(timeIntervalSince1970: Date().timeIntervalSince1970.rounded(.down)))
+            core: core, file: name, size: size, sha256: sha256, source: remote,
+            recorded: Date(timeIntervalSince1970: Date().timeIntervalSince1970.rounded(.down)),
+            replaces: replaces ?? known?.replaces)
         try Self.place(fresh, at: url(core))
         try save(records().filter { $0.core != core } + [record])
         try await installInfo(core, refresh: refreshInfo)
@@ -188,6 +207,8 @@ public actor CoreManager {
     }
 
     static func file(_ core: String) -> String { "\(core)_libretro.dylib" }
+
+    private static let log = Logger(subsystem: "Cartouche", category: "cores")
 
     static func place(_ fresh: URL, at target: URL) throws {
         if FileManager.default.fileExists(atPath: target.path(percentEncoded: false)) {

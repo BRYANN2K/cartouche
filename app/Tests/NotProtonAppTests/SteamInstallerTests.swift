@@ -652,7 +652,11 @@ struct SteamInstallerTests {
         let fixture = try await self.fixture(into: work)
         let outcome = try install(fixture, recordBuild: false)
 
-        try SteamInstaller.finish(outcome, deployedVersion: fixture.deployedVersion, isCurrent: { _ in true })
+        try SteamInstaller.finish(outcome, deployedVersion: fixture.deployedVersion, isCurrent: { build in
+            #expect(build == outcome.build, "Final verification uses the transaction's new integration revision")
+            #expect(build.integrationVersion != nil)
+            return true
+        })
 
         #expect(try DeploymentContent.readBuild(at: DeploymentContent.record(beside: fixture.deployedVersion)) == outcome.build)
         #expect(try String(contentsOf: fixture.deployedVersion, encoding: .utf8)

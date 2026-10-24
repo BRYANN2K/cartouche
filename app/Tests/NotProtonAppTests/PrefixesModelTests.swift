@@ -772,4 +772,29 @@ struct PrefixesModelTests {
         #expect(model.usage.isEmpty)
         #expect(!model.isLoading)
     }
+
+    @Test("Deleting a prefix keeps its backups listed, and one can be restored into the empty entry")
+    func deleteKeepsBackupsRestorable() async throws {
+        let (dir, library) = try makeLibrary(appIDs: ["1574480"])
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let root = library.compatdata.appending(path: "1574480")
+        try write("save", to: root.appending(path: "pfx.previous-20260101-120000/drive_c/save.dat"))
+        try write("26.3\n", to: root.appending(path: PrefixTools.buildRecordName))
+
+        let model = PrefixesModel(libraries: { [library] })
+        await model.load()
+        await model.delete(model.prefixes)
+
+        #expect(model.prefixes.isEmpty)
+        #expect(model.failure == nil)
+        let backup = try #require(model.backups.first)
+        #expect(model.backups.count == 1)
+        let left = try FileManager.default.contentsOfDirectory(atPath: root.path(percentEncoded: false))
+        #expect(left == ["pfx.previous-20260101-120000"])
+
+        await model.restoreBackup(backup)
+        #expect(model.failure == nil)
+        #expect(model.prefixes.map(\.appID) == ["1574480"])
+        #expect(FileManager.default.fileExists(atPath: root.appending(path: "pfx/drive_c/save.dat").path(percentEncoded: false)))
+    }
 }

@@ -1,6 +1,6 @@
 # Standalone emulators: bundle IDs, launch arguments, settings folders (P16)
 
-Date: 2026-10-19. Read from each project's own source or documentation; "nc" means not confirmed from a primary source. Cartouche detects and starts these apps; it never ships, fetches or configures them, and it never writes their settings folders.
+Date: 2026-10-19. Read from each project's own source or documentation; "nc" means not confirmed from a primary source. Cartouche detects and starts these apps. Since the 2026-10-23 import update it can also install pinned official app archives into ~/Applications when the chosen runtime is missing. Emulator settings remain owned by the emulator.
 
 ## What `EmulatorCatalog` uses
 
@@ -81,3 +81,12 @@ rdb [30] and libretro-thumbnails [31]: `Nintendo - GameCube`, `Nintendo - Wii`, 
 29. https://buildbot.libretro.com/nightly/apple/osx/arm64/latest/
 30. https://github.com/libretro/libretro-database/tree/master/rdb
 31. https://github.com/libretro-thumbnails
+
+
+## Import preparation, 2026-10-23
+
+Console imports prepare their runtime before adding new game records, including consoles already present in the library. Installed standalone apps are reused. RetroArch consoles reuse or install their core. Missing standalone apps are downloaded from the pinned emulators.json manifest, SHA-256 checked, unpacked in a staging folder, signature checked and moved into ~/Applications without replacing an existing app. An import failure remains visible and retryable; cancellation leaves the game unimported. Folder imports use the same preparation path. Existing game panels offer Install when their emulator is missing.
+
+Eden is the default for a Switch without an installed/chosen emulator. Existing Ryubing installations and explicit choices are retained. The Ryubing official forge/update endpoints were unreachable during qualification; no third-party executable mirror was substituted. Eden v0.2.1 was resolved through https://git.eden-emu.dev/api/v1/repos/eden-emu/eden/releases/latest and obtained from https://stable.eden-emu.dev/v0.2.1/Eden-macOS-v0.2.1.dmg. Its SHA-256 is 40575fc79a61550fbb9e332cbae94ccd20f5de20ff61b4b60fe1d42f2525c0b5. Its bundle has an empty CFBundleExecutable, so detection falls back to the catalog executable, eden, without changing the signed app. Launch arguments (-g <file>) are documented at https://github.com/eden-emulator/mirror/blob/master/docs/user/CommandLine.md.
+
+Other pins: Dolphin, PCSX2 and xemu URLs/hashes were checked against Homebrew's public cask metadata; PPSSPP and Azahar against their official GitHub release asset digests. Pinned archives are downloaded on demand and are not redistributed in Cartouche.

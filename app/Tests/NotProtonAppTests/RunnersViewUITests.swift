@@ -72,9 +72,9 @@ final class RunnersViewUITests {
 
         let host = host(model)
         defer { host.close() }
-        #expect(try await host.wait(for: "Wine CrossOver 26.3"))
+        #expect(try await host.wait(for: "Cartouche Wine 26.3"))
         let texts = try host.texts(named: "settings-runners")
-        for wanted in ["Built by Cartouche", "Not installed", "Download",
+        for wanted in ["CodeWeavers Wine", "Not installed", "Download",
                        "Game Porting Toolkit 3.0", "Set Up", "Wine"] {
             #expect(texts.contains { $0.contains(wanted) }, "\(wanted) in \(texts)")
         }

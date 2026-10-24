@@ -6,23 +6,11 @@ Cartouche shows one library for PC and console games, built from Steam's own fil
 ## Requirements
 
 ### Requirement: Steam library import
-The app SHALL use the signed-in Steam account’s SteamExport v1 `steam-library.json` for the full owned-games list, collections and play data. The injected dylib SHALL register a WebUI route using the same mechanism as compatsvc’s routes. The route SHALL require a random token generated per Steam launch and known only to Cartouche’s injected page script. The dylib SHALL validate the token and payload before atomically replacing the export. This writer is required for v0.1.0 (maintainer decision 2026-10-20; ADR 0022).
-
-In review on `fix/steam-compat-tools` (not merged): the injected page script SHALL fetch the token at run time from the dylib’s `/cartouche/steam-export-token` route, served no-store, instead of carrying it in the injected source. A failed fetch SHALL be retried with backoff starting at 15 seconds and capped at 300 seconds.
-
-The importer SHALL merge installed games and installed status from `appmanifest_*.acf`. It SHALL use `localconfig.vdf` for play data only, never ownership. An export from a different known account SHALL NOT populate the current account’s library. No loopback HTTP listener, public Steam profile or user Web API key SHALL be required.
+The app SHALL use the signed-in Steam account’s SteamExport v1 `steam-library.json` for the full owned-games list, collections and play data. The injected dylib SHALL register a WebUI route using the same mechanism as compatsvc’s routes. The route SHALL require a random token generated per Steam launch. The dylib SHALL validate the token and payload before atomically replacing the export. This writer is required for v0.1.0 (ADR 0022).
 
 #### Scenario: Import from Steam
 - **WHEN** Steam is running and signed in with an account that has N owned games, including uninstalled games, and its injected page submits a valid export
 - **THEN** within 10 seconds the library shows those N owned games, merges any additional installed games from manifests, and names the signed-in account in the toolbar
-
-#### Scenario: Token fetched at run time
-- **WHEN** the injected page script is ready to export and has no token yet
-- **THEN** it requests `/cartouche/steam-export-token` with no-store, receives the per-launch token, and presents it to the export route (in review on `fix/steam-compat-tools`)
-
-#### Scenario: Token fetch retried
-- **WHEN** a token request fails or the route is not yet available
-- **THEN** the script retries with backoff starting at 15 seconds and capped at 300 seconds, and exports once a token is returned (in review on `fix/steam-compat-tools`)
 
 #### Scenario: Reject an unauthorized page
 - **WHEN** a route request has no token, an incorrect token, or a token from a previous Steam launch
@@ -52,6 +40,24 @@ The importer SHALL merge installed games and installed status from `appmanifest_
 - **WHEN** Steam is not installed
 - **THEN** the Steam source shows "Install Steam" with Download Steam (Valve installer), Install with Homebrew (only if Homebrew is present) and Locate Steam
 
+### Requirement: Steam export token
+The injected page script SHALL ask the dylib for the per-launch token through the `Cartouche.GetExportToken#1` WebUI route, never carry it in its source, and retry with backoff starting at 15 seconds when the token or the export is refused.
+
+#### Scenario: Token fetched at run time
+- **WHEN** the injected page script is ready to export and has no token yet
+- **THEN** it calls `Cartouche.GetExportToken#1`, receives the per-launch token, and presents it to the export route
+
+#### Scenario: Token fetch retried
+- **WHEN** a token request fails, the route is not yet available, or the export is refused
+- **THEN** the script retries with backoff starting at 15 seconds, and exports once a valid token is returned
+
+### Requirement: Steam data sources
+The importer SHALL merge installed games and installed status from `appmanifest_*.acf`. It SHALL use `localconfig.vdf` for play data only, never ownership. An export from a different known account SHALL NOT populate the current account’s library. No loopback HTTP listener, public Steam profile or user Web API key SHALL be required.
+
+#### Scenario: Play data creates no entry
+- **WHEN** `localconfig.vdf` lists play data for an app with no export entry and no manifest
+- **THEN** the library shows no entry for that app
+
 ### Requirement: Library browsing
 The library SHALL group games by source, show not-installed games in black and white, and let the user favorite, search, hide and open any game.
 
@@ -68,11 +74,15 @@ The library SHALL group games by source, show not-installed games in black and w
 - **THEN** the grid is replaced by "No games match “zelda”" with Clear Search, and the toolbar reads "Search, 0 results"
 
 ### Requirement: Game panel
-The panel SHALL show, for the selected game: Play or Install, your play stats when they exist, the estimate for this Mac, anti-cheat on Linux when relevant, graphics reported on Macs, and the setup; sources and rare settings go behind Details.
+The panel SHALL use one chrome for a PC game and a console game: artwork, the title, one metadata line (source, status, and size when known), then the modules from `PanelModules` (ADR 0037). A module that does not apply SHALL be omitted and SHALL NOT leave an empty card. The exception is Your Play on an installed PC game with no session, which stays and reads "No sessions yet". Modules SHALL NOT change order. Setup and Your Play SHALL stay hidden until a PC game is installed. Details SHALL hold the long report.
 
 #### Scenario: Panel content
-- **WHEN** Elden Ring is selected on the 2026-10-18 fixture data
-- **THEN** the panel shows, in this order, Play, Expected on This Mac, Anti-Cheat on Linux, Graphics Reported on Macs and Setup, and the Details sheet holds AppleGamingWiki, the Mac picker, the HUD and the sources
+- **WHEN** installed Elden Ring is selected on the fixture data
+- **THEN** the panel shows, in this order, Play, Setup, Your Play, Expected on This Mac, Anti-Cheat, Graphics Reported on Macs and Controls. Advanced appears only when the resolved runner offers an option. The Details sheet holds AppleGamingWiki, the Mac picker, the HUD and the sources
+
+#### Scenario: Not installed
+- **WHEN** a Windows game is not installed
+- **THEN** the panel omits Setup and Your Play
 
 ### Requirement: Screen states
 Every screen SHALL have its loading, empty, error and offline states as listed in `mockup/AUDIT.md`.
@@ -100,7 +110,7 @@ Every action in the context menu SHALL also be reachable from the menu bar, and 
 - **THEN** the game is added to Favorites
 
 ### Requirement: Built for PC and console games
-The library SHALL group sources under PC and Consoles and SHALL support square covers for console games next to 2:3 covers for PC games. The toolbar + SHALL open one Add Games sheet with a drop zone and Choose… for files or folders of any type. Dropping on the library window SHALL open the same sheet. Separate Windows Games… and Console Games… entries SHALL NOT be offered. Automatic detection SHALL route inputs to the matching installer, installed-game import, console ROM import or other supported flow through the existing DropClassifying protocol.
+The library SHALL group sources under PC and Consoles and SHALL support square covers for console games next to 2:3 covers for PC games. The toolbar + and a drop on the library window SHALL open one Add Games sheet with a drop zone and Choose…. Separate Windows Games… and Console Games… entries SHALL NOT be offered. Automatic detection SHALL route each input to its matching flow through the DropClassifying protocol.
 
 #### Scenario: Sidebar structure
 - **WHEN** the app starts with Steam signed in and no console added

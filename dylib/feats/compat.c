@@ -31,6 +31,17 @@
 #define COMPAT_TOOL_FLAG_NO_APP     0x1
 #define COMPAT_TOOL_FROM_OSLIST_OFF 0x70
 #define COMPAT_TOOL_TO_OSLIST_OFF   0x78
+// Highest CUtlString YldRegisterTool fills in the caller's entry (see free_tool_paths).
+#define COMPAT_TOOL_LAST_PATH_OFF   0x118
+
+// A registration entry is built in a buffer this much past the reference stride. A
+// probed shift past it would have the client copy, and free_tool_paths free, memory
+// beyond the buffer, so such a layout is refused instead.
+#define COMPAT_TOOL_HEADROOM        64
+#define COMPAT_TOOL_BUFFER          (COMPAT_TOOL_STRIDE + COMPAT_TOOL_HEADROOM)
+#define COMPAT_TOOL_SHIFT_MAX       COMPAT_TOOL_HEADROOM
+_Static_assert(COMPAT_TOOL_LAST_PATH_OFF + 8 + COMPAT_TOOL_SHIFT_MAX <= COMPAT_TOOL_BUFFER,
+               "every shifted field has to fit the registration buffer");
 
 #define COMPAT_MAPPING_PRIORITY_GLOBAL 75
 #define COMPAT_MAPPING_PRIORITY_APP    250
@@ -62,14 +73,61 @@ static const char TOOL_DECLARATION_FMT[] =
 
 #include "compat_run.h"  // RUN_SCRIPT, generated from compat_run.sh
 
+static int same_content(const char *path, const char *content, size_t len) {
+    FILE *f = fopen(path, "r");
+    if (!f) return 0;
+    char buf[4096];
+    size_t at = 0, got;
+    int same = 1;
+    while (same && (got = fread(buf, 1, sizeof buf, f)) > 0) {
+        same = at + got <= len && memcmp(buf, content + at, got) == 0;
+        at += got;
+    }
+    fclose(f);
+    return same && at == len;
+}
+
+// Steam can read these while they change, so each is replaced whole: written to a temp
+// file beside it, given its mode, synced and renamed over. Content already in place is
+// left alone. Returns 1 when written, 0 when already current, -1 on failure.
 static int write_file(const char *path, const char *content, int executable) {
-    FILE *f = fopen(path, "w");
-    if (!f) return -1;
-    fputs(content, f);
-    int err = fclose(f);
-    if (executable)
-        chmod(path, 0755);
-    return err ? -1 : 0;
+    mode_t mode = executable ? 0755 : 0644;
+    size_t len = strlen(content);
+    struct stat st;
+    if (lstat(path, &st) == 0 && S_ISREG(st.st_mode) && (size_t)st.st_size == len &&
+        (st.st_mode & 0777) == mode && same_content(path, content, len))
+        return 0;
+
+    char tmp[800];
+    if ((size_t)snprintf(tmp, sizeof tmp, "%s.XXXXXX", path) >= sizeof tmp) return -1;
+    int fd = mkstemp(tmp);
+    if (fd < 0) return -1;
+    int ok = fchmod(fd, mode) == 0;
+    for (size_t off = 0; ok && off < len; ) {
+        ssize_t n = write(fd, content + off, len - off);
+        if (n <= 0) ok = 0;
+        else off += (size_t)n;
+    }
+    if (ok) ok = fsync(fd) == 0;
+    if (close(fd) != 0) ok = 0;
+    if (!ok || rename(tmp, path) != 0) {
+        unlink(tmp);
+        return -1;
+    }
+    return 1;
+}
+
+// Steam Helper processes load this dylib too and reach the tool list through the
+// WebUI file interpose. Only steam_osx writes or removes tool files, so two processes
+// never rewrite them at once.
+static int g_owns_tool_files = -1;
+
+static int owns_tool_files(void) {
+    if (g_owns_tool_files < 0) {
+        const char *pn = getprogname();
+        g_owns_tool_files = pn && strcmp(pn, "steam_osx") == 0;
+    }
+    return g_owns_tool_files;
 }
 
 static int ensure_dir(const char *path) {
@@ -80,6 +138,9 @@ static int ensure_dir(const char *path) {
 }
 
 static int32_t g_tool_shift;
+// Set when the probed layout does not fit what this builds, which turns off every
+// read and write of tool entries.
+static int g_tool_layout_refused;
 
 // LDR Wt,[X0,#imm]. Writes the byte offset and destination register.
 static int ldr32_from_x0(uint32_t w, uint32_t *off, uint32_t *rt) {
@@ -209,6 +270,17 @@ int np_compat_probe_tool_layout(uintptr_t appid_gate, uintptr_t oslist_gate) {
                from_off, to_off, by_appid);
     }
 
+    // Fields only move down past the insertion point. A negative shift would put
+    // install on top of the fixed fields, a large one past the registration buffer.
+    if (by_appid < 0 || by_appid > COMPAT_TOOL_SHIFT_MAX) {
+        g_tool_layout_refused = 1;
+        NP_ERR("np_compat_probe_tool_layout: tool fields moved %+d, outside the 0..%+d "
+               "this can build; tool registration and lookups are off for this client",
+               by_appid, COMPAT_TOOL_SHIFT_MAX);
+        return 0;
+    }
+
+    g_tool_layout_refused = 0;
     g_tool_shift = by_appid;
     if (g_tool_shift)
         NP_LOG("np_compat_probe_tool_layout: tool fields from install onward are "
@@ -316,6 +388,10 @@ uint32_t np_compat_tool_off(uint32_t reference_off) {
     return (uint32_t)((int32_t)reference_off + g_tool_shift);
 }
 
+bool np_compat_tool_layout_ok(void) {
+    return !g_tool_layout_refused;
+}
+
 size_t np_compat_tool_stride(void) {
     return (size_t)((int32_t)COMPAT_TOOL_STRIDE + g_tool_shift);
 }
@@ -397,7 +473,8 @@ static int parse_tool_line(char *line, tool_entry_t *out, int with_backend) {
     if (n != want) return 0;
     const char *display = field[want - 1];
 
-    if (!is_tool_name(field[0]) || !is_token(field[1], ".-")
+    // Build ids may contain an underscore, as in wine-stable-11.0_1.
+    if (!is_tool_name(field[0]) || !is_token(field[1], "._-")
         || (strcmp(field[2], "fex") != 0 && strcmp(field[2], "rosetta") != 0)
         || (with_backend && !is_backend(field[3]))
         || !is_display(display))
@@ -644,6 +721,13 @@ uint32_t np_compat_manager_tools_max(void) {
     return max;
 }
 
+static void put_tool_file(const char *path, const char *content, int executable,
+                          int *wrote) {
+    int rc = write_file(path, content, executable);
+    if (rc > 0) (*wrote)++;
+    else if (rc < 0) NP_WARN("np_compat_ensure_tool_manifest: failed to write %s", path);
+}
+
 static int write_tool(const tool_entry_t *tool) {
     if (ensure_dir(tool->dir) != 0) {
         NP_WARN("np_compat_ensure_tool_manifest: cannot create %s", tool->dir);
@@ -657,41 +741,34 @@ static int write_tool(const tool_entry_t *tool) {
     char path[768];
     int wrote = 0;
 
-    // Rewritten every launch so field changes take effect. A rescan replaces it in
+    // Checked every launch so field changes take effect. A rescan replaces it in
     // place rather than adding a second copy.
     snprintf(path, sizeof(path), "%s/compatibilitytool.vdf", tool->dir);
-    if (write_file(path, declaration, 0) == 0) wrote++;
-    else NP_WARN("np_compat_ensure_tool_manifest: failed to write %s", path);
+    put_tool_file(path, declaration, 0, &wrote);
 
     snprintf(path, sizeof(path), "%s/toolmanifest.vdf", tool->dir);
-    if (access(path, F_OK) != 0) {
-        if (write_file(path, TOOL_MANIFEST, 0) == 0) wrote++;
-        else NP_WARN("np_compat_ensure_tool_manifest: failed to write %s", path);
-    }
+    if (access(path, F_OK) != 0)
+        put_tool_file(path, TOOL_MANIFEST, 0, &wrote);
 
-    // The run script is the shim this project owns and updates, so rewrite it
+    // The run script is the shim this project owns and updates, so it is checked
     // every launch rather than leaving a stale copy behind.
     snprintf(path, sizeof(path), "%s/run", tool->dir);
-    if (write_file(path, RUN_SCRIPT, 1) == 0) wrote++;
-    else NP_WARN("np_compat_ensure_tool_manifest: failed to write %s", path);
+    put_tool_file(path, RUN_SCRIPT, 1, &wrote);
 
     char line[80];
     snprintf(line, sizeof(line), "%s\n", tool->flavor);
     snprintf(path, sizeof(path), "%s/flavor", tool->dir);
-    if (write_file(path, line, 0) == 0) wrote++;
-    else NP_WARN("np_compat_ensure_tool_manifest: failed to write %s", path);
+    put_tool_file(path, line, 0, &wrote);
 
     snprintf(line, sizeof(line), "%s\n", tool->build);
     snprintf(path, sizeof(path), "%s/build", tool->dir);
-    if (write_file(path, line, 0) == 0) wrote++;
-    else NP_WARN("np_compat_ensure_tool_manifest: failed to write %s", path);
+    put_tool_file(path, line, 0, &wrote);
 
     // The run script forces this backend. A runner tool has none, and loses a stale one.
     snprintf(path, sizeof(path), "%s/backend", tool->dir);
     if (tool->backend[0]) {
         snprintf(line, sizeof(line), "%s\n", tool->backend);
-        if (write_file(path, line, 0) == 0) wrote++;
-        else NP_WARN("np_compat_ensure_tool_manifest: failed to write %s", path);
+        put_tool_file(path, line, 0, &wrote);
     } else {
         unlink(path);
     }
@@ -762,6 +839,8 @@ static void remove_unlisted_tools(const char *tools_dir) {
 }
 
 static int ensure_tool_manifest_locked(void) {
+    if (!owns_tool_files()) return 0;
+
     char tools_dir[512];
     if (tools_dir_path(tools_dir, sizeof(tools_dir)) != 0) return -1;
 
@@ -788,22 +867,26 @@ int np_compat_ensure_tool_manifest(void) {
     return rc;
 }
 
-static char g_tool_dir[640];
+// Written once under g_tools_lock and never again, so the pointer stays stable.
+static char g_default_tool_dir[640];
 
+// The first tool's dir lives in its list, which is retired rather than freed when a
+// newer list replaces it, so the pointer stays valid after the lock is dropped.
 const char *np_compat_tool_dir(void) {
     pthread_mutex_lock(&g_tools_lock);
     refresh_tool_list_locked();
+    const char *dir = NULL;
     if (g_tool_count > 0) {
-        snprintf(g_tool_dir, sizeof(g_tool_dir), "%s", g_tools[0].dir);
+        dir = g_tools[0].dir;
     } else {
         char tools_dir[512];
-        if (tools_dir_path(tools_dir, sizeof(tools_dir)) == 0)
-            snprintf(g_tool_dir, sizeof(g_tool_dir), "%s/%s", tools_dir, TOOL_DIR_NAME);
-        else
-            g_tool_dir[0] = '\0';
+        if (!g_default_tool_dir[0] && tools_dir_path(tools_dir, sizeof(tools_dir)) == 0)
+            snprintf(g_default_tool_dir, sizeof(g_default_tool_dir), "%s/%s",
+                     tools_dir, TOOL_DIR_NAME);
+        dir = g_default_tool_dir[0] ? g_default_tool_dir : NULL;
     }
     pthread_mutex_unlock(&g_tools_lock);
-    return g_tool_dir[0] ? g_tool_dir : NULL;
+    return dir;
 }
 
 int np_compat_runs_tool(const char *cmd) {
@@ -820,6 +903,20 @@ int np_compat_runs_tool(const char *cmd) {
             return 1;
     }
     return 0;
+}
+
+int np_compat_is_tool_run_path(const char *path) {
+    static const char lead[] = "/compatibilitytools.d/" TOOL_DIR_NAME;
+    if (!path || path[0] != '/') return 0;
+
+    const char *at = strstr(path, lead);
+    if (!at || strstr(at + 1, lead)) return 0;
+    const char *p = at + sizeof(lead) - 1;
+    while (is_name_char(*p, "._-"))
+        p++;
+    if (strncmp(p, "/./", 3) == 0)
+        p += 2;
+    return strcmp(p, TOOL_RUN) == 0;
 }
 
 const char *np_compat_tool_commandline(void) {
@@ -945,15 +1042,25 @@ void np_compat_map_tool(void *compat_mgr, uint32_t appid, const char *tool_name)
 // the app writes meanwhile waits for the next pass instead of being lost.
 #define REQUESTS_MAX_BYTES (64 * 1024)
 
+static int apply_taken_requests(void *compat_mgr, const char *path, const char *taken);
+
 int np_compat_apply_requests_from(void *compat_mgr, const char *path) {
     // Without the client's mapping function the requests wait for a build that has it
     if (!compat_mgr || !path || !g_set_mapping) return 0;
     char taken[600];
     snprintf(taken, sizeof(taken), "%s.applying", path);
+    int applied = 0;
     // A crash between rename and unlink leaves a taken file holding requests that
-    // were never applied; it is picked up here on the next pass
-    if (rename(path, taken) != 0 && access(taken, F_OK) != 0) return 0;
+    // were never applied. They go first, both because they are older and because the
+    // rename below would otherwise replace them unread.
+    if (access(taken, F_OK) == 0)
+        applied += apply_taken_requests(compat_mgr, path, taken);
+    if (rename(path, taken) == 0)
+        applied += apply_taken_requests(compat_mgr, path, taken);
+    return applied;
+}
 
+static int apply_taken_requests(void *compat_mgr, const char *path, const char *taken) {
     FILE *f = fopen(taken, "r");
     if (!f) {
         unlink(taken);
@@ -1029,7 +1136,8 @@ void np_compat_set_register_fn(uintptr_t yld_register_tool) {
 static void free_tool_paths(uint8_t *tool) {
     // YldRegisterTool fills these CUtlStrings in the caller's entry.
     // These need Plat_Free, not free.
-    static const uint32_t offsets[] = {0x98, 0xA0, 0xA8, 0xD0, 0xD8, 0xE0, 0xE8, 0x118};
+    static const uint32_t offsets[] = {0x98, 0xA0, 0xA8, 0xD0, 0xD8, 0xE0, 0xE8,
+                                       COMPAT_TOOL_LAST_PATH_OFF};
     if (!g_free_tool_path) return;
     for (size_t i = 0; i < sizeof(offsets) / sizeof(*offsets); i++) {
         void **path = (void **)(tool + np_compat_tool_off(offsets[i]));
@@ -1052,6 +1160,7 @@ int np_compat_app_runs_tool(uint32_t appid) {
 
 // Caller holds g_tools_lock.
 static void *find_tool(void *compat_mgr, const char *wanted) {
+    if (g_tool_layout_refused) return NULL;
     uint8_t *base = (uint8_t *)compat_mgr;
     uint8_t *array = *(uint8_t **)(base + COMPAT_MANAGER_TOOL_ARRAY_OFF);
     uint32_t count = *(uint32_t *)(base + COMPAT_MANAGER_TOOL_COUNT_OFF);
@@ -1082,7 +1191,7 @@ int np_compat_register_crossover(void *compat_mgr) {
     if (compat_mgr)
         g_manager = compat_mgr;
 
-    if (!compat_mgr || !g_yld_register_tool)
+    if (!compat_mgr || !g_yld_register_tool || g_tool_layout_refused)
         return 0;
 
     pthread_mutex_lock(&g_tools_lock);
@@ -1101,7 +1210,7 @@ int np_compat_register_crossover(void *compat_mgr) {
     // the registration gate, from_oslist=windows intersects the app mask so the
     // dropdown keeps it, and appid 0 marks a manager-local tool the resolver routes
     // to the local run script.
-    uint8_t (*buffers)[COMPAT_TOOL_STRIDE + 64] = calloc((size_t)missing, sizeof(*buffers));
+    uint8_t (*buffers)[COMPAT_TOOL_BUFFER] = calloc((size_t)missing, sizeof(*buffers));
     if (!buffers) {
         NP_WARN("np_compat_register_crossover: out of memory, no tool registered");
         pthread_mutex_unlock(&g_tools_lock);

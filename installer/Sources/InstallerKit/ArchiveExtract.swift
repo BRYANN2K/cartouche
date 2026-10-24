@@ -28,7 +28,7 @@ public enum ArchiveVolumes {
             let width = m.2.count
             let found = matches(in: names) { n in
                 (try? partRar.wholeMatch(in: n)).flatMap {
-                    $0.1.lowercased() == stem.lowercased() ? Int($0.2) : nil
+                    $0.1.lowercased() == stem.lowercased() ? volume($0.2) : nil
                 }
             }
             return group(names: names, index: { "\(stem).part\(padded($0, width)).rar" }, found: found)
@@ -44,7 +44,7 @@ public enum ArchiveVolumes {
             let width = m.2.count
             let found = matches(in: names) { n in
                 (try? numbered.wholeMatch(in: n)).flatMap {
-                    $0.1.lowercased() == base.lowercased() ? Int($0.2) : nil
+                    $0.1.lowercased() == base.lowercased() ? volume($0.2) : nil
                 }
             }
             return group(names: names, index: { "\(base).\(padded($0, width))" }, found: found)
@@ -66,6 +66,15 @@ public enum ArchiveVolumes {
         return nil
     }
 
+    // Real sets never come close; larger numbers (or ones past Int) are ignored so a
+    // stray name cannot drive a huge loop or overflow.
+    static let maxVolume = 9999
+
+    private static func volume(_ digits: Substring, plus offset: Int = 0) -> Int? {
+        guard let n = Int(digits), n <= maxVolume else { return nil }
+        return n + offset
+    }
+
     private static func padded(_ n: Int, _ width: Int) -> String {
         let s = String(n)
         return s.count >= width ? s : String(repeating: "0", count: width - s.count) + s
@@ -75,7 +84,7 @@ public enum ArchiveVolumes {
     private static func rarChain(names: [URL], stem: String, width: Int) -> VolumeSet {
         var found = matches(in: names) { n in
             (try? oldRar.wholeMatch(in: n)).flatMap {
-                $0.1.lowercased() == stem.lowercased() ? (Int($0.2) ?? 0) + 2 : nil
+                $0.1.lowercased() == stem.lowercased() ? volume($0.2, plus: 2) : nil
             }
         }
         if let first = names.first(where: { $0.lastPathComponent.lowercased() == stem.lowercased() + ".rar" }) {
@@ -88,7 +97,7 @@ public enum ArchiveVolumes {
     private static func zipDisks(in names: [URL], stem: String) -> [String: Int] {
         matches(in: names) { n in
             (try? zipDisk.wholeMatch(in: n)).flatMap {
-                $0.1.lowercased() == stem.lowercased() ? (Int($0.2) ?? 0) + 1 : nil
+                $0.1.lowercased() == stem.lowercased() ? volume($0.2, plus: 1) : nil
             }
         }
     }
@@ -107,10 +116,10 @@ public enum ArchiveVolumes {
         // Only the contiguous prefix can be read; anything past a gap is
         // unreachable, so volumes stop at the first absent number.
         let head = first ?? index(1)
-        let max = found.values.max() ?? 1
+        let last = Swift.max(1, found.values.max() ?? 1)
         var volumes: [URL] = []
         var missing: [String] = []
-        for n in 1 ... max {
+        for n in 1 ... last {
             let expected = n == 1 ? head.lowercased() : index(n).lowercased()
             if let actual = names.first(where: { $0.lastPathComponent.lowercased() == expected }) {
                 if missing.isEmpty { volumes.append(actual) }
@@ -234,8 +243,8 @@ public struct ArchiveExtractor: Sendable {
         return set.volumes
     }
 
-    public func probe(_ url: URL) throws -> ArchiveProbe {
-        try engine.probe(volumes(for: url))
+    public func probe(_ url: URL, isCancelled: @Sendable () -> Bool = { Task.isCancelled }) throws -> ArchiveProbe {
+        try engine.probe(volumes(for: url), isCancelled: isCancelled)
     }
 
     // Extracts under a staging folder next to the destination, checks space
@@ -247,10 +256,12 @@ public struct ArchiveExtractor: Sendable {
         isCancelled: @Sendable () -> Bool = { false }
     ) throws -> ExtractionResult {
         let volumes = try volumes(for: url)
-        let probe = try engine.probe(volumes)
+        let probe = try engine.probe(volumes, isCancelled: isCancelled)
         if probe.hasEncryptedEntries { throw ArchiveError.passwordProtected }
 
-        let needed = Int64(Double(probe.uncompressedSize) * spaceMargin) + spaceReserve
+        // Clamped: a hostile size must not trap the Double → Int64 conversion.
+        let scaled = Double(probe.uncompressedSize) * spaceMargin
+        let needed = scaled < Double(Int64.max / 2) ? Int64(scaled) &+ spaceReserve : Int64.max / 2
         if let free = freeBytes(parent), free < needed {
             throw ArchiveError.insufficientSpace(needed: needed, available: free)
         }
@@ -270,8 +281,9 @@ public struct ArchiveExtractor: Sendable {
                 if state.entries > self.limits.maxEntries { throw ArchiveError.damaged("too many entries") }
                 state.current = entry.path
                 if entry.kind == .file {
-                    state.declared += entry.size
-                    if state.declared > self.limits.maxBytes {
+                    let (sum, overflow) = state.declared.addingReportingOverflow(max(0, entry.size))
+                    state.declared = sum
+                    if overflow || sum > self.limits.maxBytes {
                         throw ArchiveError.damaged("archive expands past its limit")
                     }
                 }
@@ -287,7 +299,16 @@ public struct ArchiveExtractor: Sendable {
                 progress(ArchiveProgress(fileName: state.current, bytesDone: bytes,
                                          bytesTotal: max(probe.uncompressedSize, bytes), secondsLeft: left))
             }
-            try engine.extract(volumes, route: route, bytesDone: report, isCancelled: isCancelled)
+            // Declared sizes can lie, so the bytes actually written are held to the limit too:
+            // the engine sees it as a cancellation and stops at its next check.
+            let overLimit: @Sendable () -> Bool = { state.written > self.limits.maxBytes }
+            do {
+                try engine.extract(volumes, route: route, bytesDone: report,
+                                   isCancelled: { overLimit() || isCancelled() })
+            } catch is CancellationError where overLimit() {
+                throw ArchiveError.damaged("archive expands past its limit")
+            }
+            if overLimit() { throw ArchiveError.damaged("archive expands past its limit") }
 
             var files = 0
             if let walk = fm.enumerator(at: staging, includingPropertiesForKeys: [.isRegularFileKey]) {

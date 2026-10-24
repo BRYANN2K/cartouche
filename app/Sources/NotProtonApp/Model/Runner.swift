@@ -42,6 +42,11 @@ struct Runner: Sendable, Equatable, Identifiable {
     let source: URL?
     let isInstalled: Bool
 
+    // Our own Wine builds are shown as Cartouche Wine; their IDs keep the wine-crossover- prefix.
+    var name: String {
+        kind == .wineBuild && id.hasPrefix("wine-crossover-") ? "Cartouche Wine" : kind.name
+    }
+
     var reason: String? {
         switch state {
         case .damaged(let files): files.joined(separator: "\n")

@@ -227,7 +227,7 @@ public struct DropClassifier: Sendable {
     private func classifyArchive(_ url: URL, progress: @Sendable (ArchiveProgress) -> Void) async throws -> DropOutcome {
         guard let extractor else { return .failed(.unsupportedArchive(url)) }
         do {
-            let probe = try extractor.probe(url)
+            let probe = try extractor.probe(url, isCancelled: { Task.isCancelled })
             if probe.hasEncryptedEntries { return .failed(.passwordProtected(url)) }
             if let roms = romArchive(probe, url: url) { return .roms(roms) }
             let result = try extractor.extract(url, to: workspace, progress: progress,
@@ -402,12 +402,16 @@ enum ArchiveDetector {
     }
 }
 
-// The FILE lines of a .cue, resolved next to it.
+// The FILE lines of a .cue, resolved next to it. Absolute paths and paths that leave the
+// .cue's folder (through `..` or a symlink) are dropped.
 enum DiscTracks {
     static func cue(_ url: URL) -> [URL] {
         guard let text = (try? String(contentsOf: url, encoding: .utf8))
             ?? (try? String(contentsOf: url, encoding: .isoLatin1)) else { return [] }
-        return text.split(whereSeparator: \.isNewline).compactMap { line in
+        let folder = url.deletingLastPathComponent().standardizedFileURL
+        let root = resolved(folder)
+        let prefix = root.hasSuffix("/") ? root : root + "/"
+        return text.split(whereSeparator: \.isNewline).compactMap { line -> URL? in
             let line = line.trimmingCharacters(in: .whitespaces)
             guard line.uppercased().hasPrefix("FILE ") else { return nil }
             var rest = line.dropFirst(5).trimmingCharacters(in: .whitespaces)
@@ -418,9 +422,22 @@ enum DiscTracks {
                 if let space = rest.lastIndex(of: " ") { rest = String(rest[..<space]) }
                 name = rest
             }
-            return name.hasPrefix("/") ? URL(fileURLWithPath: name).standardizedFileURL
-                : url.deletingLastPathComponent().appending(path: name).standardizedFileURL
+            guard !name.isEmpty, !name.hasPrefix("/") else { return nil }
+            let track = folder.appending(path: name).standardizedFileURL
+            guard resolved(track).hasPrefix(prefix) else { return nil }
+            return track
         }
+    }
+
+    // resolvingSymlinksInPath only drops a leading /private for paths that exist, so a missing
+    // track resolves through its nearest existing folder to stay comparable with the .cue's.
+    private static func resolved(_ url: URL) -> String {
+        let path = url.path(percentEncoded: false)
+        if path == "/" || FileManager.default.fileExists(atPath: path) {
+            return url.resolvingSymlinksInPath().path(percentEncoded: false)
+        }
+        let parent = resolved(url.deletingLastPathComponent())
+        return (parent.hasSuffix("/") ? parent : parent + "/") + url.lastPathComponent
     }
 }
 

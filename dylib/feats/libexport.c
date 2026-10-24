@@ -4,11 +4,13 @@
 // to carry the per-launch token obtained over that authenticated transport.
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <math.h>
+#include <time.h>
 #include <sys/stat.h>
 
 #include "libexport.h"
@@ -16,6 +18,7 @@
 #include "../resolver/anchor.h"
 #include "../util/file.h"
 #include "../util/log.h"
+#include "../util/ptr.h"
 #include "../../vendor/cJSON.h"
 
 // Route names carry the interface version the page asks for.
@@ -28,6 +31,8 @@
 // the export payload borrows them instead of needing a new message type.
 #define TYPE_EXPORT_REQUEST  "46CTransportValidation_CountOrderedBytes_Request"
 #define TYPE_EXPORT_RESPONSE "47CTransportValidation_CountOrderedBytes_Response"
+#define TYPE_INSTALL_REQUEST "40CTransportValidation_DataRequest_Request"
+#define TYPE_INSTALL_STATUS "46CTransportValidation_GetLargeResponse_Response"
 
 // CTransportValidation_CountOrderedBytes_Request. A bytes field is a libc++
 // std::string behind an arena pointer (bit 0 tags arena ownership).
@@ -73,15 +78,22 @@ int np_libexport_routes(void) {
 
 // libc++ std::string: byte 23 is the size for short strings, or the high byte
 // of capacity with the top bit set marking the long form whose data is indirect.
+// NULL when the field does not read as that, so the route fails instead of reading on.
 static const uint8_t *bytes_field(uintptr_t field, size_t *out_len) {
-    uintptr_t str = *(const uintptr_t *)field & ~(uintptr_t)1;
     *out_len = 0;
-    if (!str) return NULL;
+    if (!np_plausible_ptr(field)) return NULL;
+    uintptr_t str = *(const uintptr_t *)field & ~(uintptr_t)1;
+    if (!np_plausible_ptr(str)) return NULL;
     const uint8_t *s = (const uint8_t *)str;
-    if ((int8_t)s[23] >= 0) { *out_len = s[23]; return s; }
+    if ((int8_t)s[23] >= 0) {
+        if (s[23] > 22) return NULL;
+        *out_len = s[23];
+        return s;
+    }
     const uint8_t *data = *(const uint8_t *const *)s;
     size_t len = *(const size_t *)(s + 8);
-    if (!data || len > NP_EXPORT_MAX + NP_TOKEN_LEN + 1) return NULL;
+    if (!np_plausible_addr((uintptr_t)data) || len > NP_EXPORT_MAX + NP_TOKEN_LEN + 1)
+        return NULL;
     *out_len = len;
     return data;
 }
@@ -93,7 +105,8 @@ static void pb_varint(uint8_t **p, uint64_t v) {
 
 typedef struct { const uint8_t *p, *end; } np_vdf_t;
 
-// One token per call: '{' or '}' for braces, 's' for a quoted string in out.
+// One token per call: '{' or '}' for braces, 's' for a quoted string in out. A
+// backslash escapes the next character, as Steam writes it (\" \\ \n \t).
 static int vdf_next(np_vdf_t *v, char *out, size_t cap) {
     while (v->p < v->end) {
         uint8_t c = *v->p;
@@ -102,8 +115,13 @@ static int vdf_next(np_vdf_t *v, char *out, size_t cap) {
             v->p++;
             size_t n = 0;
             while (v->p < v->end && *v->p != '"') {
-                if (n + 1 < cap) out[n++] = (char)*v->p;
-                v->p++;
+                uint8_t ch = *v->p++;
+                if (ch == '\\' && v->p < v->end) {
+                    ch = *v->p++;
+                    if (ch == 'n') ch = '\n';
+                    else if (ch == 't') ch = '\t';
+                }
+                if (n + 1 < cap) out[n++] = (char)ch;
             }
             if (v->p < v->end) v->p++;
             out[n] = '\0';
@@ -161,8 +179,8 @@ static char *loginusers_steamid(const char *home) {
             int t2 = vdf_next(&v, val, sizeof val);
             if (t2 == '{') { depth++; continue; }
             if (t2 != 's') continue;
-            if (strcmp(name, "MostRecent") == 0) cur_recent = strcmp(val, "1") == 0;
-            else if (strcmp(name, "Timestamp") == 0) cur_ts = strtoull(val, NULL, 10);
+            if (strcasecmp(name, "MostRecent") == 0) cur_recent = strcmp(val, "1") == 0;
+            else if (strcasecmp(name, "Timestamp") == 0) cur_ts = strtoull(val, NULL, 10);
         }
     }
     free(buf);
@@ -308,10 +326,10 @@ static int get_export_token(uintptr_t request, uintptr_t response) {
 
 // Replaces the export through a temp file in the same directory so a reader
 // never sees a partial file. Refuses a symlinked directory or target.
-static int write_export(const char *home, const char *bytes, size_t len) {
+static int write_support_file(const char *home, const char *name, const char *bytes, size_t len) {
     char dir[1200], file[1400], tmp[1500];
     if (ensure_support_dir(home, dir, sizeof dir) != 0) return -1;
-    np_support_path(file, sizeof file, home, NP_EXPORT_FILE);
+    np_support_path(file, sizeof file, home, name);
     struct stat st;
     if (lstat(file, &st) == 0 && !S_ISREG(st.st_mode)) return -1;
     snprintf(tmp, sizeof tmp, "%s.XXXXXX", file);
@@ -331,9 +349,20 @@ static int write_export(const char *home, const char *bytes, size_t len) {
     return 0;
 }
 
+static int write_export(const char *home, const char *bytes, size_t len) {
+    return write_support_file(home, NP_EXPORT_FILE, bytes, len);
+}
+
+#include "steaminstall.inc"
+
 static int export_owned_games(uintptr_t request, uintptr_t response) {
     size_t len = 0;
-    const uint8_t *data = bytes_field(request + REQ_BYTES_OFF, &len);
+    const uint8_t *data = np_plausible_ptr(request)
+                        ? bytes_field(request + REQ_BYTES_OFF, &len) : NULL;
+    if (!data) {
+        NP_WARN("libexport: request carries no bytes field this reads");
+        return RESULT_FAIL;
+    }
     if (len < NP_TOKEN_LEN + 2 || len > NP_EXPORT_MAX + NP_TOKEN_LEN + 1) {
         NP_WARN("libexport: request payload is %zu bytes, outside the %u limit",
                 len, NP_EXPORT_MAX);
@@ -404,6 +433,15 @@ void np_libexport_register(const struct mach_header_64 *mh, intptr_t slide,
                                  get_export_token) ||
         !np_webui_register_route(ROUTE_EXPORT_OWNED, request, response,
                                  export_owned_games)) {
+        g_routes = NP_LIBEXPORT_ABSENT;
+        return;
+    }
+    // The dispatcher identifies jobs by request vtable, so each route needs its own type.
+    uintptr_t install_request = np_rtti_vptr(mh, slide, text_base, text_size, TYPE_INSTALL_REQUEST);
+    uintptr_t install_status = np_rtti_vptr(mh, slide, text_base, text_size, TYPE_INSTALL_STATUS);
+    if (!install_request || !install_status ||
+        !np_webui_register_route("Cartouche.GetInstallCommand#1", install_request, token_response, get_install_command) ||
+        !np_webui_register_route("Cartouche.ExportInstallStatus#1", install_status, response, export_install_status)) {
         g_routes = NP_LIBEXPORT_ABSENT;
         return;
     }

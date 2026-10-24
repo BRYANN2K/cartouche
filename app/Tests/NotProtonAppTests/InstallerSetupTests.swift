@@ -141,7 +141,8 @@ struct InstallerSetupTests {
             wine: wine, prefix: prefix, backend: .d3dmetal, backends: backends, runners: runners, base: [:])
         #expect(env["CX_APPLEGPTK_LIBD3DSHARED_PATH"] == runners
             .appending(path: "gptk-4.0b3/lib/external/libd3dshared.dylib").path(percentEncoded: false))
-        #expect(env["WINEDLLOVERRIDES"] == "winemenubuilder.exe=d")
+        #expect(env["WINEDLLOVERRIDES"] == "winemenubuilder.exe=d;d3d10,d3d11,d3d12,d3d12core,dxgi=b")
+        #expect(env["WINEDLLPATH"]?.contains("gptk-4.0b3/lib/wine/x86_64-windows") == true)
     }
 
     @Test("The run script overrides the same backend DLLs the app's environment does")
@@ -247,7 +248,7 @@ struct InstallerSetupTests {
 
         // The launcher now starts the new Wine with the DXMT environment
         let script = try String(contentsOf: folder.launcher, encoding: .utf8)
-        #expect(script.contains("wine-12.0/bin/wine"))
+        #expect(script.contains(".graphics/wine-12.0/dxmt/bin/wine"))
         #expect(script.contains("CX_GRAPHICS_BACKEND"))
         #expect(script.contains("WINEDLLOVERRIDES"))
         // winemetal.dll landed in the same prefix
@@ -283,5 +284,100 @@ struct InstallerSetupTests {
         model.setSetup(GameSetupChoice(runnerID: "wine-11.0"), for: game.id)
         #expect(model.setupNotices[game.id] == nil)
         #expect(Self.record(in: folder)?.wineVersion == "11.0")
+    }
+
+    @Test("A D3DMetal launcher on a Wine without apple_gptk exports the toolkit's libd3dshared")
+    func launcherExportsToolkit() throws {
+        let work = try scratchDirectory("installer-launcher-d3dm")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let runners = work.appending(path: "runners")
+        let wine = try #require(InstallRunners.wine(for: Self.freeWine("wine-crossover-26.3.0-1", in: runners),
+                                                    runners: runners))
+        _ = try GameSetupTests.toolkit(in: runners)
+        let shared = runners.appending(path: "gptk-4.0b3/lib/external/libd3dshared.dylib").path(percentEncoded: false)
+
+        let script = GameLauncher.script(exe: work.appending(path: "game.exe"), prefix: work.appending(path: "pfx"),
+                                         wine: wine, backend: .d3dmetal, backends: work.appending(path: "backends"),
+                                         runners: runners)
+        #expect(script.contains("\nexport CX_APPLEGPTK_LIBD3DSHARED_PATH=\(GameLauncher.quote(shared))\n"))
+        #expect(script.contains("\nexport CX_GRAPHICS_BACKEND='d3dmetal'\n"))
+        // Only the Wine variables: nothing of the app's own environment, PATH written once by the script itself
+        #expect(!script.contains("export HOME="))
+        #expect(script.components(separatedBy: "export PATH=").count == 2)
+    }
+
+    @Test("A record whose graphics this Mac can't load moves to the best available, and its launcher is rewritten")
+    func refreshMigratesUnavailableGraphics() async throws {
+        let work = try scratchDirectory("installer-refresh")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let installs = work.appending(path: "installs")
+        let runners = work.appending(path: "runners")
+        let backends = work.appending(path: "backends")
+        try Self.dxmt(in: backends)
+        let free = try Self.freeWine("wine-11.0", version: "11.0", in: runners)
+        let folder = try Self.installed(in: installs)
+        var record = try #require(Self.record(in: folder))
+        record.graphics = GraphicsBackend.d3dmetal.rawValue
+        try InstalledGames.save(record, in: folder)
+        // A launcher from before: only CX_GRAPHICS_BACKEND, no libd3dshared
+        try Data("#!/bin/sh\nexport CX_GRAPHICS_BACKEND='d3dmetal'\n".utf8).write(to: folder.launcher)
+        let model = Self.model(in: work, installs: installs, runners: [free], runnersFolder: runners, backends: backends)
+
+        await model.refreshInstallerLaunchers()
+        #expect(Self.record(in: folder)?.graphics == "dxmt")
+        #expect(Self.record(in: folder)?.runnerID == "wine-11.0")
+        let script = try String(contentsOf: folder.launcher, encoding: .utf8)
+        #expect(script.contains("export CX_GRAPHICS_BACKEND='dxmt'"))
+        #expect(FileManager.default.fileExists(
+            atPath: folder.prefix.appending(path: "drive_c/windows/system32/winemetal.dll").path(percentEncoded: false)))
+        #expect(model.game("installer:sample")?.installGraphics == .dxmt)
+
+        // Already current: nothing is written again
+        let stamp = try FileManager.default.attributesOfItem(atPath: folder.launcher.path(percentEncoded: false))[.modificationDate] as? Date
+        try await Task.sleep(for: .milliseconds(20))
+        await model.refreshInstallerLaunchers()
+        let again = try FileManager.default.attributesOfItem(atPath: folder.launcher.path(percentEncoded: false))[.modificationDate] as? Date
+        #expect(stamp == again)
+    }
+
+    @Test("With the toolkit in place a D3DMetal record keeps D3DMetal and its stale launcher gains libd3dshared")
+    func refreshKeepsAvailableD3DMetal() async throws {
+        let work = try scratchDirectory("installer-refresh-d3dm")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let installs = work.appending(path: "installs")
+        let runners = work.appending(path: "runners")
+        let backends = work.appending(path: "backends")
+        try Self.dxmt(in: backends)
+        let free = try Self.freeWine("wine-11.0", version: "11.0", in: runners)
+        _ = try GameSetupTests.toolkit(in: runners)
+        let folder = try Self.installed(in: installs)
+        var record = try #require(Self.record(in: folder))
+        record.graphics = GraphicsBackend.d3dmetal.rawValue
+        try InstalledGames.save(record, in: folder)
+        try Data("#!/bin/sh\nexport CX_GRAPHICS_BACKEND='d3dmetal'\n".utf8).write(to: folder.launcher)
+        let model = Self.model(in: work, installs: installs, runners: [free], runnersFolder: runners, backends: backends)
+        model.backendAvailability.d3dMetalRunners = [free.id]
+
+        await model.refreshInstallerLaunchers()
+        #expect(Self.record(in: folder)?.graphics == "d3dmetal")
+        let script = try String(contentsOf: folder.launcher, encoding: .utf8)
+        #expect(script.contains("export CX_GRAPHICS_BACKEND='d3dmetal'"))
+        #expect(script.contains("export CX_APPLEGPTK_LIBD3DSHARED_PATH="))
+    }
+
+    @Test("A record on a runner that is not set up is left as it is")
+    func refreshSkipsMissingRunner() async throws {
+        let work = try scratchDirectory("installer-refresh-missing")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let installs = work.appending(path: "installs")
+        let runners = work.appending(path: "runners")
+        let other = try Self.freeWine("wine-12.0", version: "12.0", in: runners)
+        let folder = try Self.installed(in: installs, runnerID: "wine-11.0")
+        let model = Self.model(in: work, installs: installs, runners: [other], runnersFolder: runners,
+                               backends: work.appending(path: "backends"))
+
+        await model.refreshInstallerLaunchers()
+        #expect(Self.record(in: folder)?.runnerID == "wine-11.0")
+        #expect(!FileManager.default.fileExists(atPath: folder.launcher.path(percentEncoded: false)))
     }
 }

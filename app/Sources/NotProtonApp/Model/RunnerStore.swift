@@ -59,6 +59,8 @@ enum RunnerStore {
             .map(\.lastPathComponent)
             .filter { $0.hasPrefix("crossover-") }
             .map { String($0.dropFirst("crossover-".count)) }
+            // A downloaded Wine id (wine-…) is never a CrossOver build, whatever made the folder
+            .filter { !$0.hasPrefix("wine-") }
             .sorted()
     }
 
@@ -194,15 +196,17 @@ enum CompatToolList {
         return (builds, listed, tools)
     }
 
-    // Cartouche's own Wine builds are compatibility tools too: the manifest id
-    // doubles as the build, and each flavor the build serves is a tool of its own.
+    // Installed Wine builds are compatibility tools: Cartouche Wine and WineHQ.
+    // The manifest id is the build. GPTK has no Wine loader, so it is not a tool.
+    // Each flavor the build serves is a tool of its own.
     private static func wineTools(
         runners: URL, manifest: RunnerManifest, fexAvailable: Bool, keeping kept: Set<String>
     ) -> [InstalledTool] {
         manifest.builds.flatMap { build -> [InstalledTool] in
-            guard build.kind == Runner.Kind.wineBuild.rawValue, build.origin == .cartouche,
+            guard build.kind == Runner.Kind.wineBuild.rawValue,
+                  build.origin == .cartouche || build.origin == .winehq,
                   // The build field can only hold what the dylib's tool line accepts
-                  build.id.allSatisfy({ $0.isLetter || $0.isNumber || ".-".contains($0) }),
+                  build.id.allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber || "._-".contains($0)) }),
                   WineRunnerInstaller.isInstalled(build.id, runners: runners)
             else { return [] }
             return build.cpuFlavors.compactMap { flavor in

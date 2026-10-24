@@ -34,6 +34,9 @@ uint32_t np_compat_tool_off(uint32_t ref) {
 
 size_t np_compat_tool_stride(void) { return 0x130 + stub_tool_shift; }
 
+static int stub_layout_refused;
+bool np_compat_tool_layout_ok(void) { return !stub_layout_refused; }
+
 uint32_t np_compat_enabled_off(void) { return stub_enabled_off_val; }
 
 uint32_t np_compat_manager_tools_max(void) { return 40; }
@@ -116,9 +119,11 @@ static char      reg_names[REG_MAX][64];
 static uintptr_t reg_reqs[REG_MAX], reg_resps[REG_MAX];
 static int     (*reg_handlers[REG_MAX])(uintptr_t, uintptr_t);
 static int       reg_count;
+static const char *reg_refuse;
 
 int np_webui_register_route(const char *name, uintptr_t req, uintptr_t resp,
                             int (*handler)(uintptr_t, uintptr_t)) {
+    if (reg_refuse && strcmp(name, reg_refuse) == 0) return 0;
     if (reg_count < REG_MAX) {
         snprintf(reg_names[reg_count], sizeof reg_names[0], "%s", name);
         reg_reqs[reg_count] = req;
@@ -332,7 +337,7 @@ static void build_tools(const tool_spec_t *specs, int count) {
 }
 
 // Build a request buffer with the given has-bits and appid.
-static uint8_t request_buf[128];
+static _Alignas(16) uint8_t request_buf[128];
 
 static uintptr_t build_request(uint32_t has_bits, uint32_t appid) {
     memset(request_buf, 0, sizeof request_buf);
@@ -344,7 +349,7 @@ static uintptr_t build_request(uint32_t has_bits, uint32_t appid) {
 // string_field reads a pointer at `field`, clears the arena tag, then inspects byte 23 of
 // the struct it reaches: negative means long form (first qword is a char *), non-negative
 // means short form (the bytes are the characters). Long form here, tool names are allocated.
-static uint8_t specify_string_struct[24];
+static _Alignas(16) uint8_t specify_string_struct[24];
 
 static uintptr_t build_specify_request(uint32_t has_bits, uint32_t appid,
                                        const char *tool_name) {
@@ -353,6 +358,7 @@ static uintptr_t build_specify_request(uint32_t has_bits, uint32_t appid,
     *(uint32_t *)(request_buf + SPECIFY_APPID_OFF) = appid;
     memset(specify_string_struct, 0, sizeof specify_string_struct);
     *(const char **)specify_string_struct = tool_name ? tool_name : "";
+    *(size_t *)(specify_string_struct + 8) = tool_name ? strlen(tool_name) : 0;
     specify_string_struct[23] = 0xFF;
     *(uintptr_t *)(request_buf + SPECIFY_TOOL_NAME_OFF) = (uintptr_t)specify_string_struct;
     return (uintptr_t)request_buf;
@@ -729,7 +735,7 @@ static void string_field_cases(void) {
     // string_field reads an arena-tagged pointer. Low bit set = arena, cleared before
     // deref. A long string (byte[23] < 0) dereferences the first qword as a pointer to
     // the characters. A short string (byte[23] >= 0) reads the characters inline.
-    static uint8_t short_str[24];
+    static _Alignas(16) uint8_t short_str[24];
     memcpy(short_str, "hello world", 11);
     short_str[23] = 11;
     uintptr_t ptr = (uintptr_t)short_str;
@@ -743,8 +749,9 @@ static void string_field_cases(void) {
 
     // A long string: byte[23] negative, first qword is a pointer.
     static char long_chars[] = "this is a longer string value";
-    static uint8_t long_str[24];
+    static _Alignas(16) uint8_t long_str[24];
     *(const char **)long_str = long_chars;
+    *(size_t *)(long_str + 8) = strlen(long_chars);
     long_str[23] = (uint8_t)0xFF;
     ptr = (uintptr_t)long_str;
     *(uintptr_t *)(request_buf + SPECIFY_TOOL_NAME_OFF) = ptr;
@@ -762,6 +769,79 @@ static void string_field_cases(void) {
     *(uintptr_t *)(request_buf + SPECIFY_TOOL_NAME_OFF) = 0;
     result = string_field((uintptr_t)(request_buf + SPECIFY_TOOL_NAME_OFF));
     check(result != NULL && result[0] == '\0', "a null string field returns empty");
+
+    // Anything that does not read as a std::string is refused rather than followed.
+    *(uintptr_t *)(request_buf + SPECIFY_TOOL_NAME_OFF) = 0x1234;
+    check(string_field((uintptr_t)(request_buf + SPECIFY_TOOL_NAME_OFF)) == NULL,
+          "a low string pointer is refused");
+    *(uintptr_t *)(request_buf + SPECIFY_TOOL_NAME_OFF) = ptr + 4;
+    check(string_field((uintptr_t)(request_buf + SPECIFY_TOOL_NAME_OFF)) == NULL,
+          "a misaligned string object is refused");
+    *(uintptr_t *)(request_buf + SPECIFY_TOOL_NAME_OFF) = ptr;
+    *(size_t *)(long_str + 8) = 1u << 20;
+    check(string_field((uintptr_t)(request_buf + SPECIFY_TOOL_NAME_OFF)) == NULL,
+          "a long string past the name limit is refused");
+    *(size_t *)(long_str + 8) = 4;
+    check(string_field((uintptr_t)(request_buf + SPECIFY_TOOL_NAME_OFF)) == NULL,
+          "a long string whose size misses its terminator is refused");
+    *(const char **)long_str = (const char *)(uintptr_t)0x10;
+    *(size_t *)(long_str + 8) = 0;
+    check(string_field((uintptr_t)(request_buf + SPECIFY_TOOL_NAME_OFF)) == NULL,
+          "a long string with a low data pointer is refused");
+    short_str[23] = 30;
+    *(uintptr_t *)(request_buf + SPECIFY_TOOL_NAME_OFF) = (uintptr_t)short_str;
+    check(string_field((uintptr_t)(request_buf + SPECIFY_TOOL_NAME_OFF)) == NULL,
+          "a short size past the inline buffer is refused");
+    check(string_field(0x20) == NULL, "a field at a low address is refused");
+
+    // A malformed name fails the route instead of mapping anything.
+    reset();
+    memset(request_buf, 0, sizeof request_buf);
+    *(uint32_t *)(request_buf + REQ_HAS_BITS_OFF) = SPECIFY_HAS_APPID;
+    *(uint32_t *)(request_buf + SPECIFY_APPID_OFF) = 7;
+    *(uintptr_t *)(request_buf + SPECIFY_TOOL_NAME_OFF) = 0x1234;
+    check(specify_compat_tool((uintptr_t)request_buf, (uintptr_t)response_buf) == RESULT_FAIL
+          && last_map_tool == NULL, "a malformed tool name fails without mapping");
+    check(specify_compat_tool(0x10, (uintptr_t)response_buf) == RESULT_FAIL,
+          "a request that is no message fails the specify route");
+    check(get_compat_tools(0x10, (uintptr_t)response_buf) == RESULT_FAIL,
+          "a request that is no message fails the tools route");
+}
+
+// A refused tool layout leaves the list route failing instead of reading entries.
+static void refused_layout_cases(void) {
+    reset();
+    tool_spec_t tools[] = {
+        { "crossover", "CrossOver", COMPAT_PLATFORM_WINDOWS, 100, 0, 0 },
+    };
+    build_tools(tools, 1);
+    stub_platforms_val = COMPAT_PLATFORM_WINDOWS;
+    stub_layout_refused = 1;
+    int rc = get_compat_tools(build_request(REQ_HAS_APPID, 7), (uintptr_t)response_buf);
+    check(rc == RESULT_FAIL && parse_into_calls == 0,
+          "a refused layout fails the list without building a reply");
+    stub_layout_refused = 0;
+}
+
+// A route the registry turns down leaves the service absent, never ready.
+static void refused_route_cases(void) {
+    reset();
+    g_routes = NP_COMPATSVC_UNTRIED;
+    stub_absent_type = NULL;
+    reg_refuse = "CompatManager.GetCompatTools#1";
+    np_compatsvc_register(NULL, 0, 0, 0);
+    check(np_compatsvc_routes() == NP_COMPATSVC_ABSENT && reg_count == 0,
+          "a refused list route reads as absent");
+
+    reset();
+    g_routes = NP_COMPATSVC_UNTRIED;
+    reg_refuse = "CompatManager.SpecifyCompatTool#1";
+    np_compatsvc_register(NULL, 0, 0, 0);
+    check(np_compatsvc_routes() == NP_COMPATSVC_ABSENT,
+          "a refused specify route reads as absent, not ready");
+
+    reg_refuse = NULL;
+    g_routes = NP_COMPATSVC_UNTRIED;
 }
 
 int main(void) {
@@ -778,6 +858,8 @@ int main(void) {
     empty_manager_cases();
     routes_state_cases();
     string_field_cases();
+    refused_layout_cases();
+    refused_route_cases();
 
     if (failures) {
         printf("==> compatsvc: %d check(s) failed\n", failures);

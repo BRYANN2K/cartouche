@@ -15,6 +15,7 @@ final class SteamStepTests {
     var blocked = true
     var routes: [ScreenRoute] = []
     var opened: [String] = []
+    var repairs = 0
 
     init() throws {
         work = try scratchDirectory("steam-step")
@@ -112,6 +113,37 @@ final class SteamStepTests {
         await failing.tryAgain()
         #expect(failing.phase == .failed(StepFailure(step: "Install", detail: "Steam is running.").localizedDescription))
         #expect(failing.canContinue)
+    }
+
+    @Test("A build-record mismatch offers Repair in place, and Repair finishes the step")
+    func repairInPlace() async {
+        let step = makeStep()
+        let repairing = SteamStep(
+            flow: step.flow,
+            install: { throw StepFailure(step: "Check installed files", detail: "fixture mismatch") },
+            relaunch: { _ in },
+            repair: { [unowned self] in repairs += 1 },
+            needsRepair: { true })
+        await repairing.tryAgain()
+        #expect(repairing.phase == .needsRepair)
+        #expect(repairing.detail == "Cartouche in Steam needs a repair.")
+        #expect(!repairing.detail.contains("fixture mismatch"))
+        #expect(repairing.canContinue)
+
+        repairing.repairInSteam()
+        await repairing.flow.confirm()
+        #expect(repairing.phase == .done)
+        #expect(repairs == 1)
+    }
+
+    @Test("A mismatch seen before Set Up shows Repair right away")
+    func repairOnAppear() {
+        let step = makeStep()
+        let repairing = SteamStep(
+            flow: step.flow, install: {}, relaunch: { _ in },
+            repair: {}, needsRepair: { true })
+        repairing.refresh()
+        #expect(repairing.phase == .needsRepair)
     }
 
     @Test("The Steam step row renders each phase")

@@ -11,6 +11,20 @@ PAYLOAD = {0x8664: 864, 0x14c: 1376, 0xaa64: 868}  # detour2.bin, detour32.bin, 
 # Keyed by input sha256 so the comparison only runs against the build the tree pins, so a
 # new build will report derived values rather than a wall of expected mismatches
 PINNED = {
+    'c62632acf163674b2459d81e6ef1475c0107d2a03671bbe98a041b4bb2de11fb':
+        {'hookRVA': 0x34d8a, 'stolen': '488b8590000000', 'caveRVA': 0x70815,
+         'caveSize': 2027, 'wm': 'rdi', 'load_path': 0x58,
+         'payload': '8b89d795a528018f24116b98aab8b33c96ab1a833109ff12a015f050c9be15ce',
+         'exports': {'LdrGetDllHandle': 0x17002ef80, 'LdrLoadDll': 0x17002cec0,
+                     'NtProtectVirtualMemory': 0x170055b40, 'NtOpenFile': 0x1700557a0,
+                     'NtReadFile': 0x170055200, 'NtClose': 0x170055320}},
+    '874639b96bca14112b0a361de96a69fa1b825e9bb3fd6e2416998476faec72a5':
+        {'hookRVA': 0x2e8a0, 'stolen': '8b4514a801', 'caveRVA': 0x231000,
+         'caveSize': 4096, 'wm': 'edi', 'load_path': -0x40,
+         'payload': '78f0c106b8d9fe1e0b00f321c3818b56355e0dfc16ab7e58a393af020a22e6bf',
+         'exports': {'LdrGetDllHandle': 0x7bc29c60, 'LdrLoadDll': 0x7bc28270,
+                     'NtProtectVirtualMemory': 0x7bc4c9d0, 'NtOpenFile': 0x7bc4c800,
+                     'NtReadFile': 0x7bc4c530, 'NtClose': 0x7bc4c5c0}},
     '04c7200b6645decb7c2d1ba6b0195abc9af83257072558d11aa72cc067ac3377':
         {'hookRVA': 0x51f15, 'stolen': '4883bc24f000000000', 'caveRVA': 0x80be0, 'wm': 'rsi',
          'resume': 0x51f1e, 'load_path': 0xd0,
@@ -344,14 +358,24 @@ def amd64_load_path(pe, body, hook):
     # the other stashes it in a callee-saved register and reuses that a few instructions
     # later.
     src, slot, stored_at = 'rcx', None, None
+    frame_offset = None
+    frame_slot = None
     for i in body:
         if i.address >= hook:
             break
+        if i.mnemonic == 'lea' and i.op_str.startswith('rbp, [rsp + '):
+            frame_offset = int(i.op_str.split('+')[1].strip().rstrip(']'), 16)
         if i.mnemonic != 'mov' or ',' not in i.op_str:
             continue
         dst, rhs = (x.strip() for x in i.op_str.split(',', 1))
         if rhs != src:
             continue
+        if frame_offset is not None and dst.startswith('qword ptr [rbp'):
+            m = re.fullmatch(r'qword ptr \[rbp(?: ([+-]) (0x[0-9a-f]+))?\]', dst)
+            if m:
+                offset = int(m[2], 16) * (-1 if m[1] == '-' else 1) if m[2] else 0
+                slot, frame_slot, stored_at = frame_offset + offset, dst, i.address
+                break
         if dst.startswith('qword ptr [rsp'):
             slot = 0 if '+' not in dst else int(dst.split('+')[1].strip().rstrip(']'), 16)
             stored_at = i.address
@@ -368,7 +392,8 @@ def amd64_load_path(pe, body, hook):
             continue
         if i.mnemonic in ('push', 'pop') or (i.mnemonic in ('sub', 'add') and i.op_str.startswith('rsp,')):
             raise SystemExit(f"{pe.path}: rsp moves at {i.address:#x}, load_path slot not rsp-stable")
-        if i.mnemonic == 'mov' and i.op_str.startswith(f'qword ptr [rsp + {slot:#x}],'):
+        if i.mnemonic == 'mov' and (i.op_str.startswith(f'qword ptr [rsp + {slot:#x}],')
+                                    or (frame_slot and i.op_str.startswith(frame_slot + ','))):
             raise SystemExit(f"{pe.path}: load_path slot rewritten at {i.address:#x}")
     return slot
 

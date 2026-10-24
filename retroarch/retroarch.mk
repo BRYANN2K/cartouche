@@ -44,4 +44,4 @@ retroarch-l10ncheck:
 	@swift build --package-path retroarch -c release >/dev/null
 	@bin=$$(swift build --package-path retroarch -c release --show-bin-path); \
 	python3 dylib/tests/l10ncheck.py retroarch/Sources/RetroArchKit/Resources/Localizable.xcstrings \
-		"$$bin/../../Intermediates.noindex/RetroArchKit.build/$$(basename "$$bin")/RetroArchKit-t.build" zh-Hans it
+		"$$bin/../../Intermediates.noindex/RetroArchKit.build/$$(basename "$$bin")/RetroArchKit-t.build" zh-Hans it fr

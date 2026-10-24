@@ -167,18 +167,16 @@ struct LibraryWindow: View {
     @Bindable var steamSetup: SteamSetup
     let actions: GameActionRunner
 
-    @FocusState private var searchFocused: Bool
+    @State private var searchFocused = false
     @State private var width: CGFloat = 1280
     @State private var overlayDismissedFor: String?
     @State private var dropTargeted = false
-    @State private var drop: DropModel?
-    @State private var afterDropDismiss: (@MainActor () -> Void)?
+    @State private var adding = AddGamesNavigation()
     @Environment(\.dropClassifier) private var dropClassifier
     @Environment(\.gameVerification) private var verification
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.activity) private var activity
     @Environment(ConsoleCenter.self) private var consoles: ConsoleCenter?
-    @Environment(CrashReportCenter.self) private var crashReports: CrashReportCenter?
 
     private var panelGame: Game? {
         guard model.showPanel, model.screen.showsPanel else { return nil }
@@ -198,6 +196,16 @@ struct LibraryWindow: View {
         let panelGame = panelGame
         let docked = panelGame != nil && layout.docksPanel
         let floating = panelGame != nil && !layout.docksPanel && overlayDismissedFor != model.selectedGameID
+        // Split in three so the type checker handles each chain on its own
+        presentations(
+            NavigationStack {
+                chrome(columns(layout, panelGame: panelGame, docked: docked, floating: floating),
+                       layout, motion: motion, floating: floating)
+            }
+        )
+    }
+
+    private func columns(_ layout: WindowLayout, panelGame: Game?, docked: Bool, floating: Bool) -> some View {
         HStack(spacing: 0) {
             if layout.sidebar > 0 {
                 sidebar(layout)
@@ -232,75 +240,89 @@ struct LibraryWindow: View {
                     .transition(reduceMotion ? .opacity : .move(edge: .trailing).combined(with: .opacity))
             }
         }
-        .overlay { DropOverlay(targeted: dropTargeted) }
-        .dropDestination(for: URL.self) { urls, _ in
-            handleDrop(urls)
-        } isTargeted: { dropTargeted = $0 }
-        .background {
-            CoverBackdrop(game: backdropGame,
-                          override: backdropGame.flatMap { model.coverOverride(for: $0.id) })
-        }
-        .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { width = $0 }
-        .ignoresSafeArea()
-        .scrollBounceBehavior(.basedOnSize, axes: [.vertical, .horizontal])
-        .animation(motion.panel, value: floating)
-        .animation(motion.panel, value: layout.sidebar > 0)
-        .transaction(value: model.selection) { $0.animation = nil }
-        .windowChrome()
-        .navigationTitle(model.title)
-        .navigationSubtitle(model.subtitle)
-        .onChange(of: model.searchFocusRequests) { searchFocused = true }
-        .onChange(of: layout.docksPanel) { _, docks in
-            // Going narrow keeps the grid in view; the panel comes back when a game is picked
-            if !docks { overlayDismissedFor = model.selectedGameID }
-        }
-        .sheet(item: $model.addGames.withoutWindows) { kind in
-            AddGamesSheet(kind: kind, library: model)
-        }
-        .sheet(isPresented: $model.showAddGames, onDismiss: {
-            drop?.cancel()
-            drop = nil
-            let action = afterDropDismiss
-            afterDropDismiss = nil
-            action?()
-        }) {
-            if let drop {
-                DropSheet(model: drop, actions: dropActions)
-                    .onChange(of: drop.isPresented) { _, presented in
-                        if !presented { model.showAddGames = false }
-                    }
-            } else {
-                AddGamesDropSheet(add: { _ = handleDrop($0) })
+    }
+
+    private func chrome<V: View>(_ content: V, _ layout: WindowLayout, motion: Motion, floating: Bool) -> some View {
+        content
+            .overlay { DropOverlay(targeted: dropTargeted) }
+            .dropDestination(for: URL.self) { urls, _ in
+                handleDrop(urls)
+            } isTargeted: { dropTargeted = $0 }
+            .background {
+                CoverBackdrop(game: backdropGame,
+                              override: backdropGame.flatMap { model.coverOverride(for: $0.id) })
+                    .ignoresSafeArea()
             }
-        }
-        .sheet(isPresented: $model.showAddConsoles) {
-            if let consoles { AddConsolesSheet(center: consoles) }
-        }
-        .sheet(item: $model.coverSearch) { game in
-            CoverSearchSheet(game: game, model: model, choices: compat.choices)
-        }
-        .overlay {
-            if let consoles, let powerOn = consoles.powerOn, !reduceMotion {
-                CRTPowerOn(powerOn: powerOn) { consoles.powerOn = nil }
+            .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { width = $0 }
+            .scrollBounceBehavior(.basedOnSize, axes: [.vertical, .horizontal])
+            .animation(motion.panel, value: floating)
+            .animation(motion.panel, value: layout.sidebar > 0)
+            .transaction(value: model.selection) { $0.animation = nil }
+            .toolbar { libraryToolbar }
+            .toolbar(removing: .title)
+            .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+            .navigationTitle(model.title)
+            .navigationSubtitle(model.subtitle)
+            .onChange(of: model.searchFocusRequests) { searchFocused = true }
+            .onChange(of: layout.docksPanel) { _, docks in
+                // Going narrow keeps the grid in view; the panel comes back when a game is picked
+                if !docks { overlayDismissedFor = model.selectedGameID }
             }
-        }
-        .onChange(of: model.verificationRequest) { _, game in
-            guard let game else { return }
-            model.verificationRequest = nil
-            if let verification {
-                verification.verify(game)
-            } else {
-                model.problem = String(localized: "File verification is unavailable in this build.")
+    }
+
+    private func presentations<V: View>(_ content: V) -> some View {
+        content
+            .sheet(isPresented: $model.showConsoleImport, onDismiss: {
+                if adding.flowDismissed() { model.showAddGames = true }
+            }) {
+                ConsoleImportSheet(back: consoleBack)
             }
-        }
-        .sheet(item: Binding(get: { verification?.mismatch }, set: { value in
-            if value == nil, let mismatch = verification?.mismatch {
-                verification?.cancelMismatch(gameID: mismatch.gameID)
+            .sheet(isPresented: $model.showAddGames, onDismiss: { adding.sheetDismissed() }) {
+                if let drop = adding.drop {
+                    DropSheet(model: drop, actions: dropActions)
+                        .onChange(of: drop.isPresented) { _, presented in
+                            if !presented { model.showAddGames = false }
+                        }
+                } else {
+                    AddGamesDropSheet(add: { _ = handleDrop($0) })
+                }
             }
-        })) { mismatch in
-            if let verification { GameVerificationMismatchSheet(mismatch: mismatch, verification: verification) }
-        }
-        .installSheet(library: model, compat: compat)
+            .sheet(isPresented: $model.showAddConsoles) {
+                if let consoles { AddConsolesSheet(center: consoles) }
+            }
+            .sheet(item: $model.installRequest) { game in
+                StoreInstallSheet(game: game, model: model, stores: actions.stores)
+            }
+            .sheet(item: $model.coverSearch) { game in
+                CoverSearchSheet(game: game, model: model, choices: compat.choices)
+            }
+            .overlay {
+                if let consoles, let powerOn = consoles.powerOn, !reduceMotion {
+                    CRTPowerOn(powerOn: powerOn) { consoles.powerOn = nil }
+                }
+            }
+            .onChange(of: model.verificationRequest) { _, game in
+                guard let game else { return }
+                model.verificationRequest = nil
+                if let verification {
+                    verification.verify(game)
+                } else {
+                    model.problem = String(localized: "File verification is unavailable in this build.")
+                }
+            }
+            .sheet(item: Binding(get: { verification?.mismatch }, set: { value in
+                if value == nil, let mismatch = verification?.mismatch {
+                    verification?.cancelMismatch(gameID: mismatch.gameID)
+                }
+            })) { mismatch in
+                if let verification { GameVerificationMismatchSheet(mismatch: mismatch, verification: verification) }
+            }
+            .installSheet(library: model, compat: compat)
+    }
+
+    private var consoleBack: (@MainActor () -> Void)? {
+        guard adding.canReturn else { return nil }
+        return { adding.returnOnDismiss() }
     }
 
     private func handleDrop(_ urls: [URL]) -> Bool {
@@ -314,12 +336,12 @@ struct LibraryWindow: View {
         }
         if let dropClassifier {
             let next = DropModel(classifier: dropClassifier)
-            drop = next
+            adding.drop = next
             next.start(urls)
         } else {
             let next = DropModel()
             next.show(.failed(.detectionUnavailable))
-            drop = next
+            adding.drop = next
         }
         model.showAddGames = true
         return true
@@ -327,19 +349,24 @@ struct LibraryWindow: View {
 
     private var dropActions: DropActions {
         var actions = DropActions()
+        // Back from the flow's first step brings this sheet back as it was left
+        let back: @MainActor () -> Void = {
+            if adding.restore() { model.showAddGames = true }
+        }
         actions.install = { installer in
-            afterDropDismiss = { InstallCenter.shared.open([installer.setup]) }
+            adding.handOff { InstallCenter.shared.open([installer.setup], back: back) }
             model.showAddGames = false
         }
-        actions.importGame = { game, _, _ in
-            afterDropDismiss = { InstallCenter.shared.open([game.folder]) }
+        actions.importGame = { game, exe, storage in
+            let decided = exe.map { InstallSheetModel.Decided(exe: $0, storage: storage == .copy ? .copy : .inPlace) }
+            adding.handOff { InstallCenter.shared.open([game.folder], decided: decided, back: back) }
             model.showAddGames = false
         }
         actions.addROMs = { roms in
             guard let consoles else { return }
-            afterDropDismiss = {
+            adding.handOff {
                 consoles.importFlow.start(roms.groups.flatMap(\.files))
-                model.addGames = .consoles
+                model.showConsoleImport = true
             }
             model.showAddGames = false
         }
@@ -359,8 +386,6 @@ struct LibraryWindow: View {
 
     private func sidebar(_ layout: WindowLayout) -> some View {
         LibrarySidebar(model: model)
-            // Room for the window's traffic lights, which sit inside the panel
-            .padding(.top, 44)
             .activitySlot(activity, library: model)
             .frame(width: layout.sidebar)
             .frame(maxHeight: .infinity)
@@ -372,49 +397,56 @@ struct LibraryWindow: View {
         GamePanel(game: game, model: model, compat: compat, actions: actions)
             .frame(width: layout.panel)
             .frame(maxHeight: .infinity)
-            .floatingPanel()
+            .floatingPanel(liquid: false)
             .padding([.top, .bottom, .trailing], Glass.inset)
     }
 
+    @ViewBuilder
     private func main(_ layout: WindowLayout) -> some View {
-        VStack(spacing: 0) {
-            SteamIntegrationBanner()
-                .padding(.horizontal, Glass.inset)
-            detail
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        if case .grid = model.screen {
+            detail.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        } else {
+            VStack(spacing: 0) {
+                LibraryNotices(model: model)
+                detail.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            if let crashReports { CrashNoticeBanner(center: crashReports) }
-        }
-        .toolbarBar { toolbar(layout) }
     }
 
-    private func toolbar(_ layout: WindowLayout) -> some View {
-        HStack(spacing: 8) {
+    @ToolbarContentBuilder
+    private var libraryToolbar: some ToolbarContent {
+        ToolbarItem(placement: .navigation) {
             VStack(alignment: .leading, spacing: 0) {
-                Text(verbatim: model.title)
-                    .font(.system(size: 15, weight: .bold))
-                    .tracking(-0.15)
-                Text(verbatim: model.subtitle)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(Glass.label2)
+                Text(verbatim: model.title).font(.headline)
+                Text(verbatim: model.subtitle).font(.caption).foregroundStyle(.secondary)
             }
             .lineLimit(1)
-            .fixedSize()
-            .layoutPriority(1)
             .accessibilityElement(children: .combine)
             .accessibilityAddTraits(.isHeader)
-            Spacer(minLength: 8)
-            if model.isOffline {
-                OfflinePill()
-            }
-            SearchCapsule(text: $model.searchText, isFocused: $searchFocused)
-            AddGamesButton(model: model)
         }
-        // With the sidebar hidden the title clears the traffic lights
-        .padding(.leading, layout.sidebar > 0 ? 12 : 84)
-        .padding(.trailing, 14)
-        .frame(height: Glass.toolbarHeight)
+        .hiddenSharedBackground()
+        ToolbarItem(placement: .status) {
+            if model.isOffline { OfflinePill() }
+        }
+        if #available(macOS 26, *) {
+            ToolbarSpacer(.flexible)
+        } else {
+            ToolbarItem(placement: .automatic) { Spacer() }
+        }
+        ToolbarItem(placement: .primaryAction) {
+            HStack(spacing: 12) {
+                Button("Add Games", systemImage: "plus") { model.showAddGames = true }
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(RoundGlassStyle(size: 32))
+                    .help(Text("Add a Windows game or your own console games"))
+                LibrarySearchField(text: $model.searchText, focused: $searchFocused)
+                    .frame(height: 28)
+                    .padding(.horizontal, 4)
+                    .frame(width: WindowLayout(width: width, sidebar: model.showSidebar).panel, height: 32)
+                    .capsuleField()
+            }
+        }
+        .hiddenSharedBackground()
     }
 
     @ViewBuilder
@@ -442,29 +474,17 @@ struct LibraryWindow: View {
     }
 }
 
-private extension View {
-    // A window toolbar with nothing in it: it only gives the traffic lights the tall title bar's
-    // position inside the sidebar panel; the real toolbar is drawn over the content column
-    func windowChrome() -> some View {
-        toolbar {
-            ToolbarItem(placement: .automatic) {
-                Color.clear.frame(width: 1, height: 1).accessibilityHidden(true)
-            }
-            .hiddenSharedBackground()
-        }
-        .toolbar(removing: .title)
-        .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
-    }
+struct LibraryNotices: View {
+    let model: LibraryModel
+    @Environment(CrashReportCenter.self) private var crashReports: CrashReportCenter?
 
-    // The toolbar row floats on the backdrop; content scrolls under it behind a soft edge fade
-    @ViewBuilder
-    func toolbarBar<Bar: View>(@ViewBuilder _ bar: () -> Bar) -> some View {
-        if #available(macOS 26, *) {
-            safeAreaInset(edge: .top, spacing: 0, content: bar)
-                .scrollEdgeEffectStyle(.soft, for: .top)
-        } else {
-            safeAreaInset(edge: .top, spacing: 0, content: bar)
+    var body: some View {
+        VStack(spacing: 0) {
+            if let crashReports { CrashNoticeBanner(center: crashReports) }
+            SteamIntegrationBanner()
+            ProblemBanner(model: model)
         }
+        .padding(.horizontal, Glass.inset)
     }
 }
 
@@ -490,37 +510,46 @@ private struct OfflinePill: View {
     }
 }
 
-// The toolbar search field: a wide glass capsule with a magnifier and a "Search" placeholder
-private struct SearchCapsule: View {
+private struct LibrarySearchField: NSViewRepresentable {
     @Binding var text: String
-    var isFocused: FocusState<Bool>.Binding
+    @Binding var focused: Bool
 
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(Glass.label3)
-                .accessibilityHidden(true)
-            TextField("Search", text: $text, prompt: Text("Search").foregroundStyle(Glass.label3))
-                .textFieldStyle(.plain)
-                .font(.system(size: 13))
-                .focused(isFocused)
-            if !text.isEmpty {
-                Button {
-                    text = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill").foregroundStyle(Glass.label3)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(Text("Clear Search"))
-            }
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    func makeNSView(context: Context) -> NSSearchField {
+        let field = NSSearchField()
+        field.placeholderString = String(localized: "Search")
+        field.setAccessibilityLabel(String(localized: "Search"))
+        field.sendsSearchStringImmediately = true
+        field.controlSize = .large
+        field.bezelStyle = .roundedBezel
+        field.isBezeled = true
+        field.drawsBackground = false
+        field.delegate = context.coordinator
+        return field
+    }
+
+    func updateNSView(_ field: NSSearchField, context: Context) {
+        context.coordinator.parent = self
+        if field.stringValue != text { field.stringValue = text }
+        if focused, field.currentEditor() == nil {
+            field.window?.makeFirstResponder(field)
         }
-        .padding(.horizontal, 12)
-        .frame(minWidth: 34, idealWidth: 230, maxWidth: 230)
-        .frame(height: 34)
-        .capsuleField()
-        .contentShape(.capsule)
-        .onTapGesture { isFocused.wrappedValue = true }
+    }
+
+    final class Coordinator: NSObject, NSSearchFieldDelegate {
+        var parent: LibrarySearchField
+
+        init(_ parent: LibrarySearchField) { self.parent = parent }
+
+        func controlTextDidChange(_ notification: Notification) {
+            guard let field = notification.object as? NSSearchField else { return }
+            parent.text = field.stringValue
+        }
+
+        func controlTextDidEndEditing(_ notification: Notification) {
+            parent.focused = false
+        }
     }
 }
 
@@ -546,33 +575,14 @@ struct WindowLayout: Equatable {
     }
 }
 
-// The round glass "+" paired with the search capsule, the user's take on the mockup's Add Games pill
-private struct AddGamesButton: View {
-    let model: LibraryModel
-
-    var body: some View {
-        Button {
-            model.showAddGames = true
-        } label: {
-            Image(systemName: "plus")
-                .font(.system(size: 15, weight: .semibold))
-        }
-        .buttonStyle(RoundGlassStyle())
-        .fixedSize()
-        .help(Text("Add a Windows game or your own console games"))
-        .accessibilityLabel(Text("Add Games"))
-    }
-}
-
-struct AddGamesSheet: View {
-    @State var kind: AddGamesKind
-    let library: LibraryModel
+struct ConsoleImportSheet: View {
+    var back: (@MainActor () -> Void)?
     @Environment(ConsoleCenter.self) private var consoles: ConsoleCenter?
 
     var body: some View {
         Group {
             if let consoles {
-                ConsoleImportFlow(center: consoles, kind: $kind)
+                ConsoleImportFlow(center: consoles, back: back)
             } else {
                 ContentUnavailableView {
                     Label { Text("Add Games") } icon: { Image(systemName: "shippingbox") }
@@ -580,9 +590,6 @@ struct AddGamesSheet: View {
                     Text("Consoles are not set up on this Mac.")
                 }
             }
-        }
-        .onChange(of: kind, initial: true) { _, kind in
-            if kind == .windows { library.addGames = .windows }
         }
         .frame(width: 560)
     }

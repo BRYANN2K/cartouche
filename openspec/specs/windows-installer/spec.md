@@ -115,7 +115,7 @@ After a successful install the game SHALL appear in the library with its executa
 - **THEN** the installer files stay in place until the user clicks Delete and confirms, and then they go to the Trash
 
 ### Requirement: Identify the game and its cover
-An installed Windows game SHALL use local GOG/Steam identity first, then installer title where present, engine metadata, PE product information, executable name and folder names to find a known Steam App ID. A shared Steam store lookup path SHALL serve automatic fallback and user-requested cover search only when Fetch Mac reports from MacGamingDB permits online lookups. A match SHALL bring the cover, compatibility data and recommended setup; no match SHALL use a local name-and-icon placeholder. A user cover choice SHALL take priority.
+An installed Windows game SHALL use local GOG/Steam identity first, then installer title, engine metadata, PE product information, executable and folder names to find a Steam App ID. Steam store lookups SHALL run only when Fetch Mac reports from MacGamingDB permits online lookups. A match SHALL bring the cover, compatibility data and recommended setup; no match SHALL use a name-and-icon placeholder. A user cover choice SHALL take priority.
 
 #### Scenario: Matched by installer title
 - **WHEN** an Inno installer titled "CarX Street" is analyzed

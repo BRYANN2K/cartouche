@@ -53,8 +53,8 @@ enum SupportPaths {
         home.appending(path: "Library/Caches/\(supportDirName)/winetricks")
     }
 
-    // Dropped archives unpack here; the extracted folders stay put so the
-    // install and import flows that follow can read them.
+    // Dropped archives unpack here for the install and import flows to read; macOS
+    // may purge Caches, so an imported game moves out into its prefix (StagedGames).
     static var dropStaging: URL {
         home.appending(path: "Library/Caches/\(supportDirName)/DropStaging")
     }

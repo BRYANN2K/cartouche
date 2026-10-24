@@ -44,6 +44,10 @@ struct RunnerManifest: PinnedManifest {
         var isPending: Bool { sha256 == RunnerManifest.pendingSHA256 }
 
         var cpuFlavors: [CompatTool.Flavor] { flavors.compactMap(CompatTool.Flavor.init(rawValue:)) }
+
+        // Our build's name; manifests published before the rename still say "Wine CrossOver"
+        static let cartoucheName = "Cartouche Wine"
+        static let legacyCartoucheName = "Wine CrossOver"
     }
 
     let format: Int
@@ -86,6 +90,26 @@ struct RunnerManifest: PinnedManifest {
             }
         }
         return found
+    }
+}
+
+extension RunnerManifest.Build {
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        kind = try c.decode(String.self, forKey: .kind)
+        origin = try c.decode(Origin.self, forKey: .origin)
+        let named = try c.decode(String.self, forKey: .name)
+        name = origin == .cartouche && named == Self.legacyCartoucheName ? Self.cartoucheName : named
+        version = try c.decode(String.self, forKey: .version)
+        displayVersion = try c.decode(String.self, forKey: .displayVersion)
+        url = try c.decode(URL.self, forKey: .url)
+        size = try c.decode(Int64.self, forKey: .size)
+        sha256 = try c.decode(String.self, forKey: .sha256)
+        root = try c.decode(String.self, forKey: .root)
+        loader = try c.decode(String.self, forKey: .loader)
+        flavors = try c.decode([String].self, forKey: .flavors)
     }
 }
 
@@ -132,9 +156,21 @@ extension RunnerManifest {
         return data
     }
 
-    // .../releases/download/compat-data/compat.json.gz -> .../compat-data/runners.json
-    static func feed(fromCompatibilityFeed feed: URL) -> URL {
-        feed.deletingLastPathComponent().appending(path: "runners.json")
+    static let feedKey = "CartoucheRunnerManifestURL"
+
+    // The manifest release of the public cartouche-wine repository, named once in Info.plist.
+    // GitHub answers with a redirect to its download host; URLSession follows it, and the
+    // signature, not the host that served the bytes, decides whether the copy is trusted.
+    static var feed: URL? {
+        feed(fromInfoValue: Bundle.main.object(forInfoDictionaryKey: feedKey)).map(QAEnvironment.url)
+    }
+
+    // Only an https address on an allowed host counts, like the builds it lists
+    static func feed(fromInfoValue value: Any?) -> URL? {
+        guard let raw = value as? String, let url = URL(string: raw),
+              url.scheme == "https", allowedHosts.contains(url.host() ?? ""), url.lastPathComponent == "runners.json"
+        else { return nil }
+        return url
     }
 
     // runners.json -> runners.json.sig, the detached signature CI publishes beside it

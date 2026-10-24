@@ -25,8 +25,21 @@ public enum RuntimeScan {
         public var isDotNet = false
     }
 
-    // The main program plus the DLLs one level next to it.
+    static func resolvedExecutable(_ exe: URL) -> URL {
+        let root = exe.deletingLastPathComponent()
+        for descriptor in EngineMetadata.children(root) where descriptor.pathExtension.lowercased() == "uproject" {
+            let project = descriptor.deletingPathExtension().lastPathComponent
+            let shipping = root.appending(path: "\(project)/Binaries/Win64/\(project)-Win64-Shipping.exe")
+            if (try? shipping.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true {
+                return shipping
+            }
+        }
+        return exe
+    }
+
+    // The main program (past an Unreal bootstrap) plus the DLLs one level next to it.
     public static func scan(exe: URL) -> Report {
+        let exe = resolvedExecutable(exe)
         let dir = exe.deletingLastPathComponent()
         var shipped: Set<String> = []
         var dlls: [URL] = []

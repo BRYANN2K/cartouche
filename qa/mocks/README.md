@@ -75,8 +75,8 @@ in `/__control/state` — `steam-*`, `homebrew-*`, `installer-*`,
 | `/api/rest/games/9990001` | 200, `reviews: []` | "No reports yet for this version" |
 | `/api/rest/games/9990002` | 500 | cache-fallback path |
 | `…/releases/download/compat-data/compat.json.gz` | gzipped nightly compat file: tools' recorded fixture + generated records so all 8 games appear; schema-valid | compatibility-data: offline compat cache, game panel |
-| `…/releases/download/compat-data/runners.json` | runner manifest, revision 2 — bundled wine builds unchanged + `wine-crossover-26.3.0-1` pinned to the fake archive's real SHA-256 | runner-sources: manifest refresh, "Wine CrossOver 26.3 → ready" |
-| `…/releases/download/compat-data/backends.json` | backend manifest with QA pins for the fake DXMT/DXVK archives | **to verify** — the app reads only its bundled backends.json today (UPD-04) |
+| `…/releases/download/manifest/runners.json` (any `…/runners.json`) | runner manifest, revision 2 — bundled wine builds unchanged + `wine-crossover-26.3.0-1` pinned to the fake archive's real SHA-256 | runner-sources: manifest refresh, "Cartouche Wine 26.3 → ready" |
+| `…/releases/download/compat-data/backends.json` | backend manifest with QA pins for the fake DXMT/DXVK archives | Settings → Graphics Backends → Check for Updates fetches this signed manifest (UPD-04) |
 | `…/releases/latest/download/appcast.xml` | Sparkle feed: stable item always; update/beta/foreign-key per scenario | release-pipeline: Sparkle updates |
 | `…/releases/download/{tag}/{asset}` | tiny real archives: wine `tar.xz` (with `root/loader` tree), `dxmt-*.tar.gz`, `dxvk-*.tar.gz`, `Cartouche-*.zip` | runner-management, game-setup backend downloads |
 | `…/releases/download/…/*tampered*` | corrupted bytes always | damaged-download refusal |

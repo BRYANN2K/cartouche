@@ -172,6 +172,28 @@ struct DropClassifierTests {
         ])])
     }
 
+    @Test func cueTracksStayInsideTheCueFolder() async throws {
+        let outside = try tempFolder([:])
+        try Data(count: 600).write(to: outside.appending(path: "secret.bin"))
+        let dir = try tempFolder([
+            "disc/game.cue": """
+            FILE "\(outside.appending(path: "secret.bin").path(percentEncoded: false))" BINARY
+            FILE "../secret.bin" BINARY
+            FILE "link.bin" BINARY
+            FILE "sub/../game.bin" BINARY
+            """,
+        ])
+        try Data(count: 600).write(to: dir.appending(path: "secret.bin"))
+        try Data(count: 600).write(to: dir.appending(path: "disc/game.bin"))
+        try FileManager.default.createSymbolicLink(
+            at: dir.appending(path: "disc/link.bin"), withDestinationURL: outside.appending(path: "secret.bin"))
+        let cue = dir.appending(path: "disc/game.cue")
+        #expect(DiscTracks.cue(cue).map(\.lastPathComponent) == ["game.bin"])
+        let outcome = try await DropClassifier().classify([cue])
+        guard case .roms(let r) = outcome else { Issue.record("got \(outcome)"); return }
+        #expect(r.groups.flatMap(\.files).map(\.lastPathComponent).sorted() == ["game.bin", "game.cue"])
+    }
+
     @Test func pspIsoBySignature() async throws {
         let dir = try tempFolder([:])
         var data = Data(count: 512)

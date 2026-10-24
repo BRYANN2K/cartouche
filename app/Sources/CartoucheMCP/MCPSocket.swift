@@ -52,7 +52,7 @@ private func unixSocket() throws -> Int32 {
 // A peer is admitted only when it runs as this user (getpeereid) and its executable (LOCAL_PEERPID + proc_pidpath) passes the injected check.
 public final class MCPSocketServer: @unchecked Sendable {
 
-    private let handler: @Sendable (Data) async -> Data
+    private let handler: @Sendable (Data, MCPPeer) async -> Data
     private let admitsExecutable: @Sendable (String) -> Bool
     private let socketURL: URL
 
@@ -63,13 +63,22 @@ public final class MCPSocketServer: @unchecked Sendable {
 
     private static let byteLimit = 1 << 22
 
+    public convenience init(socket: URL = MCPSocketPath.file,
+                            handler: @escaping @Sendable (Data) async -> Data,
+                            admitsExecutable: @escaping @Sendable (String) -> Bool) {
+        self.init(socket: socket, serve: { data, _ in await handler(data) }, admitsExecutable: admitsExecutable)
+    }
+
+    // Each helper process is one MCP client: its pid keys the peer, as every request is a fresh connection.
     public init(socket: URL = MCPSocketPath.file,
-                handler: @escaping @Sendable (Data) async -> Data,
+                serve: @escaping @Sendable (Data, MCPPeer) async -> Data,
                 admitsExecutable: @escaping @Sendable (String) -> Bool) {
         self.socketURL = socket
-        self.handler = handler
+        self.handler = serve
         self.admitsExecutable = admitsExecutable
     }
+
+    public static func peer(pid: pid_t) -> MCPPeer { MCPPeer(transport: "stdio", session: "pid \(pid)") }
 
     public func start() throws {
         try queue.sync {
@@ -115,15 +124,19 @@ public final class MCPSocketServer: @unchecked Sendable {
     }
 
     // Same uid plus an admitted executable; internal so tests can use socketpair fds (the sandbox denies bind, not pairs).
-    func admit(_ fd: Int32) -> Bool {
+    func admit(_ fd: Int32) -> Bool { admitted(fd) != nil }
+
+    // The admitted peer's pid, nil for a refused one
+    func admitted(_ fd: Int32) -> pid_t? {
         var uid = uid_t(0), gid = gid_t(0)
-        guard getpeereid(fd, &uid, &gid) == 0, uid == getuid() else { return false }
+        guard getpeereid(fd, &uid, &gid) == 0, uid == getuid() else { return nil }
         var pid = pid_t(0)
         var size = socklen_t(MemoryLayout<pid_t>.size)
         guard getsockopt(fd, SOL_LOCAL, LOCAL_PEERPID, &pid, &size) == 0,
-              let executable = Self.executablePath(of: pid)
-        else { return false }
-        return admitsExecutable(executable)
+              let executable = Self.executablePath(of: pid),
+              admitsExecutable(executable)
+        else { return nil }
+        return pid
     }
 
     // Peer checks run first; a refused peer is closed.
@@ -137,13 +150,17 @@ public final class MCPSocketServer: @unchecked Sendable {
     private final class Connection: @unchecked Sendable {
         let id = UUID()
         let fd: Int32
+        let peer: MCPPeer
         var inbound = Data()
         var outbox = Data()
         var readSource: DispatchSourceRead!
         var writeSource: DispatchSourceWrite?
         var writeArmed = false
 
-        init(fd: Int32) { self.fd = fd }
+        init(fd: Int32, peer: MCPPeer) {
+            self.fd = fd
+            self.peer = peer
+        }
     }
 
     private static func listen(at socketURL: URL) throws -> Int32 {
@@ -186,12 +203,12 @@ public final class MCPSocketServer: @unchecked Sendable {
     }
 
     private func register(_ fd: Int32) {
-        guard admit(fd) else { close(fd); return }
+        guard let pid = admitted(fd) else { close(fd); return }
         var one: Int32 = 1
         setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &one, socklen_t(MemoryLayout<Int32>.size))
         _ = fcntl(fd, F_SETFD, FD_CLOEXEC)
         _ = fcntl(fd, F_SETFL, O_NONBLOCK)
-        let connection = Connection(fd: fd)
+        let connection = Connection(fd: fd, peer: Self.peer(pid: pid))
         let source = DispatchSource.makeReadSource(fileDescriptor: fd, queue: queue)
         source.setEventHandler { [weak self, weak connection] in
             guard let self, let connection, self.connections[connection.id] === connection
@@ -243,8 +260,8 @@ public final class MCPSocketServer: @unchecked Sendable {
             let request = Data(connection.inbound.prefix(upTo: newline))
             connection.inbound.removeSubrange(...newline)
             guard !request.isEmpty else { continue }
-            Task { [handler, weak self, weak connection] in
-                self?.enqueue(await handler(request), to: connection)
+            Task { [handler, peer = connection.peer, weak self, weak connection] in
+                self?.enqueue(await handler(request, peer), to: connection)
             }
         }
     }

@@ -1,4 +1,4 @@
-import CartoucheMCP
+@testable import CartoucheMCP
 import Foundation
 import InstallerKit
 import Network
@@ -255,6 +255,24 @@ struct MCPProtocolTests {
         #expect(replies?[1]["id"] == .number(9))
     }
 
+    @Test("each peer keeps its own claimed name, shown as a claim with its transport")
+    func claimsPerPeer() async {
+        let handler = RecordingHandler()
+        let server = MCPServer(handler: handler)
+        let helper = MCPSocketServer.peer(pid: 101), web = MCPHTTPServer.peer(session: "s-1")
+        _ = await server.handle(rpc("initialize", params: ["clientInfo": ["name": "Claude Code"]]), peer: helper)
+        _ = await server.handle(rpc("initialize", params: ["clientInfo": ["name": "Cursor\u{7}\n"]]), peer: web)
+        _ = await server.handle(rpc("tools/call", params: ["name": "fixture_tool"]), peer: helper)
+        _ = await server.handle(rpc("tools/call", params: ["name": "fixture_tool"]), peer: web)
+        _ = await server.handle(rpc("tools/call", params: ["name": "fixture_tool"]),
+                                peer: MCPSocketServer.peer(pid: 202))
+        #expect(handler.clients == [
+            "Claude Code (claimed, stdio)", "Cursor (claimed, HTTP)", "agent (claimed, stdio)",
+        ])
+        #expect(MCPServer.claimedName(String(repeating: "x", count: 500)).count == 64)
+        #expect(MCPServer.claimedName("  ") == "agent")
+    }
+
     @Test("tools/call without a name is invalid params")
     func badCall() async {
         let server = MCPServer(handler: TestHandler())
@@ -270,6 +288,19 @@ struct MCPProtocolTests {
         let parsed = try JSONDecoder().decode(JSONValue.self, from: reply)
         #expect(parsed["id"] == .number(42))
         #expect(parsed["error"]?["code"] == .number(-32000))
+    }
+
+    private final class RecordingHandler: MCPHandling, @unchecked Sendable {
+        private let lock = NSLock()
+        private var seen: [String] = []
+        var clients: [String] { lock.withLock { seen } }
+        var serverVersion: String { "test/1" }
+        func initialize(client: String) async {}
+        func tools(client: String) async -> [MCPToolInfo] { [] }
+        func callTool(_ name: String, arguments: JSONValue, client: String) async throws -> JSONValue {
+            lock.withLock { seen.append(client) }
+            return MCPServer.content([:])
+        }
     }
 
     private struct TestHandler: MCPHandling {
@@ -386,6 +417,34 @@ struct MCPHTTPTests {
         let reply = try await post(raw:
             "POST /mcp HTTP/1.1\r\nHost: example.com\r\nContent-Length: 2\r\n\r\n{}", port: port)
         #expect(reply.contains("403"))
+    }
+
+    @Test("initialize opens an Mcp-Session-Id; requests carrying it are the same HTTP peer")
+    func sessionPerClient() async throws {
+        let peers = PeerLog()
+        let server = MCPHTTPServer(token: "t") { _, peer in
+            peers.add(peer)
+            return Data("{}".utf8)
+        }
+        let port = try await boundPort(server)
+        defer { server.stop() }
+        let initialize = #"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"clientInfo":{"name":"x"}}}"#
+        let opened = try await post(port: port, token: "t", body: initialize)
+        let line = try #require(opened.split(separator: "\r\n").first { $0.hasPrefix("Mcp-Session-Id: ") })
+        let session = String(line.dropFirst("Mcp-Session-Id: ".count))
+        _ = try await post(raw: "POST /mcp HTTP/1.1\r\nHost: 127.0.0.1\r\nAuthorization: Bearer t\r\n"
+                           + "Mcp-Session-Id: \(session)\r\nContent-Length: 2\r\n\r\n{}", port: port)
+        _ = try await post(port: port, token: "t", body: "{}")
+        #expect(peers.all == [MCPHTTPServer.peer(session: session), MCPHTTPServer.peer(session: session),
+                              MCPHTTPServer.peer(session: nil)])
+        #expect(peers.all.allSatisfy { $0.transport == "HTTP" })
+    }
+
+    private final class PeerLog: @unchecked Sendable {
+        private let lock = NSLock()
+        private var peers: [MCPPeer] = []
+        var all: [MCPPeer] { lock.withLock { peers } }
+        func add(_ peer: MCPPeer) { lock.withLock { peers.append(peer) } }
     }
 
     private func boundPort(_ server: MCPHTTPServer) async throws -> UInt16 {

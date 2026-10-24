@@ -43,6 +43,11 @@ struct StoreGame: Codable, Sendable, Equatable, Identifiable {
     var title: String
     var art: URL?
     var cloudSaves: Bool = false
+    var header: URL? = nil
+    var screenshots: [URL]? = nil
+    var downloadBytes: Int64? = nil
+    var diskBytes: Int64? = nil
+    var detailsFetchedAt: Date? = nil
 }
 
 struct StoreInstall: Codable, Sendable, Equatable {
@@ -103,12 +108,14 @@ protocol StoreAdapter: Sendable {
     // direction: .download before the game starts, .upload after it quits; stamps are the store's last-sync markers, returned updated.
     func syncSaves(_ id: String, locations: [SaveLocation], direction: SaveDirection, stamps: [String: String]) async throws -> [String: String]
 
+    func details(_ game: StoreGame) async -> StoreGame
     func artURL(_ game: StoreGame) async -> URL?
     // A program that runs beside the game, as comet does for GOG's online features
     func companion(_ id: String) async throws -> ClientCommand?
 }
 
 extension StoreAdapter {
+    func details(_ game: StoreGame) async -> StoreGame { game }
     func artURL(_ game: StoreGame) async -> URL? { game.art }
     func companion(_ id: String) async throws -> ClientCommand? { nil }
     func forget(_ id: String) async throws {}

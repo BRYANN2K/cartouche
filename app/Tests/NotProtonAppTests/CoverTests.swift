@@ -71,6 +71,30 @@ struct CoverTests {
         #expect(!FileManager.default.fileExists(atPath: fixture.caches.appending(path: "1245620/library_600x900.jpg").path))
     }
 
+    @Test("Offline or a server error is retried on the next draw; only a 404 or a non-image is remembered as missing")
+    func missingOnlyWhenAnswered() async throws {
+        let fixture = try SteamFixture("missing-mark")
+        defer { fixture.remove() }
+        let art = try SteamFixture.png("Elden Ring", size: CGSize(width: 60, height: 90), hue: 0.1)
+        let mark = fixture.caches.appending(path: "1245620/library_600x900.jpg.missing")
+        let failures: [CoverStore.Fetch] = [
+            { @Sendable _ in throw URLError(.notConnectedToInternet) },
+            { @Sendable _ in (Data(), 503) },
+        ]
+        for failing in failures {
+            #expect(await fixture.covers(fetch: failing).download(1_245_620, .cover) == nil)
+            #expect(!FileManager.default.fileExists(atPath: mark.path(percentEncoded: false)))
+        }
+        #expect(await fixture.covers { _ in (art, 200) }.download(1_245_620, .cover) != nil)
+
+        let other = Game.steam(730, name: "CS2", installed: true)
+        let asked = Box<Int>(0)
+        let gone = fixture.covers { _ in asked.value += 1; return (Data(), 404) }
+        #expect(await gone.download(730, .cover) == nil)
+        #expect(await gone.art(for: other, kind: .cover, override: nil) == .drawn)
+        #expect(asked.value == 1)
+    }
+
     @Test("User override: a dropped image wins from then on, and survives a library refresh")
     @MainActor
     func userOverride() async throws {

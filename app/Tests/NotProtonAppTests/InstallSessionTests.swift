@@ -300,4 +300,111 @@ struct InstallSessionTests {
         #expect(session.prefix == s.folder.prefix)
         #expect(session.environment == ["WINEPREFIX": s.record.prefix])
     }
+
+    @Test("Play reads Stop while the launcher runs; Stop ends the run and sends -k to the game's own prefix")
+    func playBecomesStop() async throws {
+        let s = try scene("session-stop")
+        defer { try? FileManager.default.removeItem(at: s.work) }
+        let server = try launcher(in: s)
+        let c = center(s)
+        c.waitServer = { _, _, _ in false }
+        let kills = Box<[(server: URL, env: [String: String])]>([])
+        c.killServer = { server, env in kills.value.append((server, env)) }
+        c.prefixUse = { _ in .free }
+        func first() -> GameMenuItem? { GameMenu.items(for: s.game, in: s.model, installs: c).first }
+        #expect(first()?.action == .play)
+        #expect(!GamePanelContent.isRunning(s.game, store: false, local: c.isPlaying(s.game)))
+
+        let run = InstallRun(InstallLaunch(executable: "/bin/sh", arguments: ["-c", "sleep 30"], environment: [:]))
+        try run.start()
+        c.watchSession(run, for: s.game, in: s.installs)
+        #expect(c.isPlaying(s.game))
+        #expect(GamePanelContent.isRunning(s.game, store: false, local: c.isPlaying(s.game)))
+        #expect(first()?.title == "Stop Game")
+        #expect(first()?.action == .stopGame)
+        #expect(first()?.shortcut == nil)
+
+        GameActionRunner(model: s.model, installs: c).perform(.stopGame, on: s.game)
+        #expect(await waitFor { !c.playingGames.contains(s.game.id) })
+        #expect(await waitFor { !kills.value.isEmpty })
+        #expect(kills.value.first?.server == server)
+        #expect(kills.value.first?.env["WINEPREFIX"] == s.record.prefix)
+        #expect(await waitFor { first()?.action == .play })
+    }
+
+    @Test("A crashed launcher ends its session after the grace period and Play comes back, the backtrace kept")
+    func crashedGameIsNotRunning() async throws {
+        let s = try scene("session-crash")
+        defer { try? FileManager.default.removeItem(at: s.work) }
+        let server = try launcher(in: s)
+        let c = center(s)
+        let waits = Box(0)
+        c.waitServer = { _, _, _ in waits.value += 1; return true }
+        let kills = Box<[URL]>([])
+        // The crashed exe lingers in the prefix with no window, as winedbg leaves it, until -k.
+        c.killServer = { server, _ in kills.value.append(server) }
+        c.prefixUse = { _ in kills.value.isEmpty ? .running(.game) : .free }
+        c.hasWindow = { _ in false }
+        try Data("Unhandled exception: page fault on read access to 0x00000000 in 64-bit code\nBacktrace:\n".utf8)
+            .write(to: s.folder.gameLog)
+
+        let run = InstallRun(InstallLaunch(executable: "/bin/sh", arguments: ["-c", "exit 1"], environment: [:]))
+        try run.start()
+        c.watchSession(run, for: s.game, in: s.installs)
+        #expect(await waitFor { kills.value.count == 1 })
+        #expect(kills.value.first == server)
+        #expect(await waitFor { !c.isPlaying(s.game) && !c.busyGames.contains(s.game.id) })
+        #expect(GameMenu.items(for: s.game, in: s.model, installs: c).first?.action == .play)
+        #expect(waits.value == 1)
+        let crash = try #require(CrashLog.latest(in: s.folder.root))
+        #expect(try String(contentsOf: crash, encoding: .utf8).contains("Backtrace:"))
+    }
+
+    @Test("A game still showing a window after its launcher exits keeps its session until the window is gone")
+    func windowKeepsSession() async throws {
+        let s = try scene("session-window")
+        defer { try? FileManager.default.removeItem(at: s.work) }
+        _ = try launcher(in: s)
+        let c = center(s)
+        let waits = Box(0)
+        c.waitServer = { _, _, _ in
+            waits.value += 1
+            try? await Task.sleep(for: .milliseconds(50))
+            return true
+        }
+        let kills = Box(0)
+        c.killServer = { _, _ in kills.value += 1 }
+        c.prefixUse = { _ in kills.value > 0 ? .free : .running(.game) }
+        let window = Box(true)
+        c.hasWindow = { _ in window.value }
+
+        let run = InstallRun(InstallLaunch(executable: "/bin/sh", arguments: ["-c", "exit 0"], environment: [:]))
+        try run.start()
+        c.watchSession(run, for: s.game, in: s.installs)
+        #expect(await waitFor { waits.value >= 3 })
+        #expect(kills.value == 0)
+        // Still running while its window shows: Stop stays offered.
+        #expect(await waitFor { c.isPlaying(s.game) })
+        window.value = false
+        #expect(await waitFor { kills.value == 1 })
+        #expect(await waitFor { !c.isPlaying(s.game) })
+        // A clean exit leaves no crash report.
+        #expect(CrashLog.latest(in: s.folder.root) == nil)
+    }
+
+    @Test("A game the probe finds running in its prefix reads Stop too, after a relaunch of Cartouche")
+    func probedGameIsPlaying() async throws {
+        let s = try scene("session-probed")
+        defer { try? FileManager.default.removeItem(at: s.work) }
+        let c = center(s)
+        c.prefixUse = { _ in .running(.store("Steam")) }
+        c.refreshBusy(for: [s.game], in: s.installs)
+        #expect(await waitFor { c.busyClients[s.game.id] == .store("Steam") })
+        #expect(!c.isPlaying(s.game))
+        c.prefixUse = { _ in .running(.game) }
+        c.refreshBusy(for: [s.game], in: s.installs)
+        #expect(await waitFor { c.busyClients[s.game.id] == .game })
+        #expect(c.isPlaying(s.game))
+        #expect(GameMenu.items(for: s.game, in: s.model, installs: c).first?.action == .stopGame)
+    }
 }

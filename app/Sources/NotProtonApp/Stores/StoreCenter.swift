@@ -228,8 +228,16 @@ final class StoreCenter {
         defer { refreshing.remove(store) }
         do {
             var list = try await adapter.library()
-            let known = Dictionary((games[store] ?? []).map { ($0.id, $0.art) }, uniquingKeysWith: { a, _ in a })
-            for i in list.indices where list[i].art == nil { list[i].art = known[list[i].id] ?? nil }
+            let known = Dictionary((games[store] ?? []).map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+            for i in list.indices {
+                guard let previous = known[list[i].id] else { continue }
+                if list[i].art == nil { list[i].art = previous.art }
+                list[i].header = previous.header
+                list[i].screenshots = previous.screenshots
+                list[i].downloadBytes = previous.downloadBytes
+                list[i].diskBytes = previous.diskBytes
+                list[i].detailsFetchedAt = previous.detailsFetchedAt
+            }
             games[store] = list
             try? folders.saveLibrary(list, for: store)
             if case .expired(let account) = connection(store) { connections[store] = .connected(account: account) }
@@ -239,6 +247,23 @@ final class StoreCenter {
         } catch {
             handle(error, store: store)
         }
+    }
+
+    func loadDetails(_ game: Game) async {
+        guard game.source == .gog, library?.isOffline != true,
+              let adapter = adapters[game.source], let current = storeGame(game) else { return }
+        let ttl: TimeInterval = current.diskBytes == nil ? 300 : 7 * 24 * 3600
+        if let date = current.detailsFetchedAt, now().timeIntervalSince(date) < ttl { return }
+        let detailed = await adapter.details(current)
+        guard var list = games[game.source], let index = list.firstIndex(where: { $0.id == current.id }) else { return }
+        list[index].header = detailed.header
+        list[index].screenshots = detailed.screenshots
+        list[index].downloadBytes = detailed.downloadBytes
+        list[index].diskBytes = detailed.diskBytes
+        list[index].detailsFetchedAt = detailed.detailsFetchedAt
+        games[game.source] = list
+        try? folders.saveLibrary(list, for: game.source)
+        publish()
     }
 
     private func findArt(_ store: GameSource) async {
@@ -315,6 +340,10 @@ final class StoreCenter {
     static func game(_ store: GameSource, _ game: StoreGame, installed: StoreInstalledGame?, appID: Int? = nil) -> Game {
         var out = Game(id: "\(store.id):\(game.id)", source: store, name: game.title, installed: installed != nil)
         out.artwork = game.art
+        out.mediaHeader = game.header
+        out.mediaScreenshots = game.screenshots
+        out.storageBytes = game.diskBytes
+        out.storageEstimated = game.diskBytes != nil
         out.compatAppID = appID
         return out
     }
@@ -345,9 +374,9 @@ final class StoreCenter {
         jobs.first { $0.gameID == gameID && ($0.phase == .running || $0.phase == .waiting) }
     }
 
-    func install(_ game: Game) {
+    func install(_ game: Game, destination: URL? = nil) {
         guard let adapter = adapters[game.source], let storeGame = storeGame(game), job(for: game.id) == nil else { return }
-        let folder = folders.gameFolder(game.source, title: storeGame.title, id: storeGame.id)
+        let folder = destination ?? library?.storeGameFolder(game.source, title: storeGame.title, id: storeGame.id) ?? folders.gameFolder(game.source, title: storeGame.title, id: storeGame.id)
         enqueue(StoreJob(gameID: game.id, title: game.name, kind: .install)) { [weak self] job in
             let install = try await adapter.install(storeGame, base: folder.appending(path: "game", directoryHint: .isDirectory)) { fraction in
                 Task { @MainActor in job.fraction = fraction }
@@ -408,6 +437,13 @@ final class StoreCenter {
         }
     }
 
+    // A failed job stays listed until it is dismissed or tried again.
+    func dismiss(_ job: StoreJob) {
+        guard case .failed(let reason) = job.phase else { return }
+        jobs.removeAll { $0 === job }
+        if problem == reason { problem = nil }
+    }
+
     func importFolder(_ folder: URL, into store: GameSource) {
         guard let adapter = adapters[store] else { return }
         let library = games[store] ?? []
@@ -454,7 +490,7 @@ final class StoreCenter {
                 next.phase = Task.isCancelled ? .failed(String(localized: "Stopped")) : .failed(error.localizedDescription)
                 if let store { self?.handle(error, store: store) }
             }
-            self?.jobs.removeAll { $0 === next && $0.phase == .done }
+            self?.jobs.removeAll { $0 === next && ($0.phase == .done || Task.isCancelled) }
             self?.pump()
         }
     }
@@ -474,7 +510,7 @@ final class StoreCenter {
             return
         }
         guard let wine = InstallRunners.wine(for: runner, runners: runners) else {
-            problem = String(localized: "\(runner.kind.name) \(runner.displayVersion) can’t start Windows games yet. Choose another runner in the game’s setup.")
+            problem = String(localized: "\(runner.name) \(runner.displayVersion) can’t start Windows games yet. Choose another runner in the game’s setup.")
             return
         }
         playing.insert(game.id)
@@ -491,6 +527,10 @@ final class StoreCenter {
 
     private func run(_ game: Game, record: StoreInstalledGame, adapter: any StoreAdapter, setup: GameSetup, wine: WineRunner,
                      offline: Bool) async throws {
+        let backends = self.backends, runners = self.runners
+        let wine = try await Task.detached {
+            try GraphicsRunner.prepare(wine, backend: setup.backend, backends: backends, runners: runners)
+        }.value
         var record = record
         // Preparing Windows environment: the prefix's first boot finishes before anything launches.
         let boot = WineBootstrap.begin(wine: wine, prefix: record.prefix, base: gameEnvironment,
@@ -536,6 +576,7 @@ final class StoreCenter {
         let prefix = record.prefix
         try await Task.detached {
             try AdvancedPrefixSettings.apply(wine: wine, prefix: prefix, environment: prefixEnvironment)
+            CrashHandling.apply(wine: wine, prefix: prefix, environment: prefixEnvironment)
         }.value
         // Only allowlisted store variables: legendary JSON must not set DYLD_* or HOME on the native loader.
         env.merge(launch.environment.filter { GameSetupResolver.isAllowed(name: $0.key, value: $0.value) }) { $1 }
@@ -544,8 +585,9 @@ final class StoreCenter {
                                                                                         launch.executable.path(percentEncoded: false)] + launch.arguments,
                                     environment: env, currentDirectory: launch.workingDirectory)
         let companion = offline ? nil : try? await adapter.companion(record.id)
-        let log = record.folder.appending(path: "game.log")
+        let log = record.folder.appending(path: CrashLog.gameLog)
         let companionLog = record.folder.appending(path: "companion.log")
+        let folder = record.folder
 
         let body: @Sendable () async throws -> Void = { [wine, env] in
             let helper = try companion.map { try StoreProcess($0, output: companionLog) }
@@ -555,6 +597,7 @@ final class StoreCenter {
                 self.afterLaunch()
             }
             _ = await process.wait()
+            CrashLog.keep(log, in: folder)
             // The game may have left its launcher behind and kept running in the prefix
             await StoreCenter.waitForWine(wine, environment: env)
             helper?.stop()
@@ -596,8 +639,25 @@ final class StoreCenter {
     func recreateBoot(_ game: Game) {
         guard let record = installed[game.id] else { return }
         boots[game.id] = nil
-        try? FileManager.default.removeItem(at: record.prefix)
-        play(game)
+        let prefix = record.prefix
+        guard Self.discard(prefix) == nil, FileManager.default.fileExists(atPath: prefix.path(percentEncoded: false)) else {
+            play(game)
+            return
+        }
+        // Could not be set aside: removed in place, off the main actor, before the new prefix is made
+        Task {
+            await Task.detached { try? FileManager.default.removeItem(at: prefix) }.value
+            play(game)
+        }
+    }
+
+    // One rename sets the folder aside at once; the slow removal of its files runs off the main actor
+    @discardableResult
+    nonisolated static func discard(_ folder: URL) -> Task<Void, Never>? {
+        let aside = folder.deletingLastPathComponent()
+            .appending(path: ".\(folder.lastPathComponent).discarded-\(UUID().uuidString)", directoryHint: .isDirectory)
+        guard (try? FileManager.default.moveItem(at: folder, to: aside)) != nil else { return nil }
+        return Task.detached(priority: .utility) { try? FileManager.default.removeItem(at: aside) }
     }
 
     // wineserver -k whatever stayed in the prefix, so the session and its token files close.

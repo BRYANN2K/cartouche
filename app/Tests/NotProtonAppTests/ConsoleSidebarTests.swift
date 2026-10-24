@@ -28,7 +28,7 @@ struct ConsoleSidebarTests {
         // The + next to Consoles opens Add Consoles, not the Add Games sheet
         #expect(!scene.library.showAddConsoles)
         scene.library.showAddConsoles = true
-        #expect(scene.library.addGames == nil)
+        #expect(!scene.library.showConsoleImport)
 
         var choice = AddConsolesChoice()
         choice.toggle("nes")

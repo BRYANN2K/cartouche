@@ -20,8 +20,8 @@ struct ConsoleImportTests {
         return [cart, unknown]
     }
 
-    private func sheet(_ scene: ConsoleScene, _ kind: AddGamesKind = .consoles) -> some View {
-        AddGamesSheet(kind: kind, library: scene.library).environment(scene.center)
+    private func sheet(_ scene: ConsoleScene) -> some View {
+        ConsoleImportSheet().environment(scene.center)
     }
 
     @Test("Known cartridge: named from the database, its console and \"checksum match\" within 2 seconds")
@@ -49,7 +49,7 @@ struct ConsoleImportTests {
         defer { scene.remove() }
         let files = try drop(scene)
         let flow = ConsoleImport(identifier: scene.center.identifier)
-        let host = UIHost(ConsoleImportFlow(center: scene.center, kind: .constant(.consoles), flow: flow)
+        let host = UIHost(ConsoleImportFlow(center: scene.center, flow: flow)
             .environment(scene.center), size: CGSize(width: 560, height: 460))
         defer { host.close() }
         flow.start(files)
@@ -72,7 +72,7 @@ struct ConsoleImportTests {
         #expect(flow.addTitle == "Add 2 Games")
         await host.settle()
         #expect(seen(try host.texts(), "Add 2 Games"))
-        let dark = UIHost(ConsoleImportFlow(center: scene.center, kind: .constant(.consoles), flow: flow),
+        let dark = UIHost(ConsoleImportFlow(center: scene.center, flow: flow),
                           size: CGSize(width: 560, height: 460), dark: true)
         await dark.settle()
         _ = try dark.texts(named: "import-identified")
@@ -108,7 +108,7 @@ struct ConsoleImportTests {
         #expect(found.map(\.name) == ["Cartouche Test Saga", "Cartouche Test Disc"])
         #expect(found.allSatisfy { $0.identifiedBy == .discID && $0.console == "ps1" })
         #expect(found.first?.discs.count == 2)
-        let host = UIHost(ConsoleImportFlow(center: scene.center, kind: .constant(.consoles), flow: flow), size: CGSize(width: 560, height: 420))
+        let host = UIHost(ConsoleImportFlow(center: scene.center, flow: flow), size: CGSize(width: 560, height: 420))
         defer { host.close() }
         await host.settle()
         let texts = try host.texts(named: "import-discs")

@@ -1,4 +1,5 @@
 import AppKit
+import CartoucheIdentity
 import Foundation
 import Observation
 import UniformTypeIdentifiers
@@ -25,9 +26,12 @@ struct StatusSnapshot: Sendable {
     var installContent: DeploymentContent.Status = .unchecked
     var runners: [Runner] = []
     var compatibilityTools: [InstalledTool] = []
+    // This app family once finished an install here (install-build.json)
+    var buildRecorded = false
+    var steamIntegrationVersion: String? = nil
 
     static func capture(bundledVersion: String) -> StatusSnapshot {
-        let registry = RunnerRegistry.refresh()
+        let registry = RunnerRegistry.refresh(free: .standard)
         var licenses: [String: CrossOverLicense.Status] = [:]
         for install in registry.installs where install.isUsable {
             licenses[install.id] = CrossOverLicense.check(crossOverRoot: install.crossOverRoot)
@@ -46,7 +50,11 @@ struct StatusSnapshot: Sendable {
             damagedRunners: registry.damaged,
             installContent: DeploymentContent.current(version: bundledVersion),
             runners: registry.runners,
-            compatibilityTools: RunnerRegistry.compatibilityTools()
+            compatibilityTools: RunnerRegistry.compatibilityTools(),
+            buildRecorded: FileManager.default.fileExists(
+                atPath: DeploymentContent.record(beside: SupportPaths.deployedVersion).path(percentEncoded: false)),
+            steamIntegrationVersion: (try? DeploymentContent.readBuild(
+                at: DeploymentContent.record(beside: SupportPaths.deployedVersion)))?.integrationVersion
         )
     }
 }
@@ -70,6 +78,29 @@ final class SystemStatus {
     var isIdle: Bool { !isBusy && !isRefreshing }
     var canInstall: Bool { isIdle && snapshot?.installContent.blocksInstallation != true }
 
+    // Only Repair replaces a Steam dylib that this account's build record does not name
+    var needsRepairInSteam: Bool {
+        if case .mismatchedDylib? = snapshot?.installContent { return true }
+        return false
+    }
+
+    private(set) var upkeep: SteamUpkeep.State = .idle
+    @ObservationIgnored var upkeepDefaults: UserDefaults = .standard
+    @ObservationIgnored var refreshStatus: @MainActor (SystemStatus) async -> Void = { await $0.refresh() }
+    @ObservationIgnored var upkeepInstall: @MainActor (SystemStatus, _ repairing: Bool) async -> Void = {
+        await $0.installAutomatically(repairing: $1)
+    }
+    // Set by the app: the library reloads once Steam has this app's build again
+    @ObservationIgnored var onUpkeepInstalled: @MainActor () async -> Void = {}
+    @ObservationIgnored private var upkeepInFlight = false
+    @ObservationIgnored private var upkeepFailed = false
+    @ObservationIgnored private var lastUpkeepCheck: Date?
+
+    // The automatic upkeep owns this state, so no install or repair button is offered for it
+    var updatesItself: Bool {
+        upkeep == .waitingForQuit || upkeep == .due || upkeep == .updating
+    }
+
     enum Confirmation: Identifiable, Hashable {
         case replaceSteam
         case blockUpdates
@@ -77,11 +108,15 @@ final class SystemStatus {
         case toolUnlicensed
         case removeBuild
         case removeEverything
+        case quitSteam
 
         var id: Self { self }
     }
 
     var pendingConfirmation: Confirmation?
+    private(set) var pendingSteamAction: SteamIntegrationLine.Action?
+    private(set) var pendingRepair = false
+    private(set) var steamStoppedByRun = false
     var generation = 0
 
     func beginRun(_ label: String) -> Int {
@@ -157,7 +192,7 @@ final class SystemStatus {
     }
 
     // Anything that can become a compatibility tool: a usable CrossOver, an
-    // installed clone to repair, or the pinned Wine CrossOver download.
+    // installed clone to repair, or the pinned Cartouche Wine download.
     var canSetUpTool: Bool {
         setupSource != nil || !(snapshot?.runner.builds.isEmpty ?? true) || Self.wineToolBuild != nil
     }
@@ -186,7 +221,7 @@ final class SystemStatus {
         }
     }
 
-    func requestInstall() async {
+    func requestInstall(repairing: Bool = false) async {
         guard canInstall else { return }
         checkingLicense = true
         defer { checkingLicense = false }
@@ -195,10 +230,49 @@ final class SystemStatus {
             licensed: await checkLicense()?.licensed,
             runner: snapshot?.runner ?? RunnerState.none
         ) {
+            pendingRepair = repairing
             pendingConfirmation = question
         } else {
-            await installIntoSteam()
+            await installIntoSteam(repairing: repairing)
         }
+    }
+
+    // The Cartouche line's one action; while Steam runs it asks before quitting Steam.
+    func request(_ action: SteamIntegrationLine.Action, quittingSteam: Bool) async {
+        guard canInstall else { return }
+        if quittingSteam {
+            pendingSteamAction = action
+            pendingConfirmation = .quitSteam
+            return
+        }
+        await start(action)
+    }
+
+    func confirmQuitSteam() async {
+        guard let action = pendingSteamAction else { return }
+        pendingSteamAction = nil
+        await start(action)
+    }
+
+    func cancelQuitSteam() {
+        pendingSteamAction = nil
+    }
+
+    // The installer quits Steam itself, off the main actor, when files Steam holds change.
+    private func start(_ action: SteamIntegrationLine.Action) async {
+        switch action {
+        case .install, .update: await requestInstall()
+        case .repair: await requestInstall(repairing: true)
+        case .replaceNotProton: await replaceNotProton()
+        }
+    }
+
+    func openSteam() async {
+        steamStoppedByRun = false
+        let app = SupportPaths.Steam.app.path(percentEncoded: false)
+        await Task.detached(priority: .userInitiated) {
+            _ = try? Shell.run("/usr/bin/open", [app])
+        }.value
     }
 
     func requestCompatibilityTool(
@@ -294,6 +368,8 @@ final class SystemStatus {
             return
         }
         AppLog.note("steam chosen: \(picked.path(percentEncoded: false))")
+        // Another copy of Steam waits for the user's own install
+        endUpkeep()
         await refresh()
     }
 
@@ -337,6 +413,7 @@ final class SystemStatus {
 
         clearFailure()
         outcome = nil
+        steamStoppedByRun = false
         let run = beginRun(first)
         defer { endRun() }
 
@@ -354,7 +431,7 @@ final class SystemStatus {
     private func setUpRunner(from install: CrossOverInstall?, replacingExisting: Bool = false) async {
         guard let install else {
             // No CrossOver: repair installed clones in place, or set up the
-            // Wine CrossOver download as the compatibility tool.
+            // Cartouche Wine download as the compatibility tool.
             let builds = (snapshot?.runner.builds ?? []).compactMap { RunnerRegistry.build(id: $0) }
             if !builds.isEmpty {
                 await repatchRunners(builds)
@@ -396,7 +473,7 @@ final class SystemStatus {
         }
     }
 
-    // No CrossOver needed: fetch the pinned Wine CrossOver build if absent, patch
+    // No CrossOver needed: fetch the pinned Cartouche Wine build if absent, patch
     // it for Steam and register its compatibility tools.
     private func installWineRunner() async {
         await perform(from: WineRunnerInstaller.step) { progress in
@@ -471,8 +548,14 @@ final class SystemStatus {
         }
     }
 
-    func installIntoSteam() async {
-        await installIntoSteam(replacingNotProton: false)
+    func installIntoSteam(repairing: Bool = false) async {
+        pendingRepair = false
+        await installIntoSteam(replacingNotProton: false, replacingUnrecordedDylib: repairing)
+    }
+
+    // Repair puts this app's build in Steam even when Steam's dylib is not the recorded one.
+    func repairInSteam() async {
+        await installIntoSteam(repairing: true)
     }
 
     // The user clicked Replace NotProton: the same install, with the takeover of the
@@ -481,15 +564,34 @@ final class SystemStatus {
         await installIntoSteam(replacingNotProton: true)
     }
 
-    private func installIntoSteam(replacingNotProton: Bool) async {
+    // The upkeep's install: the same run, except that a Steam which started meanwhile fails it instead of being quit
+    func installAutomatically(repairing: Bool) async {
+        await installIntoSteam(replacingNotProton: false, replacingUnrecordedDylib: repairing,
+                               stopClient: Self.leaveSteamRunning)
+    }
+
+    nonisolated static let leaveSteamRunning: SteamInstaller.ClientStopper = { _, _ in
+        guard !SteamBundle.isRunning else {
+            throw StepFailure(step: SteamInstaller.step, detail: String(localized: "Steam is running, please close Steam."))
+        }
+        return false
+    }
+
+    private func installIntoSteam(
+        replacingNotProton: Bool, replacingUnrecordedDylib: Bool = false,
+        stopClient: @escaping SteamInstaller.ClientStopper = SteamInstaller.stopTheClient
+    ) async {
         await perform(from: InstallPhase.checkingPayload.label) { progress in
             let lock = try DeploymentContent.acquireInstallationLock()
             defer { lock.release() }
             let result = try await Task.detached(priority: .userInitiated) {
                 try SteamInstaller.run(
                     holdingInstallationLock: true, replacingNotProton: replacingNotProton,
+                    replacingUnrecordedDylib: replacingUnrecordedDylib,
+                    stopClient: stopClient,
                     report: { progress($0.label) })
             }.value
+            steamStoppedByRun = result.stoppedClient
 
             var parts = [result.replacedNotProton
                 ? String(localized: "Cartouche replaced NotProton in Steam.")
@@ -525,6 +627,8 @@ final class SystemStatus {
             try await Task.detached(priority: .userInitiated) {
                 try SteamInstaller.finish(result)
             }.value
+            upkeepDefaults.set(true, forKey: SteamUpkeep.setUpKey)
+            upkeepFailed = false
 
             return parts.joined(separator: " ")
         }
@@ -543,7 +647,15 @@ final class SystemStatus {
         }
     }
 
+    // The user takes Cartouche out of this Steam, so the upkeep stops putting it back
+    private func endUpkeep() {
+        upkeepDefaults.set(false, forKey: SteamUpkeep.setUpKey)
+        upkeepFailed = false
+        upkeep = .idle
+    }
+
     func repairSteam() async {
+        endUpkeep()
         await perform(from: RepairPhase.checking.label) { progress in
             let lock = try DeploymentContent.acquireInstallationLock()
             defer { lock.release() }
@@ -575,6 +687,7 @@ final class SystemStatus {
     }
 
     func removeEverything() async {
+        endUpkeep()
         await perform(from: UninstallPhase.stoppingClient.label) { progress in
             let result = try await Task.detached(priority: .userInitiated) {
                 try await Uninstall.run(report: { progress($0.label) })
@@ -599,8 +712,36 @@ final class SystemStatus {
             StatusSnapshot.capture(bundledVersion: version)
         }.value
         snapshot = captured
+        planUpkeep(captured)
         AppLog.note(captured)
         await refreshRunnerStorage(cleanTemplates: !captured.installContent.blocksInstallation)
+    }
+
+    // A check hashes Cartouche's files, so app activation asks at most every few minutes
+    func keepSteamIntegrationCurrentOnActivation(now: Date = Date()) async {
+        guard (upkeepDefaults.object(forKey: SteamUpkeep.setUpKey) as? Bool) != false else { return }
+        if upkeep != .waitingForQuit, let last = lastUpkeepCheck, now.timeIntervalSince(last) < 300 { return }
+        await keepSteamIntegrationCurrent()
+    }
+
+    private func planUpkeep(_ snapshot: StatusSnapshot) {
+        guard upkeep != .updating else { return }
+        let decision = SteamUpkeep.decide(
+            setUpBefore: SteamUpkeep.wasSetUp(snapshot, defaults: upkeepDefaults),
+            failedBefore: upkeepFailed, snapshot: snapshot)
+        if decision == .nothing { upkeepFailed = false }
+        upkeep = SteamUpkeep.state(for: decision)
+    }
+
+    // Read-only status refresh. Installing or updating the integration requires the explicit Settings action.
+    func keepSteamIntegrationCurrent() async {
+        guard !upkeepInFlight, !isBusy else { return }
+        upkeepInFlight = true
+        defer { upkeepInFlight = false }
+        lastUpkeepCheck = Date()
+        await refreshStatus(self)
+        if let snapshot { planUpkeep(snapshot) }
+        // Checking on activation or Steam quitting never installs or replaces files.
     }
 
     private(set) var runnerSizes: [String: Int64] = [:]

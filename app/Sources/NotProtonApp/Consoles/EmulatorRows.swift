@@ -10,14 +10,15 @@ struct EmulatorRows: View {
         let options = center.emulators.options(for: console)
         if options.count > 1 || route != .retroArch {
             PanelRow(title: Text("Emulator")) {
-                Picker("Emulator", selection: Binding(
-                    get: { center.emulators.selected(for: console) },
-                    set: { center.chooseEmulator($0, for: console) }
-                )) {
-                    ForEach(options) { Text(verbatim: $0.title).tag($0.id) }
+                SetupChoiceMenu(title: options.first(where: { $0.id == center.emulators.selected(for: console) })?.title ?? "—",
+                                accessibilityTitle: "Emulator") {
+                    ForEach(options) { option in
+                        Toggle(isOn: Binding(get: { center.emulators.selected(for: console) == option.id },
+                                             set: { if $0 { center.chooseEmulator(option.id, for: console) } })) {
+                            Text(verbatim: option.title)
+                        }
+                    }
                 }
-                .labelsHidden()
-                .fixedSize()
             }
             Text("For every \(console.name) game.").font(.system(size: 11)).foregroundStyle(Glass.label2)
         }

@@ -77,7 +77,7 @@ DEPS := $(OBJS:.o=.d)
         tests-list overlay-shim overlay-shim-install overlay-shim-tests \
         overlay-shim-bench iconmaker icon \
         appinfo helpers-install unarc-driver ntdll-resolve bridge runcheck compatcheck \
-        compatsvc-check libexport-check services-check shortcutcheck scriptcheck envcheck buildcheck settingscheck routecheck bridgecheck gamedrivecheck backendcheck launchercheck launch-shell activatecheck FORCE
+        compatsvc-check libexport-check services-check webuicheck shortcutcheck scriptcheck envcheck buildcheck settingscheck routecheck bridgecheck gamedrivecheck backendcheck launchercheck launchlogcheck launch-shell activatecheck FORCE
 
 APP_PAYLOAD := app/Sources/NotProtonApp/Resources/payload
 
@@ -196,6 +196,14 @@ libexport-check:
 	mkdir -p $(OUT_DIR) && \
 	$(TEST_CC) -o $(LIBEXPORT_CHECK) dylib/tests/libexport-check.c dylib/util/file.c vendor/cJSON.c && \
 	$(LIBEXPORT_CHECK)
+
+WEBUICHECK := $(OUT_DIR)/webuicheck
+
+webuicheck:
+	@if [ ! -f dylib/tests/webuicheck.c ]; then $(call SKIP,webuicheck,dylib/tests/webuicheck.c); exit 0; fi; \
+	mkdir -p $(OUT_DIR) && \
+	$(TEST_CC) -o $(WEBUICHECK) dylib/tests/webuicheck.c && \
+	$(WEBUICHECK)
 
 SERVICES_CHECK := $(OUT_DIR)/services-check
 
@@ -449,6 +457,12 @@ $(OUT_DIR)/%.o: %.c
 $(RUN_SCRIPT_H): dylib/feats/compat_run.sh dylib/embed_script.py
 	@mkdir -p $(GENERATED_DIR)
 	python3 dylib/embed_script.py $< $@ RUN_SCRIPT
+
+dylib/feats/steaminstall.h: dylib/feats/steaminstall.js dylib/tests/embed-steaminstall.py
+	python3 dylib/tests/embed-steaminstall.py
+
+$(OUT_DIR)/dylib/feats/webpatch.o: dylib/feats/steaminstall.h
+$(OUT_DIR)/dylib/feats/libexport.o: dylib/feats/steaminstall.inc
 
 $(OUT_DIR)/dylib/feats/compat.o: $(RUN_SCRIPT_H)
 
@@ -757,6 +771,8 @@ define BUNDLE_APP
 		"$(2)/Contents/MacOS/Cartouche"
 	cp -R "$$(swift build --package-path app -c $(1) $(SWIFT_FLAGS) --show-bin-path)/NotProtonApp_NotProtonApp.bundle" \
 		"$(2)/Contents/Resources/"
+	ditto "$(APP_PAYLOAD)" \
+		"$(2)/Contents/Resources/NotProtonApp_NotProtonApp.bundle/Contents/Resources/payload"
 	cp -R "$$(swift build --package-path app -c $(1) $(SWIFT_FLAGS) --show-bin-path)/RetroArchKit_RetroArchKit.bundle" \
 		"$(2)/Contents/Resources/"
 	cp -R "$(2)/Contents/Resources/NotProtonApp_NotProtonApp.bundle/Contents/Resources/"*.lproj \
@@ -770,10 +786,10 @@ define BUNDLE_APP
 		"$(2)/Contents/Resources/"
 	@missing=$$(cd "$(APP_PAYLOAD)" && find . -type f ! -name '.DS_Store' | sed 's|^\./||' \
 		| while read -r rel; do \
-			[ -s "$(CURDIR)/$(2)/Contents/Resources/NotProtonApp_NotProtonApp.bundle/Contents/Resources/payload/$$rel" ] || echo "$$rel"; \
+			cmp -s "$$rel" "$(CURDIR)/$(2)/Contents/Resources/NotProtonApp_NotProtonApp.bundle/Contents/Resources/payload/$$rel" || echo "$$rel"; \
 		done); \
 	if [ -n "$$missing" ]; then \
-		echo "==> the bundle is missing staged payload, so the app would ship without it:" >&2; \
+		echo "==> the bundle has missing or changed staged payload:" >&2; \
 		echo "$$missing" | sed 's/^/        /' >&2; \
 		echo "==> rm -rf app/.build/out and build again" >&2; \
 		exit 1; \
@@ -783,18 +799,21 @@ define BUNDLE_APP
 		mkdir -p "$(2)/Contents/Helpers" && \
 		cp -f "$(INNOEXTRACT)" "$(2)/Contents/Helpers/innoextract" && \
 		codesign -f -s "$(APP_SIGN_ID)" "$(2)/Contents/Helpers/innoextract"; \
+	elif [ "$(1)" = release ]; then \
+		echo "==> $(INNOEXTRACT) is missing, the release app cannot read installers without it (run: $(MAKE) innoextract)" >&2; exit 1; \
 	else echo "==> $(INNOEXTRACT) not built, installer analysis needs a Homebrew innoextract (run: $(MAKE) innoextract)"; fi
-	@if [ -f "$(LIBARCHIVE)" ]; then \
-		mkdir -p "$(2)/Contents/Helpers" && \
-		cp -f "$(LIBARCHIVE)" "$(2)/Contents/Helpers/libarchive.dylib" && \
-		codesign -f -s "$(APP_SIGN_ID)" "$(2)/Contents/Helpers/libarchive.dylib"; \
-	else echo "==> $(LIBARCHIVE) not built, archive extraction is unavailable (run: $(MAKE) libarchive)"; fi
+	@if [ ! -f "$(LIBARCHIVE)" ]; then \
+		echo "==> $(LIBARCHIVE) is missing, the app would ship without archive extraction (run: $(MAKE) libarchive)" >&2; exit 1; \
+	fi
+	@mkdir -p "$(2)/Contents/Helpers"
+	cp -f "$(LIBARCHIVE)" "$(2)/Contents/Helpers/libarchive.dylib"
+	codesign -f -s "$(APP_SIGN_ID)" "$(2)/Contents/Helpers/libarchive.dylib"
 	codesign -f -s "$(APP_SIGN_ID)" "$(2)"
 	codesign --verify --strict "$(2)"
 	@echo "==> Built $(2) ($(APP_VERSION), $(1))"
 endef
 
-app: app-payload $(ICON_CAR) $(INNOEXTRACT)
+app: app-payload $(ICON_CAR)
 	$(call BUNDLE_APP,release,$(APP_BUNDLE))
 
 # The QA app is a debug build on purpose: QAEnvironment honours
@@ -824,7 +843,10 @@ $(LIBARCHIVE): installer/libarchive/build.sh installer/libarchive/pins
 
 # The app bundles the dylib in Contents/Helpers and loads it by @rpath; build it
 # rather than ship a bundle whose archive drops can only report detection is off.
+# These prerequisites sit below the definitions: make expands them when it reads
+# the rule, so naming them above would add an empty prerequisite.
 app qa-app: $(LIBARCHIVE)
+app: $(INNOEXTRACT)
 
 installer-tests:
 	@cd installer && swift test
@@ -852,3 +874,7 @@ rebuild: clean all
 FORCE:
 
 include retroarch/retroarch.mk
+
+.PHONY: launchlogcheck
+launchlogcheck:
+	sh dylib/tests/launchlogcheck.sh dylib/feats/compat_run.sh

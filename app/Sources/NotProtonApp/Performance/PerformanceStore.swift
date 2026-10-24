@@ -54,8 +54,12 @@ enum PerformanceIncoming {
                 keys[key] = value
             }
         }
-        guard let appID = keys["app_id"].flatMap(Int.init), appID > 0,
-              let started = keys["started"].flatMap(TimeInterval.init) else { return .invalid }
+        guard let started = keys["started"].flatMap(TimeInterval.init) else {
+            // An older script writes the file line by line: a young one may still be filling in
+            let partial = keys["app_id"].map { Int($0) != nil } ?? true
+            return partial && age(of: folder, now: now) <= abandonedAfter ? .running : .invalid
+        }
+        guard let appID = keys["app_id"].flatMap(Int.init), appID > 0 else { return .invalid }
         // A launch folder written before the script recorded the setup still migrates in
         let runner = keys["runner"].flatMap { $0.isEmpty ? nil : $0 } ?? PlaySetup.unknownRunnerID
 

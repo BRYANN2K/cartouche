@@ -21,6 +21,46 @@ struct StoreGameTests {
         #expect(scene.center.problem == nil, "\(scene.center.problem ?? "")")
     }
 
+    @Test("Changing runners reuses one installation and preserves saves", arguments: [GameSource.epic, .gog, .amazon])
+    func sharedInstallation(source: GameSource) async throws {
+        let scene = try await StoreScene("shared-\(source.id)", gogServer: source == .gog)
+        defer { scene.remove() }
+        await scene.signIn(source, code: "\(source.id)-good-code")
+        let ids: [GameSource: String] = [.epic: "epic:Fennec", .gog: "gog:1207658924", .amazon: "amazon:amzn1.adg.product.SAMPLE"]
+        let id = try #require(ids[source])
+        let game = try #require(scene.model.game(id))
+        scene.center.install(game)
+        #expect(await scene.waitForJobs())
+        try await playAndWait(scene, id)
+        let record = try #require(scene.center.record(id))
+        let relative: [GameSource: String] = [.epic: "Binaries/Game.exe", .gog: "bin/game.exe", .amazon: "Game/Sample.exe"]
+        let executable = record.install.path.appending(path: try #require(relative[source]))
+        let before = try executable.resourceValues(forKeys: [.fileResourceIdentifierKey]).fileResourceIdentifier as? NSObject
+        let save = record.prefix.appending(path: "drive_c/users/crossover/Documents/runner-switch.sav")
+        try FileManager.default.createDirectory(at: save.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data("keep this save".utf8).write(to: save)
+        let clients = ["legendary", "gogdl", "nile"]
+        let downloads = clients.map { scene.calls($0).filter { !Set($0.split(separator: " ")).isDisjoint(with: ["install", "download"]) }.count }
+        let alternate = try fakeRunner(in: scene.runners, build: "26.3.0.39832", flavors: [.rosetta])
+        let root = SupportPaths.clonedRoot(forBuild: alternate.id, runners: scene.runners)
+        let script = StoreStubs.wine(state: scene.state)
+        try StoreStubs.install(script.replacingOccurrences(of: "if [ \"$1\" = wineboot ]; then", with: "echo alternate >> '\(scene.state.appending(path: "chosen-runner").path)'\nif [ \"$1\" = wineboot ]; then"), at: root.appending(path: "lib/wine/x86_64-unix/wine"))
+        try StoreStubs.install("#!/bin/sh\nexit 0\n", at: root.appending(path: "bin/wineserver"))
+        scene.model.runners.append(alternate)
+        for runner in [alternate, scene.runner] {
+            scene.model.setSetup(GameSetupChoice(runnerID: runner.id, graphics: .wined3d), for: id)
+            #expect(scene.center.setup(for: game)?.runner?.id == runner.id)
+            try await playAndWait(scene, id)
+            #expect(scene.center.record(id)?.install.path == record.install.path)
+            #expect(scene.center.record(id)?.prefix == record.prefix)
+            #expect(try Data(contentsOf: save) == Data("keep this save".utf8))
+        }
+        #expect(scene.text("chosen-runner").contains("alternate"))
+        let after = try executable.resourceValues(forKeys: [.fileResourceIdentifierKey]).fileResourceIdentifier as? NSObject
+        #expect(before == after)
+        #expect(downloads == clients.map { scene.calls($0).filter { !Set($0.split(separator: " ")).isDisjoint(with: ["install", "download"]) }.count })
+    }
+
     @Test("Epic: a free game downloads with progress in the activity slot, then plays with the runner and backend of its setup")
     func epic() async throws {
         let scene = try await StoreScene("game-epic")
@@ -31,6 +71,9 @@ struct StoreGameTests {
         #expect(game.artwork == URL(string: "https://cdn1.epicgames.com/tall.jpg"))
         let actions = GameActionRunner(model: scene.model, stores: scene.center)
         actions.perform(.install, on: game)
+        #expect(scene.model.installRequest?.id == game.id)
+        #expect(scene.center.job(for: game.id) == nil)
+        scene.center.install(game)
         var seen: [Double] = []
         var titles = Set<String>()
         #expect(await scene.waitUntil {
@@ -125,6 +168,9 @@ struct StoreGameTests {
         var actions = GameActionRunner(model: scene.model, stores: scene.center)
         actions.confirmUninstall = { _ in true }
         actions.perform(.install, on: game)
+        #expect(scene.model.installRequest?.id == game.id)
+        #expect(scene.center.job(for: game.id) == nil)
+        scene.center.install(game)
         #expect(await scene.waitForJobs())
         game = try #require(scene.model.game(game.id))
         #expect(GameMenu.items(for: game, in: scene.model).flatMap(\.flatActions).contains(.update))
@@ -141,6 +187,21 @@ struct StoreGameTests {
         #expect(calls.contains("uninstall amzn1.adg.product.SAMPLE"))
         #expect(!FileManager.default.fileExists(atPath: record.folder.path))
         #expect(scene.model.game(game.id)?.installed == false)
+    }
+
+    @Test("Recreate Prefix sets the old prefix aside at once and deletes it off the main actor")
+    func discardPrefix() async throws {
+        let work = try scratchDirectory("discard")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let prefix = work.appending(path: "prefix", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: prefix.appending(path: "drive_c/windows"), withIntermediateDirectories: true)
+        try Data("reg".utf8).write(to: prefix.appending(path: "system.reg"))
+
+        let removal = try #require(StoreCenter.discard(prefix))
+        #expect(!FileManager.default.fileExists(atPath: prefix.path))
+        await removal.value
+        #expect(try FileManager.default.contentsOfDirectory(atPath: work.path).isEmpty)
+        #expect(StoreCenter.discard(prefix) == nil)
     }
 
     @Test("A store game's cover is the store's box art, kept in the cover cache for offline")

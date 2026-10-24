@@ -1,5 +1,5 @@
 #!/bin/sh
-# Turns a Wine CrossOver install tree into the release asset: one tar.xz with the
+# Turns a Cartouche Wine install tree into the release asset: one tar.xz with the
 # LGPL notices and the source offer inside, its .sha256, and the runner manifest
 # entry the app pins it with.
 #
@@ -39,9 +39,10 @@ rm -rf "$stage/sources"
 cat > "$root/SOURCE.md" <<EOF
 # Source code for this build
 
-This is Wine as published by CodeWeavers in the CrossOver $CX_VERSION sources,
-built by Cartouche. It is free software under the GNU Lesser General Public
-License, version 2.1 or later (COPYING.LIB, LICENSE, AUTHORS).
+This is Cartouche Wine: Wine as published by CodeWeavers in the CrossOver
+$CX_VERSION sources, built by Cartouche. It is free software under the GNU
+Lesser General Public License, version 2.1 or later (COPYING.LIB, LICENSE,
+AUTHORS).
 
 It is not CrossOver and is not made or supported by CodeWeavers.
 

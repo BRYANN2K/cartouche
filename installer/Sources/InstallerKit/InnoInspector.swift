@@ -3,10 +3,14 @@
 import Foundation
 
 // One file the installer script writes, with the uncompressed size the script promises.
+// A language-specific file lands only when that language is chosen at install.
 public struct InnoFileEntry: Sendable, Equatable {
     public let path: String
     public let bytes: Int64
-    public init(path: String, bytes: Int64) { self.path = path; self.bytes = bytes }
+    public var languageSpecific: Bool
+    public init(path: String, bytes: Int64, languageSpecific: Bool = false) {
+        self.path = path; self.bytes = bytes; self.languageSpecific = languageSpecific
+    }
 }
 
 public struct InnoReport: Sendable, Equatable {
@@ -72,6 +76,24 @@ public enum InnoInspector {
         let out = try runner.run(tool, ["--list-sizes", "--silent", setup.path(percentEncoded: false)])
         if out.contains("Not a supported Inno Setup installer") { throw Failure.notInno(out) }
         return parseSizes(out)
+    }
+
+    // `--language-only` lists only the files tied to a language, in --list's path shape. innoextract
+    // prints nothing about components or tasks, so those stay unmarked. A failed run marks nothing.
+    public static func markingLanguageFiles(
+        _ entries: [InnoFileEntry], setup: URL, tool: String? = Innoextract.path(),
+        runner: any ToolRunning = ProcessToolRunner()
+    ) -> [InnoFileEntry] {
+        guard let tool, !entries.isEmpty,
+              let out = try? runner.run(tool, ["--language-only", "--list-sizes", "--silent", setup.path(percentEncoded: false)]),
+              !out.contains("Not a supported Inno Setup installer") else { return entries }
+        let tied = Set(parseSizes(out).map { $0.path.lowercased() })
+        guard !tied.isEmpty else { return entries }
+        return entries.map { entry in
+            var marked = entry
+            marked.languageSpecific = tied.contains(entry.path.lowercased())
+            return marked
+        }
     }
 
     public static func parseSizes(_ list: String) -> [InnoFileEntry] {

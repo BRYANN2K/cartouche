@@ -94,9 +94,8 @@ public final class EmulatorShelf {
         for found in installed where found.emulator.consoles.contains(console.id) {
             options.append(EmulatorChoice(id: found.id, title: found.title))
         }
-        let current = selected(for: console)
-        if !options.contains(where: { $0.id == current }), let gone = EmulatorCatalog.emulator(current) {
-            options.append(EmulatorChoice(id: gone.id, title: String(localized: "\(gone.name) (not installed)", bundle: .module)))
+        for missing in EmulatorCatalog.emulators(for: console.id) where !options.contains(where: { $0.id == missing.id }) {
+            options.append(EmulatorChoice(id: missing.id, title: String(localized: "\(missing.name) (not installed)", bundle: .module)))
         }
         return options
     }

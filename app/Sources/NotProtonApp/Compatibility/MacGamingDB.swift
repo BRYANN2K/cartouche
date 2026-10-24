@@ -7,6 +7,12 @@ struct MacGamingDBEntry: Codable, Sendable, Equatable {
     let reviewCount: Int
     let topLayer: TranslationLayer?
     let reports: [MacReport]
+    var slug: String? = nil
+
+    var reportURL: URL? {
+        guard let slug, !slug.isEmpty, slug.allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-") }) else { return nil }
+        return URL(string: "https://macgamingdb.app/games/")!.appending(path: slug)
+    }
 
     static let empty = MacGamingDBEntry(rating: nil, reviewCount: 0, topLayer: nil, reports: [])
 
@@ -16,6 +22,7 @@ struct MacGamingDBEntry: Codable, Sendable, Equatable {
 
     private struct Answer: Decodable {
         struct Game: Decodable {
+            let slug: String?
             let aggregatedPerformance: String?
             let reviewCount: Int?
         }
@@ -53,7 +60,7 @@ struct MacGamingDBEntry: Codable, Sendable, Equatable {
         let top = order.filter { counts[$0] != nil }.max { counts[$0]! < counts[$1]! }
         let rating = answer.game.aggregatedPerformance.flatMap(ratings.firstIndex(of:)).flatMap(CompatRating.init(score:))
         return MacGamingDBEntry(
-            rating: rating, reviewCount: answer.game.reviewCount ?? answer.reviews.count, topLayer: top, reports: rows)
+            rating: rating, reviewCount: answer.game.reviewCount ?? answer.reviews.count, topLayer: top, reports: rows, slug: answer.game.slug)
     }
 
     private static func row(_ r: Review) -> MacReport? {
@@ -136,7 +143,7 @@ actor MacGamingDBClient {
 
     func reports(appID: Int, now: Date) async -> MacGamingDBEntry? {
         let saved = load(appID)
-        if let saved, now >= saved.fetched, now.timeIntervalSince(saved.fetched) < 24 * 3600 {
+        if let saved, (saved.entry.slug != nil || saved.entry.reports.isEmpty), now >= saved.fetched, now.timeIntervalSince(saved.fetched) < 24 * 3600 {
             return saved.entry
         }
         if let task = inFlight[appID] { return await task.value }

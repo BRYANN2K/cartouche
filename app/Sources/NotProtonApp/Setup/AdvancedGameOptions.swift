@@ -9,6 +9,18 @@ struct AdvancedGameOptions: Codable, Equatable, Sendable {
     var highResolution = false
 }
 
+extension AdvancedGameOptions {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        dlss = c.lenient(Bool.self, forKey: .dlss) ?? false
+        spatial = c.lenient(Bool.self, forKey: .spatial) ?? false
+        spatialFactor = c.lenient(Double.self, forKey: .spatialFactor) ?? 2.0
+        advertiseAVX = c.lenient(Bool.self, forKey: .advertiseAVX) ?? false
+        msync = c.lenient(Bool.self, forKey: .msync) ?? false
+        highResolution = c.lenient(Bool.self, forKey: .highResolution) ?? false
+    }
+}
+
 enum AdvancedOption: CaseIterable, Hashable, Sendable {
     case dlss, spatial, advertiseAVX, msync, highResolution, metalHUD
 }

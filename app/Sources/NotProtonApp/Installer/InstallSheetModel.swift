@@ -31,7 +31,15 @@ final class InstallSheetModel {
 
     enum Storage: Sendable, Equatable { case inPlace, copy }
 
+    // What the drop sheet already chose for an installed game: the review shows it instead of asking again.
+    struct Decided: Sendable, Equatable {
+        var exe: URL
+        var storage: Storage
+    }
+
     @ObservationIgnored weak var center: InstallCenter?
+    // Opened from Add Games: Back from the first step goes back there.
+    @ObservationIgnored private(set) var backToAddGames: (@MainActor () -> Void)?
 
     private var baseStep: Step = .drop
     private(set) var dropped: URL?
@@ -60,8 +68,12 @@ final class InstallSheetModel {
     private(set) var gameBytes: Int64 = 0
     private(set) var onExternalDrive = false
     var storage: Storage = .inPlace
+    private(set) var decided: Decided?
+    // The review came straight after the analysis, so it is the first step shown
+    private(set) var skippedAnalysis = false
 
     @ObservationIgnored private var analysisTask: Task<Void, Never>?
+    @ObservationIgnored private var recreating = false
     @ObservationIgnored var cleaner = InstallerCleanup()
     @ObservationIgnored var loadRunners: @Sendable () -> [Runner] = { InstallRunners.choices(RunnerRegistry.refresh(free: .standard)) }
     @ObservationIgnored var tool: @Sendable () -> String? = { Innoextract.path() }
@@ -83,6 +95,15 @@ final class InstallSheetModel {
         identification = nil; identificationViaSteam = false; search = ""; job = nil; chosenExe = nil; showInSteam = true
         steamOutcome = nil; finishProblem = nil; cleanup = .idle
         programs = nil; gameBytes = 0; onExternalDrive = false; storage = .inPlace
+        decided = nil; skippedAnalysis = false; backToAddGames = nil
+    }
+
+    func open(_ url: URL, decided: Decided?, back: (@MainActor () -> Void)?) {
+        reset()
+        self.decided = decided
+        if let decided { storage = decided.storage }
+        backToAddGames = back
+        analyze(url)
     }
 
     func show(_ job: InstallJob) {
@@ -97,6 +118,7 @@ final class InstallSheetModel {
         analysisTask?.cancel()
         dropped = url
         baseStep = .analysis
+        skippedAnalysis = false
         analysis = nil; readProblem = nil; identification = nil
         programs = nil; gameBytes = 0; onExternalDrive = false
         isAnalyzing = true
@@ -120,7 +142,7 @@ final class InstallSheetModel {
             case .success(let read):
                 var found = read.0
                 programs = read.1; gameBytes = read.2; onExternalDrive = read.3
-                chosenExe = programs?.candidates.first?.path
+                chosenExe = decidedExe() ?? programs?.candidates.first?.path
                 analysis = found
                 await identify(found)
                 guard !Task.isCancelled else { return }
@@ -137,15 +159,34 @@ final class InstallSheetModel {
             let load = loadRunners
             runners = await Task.detached { load() }.value
             if runnerID == nil || !runners.contains(where: { $0.id == runnerID }) { runnerID = runners.first?.id }
+            if decided != nil, canContinue {
+                skippedAnalysis = true
+                baseStep = .review
+            }
         }
     }
 
+    // The drop chose from the same scan; a program the scan no longer lists is asked again.
+    private func decidedExe() -> String? {
+        guard let decided else { return nil }
+        let wanted = decided.exe.standardizedFileURL.path(percentEncoded: false)
+        let found = programs?.candidates.first { URL(filePath: $0.path).standardizedFileURL.path(percentEncoded: false) == wanted }
+        if found == nil { self.decided = nil }
+        return found?.path
+    }
+
+    func changeChoices() { decided = nil }
+
     private func verify(_ manifest: ChecksumManifest, root: URL) async -> [URL: ChecksumResult] {
-        let total = max(1, manifest.entries.reduce(Int64(0)) { sum, entry in
-            sum + ((try? entry.file.resourceValues(forKeys: [.fileSizeKey]).fileSize).flatMap { $0 }.map(Int64.init) ?? 0)
-        })
-        let counter = ByteCount()
         verifyFraction = 0
+        // One stat per part, some on slow external disks: summed off the main actor.
+        let entries = manifest.entries
+        let total = await Task.detached {
+            max(1, entries.reduce(Int64(0)) { sum, entry in
+                sum + ((try? entry.file.resourceValues(forKeys: [.fileSizeKey]).fileSize).flatMap { $0 }.map(Int64.init) ?? 0)
+            })
+        }.value
+        let counter = ByteCount()
         let ticker = Task { [weak self] in
             while true {
                 try? await Task.sleep(for: .milliseconds(200))
@@ -163,9 +204,14 @@ final class InstallSheetModel {
         let data = await center?.compat()
         index = await center?.titles.index(for: data) ?? GameIndex([])
         let main = found.scan.setup ?? programs?.candidates.first.map { URL(filePath: $0.path) }
-        let hints = found.isInstalledGame ? EngineMetadata.hints(in: found.folder, exe: main) : nil
-        let gog = found.isInstalledGame ? GOGInfo.find(in: found.folder)?.info : nil
-        let product = hints?.productName ?? main.flatMap(PEVersion.productName)
+        let installed = found.isInstalledGame, folder = found.folder
+        // Each reads the game's files, a folder walk for the first two: off the main actor.
+        let (hints, gog, product) = await Task.detached { () -> (EngineMetadata.Hints?, GOGInfo?, String?) in
+            let hints = installed ? EngineMetadata.hints(in: folder, exe: main) : nil
+            let gog = installed ? GOGInfo.find(in: folder)?.info : nil
+            return (hints, gog, hints?.productName ?? main.flatMap(PEVersion.productName))
+        }.value
+        guard !Task.isCancelled else { return }
         var id = GameIdentification.identify(
             gog: gog, gogID: GOGInfo.id(inFileList: found.inno?.files ?? []), steamAppID: hints?.steamAppID,
             installerTitle: found.inno?.title, engineInfo: hints?.name, productName: product,
@@ -256,6 +302,9 @@ final class InstallSheetModel {
             } else if let damaged = analysis.damaged.first {
                 items.append(Item(id: "sums", title: String(localized: "\(damaged) is damaged"),
                                   detail: String(localized: "Download it again."), check: .failed))
+            } else if let unreadable = analysis.unreadable.first {
+                items.append(Item(id: "sums", title: String(localized: "\(unreadable) could not be read to the end. Download it again, then drop it here."),
+                                  detail: "", check: .failed))
             } else if analysis.verified {
                 items.append(Item(id: "sums", title: String(localized: "Files are intact"),
                                   detail: String(localized: "Checksums match"), check: .ok))
@@ -297,6 +346,11 @@ final class InstallSheetModel {
     func toReview() { if canContinue { baseStep = .review } }
 
     func back() {
+        if let returnTo = backToAddGames, baseStep == .analysis || (baseStep == .review && skippedAnalysis) {
+            reset()
+            center?.closeSheet(then: returnTo)
+            return
+        }
         switch baseStep {
         case .review: baseStep = .analysis
         case .analysis: reset()
@@ -323,6 +377,9 @@ final class InstallSheetModel {
     }
 
     var isImport: Bool { analysis?.isInstalledGame == true }
+
+    // Unpacked from a dropped archive: it moves into its prefix whatever the storage says.
+    var isExtracted: Bool { analysis.map { StagedGames.isStaged($0.folder) } ?? false }
 
     // A copy needs the game's size free in Cartouche's folder.
     var copyFits: Bool { freeBytes.map { $0 >= gameBytes } ?? true }
@@ -357,7 +414,8 @@ final class InstallSheetModel {
         guard let analysis, let runnerID, let exe = chosenExe, canInstall else { return }
         var request = InstallRequest(
             setup: analysis.folder, source: analysis.folder, name: gameName, appID: appID,
-            gogID: identification?.gogID, expectedBytes: storage == .copy ? gameBytes : 0, installerBytes: 0,
+            gogID: identification?.gogID,
+            expectedBytes: storage == .copy || isExtracted ? gameBytes : 0, installerBytes: 0,
             installerFiles: [], manifest: nil
         )
         request.importing = GameImport(folder: analysis.folder, exe: URL(filePath: exe), copy: storage == .copy, showInSteam: showInSteam)
@@ -392,10 +450,16 @@ final class InstallSheetModel {
     }
 
     // The attempt's folder — prefix included — is wiped first, then queued again.
+    // A prefix is thousands of files: the removal runs detached, the requeue follows it.
     func recreatePrefix() {
-        guard let job, let folder = job.folder else { return }
-        try? FileManager.default.removeItem(at: folder.root)
-        center?.requeue(job)
+        guard let job, !recreating, job.phase == .failed || job.phase == .stopped,
+              let root = job.folder?.root else { return }
+        recreating = true
+        Task { [weak self] in
+            _ = await Task.detached { try? FileManager.default.removeItem(at: root) }.value
+            self?.recreating = false
+            self?.center?.requeue(job)
+        }
     }
 
     var fixes: [RetryFix] {
@@ -426,6 +490,23 @@ final class InstallSheetModel {
     }
 
     func requestCleanup() { cleanup = .confirming }
+
+    // The files Move to Trash takes, by name relative to the installer folder.
+    var cleanupNames: [String] {
+        guard let request = job?.request else { return [] }
+        return request.installerFiles.map { GameVerify.relative($0, under: request.source) }
+    }
+
+    // The confirmation names every file it trashes; a long parts list ends with a count.
+    var cleanupMessage: String {
+        let names = cleanupNames
+        let shown = names.count > Self.cleanupListed + 1 ? Array(names.prefix(Self.cleanupListed)) : names
+        let more = names.count - shown.count
+        let list = ListFormatter.localizedString(byJoining: more > 0 ? shown + [String(localized: "\(more) more files")] : shown)
+        return String(localized: "Cartouche moves \(list) to the Trash. The installed game is not touched.")
+    }
+
+    static let cleanupListed = 8
 
     func confirmCleanup() {
         guard let request = job?.request, request.importing == nil else { return }

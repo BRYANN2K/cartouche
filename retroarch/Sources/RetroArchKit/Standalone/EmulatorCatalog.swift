@@ -1,6 +1,6 @@
 import Foundation
 
-// An emulator the user installed; Cartouche never ships, fetches or configures one.
+// A standalone emulator, launched with its own settings.
 public struct StandaloneEmulator: Sendable, Identifiable, Equatable, Hashable {
     public let id: String
     public let name: String
@@ -50,6 +50,10 @@ public enum EmulatorCatalog {
             id: "xemu", name: "xemu", bundleIDs: ["xemu.app.0"], appNames: ["xemu"],
             executableName: "xemu", consoles: ["xbox"], arguments: ["-dvd_path", rom],
             settings: "Library/Application Support/xemu/xemu"),
+        StandaloneEmulator(
+            id: "eden", name: "Eden", bundleIDs: ["com.yuzu-emu.yuzu"], appNames: ["eden", "Eden"],
+            executableName: "eden", consoles: ["switch"], arguments: ["-g", rom],
+            settings: "Library/Application Support/eden"),
         // The Ryujinx fork; the game is the last argument, as Ryujinx always took it.
         StandaloneEmulator(
             id: "ryubing", name: "Ryubing", bundleIDs: ["org.ryujinx.Ryujinx"], appNames: ["Ryujinx", "Ryubing"],

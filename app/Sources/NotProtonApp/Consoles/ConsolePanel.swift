@@ -3,82 +3,28 @@ import GameController
 import RetroArchKit
 import SwiftUI
 
+// The console modules under the shared panel chrome. The page itself lives in GamePanel.
 struct ConsolePanel: View {
     let game: Game
     let console: ConsoleGame
+    let content: ConsolePanelContent
     let center: ConsoleCenter
     @Bindable var model: LibraryModel
     let actions: GameActionRunner
+    @Binding var showingMore: Bool
+    @Binding var showingJoin: Bool
 
-    @State private var showingMore = false
-    @State private var showingJoin = false
-    @State private var details: (id: String, states: [SaveState], bios: BIOSStatus?)?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(ControlsCenter.self) private var controls: ControlsCenter?
 
-    private var content: ConsolePanelContent? {
-        guard let system = center.console(of: console), let details, details.id == console.id else { return nil }
-        var content = ConsolePanelContent(game: console, console: system, states: details.states,
-                                          bios: details.bios,
-                                          playing: center.isPlaying(console.id) ? center.playing : nil,
-                                          route: center.route(for: system))
-        content.signedIn = center.extras.username != nil
-        content.progress = center.extras.progress(for: console)
-        return content
-    }
-
     var body: some View {
-        // A ZStack, not a Group: the loading task below must run while there is no content yet
-        ZStack {
-            if let content {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    PanelHero(game: game, overlay: LookOverlay(look: console.setup.look))
-                        .accessibilityLabel(Text("\(game.name) screenshot"))
-                    VStack(alignment: .leading, spacing: 0) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(game.name)
-                                .font(.system(size: 22, weight: .bold))
-                                .tracking(-0.44)
-                                .textSelection(.enabled)
-                            Text(content.subtitle())
-                                .font(.system(size: 12))
-                                .foregroundStyle(Glass.label2)
-                        }
-                        .padding(.top, 4)
-                        .padding(.bottom, 14)
-                        ForEach(content.sections, id: \.self) { section in
-                            block(section, content)
-                        }
-                    }
-                    .padding(EdgeInsets(top: 6, leading: 16, bottom: 20, trailing: 16))
-                }
-            }
-            .scrollIndicators(.never)
-            .softScrollEdges(top: 24, bottom: 32)
-                .id(game.id)
-            .task(id: game.id) { if let system = center.console(of: console) { await center.refreshEmulators(for: system) } }
-            .transition(Motion(reduceMotion: reduceMotion).entrance)
-            .sheet(isPresented: $showingMore) {
-                ConsoleMoreSheet(game: console, content: content, center: center)
-            }
-            .sheet(isPresented: $showingJoin) {
-                NetplayJoinSheet(center: center)
-            }
-            .netplayExplanations(center.netplayFlow)
-            .task(id: console.id) { await center.extras.refresh(console) }
-            }
-        }
-        // States and BIOS are read off the main thread, once per change
-        .task(id: "\(console.id)#\(center.statesChanged)") {
-            async let states = center.states(for: console)
-            async let bios = center.bios(for: console)
-            details = await (console.id, states, bios)
+        ForEach(content.sections, id: \.self) { section in
+            block(section, content)
         }
     }
 
     @ViewBuilder
-    private func block(_ section: ConsolePanelContent.Section, _ content: ConsolePanelContent) -> some View {
+    private func block(_ section: PanelModule, _ content: ConsolePanelContent) -> some View {
         switch section {
         case .play:
             VStack(alignment: .leading, spacing: 8) {
@@ -147,15 +93,16 @@ struct ConsolePanel: View {
                     .padding(.vertical, 4)
                 }
             }
-            .padding(.bottom, 12)
-        case .stats:
-            HStack(alignment: .top, spacing: 8) {
-                StatCell(title: Text("Played"), value: content.played)
-                StatCell(title: Text("Achievements"), value: content.achievements)
-            }
-            .padding(12)
-            .groupBackground()
             .padding(.bottom, 18)
+        case .yourPlay:
+            group(section.title) {
+                HStack(alignment: .top, spacing: 8) {
+                    StatCell(title: Text("Played"), value: content.played)
+                    StatCell(title: Text("Achievements"), value: content.achievements)
+                }
+            }
+        case .expected, .antiCheat, .graphics, .advanced:
+            EmptyView()
         case .setup:
             group(section.title) {
                 EmulatorRows(console: content.console, route: content.route, center: center)
@@ -228,24 +175,23 @@ private struct ConsoleSetupRows: View {
 
     var body: some View {
         PanelRow(title: Text("Core")) {
-            Picker("Core", selection: Binding(
-                get: { content.core },
-                set: { core in Task { await center.setSetup(game.id) { $0.core = core } } }
-            )) {
-                ForEach(content.cores, id: \.id) { Text(verbatim: $0.name).tag($0.id) }
+            SetupChoiceMenu(title: content.cores.first(where: { $0.id == content.core })?.name ?? content.core,
+                            accessibilityTitle: "Core") {
+                ForEach(content.cores, id: \.id) { core in
+                    Toggle(isOn: Binding(get: { content.core == core.id }, set: { selected in
+                        if selected { Task { await center.setSetup(game.id) { $0.core = core.id } } }
+                    })) { Text(verbatim: core.name) }
+                }
             }
-            .labelsHidden()
-            .fixedSize()
         }
         PanelRow(title: Text("Look")) {
-            Picker("Look", selection: Binding(
-                get: { game.setup.look },
-                set: { look in Task { await center.setSetup(game.id) { $0.look = look } } }
-            )) {
-                ForEach(ConsoleLook.allCases) { Text($0.title).tag($0) }
+            SetupChoiceMenu(title: game.setup.look.title, accessibilityTitle: "Look") {
+                ForEach(ConsoleLook.allCases) { look in
+                    Toggle(isOn: Binding(get: { game.setup.look == look }, set: { selected in
+                        if selected { Task { await center.setSetup(game.id) { $0.look = look } } }
+                    })) { Text(look.title) }
+                }
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
         }
         if game.isMultiDisc {
             PanelRow(title: Text("Disc")) {

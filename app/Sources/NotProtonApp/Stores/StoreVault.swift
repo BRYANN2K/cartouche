@@ -16,7 +16,7 @@ protocol TokenVault: Sendable {
     func delete(_ store: GameSource) throws
 }
 
-// One generic password per store, readable only while the Mac is unlocked, never synced.
+// One generic password per store, readable only while the Mac is unlocked, never synced; in the data protection keychain when the build is entitled to it.
 struct KeychainVault: TokenVault {
 
     // QA sign-ins use their own service so the real Keychain items are never read
@@ -39,18 +39,19 @@ struct KeychainVault: TokenVault {
     }
 
     func read(_ store: GameSource) throws -> StoreSecret? {
-        let data = try run { try Keychain.read(query(store)) }
+        // A login-keychain item from an older build moves to the data protection keychain here, once
+        let data = try run { try Keychain.readMigrating(query(store), attributes: attributes(Data())) }
         guard let data else { return nil }
         return try JSONDecoder().decode(StoreSecret.self, from: data)
     }
 
     func write(_ secret: StoreSecret, for store: GameSource) throws {
         let data = try JSONEncoder().encode(secret)
-        try run { try Keychain.write(data, matching: query(store), attributes: attributes(data)) }
+        try run { try Keychain.writeProtected(data, matching: query(store), attributes: attributes(data)) }
     }
 
     func delete(_ store: GameSource) throws {
-        try run { try Keychain.delete(query(store)) }
+        try run { try Keychain.deleteEverywhere(query(store)) }
     }
 
     private func run<T>(_ body: () throws -> T) throws -> T {

@@ -569,7 +569,7 @@ extension AgentTools {
             AgentTool(
                 name: "install_runner",
                 detail: "Install or repair a Wine runner by id from list_runners. "
-                    + "Pinned downloads only; CrossOver itself is never fetched.",
+                    + "Pinned downloads only, such as Cartouche Wine; CodeWeavers' CrossOver is never fetched.",
                 schema: .object([
                     "type": "object",
                     "properties": .object(["runner": ["type": "string"]]),

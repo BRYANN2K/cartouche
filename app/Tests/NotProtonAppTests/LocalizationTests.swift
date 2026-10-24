@@ -51,4 +51,20 @@ struct LocalizationTests {
         #expect(String(localized: "End Wine Session", bundle: it) == "Termina sessione Wine")
         #expect(String(localized: "Rename…", bundle: it) == "Rinomina…")
     }
+
+    @Test("The About copy and the MacGamingDB terms read in each language")
+    func creditsTranslated() throws {
+        let it = try #require(italian)
+        let zh = try #require(chinese)
+        let french = try #require(Bundle.module.path(forResource: "fr", ofType: "lproj").flatMap(Bundle.init(path:)))
+        let credits = Attribution.credits(in: it)
+        #expect(credits.hasPrefix("I tuoi giochi. Il tuo Mac."))
+        #expect(credits.hasSuffix("Sito web · GitHub"))
+        #expect(Attribution.credits(in: zh).contains("免费且开源。"))
+        #expect(Attribution.credits(in: french).contains("Vos jeux. Votre Mac."))
+        #expect(String(localized: "No data license published", bundle: french) == "Aucune licence de données publiée")
+        #expect(String(localized: "Applications has Cartouche \("0.2.0 (9)"). This copy is \("0.1.0 (5)"). Moving it would replace the newer version.",
+                       bundle: it)
+            == "In Applicazioni c’è Cartouche 0.2.0 (9). Questa copia è la 0.1.0 (5). Spostarla sostituirebbe la versione più recente.")
+    }
 }

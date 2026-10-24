@@ -97,7 +97,7 @@ JsonCpp
           steam-shim/json/json-forwards.h (the original notice is in the files)
   Where: steam-shim.
 
-Wine CrossOver (CodeWeavers sources)
+Cartouche Wine (built from CodeWeavers' CrossOver sources)
   License: LGPL-2.1-or-later (Wine). The other components in the sources keep
            their own licenses.
   Source: CodeWeavers' CrossOver 26.3.0 source tarball,
@@ -173,7 +173,7 @@ the app pins them, and are not part of Cartouche's release.
                                   app/Sources/NotProtonApp/Resources/valve-packages.manifest
   Winetricks                      LGPL, from github.com/Winetricks/winetricks
   Libretro cores and core info    Per core, from buildbot.libretro.com
-  Wine CrossOver build            LGPL, built by CI, from Cartouche's GitHub
+  Cartouche Wine                  LGPL, built by CI, from Cartouche's GitHub
                                   releases (see above)
   Wine, WineHQ builds             LGPL, from Gcenx's releases on GitHub (see
                                   above)
@@ -238,3 +238,24 @@ Not yet shipped
 
 The Swift MCP SDK, planned for the agent control phase (P11), is not in the
 repository yet. It will be added here when it is.
+
+
+Mac anti-cheat catalog
+----------------------
+Heroic MacAnticheatData (MIT), derived from AreWeAntiCheatYet (MIT).
+Source: https://github.com/Heroic-Games-Launcher/MacAnticheatData
+The bundled MacAnticheatData-LICENSE.txt contains both copyright notices and license texts.
+Snapshot fetched 2026-10-22; only Steam app IDs, status and anti-cheat names are retained.
+
+ProtonDB multiplayer counts
+---------------------------
+
+app/Sources/NotProtonApp/Resources/protondb-online.json contains aggregate
+multiplayer counts derived from the official ProtonDB reports_oct1_2026 export:
+https://github.com/bdefore/protondb-data
+
+This derived database is shared under the Open Database License 1.0:
+https://opendatacommons.org/licenses/odbl/1-0/
+Individual contents are under the Database Contents License:
+https://opendatacommons.org/licenses/dbcl/1-0/
+Regenerate it with tools/compat/build_protondb.py.

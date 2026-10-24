@@ -1,4 +1,5 @@
 import Foundation
+import CartoucheIdentity
 
 enum InstallPhase: Sendable {
     case checkingPayload
@@ -68,6 +69,7 @@ enum SteamInstaller {
         lockFolder: URL = SupportPaths.applicationSupport,
         modifications: SteamModifications = .shared,
         replacingNotProton: Bool = false,
+        replacingUnrecordedDylib: Bool = false,
         otherToolSupport: URL = SupportPaths.applicationSupport,
         runnerIsRunning: @Sendable (URL) -> Bool = { RunnerInstaller.isRunning(from: $0) },
         verifyRunner: (RunnerBuild, URL) throws -> Void = RunnerInstaller.verifyClone,
@@ -103,7 +105,8 @@ enum SteamInstaller {
             throw StepFailure(step: step, detail: String(localized: "The bundled Cartouche dylib is invalid."))
         }
         let build = DeploymentContent.Build(version: version, builtAt: payload.builtAt,
-                                            dylibHashes: dylibHashes)
+                                            dylibHashes: dylibHashes,
+                                            integrationVersion: CARTOUCHE_STEAM_INTEGRATION_VERSION)
         let record = DeploymentContent.record(beside: deployedVersion)
         let previousBuild = try DeploymentContent.readBuild(at: record)
         let support = deployedVersion.deletingLastPathComponent()
@@ -115,7 +118,8 @@ enum SteamInstaller {
             compatTools: compatTools, tools: tools, runners: runners,
             fpsCounter: support.appending(path: SupportPaths.fpsCounterName))
         let content = try DeploymentContent.inspect(files: files, bundled: build, installed: previousBuild,
-                                                   legacyVersion: SteamBundle.deployedVersion(at: deployedVersion))
+                                                   legacyVersion: SteamBundle.deployedVersion(at: deployedVersion),
+                                                   recordMismatch: replacingUnrecordedDylib ? .accept : .refuse)
         guard content != .newerInstalled else {
             throw StepFailure(step: step, detail: String(localized: "A newer Cartouche build is installed. Use that build to update or repair the installed files."))
         }
@@ -226,9 +230,12 @@ enum SteamInstaller {
     static func finish(
         _ outcome: InstallOutcome,
         deployedVersion: URL = SupportPaths.deployedVersion,
-        isCurrent: (String) -> Bool = { DeploymentContent.current(version: $0) == .current }
+        isCurrent: (DeploymentContent.Build) -> Bool = {
+            DeploymentContent.current(version: $0.version, verifying: $0) == .current
+        }
     ) throws {
-        guard isCurrent(outcome.version) else {
+        // Files must match the completed transaction before its new metadata is committed.
+        guard isCurrent(outcome.build) else {
             throw StepFailure(step: step,
                               detail: String(localized: "Installed content could not be verified. Refresh the Status view for the files that still need attention."))
         }

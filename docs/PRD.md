@@ -25,7 +25,7 @@ Windows games on an Apple silicon Mac are hard to run.
 ## Goals
 
 - One native Mac app that shows every game in one library and says what it takes to play it.
-- Steam Play from inside the Mac Steam client, with free runners and a per-game choice of graphics backend.
+- Steam Play from inside the Mac Steam client, with free runners (Cartouche Wine by default, built from CodeWeavers' CrossOver sources) and a per-game choice of graphics backend.
 - A Windows installer flow that checks files first, shows real progress and ends with a playable game.
 - An estimate of rating, FPS and settings for the user's own Mac, from community reports.
 - No cost, no server, no account with Cartouche.
@@ -70,7 +70,7 @@ P0–P18 have code on main. Merged does not mean all real-machine checks passed.
 1. The user opens Cartouche. The library lists every Steam game, installed or not, read from the running Steam client.
 2. Games not installed show in black and white. Selecting one shows it in color.
 3. The user searches, favorites or hides games.
-4. The game panel answers three questions: can I play it, how fast, with which setup.
+4. The game panel is one chrome for a PC game and a console game: artwork, title, one metadata line, then modules in a fixed order (ADR 0037). A module that does not apply is omitted. The others stay put.
 5. When Steam is closed, show the last account-matched export, labelled cached and potentially stale. Appmanifests supply installed games and installed status. localconfig.vdf supplies play data only, not ownership (ADR 0021).
 6. When Steam is not installed, the Steam source offers Download Steam, Install with Homebrew (only if Homebrew is present) and Locate Steam.
 
@@ -88,20 +88,20 @@ The toolbar + opens one Add Games sheet with a drop zone and Choose… for files
 
 ### Windows installer
 
-1. The user drops an installer, folder, archive or ROM. Cartouche detects its type. Built-in extraction uses bundled pinned universal libarchive behind InstallerKit (ADR 0023; backend merged in 95b4e47, app adapter not wired). Target zip/zip64, 7z, tar.* and RAR4/RAR5; multi-volume and solid support require verification. Encrypted archives are refused. Already-installed Windows games can be used in place by default or copied (ADR 0018).
+1. The user drops an installer, folder, archive or ROM. Cartouche detects its type. Built-in extraction uses bundled pinned universal libarchive behind InstallerKit (ADR 0023; backend merged in 95b4e47, app adapter wired in 539fbe3). Target zip/zip64, 7z, tar.* and RAR4/RAR5; multi-volume and solid support require verification. Encrypted archives are refused. Already-installed Windows games can be used in place by default or copied (ADR 0018). A game extracted from a dropped archive is moved to the games location; it never stays in `~/Library/Caches`.
 2. Cartouche analyses it without running anything: parts, missing parts, checksums, installer type, game name, space needed.
 3. The user reviews the result. A missing required part blocks Install. A part the manifest calls optional only warns.
 4. Cartouche installs in a fresh prefix under Rosetta, with real progress. The user can continue in the background.
 5. On failure, Cartouche names the likely cause and offers retries (verify files, fewer threads, less memory, short path, other runner).
-6. The user confirms which exe starts the game. Runtime detection reads PE imports, runs one winetricks verb at a time with a timeout and Skip, and uses Wine Mono for .NET (ADR 0020; merged in 307ad2c).
+6. The user confirms which exe starts the game. Runtime detection reads PE imports, runs one winetricks verb at a time with a timeout and Skip, and uses Wine Mono for .NET (ADR 0020; merged in 307ad2c). After install, Starts With changes that exe without touching the prefix or settings (merged, pending build and live check).
 7. Installer files are deleted only when the user asks, and go to the Trash.
-8. Cartouche’s direct-unpack app implementation for supported external-unpacker parts is merged in 3bb5921 (ADR 0017). Unsupported selection uses setup. Automatic recovery from a missing driver or failed part and end-to-end app verification remain pending.
+8. Cartouche’s direct-unpack app implementation for supported installers that unpack with their own helper programs is merged in 3bb5921 (ADR 0017). Unsupported selection uses setup. When a direct unpack cannot run or fails, Try Again runs the original setup under Wine; the fallback is never automatic (ADR 0034; merged, pending build and live check). End-to-end app verification remains pending.
 9. Merged: uninstall of a managed game moves it to the Trash and offers Keep save files. Removing an in-place import never deletes its source files.
 10. Merged: identify by store IDs, engine metadata, exe version info, exe name, then folder names. Steam store search is a fallback gated by the online-lookups privacy choice (ADR 0019).
 
-### Installation verification (accepted policy, implementation pending)
+### Installation verification (accepted policy, live engine merged)
 
-Track installed state separately from verification (ADR 0026; UI merged in 7f8773b, engine pending). A shipped checksum list or archive CRC always triggers full verification; Stop marks not verified and there is no skip checkbox. Script presence/sizes alone gives “verified (sizes)”. Without evidence, allow “Installed, not verified” with a discreet badge and panel line. Verify Files… permits later checks. Mismatch offers Retry with the standard method (default), Keep Anyway (advanced; not verified, mismatches logged), and Cancel. Retry uses shipped helpers/original settings, then guided real-installer execution under Wine last. Output-equivalence and local-corpus rules from ADR 0025 stand; the detection tree is approved by ADR 0028.
+Track installed state separately from verification (ADR 0026; UI merged in 7f8773b, live engine merged in 93aa900 / 04d6b6f). A shipped checksum list or archive CRC always triggers full verification; Stop marks not verified and there is no skip checkbox. Script presence/sizes alone gives “verified (sizes)”. Without evidence, allow “Installed, not verified” with a discreet badge and panel line. Verify Files… permits later checks. Mismatch offers Retry with the standard method (default), Keep Anyway (advanced; not verified, mismatches logged), and Cancel. Retry uses shipped helpers/original settings, then guided real-installer execution under Wine last. Output-equivalence and local-corpus rules from ADR 0025 stand; the detection tree is approved by ADR 0028.
 
 ### Stores
 
@@ -115,7 +115,7 @@ Track installed state separately from verification (ADR 0026; UI merged in 7f877
 1. The user configures consoles in Add Consoles. Game files and folders enter through the common Add Games sheet; automatic detection routes ROMs to console import. Cartouche identifies each file by checksum. Folders set in Settings > Library are watched and new games are added automatically.
 2. Cartouche downloads only the core for each console the user added, and checks the BIOS files the user must supply.
 3. The library has a Consoles section with one entry per console, and covers from the libretro thumbnails.
-4. The console game panel shows Continue From (save states with pictures), the achievements count, the look (Original, CRT, LCD), input lag, hardcore mode, discs and BIOS status.
+4. A console game uses that same panel. RetroArch adds a BIOS alert when firmware is missing, Continue From when a save state exists, and Play Together. Setup holds the core, the look, discs, input lag and Hardcore. Your Play holds play time and achievements. Dolphin and the other standalone emulators skip BIOS, Continue From and Play Together.
 5. Play starts Cartouche's own bundled RetroArch with a CRT power-on effect. Cartouche drives it over MCP stdio.
 6. The user can choose another RetroArch version in Settings > Consoles.
 
@@ -187,7 +187,7 @@ Each measure comes from a scenario in an OpenSpec change. A phase is done only w
 - Nothing in the app, README, docs or website uses piracy wording. The installer feature is called "Install from a Windows installer".
 - It never links to ROM, BIOS or game download sites. Missing BIOS files are reported by name, with the text "Dump it from your own console".
 - UI copy for consoles says "your own game dumps".
-- Cartouche does not ship D3DMetal or Game Porting Toolkit files. It detects the user's own copy.
+- Cartouche does not ship D3DMetal or Game Porting Toolkit files. It detects the user's own copy. With Cartouche Wine, D3DMetal comes only from the user's Game Porting Toolkit.
 - Anti-cheat is shown as Linux data from ProtonDB and AreWeAntiCheatYet. It is never presented as a Mac verdict.
 - The project is not affiliated with NotProton, Valve, Apple or CodeWeavers.
 - Community data keeps its licenses and is credited in the app: AppleGamingWiki (CC BY-NC-SA 3.0), ProtonDB export (ODbL), AreWeAntiCheatYet (MIT). MacGamingDB publishes no data license, so the app reads it live and never redistributes it (ADR 0013).
@@ -196,7 +196,7 @@ Each measure comes from a scenario in an OpenSpec change. A phase is done only w
 
 From `FORK-PLAN.md` ("Règles d'interface"). Full rules will live in `docs/DESIGN.md` (P5).
 
-- A game panel answers: can I play, how fast, with which setup. The rest goes behind Details.
+- One panel for every game. Modules follow ADR 0037. A module with nothing to say is omitted. Details still holds the long report.
 - One performance number: the user's FPS if they played, else the estimate for their Mac.
 - No repeated information block. Sources are cited once, in Details.
 - A suggestion appears only when it changes something.

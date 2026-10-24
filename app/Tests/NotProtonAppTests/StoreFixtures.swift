@@ -55,6 +55,7 @@ enum StoreStubs {
           cat "$state/epic-list.json" ;;
         install)
           signed
+          [ -f "$state/fail-install" ] && { echo '[cli] ERROR: Not enough available disk space!' >&2; exit 1; }
           app="$1"; base=""
           while [ $# -gt 0 ]; do [ "$1" = --base-path ] && base="$2"; shift; done
           if [ -n "$base" ]; then
@@ -103,7 +104,8 @@ enum StoreStubs {
         auth)
           if [ "$1" = --code ]; then
             if [ "$2" != "$(cat "$state/gog-code")" ]; then echo '{"error": true}'; exit 0; fi
-            mkdir -p "$(dirname "$auth")"
+            # Real gogdl opens auth.json without creating its parent directory.
+            [ -d "$(dirname "$auth")" ] || { echo 'auth parent missing' >&2; exit 1; }
             printf '{"46899977096215655": {"access_token": "gog-access", "refresh_token": "gog-refresh", "user_id": "4815", "expires_in": 3600, "loginTime": 1790000000}}' > "$auth"
             echo '{"access_token": "gog-access", "refresh_token": "gog-refresh", "user_id": "4815", "expires_in": 3600}'
           elif [ -f "$auth" ] && [ ! -f "$state/expired" ]; then
@@ -111,6 +113,8 @@ enum StoreStubs {
           else
             echo '[AUTH] ERROR: Failed to refresh credentials' >&2; echo 'null'
           fi ;;
+        info)
+          echo '{"size":{"*":{"download_size":70000000000,"disk_size":90000000000},"en-US":{"download_size":1000000000,"disk_size":2000000000},"fr-FR":{"download_size":8000000000,"disk_size":9000000000}}}' ;;
         download|update|repair)
           id="$1"; base=""
           while [ $# -gt 0 ]; do [ "$1" = --path ] && base="$2"; shift; done
@@ -345,6 +349,7 @@ final class StoreScene {
             server.put("/account/getFilteredProducts?mediaType=1&page=1", json: StoreFixtures.gogPage1)
             server.put("/account/getFilteredProducts?mediaType=1&page=2", json: StoreFixtures.gogPage2)
             server.put("/userData.json", json: StoreFixtures.gogUser)
+            server.put("/products/1207658924?expand=screenshots", json: #"{"images":{"background":"//images.gog.com/header.jpg"},"screenshots":[{"formatted_images":[{"formatter_name":"ggvgl_2x","image_url":"https://images.gog.com/shot.jpg"}]}]}"#)
             server.put("/platforms/gog/external_releases/1207658924", json: StoreFixtures.gogGamesDB)
             server.put("/components/galaxy_client/clients/5310?component_version=2.0.45", json: StoreFixtures.gogRemoteConfig)
             self.server = server
@@ -358,7 +363,7 @@ final class StoreScene {
     func makeCenter(folders: StoreFolders, vault: MemoryVault, library: LibraryModel?) -> StoreCenter {
         let secrets = folders.secrets(vault: vault)
         var gog = GOGAdapter(context: folders.context(.gog, files: files, secrets: secrets))
-        if let base { (gog.embed, gog.remoteConfig, gog.gamesDB) = (base, base, base) }
+        if let base { (gog.embed, gog.remoteConfig, gog.gamesDB, gog.productsAPI) = (base, base, base, base) }
         let center = StoreCenter(sharing: secrets, folders: folders, files: files, library: library, adapters: [
             .epic: EpicAdapter(context: folders.context(.epic, files: files, secrets: secrets)),
             .gog: gog,

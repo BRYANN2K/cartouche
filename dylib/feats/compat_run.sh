@@ -20,6 +20,28 @@ esac
 np_support="$HOME/Library/Application Support/Cartouche"
 iconmaker="$np_support/iconmaker"
 
+init_launch_log() {
+  log=/dev/null
+  attempt_dir=""
+  log_root="${STEAM_COMPAT_DATA_PATH:-$np_support}/cartouche-logs"
+  if mkdir -p "$log_root"; then
+    attempt_dir=$(mktemp -d "$log_root/$(date -u +%Y%m%dT%H%M%SZ)-$$.XXXXXX") || attempt_dir=""
+    if [ -n "$attempt_dir" ]; then
+      log="$attempt_dir/launch.log"
+      : > "$log"
+      if [ -n "$STEAM_COMPAT_DATA_PATH" ]; then
+        latest="$STEAM_COMPAT_DATA_PATH/cartouche-run.log"
+        if [ -f "$latest" ] && [ ! -L "$latest" ]; then
+          mv "$latest" "$attempt_dir/previous-run.log" || true
+        fi
+        ln -sfn "$log" "$latest" || true
+      fi
+    fi
+  fi
+}
+init_launch_log
+printf "Started %s verb=%s\n" "$(date -u +%FT%TZ)" "$verb" >> "$log"
+
 find_client_root() {
   client_root="$1"
   while [ -n "$client_root" ] && [ "$client_root" != "/" ] && [ ! -d "$client_root/appcache" ]; do
@@ -151,7 +173,8 @@ fi
 if [ -n "$np_tool_dir" ] && [ -r "$np_tool_dir/build" ]; then
   read -r np_build < "$np_tool_dir/build" || np_build=""
 fi
-case "$np_build" in *[!A-Za-z0-9.-]*) np_build="" ;; esac
+# Build ids may include an underscore, as in wine-stable-11.0_1.
+case "$np_build" in *[!A-Za-z0-9._-]*) np_build="" ;; esac
 np_display=$(sed -n 's/.*"display_name"[[:space:]]*"\(.*\)".*/\1/p' \
   "$np_tool_dir/compatibilitytool.vdf" 2>/dev/null | head -1) || np_display=""
 [ -n "$np_display" ] || np_display="runner build ${np_build:-unknown}"
@@ -168,6 +191,17 @@ for np_wine_dir in "$np_support/runners/$np_build" "$np_support/runners/wine-$np
 done
 if [ ! -d "$CX_ROOT" ] && [ -n "$np_wine" ]; then
   CX_ROOT="$np_wine"
+fi
+if [ -n "$np_tool_dir" ] && [ -r "$np_tool_dir/backend" ]; then
+  read -r np_prepared_backend < "$np_tool_dir/backend" || np_prepared_backend=""
+  case "$np_prepared_backend" in
+    d3dmetal|dxmt|dxvk)
+      np_prepared_root="$np_support/runners/.graphics/$np_build/$np_prepared_backend"
+      if [ -f "$np_prepared_root/.cartouche-graphics.json" ] && [ -x "$np_prepared_root/bin/wine" ]; then
+        CX_ROOT="$np_prepared_root"
+      fi
+      ;;
+  esac
 fi
 export CX_ROOT
 # CrossOver initializes Rosetta's Windows thread-state support even without D3DMetal.
@@ -246,6 +280,13 @@ if [ -n "$np_backend" ]; then
           # The same variable a CrossOver clone reads for its own copy
           export CX_APPLEGPTK_LIBD3DSHARED_PATH="$np_gptk/libd3dshared.dylib"
           np_backend_from="$np_gptk"
+          np_graphics_lib="${np_gptk%/external}"
+          if [ -f "$np_graphics_lib/wine/x86_64-windows/d3d11.dll" ] &&
+             [ -f "$np_graphics_lib/wine/x86_64-windows/dxgi.dll" ]; then
+            np_backend_path="$np_graphics_lib/wine/x86_64-windows:$np_graphics_lib/wine/x86_64-unix"
+          else
+            np_backend_missing=1
+          fi
         else
           np_backend_missing=1
         fi
@@ -254,6 +295,7 @@ if [ -n "$np_backend" ]; then
     esac
     case "$np_backend" in
       dxmt) np_backend_dlls="d3d11,dxgi,d3d10core" ;;
+      d3dmetal) np_backend_dlls="d3d10,d3d11,d3d12,d3d12core,dxgi" ;;
       *) np_backend_dlls="d3d9,d3d10core,d3d11,dxgi" ;;
     esac
     # Last wins, so these outrank the same DLLs in the launch options
@@ -285,13 +327,7 @@ export WINEDLLPATH="$CX_ROOT/lib/wine/x86_64-windows:$wine_unix${WINEDLLPATH:+:$
 [ -z "$np_backend_path" ] || WINEDLLPATH="$np_backend_path:$WINEDLLPATH"
 export PATH="$CX_ROOT/bin:$PATH"
 
-if [ -n "$STEAM_COMPAT_DATA_PATH" ]; then
-  log="$STEAM_COMPAT_DATA_PATH/cartouche-run.log"
-else
-  log=/dev/null
-fi
-[ "$(stat -f %z "$log" 2>/dev/null || echo 0)" -gt 262144 ] \
-  && : > "$log" || true
+
 {
   echo "=== cartouche run $(date) ==="
   echo "verb=$verb"
@@ -481,7 +517,7 @@ last_wine_build() {
   done
 }
 
-refuse_other_build() {
+note_runner_change() {
   record="$STEAM_COMPAT_DATA_PATH/cartouche-build"
   had_build=""
   had_display=""
@@ -494,10 +530,7 @@ refuse_other_build() {
     last_wine_build
   fi
   if [ -n "$had_build" ] && [ "$had_build" != "$np_build" ]; then
-    echo "=== prefix was last run by build $had_build and this compatibility tool runs $np_build, rebuild the prefix in Cartouche ===" >> "$log" 2>&1 || true
-    had_display=$(alert_safe "${had_display:-build $had_build}")
-    show_alert "This game needs its prefix rebuilt" "This game's prefix was last run by $had_display, and this compatibility tool runs $(alert_safe "$np_display"). Rebuild the prefix in Cartouche to run it here, or pick $had_display again in the game's Compatibility settings. You will not lose game saves by rebuilding the prefix."
-    exit 1
+    echo "=== reusing game files and prefix: runner $had_build -> $np_build ===" >> "$log" 2>&1 || true
   fi
 }
 
@@ -793,12 +826,16 @@ import_prefix_settings() {
     hidraw_value=""
     echo "=== could not track DisableHidraw, leaving it as it is ===" >> "$log" 2>&1 || true
   fi
+  # Crashes as in CrashHandling.swift: Auto=0 would ask in a dialog; winedbg --auto with
+  # ShowCrashDialog off logs the backtrace and lets the game end. Part of the one import per launch.
   settings_file=$(mktemp "$WINEPREFIX/drive_c/cartouche-settings.XXXXXX" 2>/dev/null) \
     || settings_file=""
   if [ -z "$settings_file" ] || ! { printf '%s\r\n' \
       'Windows Registry Editor Version 5.00' '' \
-      '[HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\AeDebug]' '"Auto"="0"' '' \
-      '[HKEY_LOCAL_MACHINE\Software\Wow6432Node\Microsoft\Windows NT\CurrentVersion\AeDebug]' '"Auto"="0"' '' \
+      '[HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\AeDebug]' \
+      '"Debugger"="winedbg --auto %ld %ld"' '"Auto"="1"' '' \
+      '[HKEY_LOCAL_MACHINE\Software\Wow6432Node\Microsoft\Windows NT\CurrentVersion\AeDebug]' \
+      '"Debugger"="winedbg --auto %ld %ld"' '"Auto"="1"' '' \
       '[HKEY_CURRENT_USER\Software\Wine\WineDbg]' '"ShowCrashDialog"=dword:00000000' '' \
       '[HKEY_CURRENT_USER\Software\Wine\Mac Driver]' "$retina_line" '' \
       '[HKEY_LOCAL_MACHINE\Software\Classes\steam]' '"URL Protocol"=""' '' \
@@ -843,7 +880,7 @@ import_prefix_settings() {
 stage_step="runner check"
 if [ -z "$np_build" ] || [ ! -d "$CX_ROOT/lib/wine" ]; then
   echo "=== build ${np_build:-(none recorded)} behind this compatibility tool is not set up, set it up in Cartouche ===" >> "$log" 2>&1 || true
-  show_alert "CrossOver is not set up" "The CrossOver build behind $(alert_safe "$np_display") is not set up. Set it up in Cartouche, or pick another compatibility tool for this game."
+  show_alert "The compatibility tool is not set up" "The Wine build behind $(alert_safe "$np_display") is not set up. Set it up in Cartouche, or pick another compatibility tool for this game."
   exit 1
 fi
 echo "runner: build $np_build ($np_display) at $CX_ROOT" >> "$log" 2>&1 || true
@@ -1285,8 +1322,8 @@ if [ -n "$STEAM_COMPAT_DATA_PATH" ]; then
   export WINEMSYNC="${WINEMSYNC:-0}"
   printf '%s' "$WINEMSYNC" \
     > "$STEAM_COMPAT_DATA_PATH/cartouche-msync" 2>/dev/null || true
-  stage_step="prefix build check"
-  refuse_other_build
+  stage_step="runner change"
+  note_runner_change
   stage_step="prefix arch check"
   refuse_foreign_prefix
   claim_prefix
@@ -1649,7 +1686,8 @@ fi
 cat > "$loader_macos/launcher" <<LAUNCHER
 #!/bin/sh
 export WINELOADER="$WINELOADER"
-wine_log="$loader_root/cartouche-wine.log"
+wine_log="\${CARTOUCHE_LAUNCH_LOG_DIR:+\$CARTOUCHE_LAUNCH_LOG_DIR/wine.log}"
+[ -n "\$wine_log" ] || wine_log="$loader_root/cartouche-wine.log"
 exec > "\$wine_log" 2>&1
 shim="$np_support/overlay-shim.dylib"
 if [ -n "\$STEAM_DYLD_INSERT_LIBRARIES" ]; then
@@ -1665,8 +1703,10 @@ if [ -n "\$CARTOUCHE_FPS_COUNTER" ]; then
 fi
 unset CARTOUCHE_FPS_COUNTER
 [ -n "\$CARTOUCHE_GAME_CWD" ] && cd "\$CARTOUCHE_GAME_CWD"
-"$WINELOADER" "\$@"
-exit \$?
+status=0
+"$WINELOADER" "\$@" || status=\$?
+printf '\nWine launcher exited with status=%s\n' "\$status"
+exit \$status
 LAUNCHER
 chmod +x "$loader_macos/launcher"
 
@@ -1800,13 +1840,15 @@ prepare_fps() {
     echo "display=$np_display"
     echo "started=$(date +%s)"
     env | LC_ALL=C sed -nE 's/^((D3DM_|DXMT_|DXVK_|MTL_|ROSETTA_)[A-Z0-9_]*=.*)/setting=\1/p' | LC_ALL=C sort
-  } > "$fps_dir/session"
+  } > "$fps_dir/session.tmp"
   if fps_probe; then
     fps_insert="$fps_counter"
-    echo "measure=on" >> "$fps_dir/session"
+    echo "measure=on" >> "$fps_dir/session.tmp"
   else
-    echo "measure=refused" >> "$fps_dir/session"
+    echo "measure=refused" >> "$fps_dir/session.tmp"
   fi
+  # the app reads session whenever it likes: it appears whole or not at all
+  mv -f "$fps_dir/session.tmp" "$fps_dir/session"
 }
 prepare_fps >> "$log" 2>&1 || true
 
@@ -1837,7 +1879,8 @@ set -- \
   --env STEAM_COMPAT_CLIENT_INSTALL_PATH="$STEAM_COMPAT_CLIENT_INSTALL_PATH" \
   --env STEAM_COMPAT_APP_ID="$STEAM_COMPAT_APP_ID" \
   --env STEAM_DYLD_INSERT_LIBRARIES="$STEAM_DYLD_INSERT_LIBRARIES" \
-  --env CARTOUCHE_GAME_CWD="$game_cwd" "$@"
+  --env CARTOUCHE_GAME_CWD="$game_cwd" \
+  --env CARTOUCHE_LAUNCH_LOG_DIR="$attempt_dir" "$@"
 if [ -n "$fps_dir" ]; then
   set -- --env CARTOUCHE_FPS_DIR="$fps_dir" --env CARTOUCHE_FPS_COUNTER="$fps_insert" "$@"
 fi

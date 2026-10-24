@@ -32,6 +32,8 @@ public struct InstallerAnalysis: Sendable {
     }
 
     public var damaged: [String] { Checksums.damaged(checksums) }
+    // Present but not readable to the end: the installer would fail on them too.
+    public var unreadable: [String] { Checksums.unreadable(checksums) }
 
     public var verified: Bool { !checksums.isEmpty }
     public var checksumsOK: Bool { verified && checksums.values.allSatisfy { $0 == .ok || $0 == .absent } && damaged.isEmpty }
@@ -45,6 +47,7 @@ public struct InstallerAnalysis: Sendable {
         if scan.setup == nil { problems.append("setup") }
         problems += missing.filter { !$0.mayBeOptional }.map(\.file)
         problems += damaged
+        problems += unreadable
         return problems
     }
 
@@ -83,8 +86,8 @@ public enum Analyzer {
                 directUnpack: nil, classification: classification
             )
         }
-        let scan = try PartScanner.scan(folder)
-        let manifest = Checksums.findManifest(in: folder).flatMap { try? Checksums.parse($0) }
+        let manifest = Checksums.installerManifest(in: folder)
+        let scan = try PartScanner.scan(folder, manifest: manifest)
         var inno: InnoReport?
         var problem: InnoInspector.Failure?
         if let setup = scan.setup {

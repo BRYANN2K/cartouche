@@ -66,9 +66,10 @@ struct GameMenuTests {
         let apex = try #require(model.game("steam:1172470"))
         #expect(GameMenu.items(for: apex, in: model).first?.title == "Install")
         runner.perform(.install, on: apex)
+        #expect(model.installRequest?.id == apex.id)
         runner.perform(.verifyFiles, on: elden)
         runner.perform(.showInSteam, on: elden)
-        #expect(opened.value.map(\.absoluteString) == ["steam://rungameid/1245620", "steam://install/1172470",
+        #expect(opened.value.map(\.absoluteString) == ["steam://rungameid/1245620",
                                                          "steam://validate/1245620", "steam://nav/games/details/1245620"])
         model.isOffline = true
         #expect(GameMenu.items(for: apex, in: model).first?.disabled == true)
@@ -102,6 +103,20 @@ struct GameMenuTests {
     @Test("Main actions have the shortcuts the spec names")
     func shortcuts() {
         #expect([GameMenu.play.label, GameMenu.getInfo.label, GameMenu.favorite.label] == ["⌘↩", "⌘I", "⌘D"])
+    }
+
+    @Test("Steam uninstall waits for confirmation, removes the prefix and refreshes the game")
+    func steamUninstall() async throws {
+        let (model, runner, opened, fixture) = try await setUp("uninstall")
+        defer { fixture.remove() }
+        let game = try #require(model.game("steam:1245620"))
+        let prefix = fixture.steam.appending(path: "steamapps/compatdata/1245620/pfx")
+        try FileManager.default.createDirectory(at: prefix, withIntermediateDirectories: true)
+        runner.perform(.uninstall, on: game)
+        #expect(await waitFor { opened.value.last?.absoluteString == "steam://uninstall/1245620" })
+        #expect(FileManager.default.fileExists(atPath: prefix.path))
+        try FileManager.default.removeItem(at: fixture.steam.appending(path: "steamapps/appmanifest_1245620.acf"))
+        #expect(await waitFor { model.game(game.id)?.installed == false && !FileManager.default.fileExists(atPath: prefix.path) })
     }
 
     @Test("Settings ⌘, and Find ⌘F are in the app's menus, and Install no longer takes ⌘I")

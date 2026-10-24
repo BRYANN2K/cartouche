@@ -9,7 +9,8 @@ enum RunnerInstaller {
     static func clone(
         from install: CrossOverInstall,
         replacingExisting: Bool = false,
-        runners: URL = SupportPaths.runners
+        runners: URL = SupportPaths.runners,
+        running: (URL) -> Bool = { RunnerInstaller.isRunning(from: $0) }
     ) throws -> RunnerBuild {
         guard case .supported(let build) = install.support else {
             throw StepFailure(
@@ -25,16 +26,19 @@ enum RunnerInstaller {
         let occupied = fm.fileExists(atPath: target.path(percentEncoded: false))
 
         if !existing || replacingExisting {
+            guard !occupied || !running(target) else {
+                throw StepFailure(
+                    step: step,
+                    detail: String(localized: "A game or Wine tool is still running on build \(build.id). Quit it first.")
+                )
+            }
             let staging = target.deletingLastPathComponent()
                 .appending(path: ".\(target.lastPathComponent).new")
             try? fm.removeItem(at: staging)
             defer { try? fm.removeItem(at: staging) }
             try copyPayload(from: install.crossOverRoot, to: staging)
             try verifyClone(build: build, root: staging.appending(path: "CrossOver"))
-            if occupied {
-                try fm.removeItem(at: target)
-            }
-            try fm.moveItem(at: staging, to: target)
+            try swapIn(staging, at: target)
             return build
         }
 

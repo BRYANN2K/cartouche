@@ -101,15 +101,18 @@ final class ConsoleImport {
 
 struct ConsoleImportFlow: View {
     let center: ConsoleCenter
-    @Binding var kind: AddGamesKind
     let flow: ConsoleImport
+    // Opened from Add Games: Back closes this sheet and Add Games shows again
+    let back: (@MainActor () -> Void)?
     @State private var targeted = false
+    @State private var adding = false
+    @State private var addition: Task<Void, Never>?
     @Environment(\.dismiss) private var dismiss
 
-    init(center: ConsoleCenter, kind: Binding<AddGamesKind>, flow: ConsoleImport? = nil) {
+    init(center: ConsoleCenter, flow: ConsoleImport? = nil, back: (@MainActor () -> Void)? = nil) {
         self.center = center
-        _kind = kind
         self.flow = flow ?? center.importFlow
+        self.back = back
     }
 
     var body: some View {
@@ -121,7 +124,7 @@ struct ConsoleImportFlow: View {
         }
         .padding(22)
         .frame(width: 560)
-        .onDisappear { flow.reset() }
+        .onDisappear { addition?.cancel(); flow.reset() }
     }
 
     @ViewBuilder
@@ -168,6 +171,7 @@ struct ConsoleImportFlow: View {
         .softScrollEdges()
         .frame(maxHeight: 320)
         .fixedSize(horizontal: false, vertical: true)
+        .disabled(adding)
         let new = flow.done ? flow.newConsoles(added: center.added) : []
         if !new.isEmpty {
             Text(Self.alsoAdds(new))
@@ -176,20 +180,45 @@ struct ConsoleImportFlow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .groupBackground(tint: .accentColor)
         }
+        if adding {
+            HStack(spacing: 8) {
+                ProgressView().controlSize(.small)
+                Text(center.preparing.values.sorted().first ?? String(localized: "Preparing console games…"))
+                    .font(.system(size: 12))
+            }
+        } else if let problem = center.problem {
+            Text(problem).font(.system(size: 12)).foregroundStyle(.red)
+                .fixedSize(horizontal: false, vertical: true)
+        }
         HStack(spacing: 8) {
-            Button("Back") { flow.reset() }.buttonStyle(.sheet)
+            Button("Back") {
+                if let back {
+                    back()
+                    dismiss()
+                } else {
+                    flow.reset()
+                }
+            }
+            .buttonStyle(.sheet)
+            .disabled(adding)
             Spacer()
-            Button("Cancel") { flow.reset(); dismiss() }
+            Button("Cancel") { addition?.cancel(); flow.reset(); dismiss() }
                 .buttonStyle(.sheet)
                 .keyboardShortcut(.cancelAction)
             Button(flow.addTitle) {
                 let games = flow.games
-                dismiss()
-                Task { await center.addGames(games) }
+                adding = true
+                addition = Task {
+                    await center.addGames(games)
+                    adding = false
+                    if !Task.isCancelled && center.problem == nil && games.allSatisfy({ center.game($0.id) != nil }) {
+                        dismiss()
+                    }
+                }
             }
             .buttonStyle(.sheetProminent)
             .keyboardShortcut(.defaultAction)
-            .disabled(!flow.done || flow.games.isEmpty)
+            .disabled(adding || !flow.done || flow.games.isEmpty)
         }
         .padding(.top, 4)
     }
@@ -197,8 +226,9 @@ struct ConsoleImportFlow: View {
     static func alsoAdds(_ consoles: [Console]) -> String {
         let names = ListFormatter.localizedString(byJoining: consoles.map(\.name))
         let cores = ListFormatter.localizedString(byJoining: consoles.map(\.coreName).reduce(into: [String]()) {
-            if !$0.contains($1) { $0.append($1) }
+            if !$1.isEmpty && !$0.contains($1) { $0.append($1) }
         })
+        if cores.isEmpty { return String(localized: "Also adds \(names) to your consoles.") }
         return String(localized: "Also adds \(names) to your consoles, with \(cores).")
     }
 

@@ -1,0 +1,47 @@
+{
+  "format": 1,
+  "downloads": [
+    {
+      "id": "dolphin",
+      "version": "2609a",
+      "url": "https://dl.dolphin-emu.org/releases/2609a/dolphin-2609a-universal.dmg",
+      "sha256": "9a810043538f21b53cf8f8f747b1672df74895d3d6eb30940d96042823f20ecb",
+      "archive": "dmg"
+    },
+    {
+      "id": "pcsx2",
+      "version": "2.8.2",
+      "url": "https://github.com/PCSX2/pcsx2/releases/download/v2.8.2/pcsx2-v2.8.2-macos-Qt.tar.xz",
+      "sha256": "3ed9eb40a33eae67134142c24255a079be444f0616ca29575a04a37981f7d426",
+      "archive": "tar"
+    },
+    {
+      "id": "ppsspp",
+      "version": "1.20.4",
+      "url": "https://github.com/hrydgard/ppsspp/releases/download/v1.20.4/PPSSPPSDL-macOS-v1.20.4.zip",
+      "sha256": "fb32a215861a293c28f641bf47f3164766ba512214025f4457796c8d14242665",
+      "archive": "zip"
+    },
+    {
+      "id": "azahar",
+      "version": "2126.2",
+      "url": "https://github.com/azahar-emu/azahar/releases/download/2126.2/azahar-macos-universal-2126.2.zip",
+      "sha256": "582ff52594807fc11438a8ed1596bd6db8622b0e07a856372f6bd709dc9995e7",
+      "archive": "zip"
+    },
+    {
+      "id": "xemu",
+      "version": "0.8.139",
+      "url": "https://github.com/xemu-project/xemu/releases/download/v0.8.139/xemu-0.8.139-macos-universal.zip",
+      "sha256": "9817aaa5e187a698416271a6ddc083a40d7ff5e09c3231cff32a692638c7427d",
+      "archive": "zip"
+    },
+    {
+      "id": "eden",
+      "version": "0.2.1",
+      "url": "https://stable.eden-emu.dev/v0.2.1/Eden-macOS-v0.2.1.dmg",
+      "sha256": "40575fc79a61550fbb9e332cbae94ccd20f5de20ff61b4b60fe1d42f2525c0b5",
+      "archive": "dmg"
+    }
+  ]
+}

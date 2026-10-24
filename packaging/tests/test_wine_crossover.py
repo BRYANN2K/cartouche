@@ -124,7 +124,7 @@ class WineCrossOverScripts(unittest.TestCase):
         entry = json.loads((out / "manifest-entry.json").read_text())
         self.assertEqual(entry, {
             "id": "wine-crossover-26.3.0-2", "kind": "wineBuild", "origin": "cartouche",
-            "name": "Wine CrossOver", "version": "26.3.0", "displayVersion": "26.3",
+            "name": "Cartouche Wine", "version": "26.3.0", "displayVersion": "26.3",
             "url": "https://github.com/owner/repo/releases/download/wine-crossover-26.3.0-2/"
                    "wine-crossover-26.3.0-2-x86_64.tar.xz",
             "size": asset.stat().st_size, "sha256": sha256(asset),
@@ -211,7 +211,7 @@ class ManifestEntry(unittest.TestCase):
     def test_url_must_be_https_and_name_the_archive(self):
         with tempfile.NamedTemporaryFile(suffix=".tar.xz") as f:
             name = pathlib.Path(f.name).name
-            kw = dict(id="x", root="x", name="Wine CrossOver", version="26.3.0", display_version="26.3",
+            kw = dict(id="x", root="x", name="Cartouche Wine", version="26.3.0", display_version="26.3",
                       origin="cartouche")
             self.assertEqual(manifest_entry.entry(f.name, url=f"https://h/{name}", **kw)["size"], 0)
             with self.assertRaises(SystemExit):

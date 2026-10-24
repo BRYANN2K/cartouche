@@ -150,6 +150,30 @@ struct PerformanceStoreTests {
         #expect(try fixture.store.sessions().count == 1)
     }
 
+    @Test("A session file still being written is a running launch, not garbage, until the folder is abandoned")
+    func partialSessionIsRunning() throws {
+        let fixture = try PerformanceFixture("partial")
+        defer { fixture.remove() }
+        let live = fixture.store.incoming.appending(path: "1245620-1-1")
+        try FileManager.default.createDirectory(at: live, withIntermediateDirectories: true)
+        try Data("app_id=1245620\nrunner=26.3.0.39832\n".utf8).write(to: live.appending(path: "session"))
+        let empty = fixture.store.incoming.appending(path: "1245620-1-2")
+        try FileManager.default.createDirectory(at: empty, withIntermediateDirectories: true)
+        try Data().write(to: empty.appending(path: "session"))
+
+        let now = Date()
+        #expect(PerformanceIncoming.read(live, now: now) == .running)
+        #expect(PerformanceIncoming.read(empty, now: now) == .running)
+        #expect(try fixture.store.ingest(now: now).isEmpty)
+        #expect(FileManager.default.fileExists(atPath: live.path(percentEncoded: false)))
+        #expect(FileManager.default.fileExists(atPath: empty.path(percentEncoded: false)))
+
+        let later = now.addingTimeInterval(PerformanceIncoming.abandonedAfter + 60)
+        #expect(PerformanceIncoming.read(live, now: later) == .invalid)
+        _ = try fixture.store.ingest(now: later)
+        #expect(!FileManager.default.fileExists(atPath: live.path(percentEncoded: false)))
+    }
+
     @Test("A runner that refused the counter still records the session and its play time")
     func refused() throws {
         let fixture = try PerformanceFixture("refused")

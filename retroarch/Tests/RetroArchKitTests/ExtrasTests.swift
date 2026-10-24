@@ -1,5 +1,7 @@
 import CryptoKit
 import Foundation
+import Security
+import Synchronization
 import Testing
 
 @testable import RetroArchKit
@@ -238,7 +240,7 @@ struct ConsoleExtrasTests {
 @Suite("Saves in iCloud Drive", .serialized)
 struct CloudSavesTests {
 
-    @Test func aStateSavedOnOneMacIsListedOnTheOther() throws {
+    @Test func aStateSavedOnOneMacIsListedOnTheOther() async throws {
         let work = try scratchFolder("cloud")
         defer { try? FileManager.default.removeItem(at: work) }
         let drive = work.appending(path: "iCloud Drive", directoryHint: .isDirectory)
@@ -251,8 +253,8 @@ struct CloudSavesTests {
         try Data("slot 1".utf8).write(to: early)
         let a = CloudSaves(paths: macA, drive: drive), b = CloudSaves(paths: macB, drive: drive)
         #expect(a.isAvailable && !a.isOn)
-        try a.turnOn()
-        try b.turnOn()
+        try await a.turnOn()
+        try await b.turnOn()
         #expect(a.isOn && b.isOn)
         #expect(FileManager.default.fileExists(atPath: drive.appending(path: "Cartouche/States/Snes9x/Cartouche Homebrew.state1").path))
 
@@ -271,9 +273,81 @@ struct CloudSavesTests {
         #expect(b.isOn)
 
         // Off again: Mac B keeps a copy of what was there
-        try b.turnOff()
+        try await b.turnOff()
         #expect(!b.isOn)
         #expect(Set(SaveStates.list(contentName: "Cartouche Homebrew", in: macB.states).compactMap(\.slot)) == [1, 3])
+    }
+
+    // iCloud Drive evicted a save: it is only .Game.srm.icloud until downloaded
+    static func evict(_ file: URL) throws {
+        try FileManager.default.removeItem(at: file)
+        try Data("placeholder".utf8).write(to: CloudSaves.stub(of: file))
+    }
+
+    @Test func turningOffDownloadsAnEvictedSaveFirst() async throws {
+        let work = try scratchFolder("cloud-evicted")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let drive = work.appending(path: "iCloud Drive", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: drive, withIntermediateDirectories: true)
+        let mac = RetroArchPaths(root: work.appending(path: "mac"))
+        try FileManager.default.createDirectory(at: mac.saves, withIntermediateDirectories: true)
+        try Data("battery".utf8).write(to: mac.saves.appending(path: "Game.srm"))
+        let asked = Mutex<[String]>([])
+        let cloud = CloudSaves(paths: mac, drive: drive) { real in
+            asked.withLock { $0.append(real.lastPathComponent) }
+            try Data("battery".utf8).write(to: real)
+            try FileManager.default.removeItem(at: CloudSaves.stub(of: real))
+        }
+        try await cloud.turnOn()
+        try Self.evict(cloud.cloud.appending(path: "Saves/Game.srm"))
+
+        try await cloud.turnOff()
+        #expect(asked.withLock { $0 } == ["Game.srm"])
+        #expect(!cloud.isOn)
+        #expect(try Data(contentsOf: mac.saves.appending(path: "Game.srm")) == Data("battery".utf8))
+    }
+
+    @Test func aSaveThatNeverDownloadsKeepsCloudSavesOn() async throws {
+        let work = try scratchFolder("cloud-offline")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let drive = work.appending(path: "iCloud Drive", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: drive, withIntermediateDirectories: true)
+        let mac = RetroArchPaths(root: work.appending(path: "mac"))
+        try FileManager.default.createDirectory(at: mac.saves, withIntermediateDirectories: true)
+        try Data("battery".utf8).write(to: mac.saves.appending(path: "Game.srm"))
+        let cloud = CloudSaves(paths: mac, drive: drive, timeout: .milliseconds(300)) { _ in }
+        try await cloud.turnOn()
+        let saved = cloud.cloud.appending(path: "Saves/Game.srm")
+        try Self.evict(saved)
+
+        await #expect(throws: CloudSavesError.notDownloaded) { try await cloud.turnOff() }
+        #expect(cloud.isOn)
+        #expect(FileManager.default.fileExists(atPath: CloudSaves.stub(of: saved).path))
+    }
+
+    // Mac B has an empty, newer save for the same game; the real one is evicted in iCloud Drive
+    @Test func turningOnNeverOverwritesAnEvictedCloudSave() async throws {
+        let work = try scratchFolder("cloud-on-evicted")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let drive = work.appending(path: "iCloud Drive", directoryHint: .isDirectory)
+        let saves = drive.appending(path: "Cartouche/Saves", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: saves, withIntermediateDirectories: true)
+        try Data("placeholder".utf8).write(to: CloudSaves.stub(of: saves.appending(path: "Game.srm")))
+        let mac = RetroArchPaths(root: work.appending(path: "mac-b"))
+        try FileManager.default.createDirectory(at: mac.saves, withIntermediateDirectories: true)
+        try Data().write(to: mac.saves.appending(path: "Game.srm"))
+
+        let offline = CloudSaves(paths: mac, drive: drive, timeout: .milliseconds(300)) { _ in }
+        await #expect(throws: CloudSavesError.notDownloaded) { try await offline.turnOn() }
+        #expect(!offline.isOn)
+        #expect(FileManager.default.fileExists(atPath: mac.saves.appending(path: "Game.srm").path))
+
+        // The merge alone also counts the placeholder as the cloud's copy
+        #expect(throws: CloudSavesError.notDownloaded) {
+            try CloudSaves.merge(from: mac.saves, into: saves, move: true)
+        }
+        #expect(FileManager.default.fileExists(atPath: mac.saves.appending(path: "Game.srm").path))
+        #expect(!FileManager.default.fileExists(atPath: saves.appending(path: "Game.srm").path))
     }
 
     @Test func iCloudDriveOffIsSaid() throws {
@@ -415,5 +489,65 @@ struct CoachTests {
         #expect(try await off.press(player: 1, control: "a", frames: 3) == "PRESS 1 a 3")
         await #expect(throws: CoachRefusal.unknownValue("Stage")) { try await off.read("Stage") }
         #expect(CoachRelay.tools.map(\.name) == ["coach_values", "coach_read", "coach_press"])
+    }
+}
+
+// The move from the login keychain to the data protection keychain, on two in-memory
+// keychains: the token is never lost, whichever step fails
+@Suite("Keychain migration")
+struct KeychainMigrationTests {
+
+    final class Keychains {
+        var modern: Data?
+        var legacy: Data?
+        var entitled = true
+        var storeFails = false
+
+        func read() throws -> Data? {
+            try Keychain.migrate(
+                modern: {
+                    guard entitled else { throw SecretStoreError.keychain(errSecMissingEntitlement) }
+                    return modern
+                },
+                legacy: { legacy },
+                store: { data in
+                    if storeFails { throw SecretStoreError.keychain(errSecInteractionNotAllowed) }
+                    modern = data
+                },
+                dropLegacy: { legacy = nil })
+        }
+    }
+
+    @Test func aLegacyTokenMovesOnceAndIsDroppedOnlyAfterTheCopy() throws {
+        let keychains = Keychains()
+        keychains.legacy = Data("token".utf8)
+        #expect(try keychains.read() == Data("token".utf8))
+        #expect(keychains.modern == Data("token".utf8) && keychains.legacy == nil)
+        #expect(try keychains.read() == Data("token".utf8))
+    }
+
+    @Test func aFailedCopyKeepsTheLegacyToken() throws {
+        let keychains = Keychains()
+        keychains.legacy = Data("token".utf8)
+        keychains.storeFails = true
+        #expect(try keychains.read() == Data("token".utf8))
+        #expect(keychains.legacy == Data("token".utf8) && keychains.modern == nil)
+    }
+
+    @Test func anUnentitledBuildKeepsUsingTheLoginKeychain() throws {
+        let keychains = Keychains()
+        keychains.entitled = false
+        keychains.legacy = Data("token".utf8)
+        #expect(try keychains.read() == Data("token".utf8))
+        #expect(keychains.legacy == Data("token".utf8))
+    }
+
+    @Test func theModernItemWinsAndNothingIsMissingWhenNeitherExists() throws {
+        let keychains = Keychains()
+        #expect(try keychains.read() == nil)
+        keychains.modern = Data("new".utf8)
+        keychains.legacy = Data("old".utf8)
+        #expect(try keychains.read() == Data("new".utf8))
+        #expect(Keychain.protected([:])[kSecUseDataProtectionKeychain as String] as? Bool == true)
     }
 }

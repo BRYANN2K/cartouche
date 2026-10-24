@@ -159,6 +159,60 @@ struct AppLocationTests {
         #expect(try Data(contentsOf: destination.appending(path: "Contents/MacOS/Cartouche")) == Data("old".utf8))
     }
 
+    private func app(at url: URL, short: String, build: String, binary: String) throws {
+        let contents = url.appending(path: "Contents")
+        try FileManager.default.createDirectory(at: contents.appending(path: "MacOS"), withIntermediateDirectories: true)
+        try Data(binary.utf8).write(to: contents.appending(path: "MacOS/Cartouche"))
+        let info: NSDictionary = ["CFBundleShortVersionString": short, "CFBundleVersion": build]
+        try info.write(to: contents.appending(path: "Info.plist"))
+    }
+
+    @Test("Versions compare by marketing version, then by build")
+    func versionOrder() {
+        let v = { AppBundleVersion(short: $0, build: $1) }
+        #expect(v("0.10.0", "1").isNewer(than: v("0.9.0", "50")))
+        #expect(!v("0.9.0", "50").isNewer(than: v("0.10.0", "1")))
+        #expect(v("0.1.0", "12").isNewer(than: v("0.1.0", "9")))
+        #expect(!v("0.1.0", "9").isNewer(than: v("0.1.0", "9")))
+        #expect(v("0.1.0", "12").display == "0.1.0 (12)")
+    }
+
+    @Test("A newer copy in Applications is never replaced without asking; Open Newer Copy and Quit leave it alone")
+    func newerCopyAsks() async throws {
+        let work = try scratchDirectory("newer-move")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let source = work.appending(path: "Volume/Cartouche.app")
+        let destination = work.appending(path: "Applications/Cartouche.app")
+        try app(at: source, short: "0.1.0", build: "5", binary: "old")
+        try app(at: destination, short: "0.2.0", build: "9", binary: "new")
+        let pair = try #require(AppBundleVersion.newer(installed: destination, than: source))
+        #expect(pair.installed == "0.2.0 (9)" && pair.current == "0.1.0 (5)")
+        #expect(AppBundleVersion.newer(installed: source, than: destination) == nil)
+
+        for choice in [MoveToApplications.ReplaceChoice.openInstalled, .quit] {
+            var relaunched: [URL] = []
+            var asked: [String] = []
+            var quits = 0
+            let goesOn = MoveToApplications.check(
+                location: .diskImage, mover: AppMover(destination: destination, relauncher: { relaunched.append($0) }),
+                ask: { _ in .move }, askReplace: { asked.append("\($0) over \($1)"); return choice },
+                quit: { quits += 1 }, bundle: source)
+            #expect(!goesOn)
+            #expect(await waitFor { !relaunched.isEmpty || quits > 0 })
+            #expect(asked == ["0.2.0 (9) over 0.1.0 (5)"])
+            #expect(relaunched == (choice == .openInstalled ? [destination] : []))
+            #expect(quits == (choice == .quit ? 1 : 0))
+            #expect(try Data(contentsOf: destination.appending(path: "Contents/MacOS/Cartouche")) == Data("new".utf8))
+        }
+
+        var relaunched: [URL] = []
+        _ = MoveToApplications.check(
+            location: .diskImage, mover: AppMover(destination: destination, relauncher: { relaunched.append($0) }),
+            ask: { _ in .move }, askReplace: { _, _ in .replace }, quit: {}, bundle: source)
+        #expect(await waitFor { !relaunched.isEmpty })
+        #expect(try Data(contentsOf: destination.appending(path: "Contents/MacOS/Cartouche")) == Data("old".utf8))
+    }
+
     @Test("A quarantined copy arrives in Applications without the mark")
     func stripsQuarantine() async throws {
         let work = try scratchDirectory("quarantine-move")

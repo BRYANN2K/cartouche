@@ -48,8 +48,7 @@ struct IdentityTests {
         #expect(Data(base64Encoded: key)?.count == 32)
     }
 
-    // The Replace NotProton takeover is the one feature besides the About credit
-    // that names NotProton to the user.
+    // The takeover names the integration being replaced.
     static let takeoverStrings: Set<String> = [
         "Steam uses NotProton.",
         "Steam uses NotProton. Cartouche replaces it inside Steam. NotProton's app and data stay on this Mac. To switch back, remove Cartouche and install NotProton again.",
@@ -83,7 +82,7 @@ struct IdentityTests {
                 "NotProton is named by \(named.subtracting(Self.takeoverStrings)), expected only the takeover strings")
     }
 
-    @Test("Only the About attribution and the takeover name NotProton in app text")
+    @Test("Only the takeover names NotProton in app text")
     func onlyAttributionNamesNotProton() throws {
         let literal = #/"([^"\n]*NotProton[^"\n]*)"/#
         var offenders: [String] = []
@@ -97,15 +96,13 @@ struct IdentityTests {
         #expect(offenders.isEmpty, "NotProton in user-facing text: \(offenders)")
     }
 
-    @Test("The About window links the website, credits NotProton, states the license and the non-affiliation")
+    @Test("The About window presents Cartouche and links its website and source")
     func aboutCredits() {
         let credits = Attribution.credits
-        #expect(credits.hasPrefix("https://cartouche.bryann2k.dev\n"))
-        #expect(credits.contains("started as a fork of NotProton"))
-        #expect(credits.contains("https://github.com/NotProtonNot/NotProton"))
-        #expect(credits.contains("GNU General Public License version 3 (GPL-3.0)"))
-        #expect(credits.contains(
-            "Cartouche is now its own project, not built on NotProton. It is not affiliated with NotProton, Valve, Apple or CodeWeavers."))
+        #expect(credits.hasPrefix("Your games. Your Mac.\n\n"))
+        #expect(credits.contains("PC games, console classics and your favorite stores, together in one library."))
+        #expect(credits.hasSuffix("Free and open source.\n\nWebsite · GitHub"))
+        #expect(Attribution.github == "https://github.com/BRYANN2K/cartouche")
     }
 
     @Test("README, NOTICE and LICENSE carry the attribution")

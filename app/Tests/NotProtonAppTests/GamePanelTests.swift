@@ -22,19 +22,34 @@ struct GamePanelTests {
         return (content, compat, model, fixture)
     }
 
-    @Test("Panel content: Play, Expected on This Mac, Anti-Cheat on Linux, Graphics Reported on Macs, Setup, in this order")
+    @Test("Game size distinguishes the Steam depot estimate from measured installed bytes")
+    func gameSize() {
+        var game = Game.steam(1, name: "Game", installed: false)
+        game.storageBytes = 22_500_000_000
+        game.storageEstimated = true
+        let compat = CompatibilityPanel(record: nil, mac: nil, method: .wine, chip: "M4", data: nil, ageNotice: nil)
+        let estimated = GamePanelContent(game: game, compat: compat, setup: GameSetupChoice())
+        #expect(estimated.storageLine?.contains("22.5") == true || estimated.storageLine?.contains("22,5") == true)
+        #expect(estimated.storageLine?.hasPrefix("Base game:") == true)
+        #expect(estimated.metadataLine().contains(" · ≈ "))
+        #expect(!estimated.metadataLine().contains("\n"))
+        game.storageEstimated = false
+        #expect(GamePanelContent(game: game, compat: compat, setup: GameSetupChoice()).storageLine?.hasSuffix("GB on disk") == true)
+    }
+
+    @Test("Installed games show Setup, then Your Play, then reports")
     func panelOrder() async throws {
         let (content, _, _, fixture) = try await eldenRing("panel")
         defer { fixture.remove() }
-        #expect(content.sections == [.play, .expected, .antiCheat, .graphics, .setup])
+        #expect(content.sections == [.play, .setup, .yourPlay, .expected, .antiCheat, .graphics, .controls])
         #expect(content.playLabel == "Play")
         #expect(content.subtitle(now: fixture.now) == "Steam. Played yesterday.")
 
         let (estimate, line) = GamePanelContent.estimate(content.compat.estimate, macReportsOn: true)
         #expect(line == nil)
         #expect(estimate?.rating == "Good")
-        #expect(content.compat.antiCheat?.level == .onlineWorks)
-        #expect(content.compat.antiCheat?.title.hasPrefix("Online works on Linux") == true)
+        #expect(content.compat.antiCheat?.level == .blocked)
+        #expect(content.compat.antiCheat?.title == "Anti-cheat is not compatible with Wine")
         // One report each for DXMT and DXVK: a tie keeps the fixed order
         #expect(content.layers.map(\.layer) == [.d3dmetal, .dxmt, .dxvk])
         #expect(content.layers.first?.count == 21)
@@ -71,15 +86,32 @@ struct GamePanelTests {
         #expect(changed.suggestedBackend == .d3dmetal)
     }
 
-    @Test("A game with no reports and no anti-cheat shows only Play, Expected and Setup")
+    @Test("An uninstalled game hides Setup")
     func sparseGame() async throws {
         let (_, compat, _, fixture) = try await eldenRing("sparse")
         defer { fixture.remove() }
         let game = Game.steam(999_999, name: "Unknown", installed: false)
         let content = GamePanelContent(game: game, compat: compat.panel(appID: 999_999, method: .wine), setup: GameSetupChoice())
-        #expect(content.sections == [.play, .expected, .setup])
+        #expect(content.sections == [.play, .expected, .controls])
         #expect(content.playLabel == "Install")
         #expect(GamePanelContent.estimate(content.compat.estimate, macReportsOn: true).1 == "No reports yet for this version")
+    }
+
+    @Test("Modules keep one order: Setup before Your Play, Continue From only when a console has a save")
+    func moduleOrder() {
+        #expect(PanelModules.list(.pc(installed: true, hasAntiCheat: true, hasGraphics: true, hasAdvanced: true))
+            == [.play, .setup, .yourPlay, .expected, .antiCheat, .graphics, .advanced, .controls])
+        #expect(PanelModules.list(.pc(installed: false, hasAntiCheat: false, hasGraphics: false, hasAdvanced: false))
+            == [.play, .expected, .controls])
+        let saved = PanelModules.list(.console(retroArch: true, biosMissing: false, hasStates: true))
+        #expect(saved == [.play, .setup, .yourPlay, .continueFrom, .controls, .playTogether, .more])
+        let fresh = PanelModules.list(.console(retroArch: true, biosMissing: false, hasStates: false))
+        #expect(!fresh.contains(.continueFrom))
+        #expect(fresh.firstIndex(of: .setup)! < fresh.firstIndex(of: .yourPlay)!)
+        #expect(PanelModules.list(.console(retroArch: true, biosMissing: true, hasStates: false)).prefix(3)
+            == [.play, .bios, .setup])
+        #expect(PanelModules.list(.console(retroArch: false, biosMissing: true, hasStates: true))
+            == [.play, .setup, .yourPlay, .controls, .more])
     }
 
     @Test("Opening a game's panel asks MacGamingDB for that game")
@@ -133,6 +165,10 @@ struct GamePanelWidthTests {
         let model = libraryModel(fixture, defaults: scratch)
         await model.load()
         let game = try #require(model.game("steam:1245620"))
+        let build = try #require(RunnerManifest.current().builds.first { $0.origin == .cartouche })
+        model.runners = [Runner(id: build.id, kind: .wineBuild, version: build.version,
+                                displayVersion: build.displayVersion, flavors: [.rosetta], state: .ready,
+                                build: nil, source: nil, isInstalled: true)]
         for width in [300.0, 340, 400] {
             let panel = GamePanel(game: game, model: model, compat: compat,
                                   actions: GameActionRunner(model: model, open: { _ in }))
@@ -144,6 +180,7 @@ struct GamePanelWidthTests {
             #expect(seen(texts, "Elden Ring"), "title cut at \(width): \(texts)")
             #expect(seen(texts, "Play"), "Play cut at \(width): \(texts)")
             #expect(seen(texts, "Runner"), "Setup cut at \(width): \(texts)")
+            #expect(seen(texts, "Graphics"), "Graphics label cut at \(width): \(texts)")
         }
     }
 }

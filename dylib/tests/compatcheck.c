@@ -300,6 +300,60 @@ static void manager_cases(void) {
     g_tool_shift = 0;
 }
 
+static void stub_register_tool(void *mgr, void *source);
+
+// A shift past the registration buffer's headroom, or backwards into the fixed fields,
+// is refused and turns tool entries off rather than reading or freeing past the buffer.
+static void oversize_shift_cases(void) {
+    g_tool_shift = 0;
+    g_tool_layout_refused = 0;
+    check(np_compat_probe_tool_layout(build_gate(0x60 + COMPAT_TOOL_SHIFT_MAX,
+                                                 0x58 + COMPAT_TOOL_SHIFT_MAX), 0) == 1
+          && np_compat_tool_layout_ok() && g_tool_shift == COMPAT_TOOL_SHIFT_MAX,
+          "a shift at the headroom still fits the buffer");
+
+    g_tool_shift = 0;
+    check(np_compat_probe_tool_layout(build_gate(0x60 + COMPAT_TOOL_SHIFT_MAX + 8,
+                                                 0x58 + COMPAT_TOOL_SHIFT_MAX + 8), 0) == 0,
+          "a shift past the headroom is refused");
+    check(!np_compat_tool_layout_ok() && g_tool_shift == 0,
+          "a refused shift is not taken and turns the layout off");
+
+    tool_entry_t *saved_tools = g_tools;
+    int saved_count = g_tool_count, saved_present = g_tool_list_present;
+    int saved_loaded = g_lists_loaded;
+    int64_t saved_check = atomic_load(&g_tools_next_check);
+    tool_entry_t tools[1] = {0};
+    snprintf(tools[0].name, sizeof tools[0].name, "%s", TOOL_DIR_NAME);
+    g_tools = tools;
+    g_tool_count = 1;
+    g_tool_list_present = 1;
+    g_lists_loaded = 1;
+    atomic_store(&g_tools_next_check, INT64_MAX);
+    void *mgr = build_manager(3, 1);
+    check(np_compat_registered_tool(mgr) == NULL, "a refused layout finds no tool entry");
+    np_compat_set_register_fn((uintptr_t)stub_register_tool);
+    registration_calls = 0;
+    check(np_compat_register_crossover(mgr) == 0 && registration_calls == 0,
+          "a refused layout registers nothing");
+    np_compat_set_register_fn(0);
+
+    check(np_compat_probe_tool_layout(build_gate(0x58, 0x50), 0) == 0 && !np_compat_tool_layout_ok(),
+          "a negative shift is refused");
+
+    check(np_compat_probe_tool_layout(build_gate(0x60, 0x58), 0) == 1 && np_compat_tool_layout_ok(),
+          "a later clean probe turns the layout back on");
+    check(np_compat_registered_tool(mgr) == entries + np_compat_tool_stride(),
+          "a clean layout finds the entry again");
+
+    g_tools = saved_tools;
+    g_tool_count = saved_count;
+    g_tool_list_present = saved_present;
+    g_lists_loaded = saved_loaded;
+    atomic_store(&g_tools_next_check, saved_check);
+    g_tool_shift = 0;
+}
+
 #define REGISTRATION_CLIENT_SHIFT 8
 static const uint32_t registration_paths[] = {160, 168, 176, 216, 224, 232, 240, 288};
 static const uint32_t registration_strings[] = {
@@ -411,6 +465,8 @@ static void tool_list_cases(void) {
           "cartouche-proton-fex-41069\t27.0.0.41069-fex\tfex\tCrossOver Preview 41069 (FEX)\n"
           "cartouche-proton-fex-rosetta\t27.0.0.40921-fex\trosetta\tCrossOver Preview (Rosetta)\n"
           "cartouche-proton-26.3\t26.3.0.39832\trosetta\tCrossOver 26.3\n"
+          "cartouche-proton-wine-stable-11.0_1\twine-stable-11.0_1\trosetta\tWine 11.0\n"
+          "cartouche-proton-slash\twine/stable\trosetta\tSlash\n"
           "cartouche-proton\t26.3.0.39832\trosetta\tDuplicate\n"
           "proton-other\t1\trosetta\tForeign\n"
           "cartouche-proton-x\t1\tarm\tBad flavor\n"
@@ -422,12 +478,15 @@ static void tool_list_cases(void) {
     int kept = np_compat_load_tool_list(path, "/tools");
     unlink(path);
 
-    check(kept == 4, "only well-formed, unique, cartouche-named lines are kept");
+    check(kept == 5, "only well-formed, unique, cartouche-named lines are kept");
     check(strcmp(g_tools[0].name, "cartouche-proton") == 0
           && strcmp(g_tools[0].flavor, "fex") == 0, "the first line stays first");
     check(strcmp(g_tools[3].build, "26.3.0.39832") == 0
           && strcmp(g_tools[3].dir, "/tools/cartouche-proton-26.3") == 0,
           "each tool carries its build and directory");
+    check(strcmp(g_tools[4].build, "wine-stable-11.0_1") == 0
+          && strcmp(g_tools[4].name, "cartouche-proton-wine-stable-11.0_1") == 0,
+          "a WineHQ build id may contain an underscore");
 
     uint8_t *mgr = build_manager(3, -1);
     *(const char **)(entries + np_compat_tool_stride() + COMPAT_TOOL_NAME_OFF) = "cartouche-proton-26.3";
@@ -487,6 +546,29 @@ static void tool_launch_cases(void) {
     for (size_t i = 0; i < sizeof(native) / sizeof(native[0]); i++)
         check(!np_compat_runs_tool(native[i]), native[i]);
     check(!np_compat_runs_tool(NULL), "no command line is no tool launch");
+
+    // What a stopped run script's argv[1] holds, before Steam's SIGTERM reaches it.
+    static const char *scripts[] = {
+        "/Users/u/Library/Application Support/Steam/compatibilitytools.d/cartouche-proton/./run",
+        "/Users/u/Library/Application Support/Steam/compatibilitytools.d/cartouche-proton-26.3/run",
+        "/Volumes/Ext/compatibilitytools.d/cartouche-proton-fex-41069-dxvk/run",
+    };
+    static const char *not_scripts[] = {
+        "run",
+        "/bin/sh",
+        "compatibilitytools.d/cartouche-proton/run",
+        "/x/compatibilitytools.d/proton-other/run",
+        "/x/compatibilitytools.d/cartouche-proton/runner",
+        "/x/compatibilitytools.d/cartouche-proton/sub/run",
+        "/x/compatibilitytools.d/cartouche-proton/../../bin/run",
+        "/x/compatibilitytools.d/cartouche-proton/run/compatibilitytools.d/cartouche-proton/run",
+        "/x/compatibilitytools.d/cartouche-proton/run waitforexitandrun",
+    };
+    for (size_t i = 0; i < sizeof(scripts) / sizeof(scripts[0]); i++)
+        check(np_compat_is_tool_run_path(scripts[i]), scripts[i]);
+    for (size_t i = 0; i < sizeof(not_scripts) / sizeof(not_scripts[0]); i++)
+        check(!np_compat_is_tool_run_path(not_scripts[i]), not_scripts[i]);
+    check(!np_compat_is_tool_run_path(NULL), "no path is no run script");
 }
 
 static int put(const char *dir, const char *name, const char *text) {
@@ -1015,7 +1097,152 @@ static void request_cases(void) {
           && mapped_apps[0] == 413150
           && !exists("out/compatcheck-compat-requests.applying"),
           "a leftover .applying file is applied, not orphaned");
+
+    // A leftover and a fresh file together: the rename must not replace the leftover
+    // unread, and the older requests go first so the newer ones win.
+    mapped_count = 0;
+    f = fopen("out/compatcheck-compat-requests.applying", "w");
+    if (!f) {
+        check(0, "the request fixture can be written");
+        return;
+    }
+    fputs("413150\tcartouche-proton-26.3-dxmt\n", f);
+    fclose(f);
+    f = fopen(path, "w");
+    if (!f) {
+        check(0, "the request fixture can be written");
+        return;
+    }
+    fputs("413150\tcartouche-proton-26.3-dxvk\n", f);
+    fclose(f);
+    check(np_compat_apply_requests_from(manager, path) == 2 && mapped_count == 2
+          && strcmp(mapped_tools[0], "cartouche-proton-26.3-dxmt") == 0
+          && strcmp(mapped_tools[1], "cartouche-proton-26.3-dxvk") == 0,
+          "a leftover is applied before a fresh file takes its name");
+    check(!exists(path) && !exists("out/compatcheck-compat-requests.applying"),
+          "both request files are consumed");
     np_compat_set_mapping_fn(0);
+}
+
+static void mkdirs(const char *path);
+
+// Tool files are replaced whole, left alone when current, and only steam_osx writes them.
+static void tool_file_cases(void) {
+    char root[] = "out/compatcheck-files.XXXXXX";
+    if (!mkdtemp(root)) {
+        check(0, "the tool file fixture directory can be made");
+        return;
+    }
+    char path[768];
+    snprintf(path, sizeof path, "%s/run", root);
+
+    check(write_file(path, "#!/bin/sh\n", 1) == 1, "a missing file is written");
+    struct stat a, b;
+    check(stat(path, &a) == 0 && (a.st_mode & 0777) == 0755, "an executable gets 0755");
+    check(write_file(path, "#!/bin/sh\n", 1) == 0, "an unchanged file is left alone");
+    check(stat(path, &b) == 0 && a.st_ino == b.st_ino, "an unchanged file keeps its inode");
+
+    check(write_file(path, "#!/bin/sh\nexit 0\n", 1) == 1, "changed content is written");
+    char got[64];
+    check(read_back(root, "run", got, sizeof got) == 0 && strcmp(got, "#!/bin/sh\nexit 0\n") == 0,
+          "the new content is in place");
+    check(stat(path, &b) == 0 && a.st_ino != b.st_ino,
+          "a change replaces the file rather than rewriting it in place");
+
+    chmod(path, 0644);
+    check(write_file(path, "#!/bin/sh\nexit 0\n", 1) == 1 && stat(path, &b) == 0
+          && (b.st_mode & 0777) == 0755, "a wrong mode is corrected even when content matches");
+
+    snprintf(path, sizeof path, "%s/flavor", root);
+    check(write_file(path, "fex\n", 0) == 1 && stat(path, &b) == 0
+          && (b.st_mode & 0777) == 0644, "a plain file gets 0644");
+
+    DIR *d = opendir(root);
+    int leftovers = 0;
+    for (struct dirent *e; d && (e = readdir(d)); )
+        leftovers += strchr(e->d_name, '.') && e->d_name[0] != '.';
+    if (d) closedir(d);
+    check(leftovers == 0, "no temp file is left beside the tool files");
+
+    snprintf(path, sizeof path, "%s/nodir/run", root);
+    check(write_file(path, "x", 0) == -1, "a write that cannot land reports failure");
+
+    snprintf(path, sizeof path, "%s/run", root);
+    unlink(path);
+    snprintf(path, sizeof path, "%s/flavor", root);
+    unlink(path);
+    rmdir(root);
+
+    // A Steam Helper process reaches the same code and must not touch the files.
+    int saved = g_owns_tool_files;
+    g_owns_tool_files = 0;
+    char steam[768], tools_dir[768];
+    snprintf(steam, sizeof steam, "%s/Library/Application Support/Steam", test_home);
+    snprintf(tools_dir, sizeof tools_dir, "%s/compatibilitytools.d", steam);
+    mkdirs(steam);
+    tool_entry_t *saved_tools = g_tools;
+    int saved_count = g_tool_count, saved_present = g_tool_list_present;
+    tool_entry_t tools[1] = {0};
+    snprintf(tools[0].name, sizeof tools[0].name, "cartouche-proton-helper");
+    snprintf(tools[0].flavor, sizeof tools[0].flavor, "rosetta");
+    snprintf(tools[0].build, sizeof tools[0].build, "1");
+    snprintf(tools[0].display, sizeof tools[0].display, "Helper");
+    snprintf(tools[0].dir, sizeof tools[0].dir, "%s/cartouche-proton-helper", tools_dir);
+    g_tools = tools;
+    g_tool_count = 1;
+    g_tool_list_present = 1;
+    pthread_mutex_lock(&g_tools_lock);
+    ensure_tool_manifest_locked();
+    pthread_mutex_unlock(&g_tools_lock);
+    check(!exists(tools[0].dir), "a process other than steam_osx writes no tool files");
+
+    g_owns_tool_files = saved;
+    if (saved) {
+        pthread_mutex_lock(&g_tools_lock);
+        ensure_tool_manifest_locked();
+        pthread_mutex_unlock(&g_tools_lock);
+        snprintf(path, sizeof path, "%s/run", tools[0].dir);
+        check(exists(path), "steam_osx writes the tool files");
+        g_tool_count = 0;
+        remove_unlisted_tools(tools_dir);
+    }
+    g_tools = saved_tools;
+    g_tool_count = saved_count;
+    g_tool_list_present = saved_present;
+}
+
+// The directory handed to the resolver stays readable after the lock is dropped and
+// the list replaced.
+static void tool_dir_cases(void) {
+    tool_entry_t *saved_tools = g_tools;
+    int saved_count = g_tool_count;
+    int saved_loaded = g_lists_loaded;
+    int64_t saved_check = atomic_load(&g_tools_next_check);
+    g_lists_loaded = 1;
+    atomic_store(&g_tools_next_check, INT64_MAX);
+
+    tool_entry_t *first = calloc(1, sizeof *first);
+    snprintf(first->dir, sizeof first->dir, "/tools/first");
+    g_tools = first;
+    g_tool_count = 1;
+    const char *dir = np_compat_tool_dir();
+    check(dir == first->dir, "the first tool's directory is its own list entry");
+
+    tool_entry_t second[1] = {0};
+    snprintf(second[0].dir, sizeof second[0].dir, "/tools/second");
+    retire_tools(first);
+    g_tools = second;
+    check(strcmp(dir, "/tools/first") == 0, "a replaced list leaves the handed-out dir intact");
+
+    g_tool_count = 0;
+    const char *fallback = np_compat_tool_dir();
+    check(fallback && np_compat_tool_dir() == fallback,
+          "the fallback directory is one stable buffer");
+
+    g_tools = saved_tools;
+    g_tool_count = saved_count;
+    g_lists_loaded = saved_loaded;
+    atomic_store(&g_tools_next_check, saved_check);
 }
 
 static void mkdirs(const char *path) {
@@ -1100,18 +1327,23 @@ int main(void) {
     char home_tmpl[] = "out/compatcheck-home.XXXXXX";
     if (mkdtemp(home_tmpl))
         snprintf(test_home, sizeof(test_home), "%s", home_tmpl);
+    // This check stands in for steam_osx, the one process that writes tool files.
+    g_owns_tool_files = 1;
 
     concurrent_fallback_cases();
     probe_cases();
     oslist_cases();
     enabled_cases();
     manager_cases();
+    oversize_shift_cases();
     registration_cases();
     tool_list_cases();
     tool_launch_cases();
     stale_tool_cases();
     backend_list_cases();
     request_cases();
+    tool_file_cases();
+    tool_dir_cases();
     installed_fn_cases();
     shortcut_probe_cases();
     shortcut_exe_cases();

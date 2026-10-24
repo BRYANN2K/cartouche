@@ -774,6 +774,11 @@ static void load_overlay_libraries( void )
     if (shim_handle && (install = (void (*)( void ))dlsym( shim_handle, "np_overlay_shim_install" )))
         install();
 }
+
+/* Once per process: each steamclient_init instantiation (64-bit and wow64) has its own
+ * steamclient guard, so both can get here, and a second np_overlay_shim_install would
+ * chain its interposes onto themselves. */
+static pthread_once_t overlay_once = PTHREAD_ONCE_INIT;
 #endif /* __APPLE__ */
 
 template< typename Params >
@@ -791,7 +796,7 @@ static NTSTATUS steamclient_init( Params *params, bool wow64 )
 
 #ifdef __APPLE__
     /* Get the overlay ready */
-    load_overlay_libraries();
+    pthread_once( &overlay_once, load_overlay_libraries );
 
     if (getenv( "STEAM_COMPAT_CLIENT_INSTALL_PATH" ))
         snprintf( path, PATH_MAX, "%s/steamclient.dylib", getenv( "STEAM_COMPAT_CLIENT_INSTALL_PATH" ) );

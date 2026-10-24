@@ -30,22 +30,64 @@ enum GraphicsReports {
     }
 }
 
-struct GamePanelContent {
+// One order for every game. A module is left out when it has nothing to say.
+// It never trades places with another module.
+enum PanelModule: Hashable, Sendable {
+    case play, bios, continueFrom, setup, yourPlay, expected, antiCheat, graphics, advanced, controls, playTogether, more
 
-    enum Section: String, Sendable {
-        case play, yourPlay, expected, antiCheat, graphics, setup
-
-        var title: String {
-            switch self {
-            case .play: String(localized: "Play")
-            case .yourPlay: String(localized: "Your Play")
-            case .expected: String(localized: "Expected on This Mac")
-            case .antiCheat: String(localized: "Anti-Cheat on Linux")
-            case .graphics: String(localized: "Graphics Reported on Macs")
-            case .setup: String(localized: "Setup")
-            }
+    var title: String {
+        switch self {
+        case .play: String(localized: "Play")
+        case .bios: "BIOS"
+        case .continueFrom: String(localized: "Continue From")
+        case .setup: String(localized: "Setup")
+        case .yourPlay: String(localized: "Your Play")
+        case .expected: String(localized: "Expected on This Mac")
+        case .antiCheat: String(localized: "Anti-Cheat")
+        case .graphics: String(localized: "Graphics Reported on Macs")
+        case .advanced: String(localized: "Advanced")
+        case .controls: String(localized: "Controls")
+        case .playTogether: String(localized: "Play Together")
+        case .more: String(localized: "More…")
         }
     }
+}
+
+enum PanelModules {
+
+    enum Kind: Equatable, Sendable {
+        // Installed PC games always reserve Your Play, so the card under Setup does not come and go.
+        case pc(installed: Bool, hasAntiCheat: Bool, hasGraphics: Bool, hasAdvanced: Bool)
+        case console(retroArch: Bool, biosMissing: Bool, hasStates: Bool)
+    }
+
+    static func list(_ kind: Kind) -> [PanelModule] {
+        switch kind {
+        case .pc(let installed, let hasAntiCheat, let hasGraphics, let hasAdvanced):
+            var out: [PanelModule] = [.play]
+            if installed { out += [.setup, .yourPlay] }
+            out.append(.expected)
+            if hasAntiCheat { out.append(.antiCheat) }
+            if hasGraphics { out.append(.graphics) }
+            if hasAdvanced { out.append(.advanced) }
+            out.append(.controls)
+            return out
+        case .console(let retroArch, let biosMissing, let hasStates):
+            var out: [PanelModule] = [.play]
+            if retroArch {
+                if biosMissing { out.append(.bios) }
+            }
+            out += [.setup, .yourPlay]
+            if retroArch && hasStates { out.append(.continueFrom) }
+            out.append(.controls)
+            if retroArch { out.append(.playTogether) }
+            out.append(.more)
+            return out
+        }
+    }
+}
+
+struct GamePanelContent {
 
     enum DetailsSection: String, Sendable {
         case expected, macPicker, allReports, appleGamingWiki, antiCheat, advanced, sources
@@ -56,7 +98,7 @@ struct GamePanelContent {
             case .macPicker: String(localized: "Mac")
             case .allReports: String(localized: "All Mac Reports")
             case .appleGamingWiki: "AppleGamingWiki"
-            case .antiCheat: String(localized: "Anti-Cheat on Linux")
+            case .antiCheat: String(localized: "Anti-Cheat")
             case .advanced: String(localized: "Advanced")
             case .sources: String(localized: "Sources")
             }
@@ -81,14 +123,24 @@ struct GamePanelContent {
 
     var playLabel: String { game.installed ? String(localized: "Play") : String(localized: "Install") }
 
-    var sections: [Section] {
-        var out: [Section] = [.play]
-        if play != nil { out.append(.yourPlay) }
-        out.append(.expected)
-        if compat.antiCheat != nil { out.append(.antiCheat) }
-        if !layers.isEmpty { out.append(.graphics) }
-        out.append(.setup)
-        return out
+    func actionLabel(running: Bool) -> String { running ? String(localized: "Stop") : playLabel }
+
+    // A store game Cartouche started, an installer game whose launcher or own process still runs,
+    // or the Steam game Steam reads as running
+    static func isRunning(_ game: Game, store: Bool, local: Bool, steam: Bool = false) -> Bool {
+        guard game.installed else { return false }
+        if game.source.isStore { return store }
+        return game.source == .installer ? local : game.source == .steam && steam
+    }
+
+    var sections: [PanelModule] { modules(showsAdvanced: false) }
+
+    func modules(showsAdvanced: Bool) -> [PanelModule] {
+        PanelModules.list(.pc(
+            installed: game.installed,
+            hasAntiCheat: compat.antiCheat != nil,
+            hasGraphics: !layers.isEmpty,
+            hasAdvanced: showsAdvanced))
     }
 
     var detailsSections: [DetailsSection] {
@@ -104,9 +156,42 @@ struct GamePanelContent {
         String(localized: "\(game.source.name). \(game.status(now: now)).")
     }
 
+    func metadataLine(now: Date = Date()) -> String {
+        let storage = game.storageBytes.flatMap { bytes -> String? in
+            guard bytes > 0 else { return nil }
+            let size = (Double(bytes) / 1_000_000_000).formatted(.number.precision(.fractionLength(1)))
+            return (game.storageEstimated ? "≈ " : "") + String(localized: "\(size) GB")
+        }
+        return [game.source.name, game.status(now: now), storage].compactMap { $0 }.joined(separator: " · ")
+    }
+
+    var storageLine: String? {
+        guard let bytes = game.storageBytes, bytes > 0 else { return nil }
+        let size = (Double(bytes) / 1_000_000_000).formatted(.number.precision(.fractionLength(1)))
+        return game.storageEstimated ? String(localized: "Base game: about \(size) GB")
+            : String(localized: "\(size) GB on disk")
+    }
+
+    // The panel weighs it against the resolved backend, which an unset choice does not name
+    var reportedBackend: GraphicsBackend? { bestLayer.flatMap(GraphicsBackend.init) }
+
     var suggestedBackend: GraphicsBackend? {
-        guard let best = bestLayer.flatMap(GraphicsBackend.init) else { return nil }
+        guard let best = reportedBackend else { return nil }
         return best == (setup.graphics ?? .d3dmetal) ? nil : best
+    }
+
+    enum SuggestionAction: Equatable {
+        case use(GraphicsBackend)
+        case getD3DMetal
+    }
+
+    // "Most players use…": Use when this runner offers it; D3DMetal missing only the toolkit gets the way to it.
+    static func suggestionAction(
+        _ suggestion: GraphicsBackend?, current: GraphicsBackend?, offered: [GraphicsBackend], needsToolkit: Bool
+    ) -> SuggestionAction? {
+        guard let suggestion, suggestion != current else { return nil }
+        if offered.contains(suggestion) { return .use(suggestion) }
+        return suggestion == .d3dmetal && needsToolkit ? .getD3DMetal : nil
     }
 
     struct Estimate: Equatable {

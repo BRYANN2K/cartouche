@@ -64,6 +64,7 @@ struct SettingsWindow: View {
     let permissions: PermissionCenter
     let consoles: ConsolesSettingsModel
     let choices: PrivacyChoices
+    var checkForUpdates: () -> Void = {}
 
     // Keep the selected destination across Settings opens.
     static let tabKey = "settings.tab"
@@ -103,9 +104,13 @@ struct SettingsWindow: View {
                     .accessibilityAddTraits(.isHeader)
                 pane(tab)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
             }
         }
         .frame(width: 900, height: 640)
+        .background(Color(nsColor: .windowBackgroundColor))
+        .toolbarBackground(Color(nsColor: .windowBackgroundColor), for: .windowToolbar)
+        .toolbarBackgroundVisibility(.visible, for: .windowToolbar)
         .onAppear(perform: followRoute)
         .onChange(of: SettingsRoute.shared.tab) { followRoute() }
         .scrollBounceBehavior(.basedOnSize, axes: [.vertical, .horizontal])
@@ -128,7 +133,7 @@ struct SettingsWindow: View {
     @ViewBuilder
     private func pane(_ tab: SettingsTab) -> some View {
         switch tab {
-        case .general: GeneralSettingsView()
+        case .general: GeneralSettingsView(checkForUpdates: checkForUpdates)
         case .library: LibrarySettingsView(model: model)
         case .accounts: AccountsSettingsView(model: model)
         case .steam: StatusView()
@@ -157,6 +162,7 @@ struct SettingsWindow: View {
 }
 
 struct GeneralSettingsView: View {
+    var checkForUpdates: () -> Void = {}
     @AppStorage(GeneralSettings.showInMenuBarKey) private var showInMenuBar = true
     @AppStorage(AfterLaunch.key) private var afterLaunch = AfterLaunch.hide
 
@@ -168,8 +174,10 @@ struct GeneralSettingsView: View {
                     ForEach(AfterLaunch.allCases) { Text($0.title).tag($0) }
                 }
             }
-            UpdatesSection()
+            UpdatesSection(checkForUpdates: checkForUpdates)
             SetupAssistantSection()
+            CommunitySection()
+            SupportCartoucheSection(destination: URL(string: "https://ko-fi.com/bryann2k")!)
         }
         .formStyle(.grouped)
     }
@@ -183,6 +191,7 @@ struct LibrarySettingsView: View {
             Section("PC Games") {
                 Toggle("Show games that are not installed", isOn: $model.showNotInstalled)
             }
+            GamesLocationSection(model: model)
             Section {
                 if model.hiddenGames.isEmpty {
                     Text("No hidden games").foregroundStyle(.secondary)
@@ -200,6 +209,79 @@ struct LibrarySettingsView: View {
             LibraryFoldersSection()
         }
         .formStyle(.grouped)
+    }
+}
+
+// Moving the location never moves a game: earlier locations stay listed while they hold games.
+struct GamesLocationSection: View {
+    let model: LibraryModel
+    @State private var changing = false
+    @State private var problem: String?
+
+    var body: some View {
+        Section {
+            LabeledContent {
+                HStack {
+                    if changing { ProgressView().controlSize(.small) }
+                    Button("Reveal in Finder") { reveal(model.installsFolder) }
+                    Button("Change…") { change() }
+                        .disabled(changing)
+                }
+            } label: {
+                Text(verbatim: model.installsFolder.plainPath).font(.callout.monospaced())
+                    .lineLimit(1).truncationMode(.middle)
+                    .help(model.installsFolder.plainPath)
+            }
+            ForEach(model.previousInstalls, id: \.self) { folder in
+                LabeledContent {
+                    Button("Reveal in Finder") { reveal(folder) }
+                } label: {
+                    Text(verbatim: folder.plainPath).font(.callout.monospaced())
+                        .lineLimit(1).truncationMode(.middle)
+                    Text("Earlier games location").foregroundStyle(.secondary)
+                }
+            }
+            if let problem {
+                Text(problem).foregroundStyle(.red)
+            }
+        } header: {
+            Text("Games Location")
+        } footer: {
+            Text("New Windows games and store games install here. Games already installed stay where they are and keep working.")
+        }
+    }
+
+    private func change() {
+        guard let folder = Self.choose(from: model.installsFolder) else { return }
+        changing = true
+        problem = nil
+        Task {
+            problem = await model.changeGamesLocation(to: folder)
+            changing = false
+        }
+    }
+
+    // The current location may not exist before the first install; it is made off the main actor first.
+    private func reveal(_ folder: URL) {
+        let create = folder == model.installsFolder
+        Task {
+            if create {
+                _ = await Task.detached { try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true) }.value
+            }
+            NSWorkspace.shared.activateFileViewerSelecting([folder])
+        }
+    }
+
+    static func choose(from current: URL) -> URL? {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.canCreateDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.directoryURL = current
+        panel.message = String(localized: "Choose where new games install.")
+        panel.prompt = String(localized: "Choose")
+        return panel.runModal() == .OK ? panel.url : nil
     }
 }
 
@@ -308,7 +390,7 @@ struct CompatibilitySettingsView: View {
                         LabeledContent {
                             Text(Self.state(runner)).foregroundStyle(.secondary)
                         } label: {
-                            Text(verbatim: "\(runner.kind.name) \(runner.displayVersion)")
+                            Text(verbatim: "\(runner.name) \(runner.displayVersion)")
                             if let source = runner.source {
                                 Text(verbatim: source.path(percentEncoded: false)).foregroundStyle(.secondary)
                             }
@@ -318,10 +400,6 @@ struct CompatibilitySettingsView: View {
             }
             BackendDownloadsSection(model: model)
             SetupDefaultsSection(model: model)
-            Section {
-                Text("D3DMetal is never bundled. It comes from your own Game Porting Toolkit or CrossOver.")
-                    .foregroundStyle(.secondary)
-            }
         }
         .formStyle(.grouped)
     }

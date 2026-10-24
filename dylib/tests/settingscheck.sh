@@ -37,8 +37,10 @@ chmod +x "$work/wineserver"
 
 settings() {
 	printf '%s\r\n' 'Windows Registry Editor Version 5.00' '' \
-		'[HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\AeDebug]' '"Auto"="0"' '' \
-		'[HKEY_LOCAL_MACHINE\Software\Wow6432Node\Microsoft\Windows NT\CurrentVersion\AeDebug]' '"Auto"="0"' '' \
+		'[HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\AeDebug]' \
+		'"Debugger"="winedbg --auto %ld %ld"' '"Auto"="1"' '' \
+		'[HKEY_LOCAL_MACHINE\Software\Wow6432Node\Microsoft\Windows NT\CurrentVersion\AeDebug]' \
+		'"Debugger"="winedbg --auto %ld %ld"' '"Auto"="1"' '' \
 		'[HKEY_CURRENT_USER\Software\Wine\WineDbg]' '"ShowCrashDialog"=dword:00000000' '' \
 		'[HKEY_CURRENT_USER\Software\Wine\Mac Driver]' "$1" '' \
 		'[HKEY_LOCAL_MACHINE\Software\Classes\steam]' '"URL Protocol"=""' '' \
@@ -96,6 +98,8 @@ same_file "Retina unset sets RetinaMode to n" "$work/retina-off" "$case_dir/impo
 is "the file is gone after the import" 0 "$(leftovers)"
 is "a clean import only logs the controller count" "controllers: 3 kept off hidraw" "$(cat "$case_dir/log")"
 is "the launch carries on" returned "$(cat "$case_dir/out")"
+is "crashes go to winedbg --auto in both registry views, never to Wine's dialog" "2 2 0" \
+	"$(grep -c '"Auto"="1"' "$case_dir/imported") $(grep -c '"Debugger"="winedbg --auto %ld %ld"' "$case_dir/imported") $(grep -c '"Auto"="0"' "$case_dir/imported")"
 
 launch 1 0
 same_file "Retina on sets RetinaMode to y" "$work/retina-on" "$case_dir/imported"

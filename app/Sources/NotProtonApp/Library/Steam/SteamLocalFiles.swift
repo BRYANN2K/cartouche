@@ -18,6 +18,7 @@ struct SteamInstalledApp: Equatable, Sendable {
     let appID: Int
     let name: String
     let lastPlayed: Date?
+    var sizeOnDisk: Int64? = nil
 }
 
 struct SteamPlayData: Equatable, Sendable {
@@ -120,7 +121,8 @@ struct SteamLocalFiles: Sendable {
     func installed() -> [SteamInstalledApp] {
         var apps: [Int: SteamInstalledApp] = [:]
         for manifest in manifests() where manifest.flags & 4 != 0 && !Self.isTool(appID: manifest.appID, name: manifest.name) {
-            apps[manifest.appID] = SteamInstalledApp(appID: manifest.appID, name: manifest.name, lastPlayed: manifest.lastPlayed)
+            apps[manifest.appID] = SteamInstalledApp(appID: manifest.appID, name: manifest.name, lastPlayed: manifest.lastPlayed,
+                sizeOnDisk: manifest.state["SizeOnDisk"]?.int.flatMap { $0 > 0 ? Int64($0) : nil })
         }
         return apps.values.sorted { $0.appID < $1.appID }
     }
@@ -129,7 +131,8 @@ struct SteamLocalFiles: Sendable {
     func installFolder(appID: Int) -> URL? {
         for library in libraries() {
             let steamapps = library.appending(path: "steamapps")
-            guard let dir = VDF.read(steamapps.appending(path: "appmanifest_\(appID).acf"))?[path: "AppState", "installdir"]?.string,
+            // The parsed manifest is shared with the activity poll and re-read only when it changes
+            guard let dir = Self.manifest(at: steamapps.appending(path: "appmanifest_\(appID).acf"))?.installdir,
                   Self.validInstallDir(dir)
             else { continue }
             let common = steamapps.appending(path: "common").standardizedFileURL.path(percentEncoded: false)

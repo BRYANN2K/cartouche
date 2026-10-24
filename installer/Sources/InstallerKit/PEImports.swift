@@ -58,6 +58,8 @@ public enum PEImports {
                 if !dll.isEmpty { info.dlls.append(dll) }
                 if dll == "mscoree" { info.isDotNet = true }
             }
+            // A short block means EOF; a partial descriptor would otherwise never advance `at`.
+            if complete == 0 || block.count < 1000 { break }
             at += UInt64(complete)
         }
         return info

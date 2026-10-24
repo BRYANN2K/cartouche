@@ -143,8 +143,8 @@ struct ExtrasIntegrationTests {
         let drive = a.work.appending(path: "iCloud Drive", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: drive, withIntermediateDirectories: true)
         let macB = RetroArchPaths(root: a.work.appending(path: "mac-b"))
-        try CloudSaves(paths: a.paths, drive: drive).turnOn()
-        try CloudSaves(paths: macB, drive: drive).turnOn()
+        try await CloudSaves(paths: a.paths, drive: drive).turnOn()
+        try await CloudSaves(paths: macB, drive: drive).turnOn()
 
         try await a.player.play(a.request)
         try await Task.sleep(for: .milliseconds(500))

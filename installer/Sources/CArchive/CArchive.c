@@ -106,7 +106,7 @@ CALib *ca_open(const char *path) {
 
     if (!lib->read_new || !lib->read_support_filter_all || !lib->read_support_format_all ||
         !lib->read_open_filenames || !lib->read_next_header || !lib->read_data ||
-        !lib->read_free || !lib->error_string || !lib->format_code ||
+        !lib->read_data_skip || !lib->read_free || !lib->error_string || !lib->format_code ||
         !lib->entry_pathname || !lib->entry_size || !lib->entry_filetype ||
         !lib->entry_set_pathname || !lib->write_disk_new || !lib->write_disk_set_options ||
         !lib->write_header || !lib->write_data || !lib->write_finish_entry ||

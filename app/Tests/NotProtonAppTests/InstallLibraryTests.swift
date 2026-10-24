@@ -33,15 +33,33 @@ struct InstallLibraryTests {
         #expect(model.otherGames.contains { $0.source == .console("NES") })
     }
 
-    @Test("Add Games for Windows opens the install sheet, not the Add Games sheet")
-    func windowsKindIsFiltered() {
-        var kind: AddGamesKind? = .windows
-        let binding = Binding(get: { kind }, set: { kind = $0 })
-        #expect(binding.withoutWindows.wrappedValue == nil)
-        kind = .consoles
-        #expect(binding.withoutWindows.wrappedValue == .consoles)
-        binding.withoutWindows.wrappedValue = nil
-        #expect(kind == nil)
+    @Test("Back from an installer opened from Add Games closes the sheet, then hands back to Add Games")
+    func backToAddGames() async throws {
+        let work = try scratchDirectory("installer-back")
+        let center = InstallCenter(notifier: RecordingNotifier())
+        center.sheet.tool = { work.appending(path: "no-innoextract").path }
+        center.sheet.loadRunners = { [] }
+        center.compat = { nil }
+        let returned = Box(0)
+        center.open([work], back: { returned.value += 1 })
+        #expect(center.sheet.step == .analysis)
+        #expect(await waitFor { !center.sheet.isAnalyzing })
+        center.sheet.back()
+        #expect(!center.isSheetPresented)
+        #expect(returned.value == 0)
+        center.sheetDismissed()
+        #expect(returned.value == 1)
+        #expect(center.sheet.step == .drop)
+        center.sheetDismissed()
+        #expect(returned.value == 1)
+
+        // Opened on its own, Back stays in the sheet at its drop step
+        center.open([work])
+        center.sheet.back()
+        #expect(center.isSheetPresented)
+        #expect(center.sheet.step == .drop)
+        center.sheetDismissed()
+        #expect(returned.value == 1)
     }
 
     @Test("Opening the center without a folder shows the drop step")

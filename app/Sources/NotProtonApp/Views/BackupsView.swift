@@ -20,7 +20,6 @@ struct BackupsView: View {
                 table
             }
         }
-        .navigationTitle("Prefix Backups")
         .navigationSubtitle(summary)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             VStack(spacing: 0) {
@@ -158,8 +157,8 @@ struct BackupsView: View {
         min(TextWidth.widest(model.backups.map(\.title)) ?? 240, TextWidth.maxTitle + TextWidth.cellPadding)
     }
 
-    private var libraryWidth: CGFloat {
-        TextWidth.widest(model.backups.map(\.prefix.library.displayName)) ?? 120
+    private var sourceWidth: CGFloat {
+        TextWidth.widest(model.backups.map(\.prefix.source.label)) ?? 120
     }
 
     private var takenWidth: CGFloat {
@@ -173,17 +172,12 @@ struct BackupsView: View {
             }
             .width(min: 60, ideal: gameWidth)
 
-            TableColumn("App ID") { backup in
-                Text(backup.prefix.appID).monospacedDigit().foregroundStyle(.secondary)
-            }
-            .width(min: 50, ideal: 80)
-
-            TableColumn("Library") { backup in
-                Text(backup.prefix.library.displayName)
+            TableColumn("Source") { backup in
+                Text(backup.prefix.source.label)
                     .foregroundStyle(.secondary)
-                    .help(backup.prefix.library.displayName)
+                    .help(backup.url.deletingLastPathComponent().path(percentEncoded: false))
             }
-            .width(min: 44, ideal: libraryWidth)
+            .width(min: 44, ideal: sourceWidth)
 
             TableColumn("Private Size") { backup in
                 Text(backup.bytes.formatted(.byteCount(style: .file)))

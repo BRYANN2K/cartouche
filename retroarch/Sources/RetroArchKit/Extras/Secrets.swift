@@ -39,6 +39,60 @@ public enum Keychain {
         let status = SecItemDelete(query as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else { throw SecretStoreError.keychain(status) }
     }
+
+    // The data protection keychain: per-app items, no login-keychain ACL prompts. A build signed
+    // without an application identifier (ad hoc) lacks its entitlement and stays on the login keychain.
+    public static func protected(_ query: [String: Any]) -> [String: Any] {
+        query.merging([kSecUseDataProtectionKeychain as String: true]) { $1 }
+    }
+
+    static func unentitled(_ error: Error) -> Bool {
+        (error as? SecretStoreError) == .keychain(errSecMissingEntitlement)
+    }
+
+    // A login-keychain item is copied to the data protection keychain once; it is removed only after the copy reads back.
+    public static func readMigrating(_ query: [String: Any], attributes: [String: Any]) throws -> Data? {
+        try migrate(modern: { try read(protected(query)) },
+                    legacy: { try read(query) },
+                    store: { try write($0, matching: protected(query), attributes: attributes) },
+                    dropLegacy: { try delete(query) })
+    }
+
+    static func migrate(modern: () throws -> Data?, legacy: () throws -> Data?,
+                        store: (Data) throws -> Void, dropLegacy: () throws -> Void) throws -> Data? {
+        do {
+            if let data = try modern() { return data }
+        } catch let error where unentitled(error) {
+            return try legacy()
+        }
+        guard let data = try legacy() else { return nil }
+        do {
+            try store(data)
+            if try modern() == data { try? dropLegacy() }
+        } catch {
+            // The legacy item stays; the next read tries again
+        }
+        return data
+    }
+
+    public static func writeProtected(_ data: Data, matching query: [String: Any], attributes: [String: Any]) throws {
+        do {
+            try write(data, matching: protected(query), attributes: attributes)
+        } catch let error where unentitled(error) {
+            try write(data, matching: query, attributes: attributes)
+            return
+        }
+        // An older login-keychain copy would otherwise come back once this one is deleted
+        try? delete(query)
+    }
+
+    public static func deleteEverywhere(_ query: [String: Any]) throws {
+        do {
+            try delete(protected(query))
+        } catch let error where unentitled(error) {
+        }
+        try delete(query)
+    }
 }
 
 public struct KeychainSecrets: SecretStore {
@@ -51,18 +105,19 @@ public struct KeychainSecrets: SecretStore {
         [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: account]
     }
 
+    // Readable only on this Mac, after it is first unlocked; not synced
+    private static var attributes: [String: Any] { [kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly] }
+
     public func read(_ account: String) -> String? {
-        (try? Keychain.read(query(account))).flatMap { String(data: $0, encoding: .utf8) }
+        (try? Keychain.readMigrating(query(account), attributes: Self.attributes)).flatMap { String(data: $0, encoding: .utf8) }
     }
 
     public func write(_ secret: String, for account: String) throws {
-        // Readable only on this Mac, after it is first unlocked; not synced
-        try Keychain.write(Data(secret.utf8), matching: query(account),
-                           attributes: [kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly])
+        try Keychain.writeProtected(Data(secret.utf8), matching: query(account), attributes: Self.attributes)
     }
 
     public func delete(_ account: String) {
-        try? Keychain.delete(query(account))
+        try? Keychain.deleteEverywhere(query(account))
     }
 }
 

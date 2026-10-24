@@ -36,7 +36,9 @@ final class RunnersModelTests {
             manifest: RunnerManifest(format: 1, revision: 1, builds: [])).d3dMetalRunners
     }
 
-    func model(builds: [RunnerManifest.Build], toolkits: @escaping @Sendable () -> [PortingToolkitInstall] = { [] }) throws -> RunnersModel {
+    func model(builds: [RunnerManifest.Build], toolkits: @escaping @Sendable () -> [PortingToolkitInstall] = { [] },
+               isRunning: @escaping @Sendable (URL) -> Bool = { _ in false },
+               onSync: @escaping @Sendable () -> Void = {}) throws -> RunnersModel {
         let bridge = work.appending(path: "bridge")
         for (arch, name) in [("i386-windows", "lsteamclient.dll"), ("x86_64-windows", "lsteamclient.dll"),
                              ("x86_64-unix", "lsteamclient.so")] {
@@ -56,16 +58,36 @@ final class RunnersModelTests {
                     runScript: { run })
             },
             syncTools: { runners in
+                onSync()
                 _ = try CompatToolList.sync(
                     runners: runners, bridge: bridge,
                     file: bridge.deletingLastPathComponent().appending(path: "tools"),
                     compatTools: bridge.deletingLastPathComponent().appending(path: "compatibilitytools.d"))
             },
+            isRunning: isRunning,
             scan: { FreeRunnerScan(manifest: RunnerManifest(format: 1, revision: 1, builds: builds), toolkits: toolkits()) },
             registry: { RunnerRegistry.refresh(runners: $0, bridge: bridge, roots: [], manual: [], pins: [], fexAvailable: true, free: $1) },
             manifestFeed: nil, manifestCache: work.appending(path: "runners.json"),
             defaults: defaults
         )
+    }
+
+    @Test("Downloading Wine on a fresh Mac stages its bridge without a Steam repair")
+    func firstDownloadStagesBridge() async throws {
+        let build = try await fixture()
+        let model = try model(builds: [build])
+        await model.refresh()
+        let bridge = work.appending(path: "bridge")
+        try FileManager.default.removeItem(at: bridge)
+        let prepared = await model.download(build.id)
+        #expect(prepared)
+        #expect(model.message == nil)
+        let engine = WineRunnerInstaller.dir(for: build.id, runners: runners)
+        for path in ["i386-windows/lsteamclient.dll", "x86_64-windows/lsteamclient.dll", "x86_64-unix/lsteamclient.so"] {
+            #expect(Digest.sha256IfPresent(engine.appending(path: "lib/wine/\(path)")) == Digest.sha256IfPresent(bridge.appending(path: path)))
+            #expect(FileManager.default.fileExists(atPath: bridge.appending(path: path).path))
+        }
+        #expect(!FileManager.default.fileExists(atPath: SupportPaths.clonedRoot(forBuild: build.id, runners: runners).path))
     }
 
     // A fixture archive and its manifest entry, laid out in this suite's scratch folder.
@@ -75,18 +97,21 @@ final class RunnersModelTests {
         return try WineRunnerInstallerTests.build(id: "wine-crossover-26.3.0-1", for: archive)
     }
 
-    @Test("Download on Wine CrossOver 26.3 installs it and the row reads Ready")
+    @Test("Download on Cartouche Wine 26.3.0-1 installs it and the row reads Ready")
     func download() async throws {
         let build = try await fixture()
         let model = try model(builds: [build])
         await model.refresh()
         let before = try #require(model.rows.first { $0.id == build.id })
-        #expect(before.title == "Wine CrossOver 26.3")
-        #expect(before.detail == "Built by Cartouche from CodeWeavers’ open-source code. Best for games: D3DMetal and DXMT.")
+        #expect(before.title == "Cartouche Wine 26.3.0-1")
+        #expect(before.detail == "Cartouche Wine · D3DMetal, DXMT")
         #expect(before.status == "Not installed")
         #expect(before.action == .download)
 
+        var refreshed = 0
+        model.didChange = { refreshed += 1 }
         await model.perform(.download, on: build.id)
+        #expect(refreshed == 1)
 
         let after = try #require(model.rows.first { $0.id == build.id })
         #expect(after.status == "Ready")
@@ -103,7 +128,7 @@ final class RunnersModelTests {
         #expect(entitlements["com.apple.security.cs.allow-dyld-environment-variables"] == true)
         #expect(entitlements["com.apple.security.cs.disable-library-validation"] == true)
         #expect(try String(contentsOf: work.appending(path: "tools"), encoding: .utf8)
-            == "\(SupportPaths.toolPrefix)-\(build.id)\t\(build.id)\trosetta\tWine CrossOver 26.3\n")
+            == "\(SupportPaths.toolPrefix)-\(build.id)\t\(build.id)\trosetta\tCartouche Wine 26.3\n")
         #expect(FileManager.default.isExecutableFile(atPath: work.appending(
             path: "compatibilitytools.d/\(SupportPaths.toolPrefix)-\(build.id)/run").path(percentEncoded: false)))
     }
@@ -251,7 +276,7 @@ final class RunnersModelTests {
             runnersFolder: runners, downloads: work.appending(path: "downloads"),
             scan: { FreeRunnerScan(manifest: RunnerManifest.current(cache: cache)) },
             registry: { RunnerRegistry.refresh(runners: $0, roots: [], manual: [], pins: [], fexAvailable: true, free: $1) },
-            manifestFeed: URL(string: "https://github.com/BRYANN2K/cartouche/releases/download/compat-data/runners.json")!,
+            manifestFeed: URL(string: "https://github.com/BRYANN2K/cartouche-wine/releases/download/manifest/runners.json")!,
             manifestCache: cache, manifestKey: key,
             fetch: { url in count.bump(); return try await feed(url) }, defaults: defaults
         )
@@ -262,12 +287,20 @@ final class RunnersModelTests {
         await model.refreshManifestIfDue(now: now.addingTimeInterval(25 * 60 * 60))
         #expect(count.value == 4)
         await model.refresh()
-        #expect(model.rows.contains { $0.title == "Wine CrossOver 26.3" })
+        #expect(model.rows.contains { $0.title == "Cartouche Wine 26.3.0-2" })
+        #expect(!model.rows.contains { $0.title == "Cartouche Wine 26.3.0-1" })
 
         // The daily switch pauses the manifest fetch too
         defaults.set(false, forKey: DailyChecks.key)
         await model.refreshManifestIfDue(now: now.addingTimeInterval(50 * 60 * 60))
         #expect(count.value == 4)
+        // A deliberate check bypasses the daily toggle and cooldown, verifies both files,
+        // and updates the catalog without downloading or installing a runner.
+        await model.checkForUpdates()
+        #expect(count.value == 6)
+        #expect(!model.checkingForUpdates)
+        #expect(model.updateStatus != nil)
+        #expect((try? FileManager.default.contentsOfDirectory(atPath: runners.path))?.isEmpty != false)
         defaults.removeObject(forKey: DailyChecks.key)
     }
 
@@ -313,6 +346,42 @@ final class RunnersModelTests {
         #expect(model.message == nil)
     }
 
+    @Test("A Wine build a game runs from is not removed, and says why")
+    func removeRefusedWhileRunning() async throws {
+        let build = try await fixture()
+        try await WineRunnerInstaller.install(build, runners: runners, downloads: work.appending(path: "downloads"))
+        let folder = WineRunnerInstaller.dir(for: build.id, runners: runners).standardizedFileURL
+        let model = try model(builds: [], isRunning: { $0.standardizedFileURL == folder })
+        await model.refresh()
+
+        await model.perform(.remove, on: build.id)
+        #expect(WineRunnerInstaller.isInstalled(build.id, runners: runners))
+        #expect(model.message?.contains("Quit the game first") == true)
+    }
+
+    @Test("Removing the toolkit copy rewrites Steam's tool lists, and waits while a game runs")
+    func removeToolkitSyncsTools() async throws {
+        let apps = try toolkitApp()
+        let search = PortingToolkitSource.Search(volumes: volumes(), applications: [apps])
+        let synced = Counter()
+        let running = Flag(true)
+        let model = try model(builds: [], toolkits: { PortingToolkitSource.discover(search) },
+                              isRunning: { _ in running.value }, onSync: { synced.add() })
+        await model.refresh()
+        await model.answerToolkit(.copy)
+        let copy = PortingToolkitSource.folder(version: "3.0", runners: runners)
+        let before = synced.count
+
+        await model.perform(.remove, on: "gptk-3.0")
+        #expect(FileManager.default.fileExists(atPath: copy.path(percentEncoded: false)))
+        #expect(synced.count == before)
+
+        running.value = false
+        await model.perform(.remove, on: "gptk-3.0")
+        #expect(!FileManager.default.fileExists(atPath: copy.path(percentEncoded: false)))
+        #expect(synced.count == before + 1)
+    }
+
     @Test("A refresh that finishes after a newer one does not overwrite its list")
     func staleRefreshDropped() async throws {
         let build = try await fixture()
@@ -341,5 +410,22 @@ final class RunnersModelTests {
         await first
         // Without the generation check, the stale empty scan would land last
         #expect(model.rows.first { $0.id == build.id } != nil)
+    }
+}
+
+private final class Counter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var n = 0
+    var count: Int { lock.withLock { n } }
+    func add() { lock.withLock { n += 1 } }
+}
+
+private final class Flag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var on: Bool
+    init(_ on: Bool) { self.on = on }
+    var value: Bool {
+        get { lock.withLock { on } }
+        set { lock.withLock { on = newValue } }
     }
 }

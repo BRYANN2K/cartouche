@@ -13,34 +13,41 @@ struct LibraryGrid: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 28) {
-                if let store = model.expiredStore {
-                    ExpiredBanner(source: store)
-                }
-                ForEach(sections) { section in
-                    VStack(alignment: .leading, spacing: 12) {
-                        if let title = section.title {
-                            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                                Text(title).font(.system(size: 13, weight: .bold))
-                                Text(String(section.games.count))
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundStyle(Glass.label3)
+            VStack(alignment: .leading, spacing: 0) {
+                LibraryNotices(model: model)
+                VStack(alignment: .leading, spacing: 28) {
+                    if let store = model.expiredStore {
+                        ExpiredBanner(source: store)
+                    }
+                    ForEach(sections) { section in
+                        VStack(alignment: .leading, spacing: 12) {
+                            Group {
+                                if let title = section.title {
+                                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                        Text(title).font(.system(size: 13, weight: .bold))
+                                        Text(String(section.games.count))
+                                            .font(.system(size: 12, weight: .medium))
+                                            .foregroundStyle(Glass.label3)
+                                    }
+                                    .padding(.horizontal, 4)
+                                    .accessibilityElement(children: .combine)
+                                    .accessibilityAddTraits(.isHeader)
+                                } else {
+                                    Color.clear.accessibilityHidden(true)
+                                }
                             }
-                            .padding(.horizontal, 4)
-                            .padding(.top, 6)
-                            .accessibilityElement(children: .combine)
-                            .accessibilityAddTraits(.isHeader)
-                        }
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 16, alignment: .top)],
-                                  alignment: .leading, spacing: 22) {
-                            ForEach(section.games) { game in
-                                card(game)
+                            .frame(height: 22, alignment: .bottomLeading)
+                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 16, alignment: .top)],
+                                      alignment: .leading, spacing: 22) {
+                                ForEach(section.games) { game in
+                                    card(game, shape: section.shape)
+                                }
                             }
                         }
                     }
                 }
+                .padding(EdgeInsets(top: 8, leading: 12, bottom: 24, trailing: 16))
             }
-            .padding(EdgeInsets(top: 8, leading: 12, bottom: 24, trailing: 16))
         }
         .softScrollEdges(top: Glass.toolbarHeight + 24, bottom: 24)
         .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { controls?.couch.gridWidth = $0 }
@@ -58,7 +65,7 @@ struct LibraryGrid: View {
         }
     }
 
-    private func card(_ game: Game) -> some View {
+    private func card(_ game: Game, shape: CoverShape) -> some View {
         GameCard(
             game: game,
             isSelected: model.selectedGameID == game.id,
@@ -69,10 +76,10 @@ struct LibraryGrid: View {
             onDropCover: { droppedCover = (game, $0) },
             menu: { GameMenu.items(for: game, in: model, stores: stores, consoles: consoles) },
             perform: { actions.perform($0, on: game) },
-            antiCheatBlocked: compat.map { compat in
-                compat.resolved(game, method: .wine).showsLinuxBlock(
-                    game.steamAppID.flatMap { compat.record(appID: $0) }.flatMap(AntiCheatSummary.init(record:)))
-            } ?? false
+            antiCheatBlocked: game.version != .mac && (compat.map { compat in
+                compat.resolved(game, method: .wine).showsLinuxBlock(game.steamAppID.flatMap { compat.antiCheat(appID: $0) })
+            } ?? false),
+            layoutShape: shape
         )
     }
 }

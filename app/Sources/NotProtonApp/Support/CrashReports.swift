@@ -114,7 +114,11 @@ enum CrashReports {
                 return CrashReport.Frame(
                     index: index,
                     image: image?.name ?? image?.path.map { URL(filePath: $0).lastPathComponent } ?? "unknown",
-                    address: image?.base.map { $0 + frame.imageOffset },
+                    // A malformed report must not trap the reader: an overflowing sum is no address
+                    address: image?.base.flatMap { base in
+                        let (sum, overflow) = base.addingReportingOverflow(frame.imageOffset)
+                        return overflow ? nil : sum
+                    },
                     detail: detail,
                     ours: isOurs(image?.name, path: image?.path))
             }

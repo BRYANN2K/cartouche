@@ -6,7 +6,7 @@ struct SetupDefaultsSection: View {
     @Environment(\.openSettings) private var openSettings
 
     var body: some View {
-        // The install runners, CrossOver Wine first: the default also serves installers and store games.
+        // The install runners, Cartouche Wine first: the default also serves installers and store games.
         let runners = model.installRunners
         let backends = model.graphicsChoices(for: defaults)
         Section {
@@ -15,7 +15,7 @@ struct SetupDefaultsSection: View {
                 set: { defaults.runnerID = $0.isEmpty ? nil : $0; save() }
             )) {
                 Text("First Available").tag("")
-                ForEach(runners) { Text(verbatim: "\($0.kind.name) \($0.displayVersion)").tag($0.id) }
+                ForEach(runners) { Text(verbatim: "\($0.name) \($0.displayVersion)").tag($0.id) }
             }
             LabeledContent("Default graphics") {
                 Menu {
@@ -55,8 +55,6 @@ struct SetupDefaultsSection: View {
             }
         } header: {
             Text("New Games")
-        } footer: {
-            Text("A game uses these until you pick its own setup. A backend its runner cannot use is replaced by the first one it can.")
         }
         .onAppear { defaults = model.setupDefaults }
     }
@@ -69,13 +67,16 @@ struct SetupDefaultsSection: View {
 
 // DXMT and DXVK for Wine builds; CrossOver brings its own copies
 struct BackendDownloadsSection: View {
-    static let manifest = BackendManifest.current()
-    let manifest = Self.manifest
     var folder: URL = BackendInstaller.folder
     var model: LibraryModel?
+    // Rewrites Steam's backend tool list after a download
+    var syncTools: @Sendable () throws -> Void = { _ = try CompatToolList.sync() }
+    @State private var manifest = BackendManifest.current()
     @State private var installed: [GraphicsBackend: BackendInstaller.Receipt] = [:]
     @State private var busy: Set<GraphicsBackend> = []
     @State private var message: String?
+    @State private var checking = false
+    @State private var updateStatus: String?
 
     var body: some View {
         Section {
@@ -83,23 +84,74 @@ struct BackendDownloadsSection: View {
                 LabeledContent {
                     if busy.contains(pin.backend) {
                         ProgressView().controlSize(.small)
-                    } else if installed[pin.backend]?.version == pin.version {
-                        Text("Ready").foregroundStyle(.secondary)
                     } else {
-                        Button("Download") { download(pin) }
+                        offerView(pin)
                     }
                 } label: {
                     Text(verbatim: pin.title)
-                    Text("\(pin.license) license, from \(pin.url.host() ?? "")").foregroundStyle(.secondary)
                 }
+            }
+            HStack {
+                Button("Check for Updates") { Task { await checkForUpdates() } }
+                    .disabled(checking)
+                if checking { ProgressView().controlSize(.small) }
+            }
+            if let updateStatus {
+                Text(updateStatus).foregroundStyle(.secondary)
             }
             if let message { Text(message).foregroundStyle(.red) }
         } header: {
             Text("Graphics Backends")
-        } footer: {
-            Text("Wine builds use these. CrossOver comes with its own. Each download is checked against its SHA-256 before use.")
         }
         .task { refresh() }
+    }
+
+    private var hasUpdate: Bool {
+        manifest.backends.contains { pin in
+            if case .update = BackendInstaller.offer(pin, installed: installed[pin.backend]) { return true }
+            return false
+        }
+    }
+
+    // The check only refreshes the signed manifest. Installing an update stays a separate button.
+    private func checkForUpdates() async {
+        guard !checking else { return }
+        checking = true
+        updateStatus = nil
+        defer { checking = false }
+        guard let feed = BackendManifest.feed else {
+            updateStatus = String(localized: "The graphics backend update feed is unavailable. Your installed backends are unchanged.")
+            return
+        }
+        let outcome = await BackendManifest.refresh(from: feed)
+        manifest = BackendManifest.current()
+        switch outcome {
+        case .updated:
+            updateStatus = hasUpdate
+                ? String(localized: "Graphics backend updates are available. Choose Update beside a backend.")
+                : String(localized: "Graphics backend list updated. Your installed backends are up to date.")
+        case .unchanged:
+            updateStatus = hasUpdate
+                ? String(localized: "Graphics backend updates are available. Choose Update beside a backend.")
+                : String(localized: "Your installed graphics backends are up to date.")
+        case .unavailable:
+            updateStatus = String(localized: "The graphics backend update feed is unavailable. Your installed backends are unchanged.")
+        case .rejected:
+            updateStatus = String(localized: "The graphics backend update signature could not be verified. Your installed backends are unchanged.")
+        }
+    }
+
+    // An update unpacks beside the installed copy and swaps it in, so games keep the old files until it is done
+    @ViewBuilder
+    private func offerView(_ pin: BackendManifest.Pin) -> some View {
+        switch BackendInstaller.offer(pin, installed: installed[pin.backend]) {
+        case .ready:
+            Text("Ready").foregroundStyle(.secondary)
+        case .download:
+            Button("Download") { download(pin) }
+        case .update(let version):
+            Button(String(localized: "Update to \(version)")) { download(pin) }
+        }
     }
 
     private func refresh() {
@@ -110,14 +162,27 @@ struct BackendDownloadsSection: View {
     private func download(_ pin: BackendManifest.Pin) {
         busy.insert(pin.backend)
         message = nil
+        let syncTools = syncTools
         Task {
             do {
                 try await BackendInstaller.install(pin, backends: folder)
+                await Self.afterInstall(syncTools: syncTools, reload: model?.reloadRunners)
             } catch {
                 message = (error as? StepFailure)?.detail ?? error.localizedDescription
             }
             busy.remove(pin.backend)
             refresh()
         }
+    }
+
+    // Steam's backend tool list only offers a backend once it is written there
+    @MainActor
+    static func afterInstall(syncTools: @escaping @Sendable () throws -> Void, reload: (@MainActor () async -> Void)?) async {
+        do {
+            try await Task.detached { try syncTools() }.value
+        } catch {
+            AppLog.note("tool list sync after a backend download failed: \(error)")
+        }
+        await reload?()
     }
 }

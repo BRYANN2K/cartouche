@@ -223,6 +223,32 @@ struct RunnerInstallerTests {
             runners.appending(path: ".crossover-\(build.id).new").path(percentEncoded: false)))
     }
 
+    @Test("A clone a game runs from is not replaced; otherwise the new copy is swapped in whole")
+    func replaceChecksRunningAndSwaps() throws {
+        let runners = try makeRunners()
+        defer { try? FileManager.default.removeItem(at: runners) }
+        let (install, build) = try makeSupportedInstall(in: runners)
+        _ = try RunnerInstaller.clone(from: install, runners: runners)
+        let target = SupportPaths.runnerRoot(forBuild: build.id, runners: runners)
+        let marker = target.appending(path: "marker")
+        try Data("old".utf8).write(to: marker)
+
+        var asked: [URL] = []
+        let failure = try #require(throws: StepFailure.self) {
+            try RunnerInstaller.clone(from: install, replacingExisting: true, runners: runners,
+                                      running: { asked.append($0); return true })
+        }
+        #expect(failure.detail.contains("Quit it first"))
+        #expect(asked == [target])
+        #expect(FileManager.default.fileExists(atPath: marker.path(percentEncoded: false)))
+
+        _ = try RunnerInstaller.clone(from: install, replacingExisting: true, runners: runners, running: { _ in false })
+        #expect(!FileManager.default.fileExists(atPath: marker.path(percentEncoded: false)))
+        #expect(RunnerInstaller.hasClone(forBuild: build.id, runners: runners))
+        let left = try FileManager.default.contentsOfDirectory(atPath: runners.path(percentEncoded: false))
+        #expect(!left.contains { $0.hasPrefix(".crossover-") })
+    }
+
     @Test("A rejected first copy is not left installed")
     func rejectedFirstCopyIsNotInstalled() throws {
         let runners = try makeRunners()

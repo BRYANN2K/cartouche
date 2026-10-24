@@ -3,23 +3,6 @@ import RetroArchKit
 
 struct ConsolePanelContent {
 
-    enum Section: String, Sendable {
-        case play, bios, continueFrom, stats, setup, controls, playTogether, more
-
-        var title: String {
-            switch self {
-            case .play: String(localized: "Play")
-            case .bios: "BIOS"
-            case .continueFrom: String(localized: "Continue From")
-            case .stats: String(localized: "Your Play")
-            case .setup: String(localized: "Setup")
-            case .controls: String(localized: "Controls")
-            case .playTogether: String(localized: "Play Together")
-            case .more: String(localized: "More…")
-            }
-        }
-    }
-
     let game: ConsoleGame
     let console: Console
     let states: [SaveState]
@@ -31,13 +14,8 @@ struct ConsolePanelContent {
 
     var biosMissing: Bool { bios.map { !$0.isReady } ?? false }
 
-    var sections: [Section] {
-        guard route == .retroArch else { return [.play, .stats, .setup, .controls, .more] }
-        var out: [Section] = [.play]
-        if biosMissing { out.append(.bios) }
-        if !states.isEmpty { out.append(.continueFrom) }
-        out += [.stats, .setup, .controls, .playTogether, .more]
-        return out
+    var sections: [PanelModule] {
+        PanelModules.list(.console(retroArch: route == .retroArch, biosMissing: biosMissing, hasStates: !states.isEmpty))
     }
 
     // Hardcore forbids states: Continue From and Resume wait until it is off
@@ -73,7 +51,7 @@ struct ConsolePanelContent {
     func subtitle(now: Date = Date()) -> String {
         let state = playedAt.map { String(localized: "Played \(GameDates.relative($0, now: now))") }
             ?? String(localized: "Never played")
-        return String(localized: "\(console.name). \(state).")
+        return String(localized: "\(console.name) · \(state)")
     }
 
     var played: String {

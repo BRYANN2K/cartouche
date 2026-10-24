@@ -189,10 +189,10 @@ struct GameSetupTests {
         #expect(availability.installed == [.dxmt])
     }
 
-    // A Wine CrossOver build by Cartouche plus a user toolkit on disk, all under the scratch folder.
+    // A Cartouche Wine build plus a user toolkit on disk, all under the scratch folder.
     static func cartoucheManifest() -> RunnerManifest {
         RunnerManifest(format: 1, revision: 1, builds: [
-            .init(id: "wine-crossover-26.3.0-1", kind: "wineBuild", origin: .cartouche, name: "Wine CrossOver",
+            .init(id: "wine-crossover-26.3.0-1", kind: "wineBuild", origin: .cartouche, name: "Cartouche Wine",
                   version: "26.3.0", displayVersion: "26.3",
                   url: URL(string: "https://github.com/BRYANN2K/cartouche-wine/releases/download/wine-crossover-26.3.0-1/wine-crossover-26.3.0-1-x86_64.tar.xz")!,
                   size: 0, sha256: RunnerManifest.pendingSHA256,
@@ -211,13 +211,16 @@ struct GameSetupTests {
         let folder = PortingToolkitSource.folder(version: version, runners: runners)
         try fm.createDirectory(at: folder.appending(path: "lib/external"), withIntermediateDirectories: true)
         try Data("shared".utf8).write(to: folder.appending(path: "lib/external/libd3dshared.dylib"))
+        let pe = folder.appending(path: "lib/wine/x86_64-windows")
+        try fm.createDirectory(at: pe, withIntermediateDirectories: true)
+        for name in ["d3d11", "d3d12", "dxgi"] { try Data("MZ fixture".utf8).write(to: pe.appending(path: "\(name).dll")) }
         let receipt = PortingToolkitSource.Receipt(version: version, origin: "/Volumes/GPTK", files: [:])
         try JSONEncoder().encode(receipt).write(to: folder.appending(path: PortingToolkitSource.receiptName))
         return Runner(id: PortingToolkitSource.runnerID(version: version), kind: .portingToolkit, version: version,
                       displayVersion: version, flavors: [.rosetta], state: .ready, build: nil, source: nil, isInstalled: true)
     }
 
-    @Test("CrossOver Wine counts for DXMT, and D3DMetal comes from the toolkit or its own apple_gptk")
+    @Test("Cartouche Wine counts for DXMT, and D3DMetal comes from the toolkit or its own apple_gptk")
     func cartoucheAvailability() throws {
         let work = try scratchDirectory("setup-cartouche")
         defer { try? FileManager.default.removeItem(at: work) }
@@ -236,9 +239,9 @@ struct GameSetupTests {
         #expect(BackendSupport.missing(.d3dmetal, for: ours, translation: .rosetta, availability: availability)
                 == String(localized: "Needs Game Porting Toolkit"))
         #expect(BackendSupport.missing(.d3dmetal, for: winehq, translation: .rosetta, availability: availability)
-                == String(localized: "Needs CrossOver Wine and Game Porting Toolkit"))
+                == String(localized: "Needs Cartouche Wine and Game Porting Toolkit"))
         #expect(BackendSupport.missing(.dxmt, for: winehq, translation: .rosetta, availability: availability)
-                == String(localized: "Needs CrossOver Wine"))
+                == String(localized: "Needs Cartouche Wine"))
 
         // The toolkit present: the WineHQ build still cannot load D3DMetal, ours can.
         let toolkit = try Self.toolkit(in: runners)
@@ -249,7 +252,7 @@ struct GameSetupTests {
         #expect(availability.d3dMetalRunners == Set([ours.id, toolkit.id]))
         #expect(BackendSupport.backends(for: ours, translation: .rosetta, availability: availability).contains(.d3dmetal))
         #expect(BackendSupport.missing(.d3dmetal, for: winehq, translation: .rosetta, availability: availability)
-                == String(localized: "Needs CrossOver Wine"))
+                == String(localized: "Needs Cartouche Wine"))
 
         // Its own apple_gptk counts even without the user's toolkit.
         let own = WineRunnerInstaller.dir(for: ours.id, runners: runners)
@@ -261,5 +264,36 @@ struct GameSetupTests {
                                                    manifest: manifest)
         #expect(availability.d3dMetalRunners == [ours.id])
         #expect(!availability.hasGamePortingToolkit)
+    }
+
+    @Test("Without the toolkit our Wine defaults to DXMT and the D3DMetal suggestion leads to the toolkit; with it D3DMetal stays first")
+    func d3dMetalOnlyWhenLoadable() {
+        let ours = Self.wine("wine-crossover-26.3.0-1")
+        var availability = BackendAvailability(installed: [.dxmt], crossOverWine: [ours.id])
+        let without = BackendSupport.backends(for: ours, translation: .rosetta, availability: availability)
+        #expect(without == [.dxmt, .wined3d])
+        #expect(GameSetupResolver.resolve(GameSetupChoice(runnerID: ours.id), runners: [ours],
+                                          availability: availability, offered: [ours]).setup.backend == .dxmt)
+        // A record still asking for D3DMetal resolves to the best available, flagged
+        let asked = GameSetupResolver.resolve(GameSetupChoice(runnerID: ours.id, graphics: .d3dmetal), runners: [ours],
+                                              availability: availability, offered: [ours])
+        #expect(asked.setup.backend == .dxmt)
+        #expect(asked.problems.contains(.backendUnavailable(.d3dmetal)))
+        #expect(BackendSupport.needsToolkit(for: ours, translation: .rosetta, availability: availability))
+        #expect(GamePanelContent.suggestionAction(.d3dmetal, current: .dxmt, offered: without, needsToolkit: true)
+                == .getD3DMetal)
+        // A WineHQ build can't load D3DMetal even with the toolkit: no suggestion at all
+        let winehq = Self.wine("wine-stable-11.0_1")
+        #expect(!BackendSupport.needsToolkit(for: winehq, translation: .rosetta, availability: availability))
+        #expect(GamePanelContent.suggestionAction(.d3dmetal, current: .wined3d, offered: [.wined3d], needsToolkit: false)
+                == nil)
+
+        availability.d3dMetalRunners = [ours.id]
+        let with = BackendSupport.backends(for: ours, translation: .rosetta, availability: availability)
+        #expect(with.first == .d3dmetal)
+        #expect(!BackendSupport.needsToolkit(for: ours, translation: .rosetta, availability: availability))
+        #expect(GamePanelContent.suggestionAction(.d3dmetal, current: .dxmt, offered: with, needsToolkit: false)
+                == .use(.d3dmetal))
+        #expect(GamePanelContent.suggestionAction(.d3dmetal, current: .d3dmetal, offered: with, needsToolkit: false) == nil)
     }
 }

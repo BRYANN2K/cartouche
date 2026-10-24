@@ -37,6 +37,35 @@ enum AppLocation: Equatable, Sendable {
     }
 }
 
+struct AppBundleVersion: Equatable, Sendable {
+    let short: String
+    let build: String
+
+    var display: String { build.isEmpty || build == short ? short : "\(short) (\(build))" }
+
+    static func of(_ app: URL) -> AppBundleVersion? {
+        guard let info = NSDictionary(contentsOf: app.appending(path: "Contents/Info.plist")) else { return nil }
+        let short = info["CFBundleShortVersionString"] as? String ?? ""
+        let build = info["CFBundleVersion"] as? String ?? ""
+        guard !short.isEmpty || !build.isEmpty else { return nil }
+        return AppBundleVersion(short: short, build: build)
+    }
+
+    func isNewer(than other: AppBundleVersion) -> Bool {
+        switch short.compare(other.short, options: .numeric) {
+        case .orderedDescending: true
+        case .orderedAscending: false
+        case .orderedSame: build.compare(other.build, options: .numeric) == .orderedDescending
+        }
+    }
+
+    // The installed copy's and this copy's versions, when the installed one is newer
+    static func newer(installed: URL, than bundle: URL) -> (installed: String, current: String)? {
+        guard let there = of(installed), let here = of(bundle), there.isNewer(than: here) else { return nil }
+        return (there.display, here.display)
+    }
+}
+
 struct AppMover {
     var destination = URL(filePath: "/Applications/Cartouche.app")
     var relauncher: @MainActor (URL) -> Void = { _ = LiveRelauncher(bundle: $0).relaunch() }
@@ -95,6 +124,12 @@ enum MoveToApplications {
         case quit
     }
 
+    enum ReplaceChoice: Equatable {
+        case openInstalled
+        case replace
+        case quit
+    }
+
     static func message(_ location: AppLocation) -> String {
         switch location {
         case .diskImage:
@@ -119,8 +154,24 @@ enum MoveToApplications {
         alert(location).runModal() == .alertFirstButtonReturn ? .move : .quit
     }
 
+    static func askReplace(installed: String, current: String) -> ReplaceChoice {
+        let alert = NSAlert()
+        alert.messageText = String(localized: "A newer Cartouche is in Applications")
+        alert.informativeText = String(localized: "Applications has Cartouche \(installed). This copy is \(current). Moving it would replace the newer version.")
+        alert.addButton(withTitle: String(localized: "Open Newer Copy"))
+        alert.addButton(withTitle: String(localized: "Replace"))
+        alert.addButton(withTitle: String(localized: "Quit"))
+        switch alert.runModal() {
+        case .alertFirstButtonReturn: return .openInstalled
+        case .alertSecondButtonReturn: return .replace
+        default: return .quit
+        }
+    }
+
     static func check(location: AppLocation = .current, mover: AppMover = AppMover(),
-                      ask: @MainActor (AppLocation) -> Choice = ask, quit: @escaping @MainActor () -> Void = { NSApp.terminate(nil) },
+                      ask: @MainActor (AppLocation) -> Choice = ask,
+                      askReplace: @escaping @MainActor (String, String) -> ReplaceChoice = { askReplace(installed: $0, current: $1) },
+                      quit: @escaping @MainActor () -> Void = { NSApp.terminate(nil) },
                       bundle: URL = Bundle.main.bundleURL) -> Bool {
         guard location.offersMove else { return true }
         AppLog.note("running from \(bundle.path(percentEncoded: false)), offering to move")
@@ -129,6 +180,20 @@ enum MoveToApplications {
             // The copy waits on a process: it runs after check returns, off the
             // main actor, and the relaunch or the error alert comes back to it.
             Task {
+                let destination = mover.destination
+                let newer = await Task.detached { AppBundleVersion.newer(installed: destination, than: bundle) }.value
+                if let newer {
+                    switch askReplace(newer.installed, newer.current) {
+                    case .openInstalled:
+                        mover.relauncher(destination)
+                        return
+                    case .quit:
+                        quit()
+                        return
+                    case .replace:
+                        break
+                    }
+                }
                 do {
                     try await mover.moveAndRelaunch(bundle)
                 } catch {

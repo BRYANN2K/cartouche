@@ -13,6 +13,11 @@ extension CartoucheApp {
     func start() async {
         guard !started else { await library.load(); return }
         started = true
+        runners.didChange = { [weak runners, weak library, status] in
+            guard let runners, let library else { return }
+            await Self.syncRunnerList(runners: runners, into: library)
+            await status.refresh()
+        }
         updater.start()
         permissions.watchActivation()
         await crashReports.check()
@@ -33,13 +38,17 @@ extension CartoucheApp {
         network.start { [library] offline in library.isOffline = offline }
         await compat.load()
         await performance.refresh()
+        // Explicit installations reload the import; Steam quitting only refreshes the status.
+        status.onUpkeepInstalled = { [library] in await library.load() }
+        library.onSteamQuit = { [status] in await status.keepSteamIntegrationCurrent() }
         await library.load()
         library.watch()
         await consoleCenter.reload()
         await consoleCenter.reattachOrphaned()
         consoleCenter.folderList = gameFolders
         consoleCenter.netplayFlow = PermissionFlow(center: permissions)
-        await consoleCenter.startWatching()
+        // An unavailable game folder must not delay controllers, runners or stores.
+        Task { [consoleCenter] in await consoleCenter.startWatching() }
         controls.couch.play = { [actions] game in actions.perform(game.installed ? .play : .install, on: game) }
         await controls.start(relaunch: relaunch, library: library)
         if let route, route.screen == "controls" { await controls.reopen(route) }
@@ -50,6 +59,15 @@ extension CartoucheApp {
             }
         }
         await startActivity()
+        library.reloadRunners = { [runners, weak library] in
+            guard let library else { return }
+            await Self.loadRunners(runners: runners, into: library)
+        }
+        runners.migrateGames = { [weak runners, weak library] old, new in
+            guard let runners, let library else { return }
+            await Self.syncRunnerList(runners: runners, into: library)
+            try await library.moveGames(from: old, to: new)
+        }
         await loadRunners()
         startStores()
         await compat.refresh()
@@ -64,6 +82,9 @@ extension CartoucheApp {
         let activity = ActivityCenter.shared
         activity.storeSource = { [stores] in stores.activity }
         activity.stopStore = { [stores] in stores.stop($0) }
+        activity.storeFailures = { [stores] in stores.failures }
+        activity.retryStore = { [stores] in stores.retry($0) }
+        activity.dismissStore = { [stores] in stores.dismiss($0) }
         Task { await stores.start(refresh: !library.isOffline) }
     }
 
@@ -78,7 +99,9 @@ extension CartoucheApp {
         }
         activity.follow(consoleCenter)
         activity.onDownloadFinished = { [library] _ in Task { await library.load() } }
+        activity.onSteamSnapshot = { SteamInstallCenter.shared.reconcile($0) }
         activity.onGameEnded = { [performance] in Task { await performance.refresh() } }
+        InstallCenter.shared.onSessionEnded = { [performance] in Task { await performance.refresh() } }
         activity.watch()
     }
 }

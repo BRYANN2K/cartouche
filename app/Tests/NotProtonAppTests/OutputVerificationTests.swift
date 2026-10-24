@@ -131,6 +131,29 @@ struct OutputVerificationTests {
         ])
     }
 
+    @Test("A file listed once for one language is optional: absent passes, a wrong size still fails")
+    func languageFile() async throws {
+        let files = GameVerify.installedFiles(from: [
+            InnoFileEntry(path: #"app\game.exe"#, bytes: 5),
+            InnoFileEntry(path: #"app\lang\german.pak"#, bytes: 7, languageSpecific: true),
+            InnoFileEntry(path: #"app\lang\french.pak"#, bytes: 9, languageSpecific: true),
+        ])
+        #expect(files == [
+            VerificationFile(path: "game.exe", bytes: 5),
+            VerificationFile(path: "lang/german.pak", bytes: 7, variants: [7]),
+            VerificationFile(path: "lang/french.pak", bytes: 9, variants: [9]),
+        ])
+        let dir = try scratchDirectory("ov-language")
+        try Data("12345".utf8).write(to: dir.appending(path: "game.exe"))
+        try FileManager.default.createDirectory(at: dir.appending(path: "lang"), withIntermediateDirectories: true)
+        try Data("1234".utf8).write(to: dir.appending(path: "lang/french.pak"))
+        #expect(try await GameVerify.checkSizes(files, root: dir) == ["lang/french.pak"])
+        try Data("123456789".utf8).write(to: dir.appending(path: "lang/french.pak"))
+        #expect(try await GameVerify.checkSizes(files, root: dir).isEmpty)
+        try FileManager.default.removeItem(at: dir.appending(path: "game.exe"))
+        #expect(try await GameVerify.checkSizes(files, root: dir) == ["game.exe"])
+    }
+
     @Test("A supplied checksum list reads ..\\ and plain paths against the game dir")
     func supplied() async throws {
         let dir = try scratchDirectory("ov-supplied")

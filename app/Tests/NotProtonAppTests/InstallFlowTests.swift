@@ -130,6 +130,7 @@ final class RecordingNotifier: InstallNotifying {
     var posted: [String] = []
     func installed(name: String, job: UUID) { posted.append(String(localized: "\(name) is installed")) }
     func failed(name: String, job: UUID) { posted.append("failed \(name)") }
+    func quitUnexpectedly(name: String, gameID: String) { posted.append("quit \(name)") }
 }
 
 @MainActor
@@ -261,6 +262,44 @@ struct InstallFlowTests {
         center.sheet.stop()
         #expect(await waitFor { job.phase == .stopped })
         #expect(!FileManager.default.fileExists(atPath: folder.root.path))
+    }
+
+    @Test("After Stop the same game installs again into the same folder, from a clean prefix")
+    func stopThenStartAgain() async throws {
+        let fake = try FakeInstall("flow-stop-again", behavior: "hang")
+        let center = InstallCenter(engine: fake.engine(winetricks: VerbLog()), notifier: RecordingNotifier())
+        let first = InstallJob(request: fake.request(), inputs: InstallInputs(runnerID: fake.runner.id, gameName: "Sample Game"))
+        center.enqueue(first)
+        #expect(await waitFor { first.phase == .installing && fake.calledWith().count == 2 })
+        let folder = try #require(first.folder)
+        center.stop(first)
+        #expect(await waitFor { first.phase == .stopped })
+        // The phase turns stopped only once the folder is gone and the job has left the list.
+        #expect(!FileManager.default.fileExists(atPath: folder.root.path))
+        #expect(first.folder == nil)
+        #expect(await waitFor { !center.jobs.contains { $0 === first } })
+
+        let again = InstallJob(request: fake.request(), inputs: InstallInputs(runnerID: fake.runner.id, gameName: "Sample Game"))
+        center.enqueue(again)
+        #expect(await waitFor { again.phase == .installing })
+        #expect(again.folder == folder)
+        center.stop(again)
+        #expect(await waitFor { again.phase == .stopped })
+    }
+
+    @Test("Stop at the exe step removes the unfinished attempt and ends the job")
+    func stopWhileChoosing() async throws {
+        let fake = try FakeInstall("flow-stop-choosing")
+        let center = InstallCenter(engine: fake.engine(winetricks: VerbLog()), notifier: RecordingNotifier())
+        let job = InstallJob(request: fake.request(), inputs: InstallInputs(runnerID: fake.runner.id, gameName: "Sample Game"))
+        center.enqueue(job)
+        #expect(await waitFor { job.phase == .choosing })
+        let folder = try #require(job.folder)
+        center.stop(job)
+        center.stop(job)
+        #expect(await waitFor { job.phase == .stopped })
+        #expect(!FileManager.default.fileExists(atPath: folder.root.path))
+        #expect(await waitFor { center.jobs.isEmpty })
     }
 
     @Test("A decompression error offers the retries, and a retry runs again with the changed inputs")

@@ -22,6 +22,17 @@ struct RuntimeScanTests {
         }
     }
 
+    @Test("An import directory cut short by EOF ends the scan instead of looping")
+    func truncatedImports() throws {
+        let dir = try tempFolder([:])
+        for cut in [1, 10, 19, 30] {
+            let url = dir.appending(path: "cut\(cut).exe")
+            try TestPE.build(imports: ["kernel32.dll"]).prefix(0x200 + cut).write(to: url)
+            let info = try #require(PEImports.scan(url))
+            #expect(info.dlls.isEmpty)
+        }
+    }
+
     @Test("DLL names map to verbs, or to nothing when Wine or Mono already covers them", arguments: [
         ("msvcp140", "vcrun2022"), ("vcruntime140_1", "vcrun2022"), ("concrt140", "vcrun2022"),
         ("msvcr120", "vcrun2013"), ("msvcp120", "vcrun2013"), ("msvcr110", "vcrun2012"),
@@ -63,6 +74,33 @@ struct RuntimeScanTests {
         let cliOnly = try pe(try tempFolder([:]), "cli.exe", imports: [], dotNet: true)
         #expect(RuntimeScan.scan(exe: cliOnly).isDotNet)
         #expect(RuntimeScan.scan(exe: cliOnly).steps.isEmpty)
+    }
+
+    @Test("An Unreal project resolves past the bootstrap and scans the shipping folder's DLLs")
+    func unrealBootstrap() throws {
+        let dir = try tempFolder(["BrightGame.uproject": "{}", "BrightGame/Binaries/Win64/.keep": ""])
+        let bootstrap = try pe(dir, "Launcher.exe", imports: ["msvcr100.dll"])
+        try pe(dir, "bootstrap.dll", imports: ["physxloader.dll"])
+        let shippingDir = dir.appending(path: "BrightGame/Binaries/Win64")
+        let shipping = try pe(shippingDir, "BrightGame-Win64-Shipping.exe", imports: ["msvcp140.dll", "d3dx9_43.dll"])
+        try pe(shippingDir, "sound.dll", imports: ["openal32.dll"])
+        try pe(shippingDir, "d3dx9_43.dll", imports: [])
+        #expect(RuntimeScan.resolvedExecutable(bootstrap) == shipping)
+        #expect(RuntimeScan.scan(exe: bootstrap).steps.map(\.verb) == ["vcrun2022", "openal"])
+    }
+
+    @Test("Without a root project descriptor or its shipping exe, the chosen exe stays in use", arguments: [false, true])
+    func unrealFallback(hasDescriptor: Bool) throws {
+        let dir = try tempFolder(hasDescriptor ? ["BrightGame.uproject": "{}"] : [:])
+        let exe = try pe(dir, "Chosen.exe", imports: ["msvcr120.dll"])
+        try pe(dir, "sound.dll", imports: ["openal32.dll"])
+        if !hasDescriptor {
+            let shippingDir = dir.appending(path: "BrightGame/Binaries/Win64")
+            try FileManager.default.createDirectory(at: shippingDir, withIntermediateDirectories: true)
+            try pe(shippingDir, "BrightGame-Win64-Shipping.exe", imports: ["msvcp140.dll"])
+        }
+        #expect(RuntimeScan.resolvedExecutable(exe) == exe)
+        #expect(RuntimeScan.scan(exe: exe).steps.map(\.verb) == ["vcrun2013", "openal"])
     }
 
     @Test("A non-PE program needs nothing")

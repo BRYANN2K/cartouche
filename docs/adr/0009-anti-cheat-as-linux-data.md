@@ -4,7 +4,7 @@ One accepted decision for Cartouche. Read by contributors who need to know why.
 
 ## Status
 
-Accepted, 2026-10-19.
+Superseded by [0035](0035-game-reports-and-mac-anticheat.md), 2026-10-22. The original decision below is retained as history.
 
 ## Context
 

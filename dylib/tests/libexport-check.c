@@ -14,7 +14,7 @@
 #include <mach-o/loader.h>
 
 // WebUI stubs: parse_into captures the reply protobuf, the rest just exist.
-static uint8_t captured_pb[256];
+static uint8_t captured_pb[32768];
 static uint32_t captured_pb_len;
 
 int np_webui_parse_into(uintptr_t message, const void *bytes, uint32_t len) {
@@ -39,6 +39,7 @@ int np_webui_register_route(const char *name, uintptr_t req, uintptr_t resp,
         token_handler = handler;
         return 1;
     }
+    if (strstr(name, "Install")) return 1;
     registered_req = req;
     registered_resp = resp;
     registered_handler = handler;
@@ -65,8 +66,8 @@ FILE *np_log_file  = NULL;
 static int fails;
 
 // A request object: field storage at 24 points at the string.
-static uint8_t req_obj[64];
-static struct { const uint8_t *data; size_t size; uint64_t cap; } req_str;
+static _Alignas(16) uint8_t req_obj[64];
+static _Alignas(16) struct { const uint8_t *data; size_t size; uint64_t cap; } req_str;
 
 static uintptr_t make_request(const void *payload, size_t len) {
     memset(req_obj, 0, sizeof req_obj);
@@ -391,6 +392,98 @@ int main(int argc, char **argv) {
         unlink(lpath);
         CHECK(call_export(tok, other) == RESULT_OK,
               "no known account still exports");
+    }
+
+    // A bytes field that is no std::string fails the route instead of being read.
+    {
+        captured_pb_len = 0;
+        CHECK(export_owned_games(0x10, 0) == RESULT_FAIL, "a request that is no message fails");
+        make_request(payload_buf, 40);
+        *(uintptr_t *)(req_obj + REQ_BYTES_OFF) = 0x1234;
+        CHECK(export_owned_games((uintptr_t)req_obj, 0) == RESULT_FAIL,
+              "a low string pointer fails");
+        *(uintptr_t *)(req_obj + REQ_BYTES_OFF) = (uintptr_t)&req_str + 4;
+        CHECK(export_owned_games((uintptr_t)req_obj, 0) == RESULT_FAIL,
+              "a misaligned string object fails");
+        make_request(payload_buf, 40);
+        req_str.data = (const uint8_t *)(uintptr_t)0x20;
+        CHECK(export_owned_games((uintptr_t)req_obj, 0) == RESULT_FAIL,
+              "a long string with a low data pointer fails");
+        static _Alignas(16) uint8_t short_form[24];
+        short_form[23] = 40;
+        *(uintptr_t *)(req_obj + REQ_BYTES_OFF) = (uintptr_t)short_form | 1;
+        CHECK(export_owned_games((uintptr_t)req_obj, 0) == RESULT_FAIL,
+              "a short size past the inline buffer fails");
+        CHECK(captured_pb_len == 0, "no malformed request gets a reply");
+    }
+
+    // loginusers.vdf escapes quotes inside values; the tokenizer has to keep up.
+    {
+        char path[1400];
+        snprintf(path, sizeof path,
+                 "%s/Library/Application Support/Steam/config", scratch);
+        mkdirs(path);
+        snprintf(path, sizeof path,
+                 "%s/Library/Application Support/Steam/config/loginusers.vdf", scratch);
+        FILE *f = fopen(path, "w");
+        fprintf(f, "\"users\"\n{\n"
+                   "\t\"76561198000000001\"\n\t{\n"
+                   "\t\t\"PersonaName\"\t\t\"say \\\"hi\\\" \\\\\"\n"
+                   "\t\t\"MostRecent\"\t\t\"1\"\n"
+                   "\t\t\"Timestamp\"\t\t\"1\"\n\t}\n"
+                   "\t\"76561198000000002\"\n\t{\n"
+                   "\t\t\"MostRecent\"\t\t\"0\"\n"
+                   "\t\t\"Timestamp\"\t\t\"9\"\n\t}\n}\n");
+        fclose(f);
+        char *who = loginusers_steamid(scratch);
+        CHECK(who && strcmp(who, "76561198000000001") == 0,
+              "an escaped quote in a value does not hide the most recent account");
+        free(who);
+
+        uint8_t esc[] = "\"a\\\"b\\\\\" \"n\\nt\\t\"";
+        np_vdf_t v = { esc, esc + sizeof esc - 1 };
+        char tok_out[16];
+        CHECK(vdf_next(&v, tok_out, sizeof tok_out) == 's' && strcmp(tok_out, "a\"b\\") == 0,
+              "\\\" and \\\\ unescape");
+        CHECK(vdf_next(&v, tok_out, sizeof tok_out) == 's' && strcmp(tok_out, "n\nt\t") == 0,
+              "\\n and \\t unescape");
+        unlink(path);
+    }
+
+    {
+        write_loginusers("76561198123456789", "76561198999999999");
+        char command[1024];
+        snprintf(command, sizeof command,
+            "{\"id\":\"11111111-1111-4111-8111-111111111111\",\"appid\":42,\"steamid\":\"76561198123456789\",\"operation\":\"install\",\"created\":%ld}", (long)time(NULL));
+        CHECK(write_support_file(scratch,"steam-install-command.json",command,strlen(command)) == 0,"private install command written");
+        captured_pb_len = 0;
+        CHECK(get_install_command(0,1) == RESULT_OK && captured_pb_len > 36,"current-account command served");
+        CHECK(memmem(captured_pb,captured_pb_len,"11111111-1111-4111-8111-111111111111",36) != NULL,"command identity preserved");
+        write_loginusers("76561198999999999", "76561198123456789");
+        get_install_command(0,1);
+        CHECK(captured_pb_len == 4,"account switch refuses the previous account command");
+        write_loginusers("76561198123456789", "76561198999999999");
+        CHECK(write_support_file(scratch,"steam-install-command.json","{}",2) == 0,"incomplete command written");
+        get_install_command(0,1);
+        CHECK(captured_pb_len == 4,"incomplete command refused");
+        const char *status = "{\"id\":\"11111111-1111-4111-8111-111111111111\",\"appid\":42,\"state\":\"queued\",\"fraction\":0}";
+        size_t n = (size_t)snprintf(payload_buf,NP_EXPORT_MAX,"%s\n%s",np_libexport_token(),status);
+        CHECK(export_install_status(make_request(payload_buf,n),1) == RESULT_OK,"authenticated install status persisted");
+        payload_buf[0] = payload_buf[0] == 'a' ? 'b' : 'a';
+        CHECK(export_install_status(make_request(payload_buf,n),1) == RESULT_FAIL,"wrong token cannot forge install status");
+    }
+
+    {
+        char path[1400];
+        snprintf(path,sizeof path,"%s/Library/Application Support/Steam/config/loginusers.vdf",scratch);
+        FILE *f=fopen(path,"w");
+        if (f) {
+            fputs("\"users\" { \"76561198123456789\" { \"timestamp\" \"100\" } }",f);
+            fclose(f);
+            char *account=loginusers_steamid(scratch);
+            CHECK(account && !strcmp(account,"76561198123456789"),"lowercase timestamp identifies current Steam account without MostRecent");
+            free(account);
+        }
     }
 
     // Registration once-only: a second call does not re-register.

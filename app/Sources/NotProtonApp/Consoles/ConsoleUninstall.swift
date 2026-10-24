@@ -83,10 +83,14 @@ struct ConsoleUninstall: Sendable {
     static func saveFiles(for game: ConsoleGame, in paths: RetroArchPaths) -> [URL] {
         let fm = FileManager.default
         var found: [URL] = []
-        for (folder, prefix) in [(paths.saves, game.contentName + "."), (paths.states, game.contentName + ".state")] {
+        let name = game.contentName
+        let matchers: [(URL, (String) -> Bool)] = [
+            (paths.saves, { isSave($0, of: name) }), (paths.states, { isState($0, of: name) }),
+        ]
+        for (folder, matches) in matchers {
             guard let walker = fm.enumerator(at: folder.resolvingSymlinksInPath(),
                                              includingPropertiesForKeys: [.isDirectoryKey]) else { continue }
-            for case let file as URL in walker where file.lastPathComponent.hasPrefix(prefix) {
+            for case let file as URL in walker where matches(file.lastPathComponent) {
                 if (try? file.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true {
                     walker.skipDescendants()
                 }
@@ -94,6 +98,22 @@ struct ConsoleUninstall: Sendable {
             }
         }
         return found.sorted { $0.path(percentEncoded: false) < $1.path(percentEncoded: false) }
+    }
+
+    // name.srm and the like: the stem is exactly the content name, so "Dr" never takes "Dr. Mario.srm"
+    static func isSave(_ file: String, of contentName: String) -> Bool {
+        guard file.hasPrefix(contentName + ".") else { return false }
+        let ext = file.dropFirst(contentName.count + 1)
+        return !ext.isEmpty && ext.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber) }
+    }
+
+    // name.state, name.state<digits>, each optionally .auto, then optionally .png
+    static func isState(_ file: String, of contentName: String) -> Bool {
+        guard file.hasPrefix(contentName + ".state") else { return false }
+        var rest = Substring(file.dropFirst(contentName.count + ".state".count))
+        if rest.hasSuffix(".png") { rest = rest.dropLast(".png".count) }
+        if rest.hasSuffix(".auto") { rest = rest.dropLast(".auto".count) }
+        return rest.allSatisfy { $0.isASCII && $0.isNumber }
     }
 
     // The saves are copied out first, so a failed copy leaves every file where it was.

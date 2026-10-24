@@ -522,6 +522,33 @@ struct SteamDownloadCommandTests {
 @Suite("Game processes", .serialized)
 struct GameProcessTests {
 
+    @Test("A tracked Wine child remains identifiable through its mapped Windows drive after reparenting")
+    func mappedWindowsProcess() async throws {
+        let work = try scratchDirectory("mapped-wine-process")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let steam = work.appending(path: "Steam")
+        let folder = steam.appending(path: "steamapps/common/SampleGame")
+        let prefix = work.appending(path: "prefix")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: prefix.appending(path: "dosdevices"), withIntermediateDirectories: true)
+        try FileManager.default.createSymbolicLink(at: prefix.appending(path: "dosdevices/s:"), withDestinationURL: steam)
+        let child = try Self.spawn("/bin/bash", ["-c", "exec -a 'S:\\steamapps\\common\\SampleGame\\game.exe' /bin/sleep 30"])
+        defer { if child.isRunning { child.terminate() } }
+        try await Task.sleep(for: .milliseconds(200))
+        let stamp = Date(timeIntervalSinceNow: -1)
+        let path = GameProcesses.folderPrefix(folder)
+        #expect(!GameProcesses.trusted(child.processIdentifier, added: stamp, folder: path))
+        #expect(GameProcesses.trusted(child.processIdentifier, added: stamp, folder: path, winePrefix: prefix))
+        #expect(!GameProcesses.trusted(child.processIdentifier, added: stamp, folder: path + "Other/", winePrefix: prefix))
+        #expect(GameProcesses.windowsPath("S:\\steamapps\\common\\SampleGame\\game.exe", prefix: prefix)
+                == folder.appending(path: "game.exe").path)
+        #expect(GameProcesses.windowsPath("Q:\\game.exe", prefix: prefix) == nil)
+        #expect(GameProcesses.windowsPath("--user-data-dir=S:\\private", prefix: prefix) == nil)
+        let candidates = GameProcesses(candidates: { [] })
+        #expect(candidates.pids(appID: 4242424, tracked: [child.processIdentifier: stamp],
+                                installFolder: folder, winePrefix: prefix).contains(child.processIdentifier))
+    }
+
     static func spawn(_ path: String, _ arguments: [String]) throws -> Process {
         let p = Process()
         p.executableURL = URL(filePath: path)
@@ -728,4 +755,3 @@ struct SteamDownloadMonitorTests {
         #expect(!GameProcesses.processExists(named: ["cartouche-steam-absent"]))
     }
 }
-

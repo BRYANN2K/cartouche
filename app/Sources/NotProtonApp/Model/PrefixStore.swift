@@ -32,17 +32,60 @@ enum PrefixArch: Sendable, Equatable {
 }
 
 struct WinePrefix: Sendable, Hashable, Identifiable {
+    // Who made the prefix and runs the game in it.
+    enum Source: Sendable, Hashable {
+        case steam
+        case installer
+        case store(GameSource)
+
+        var key: String {
+            switch self {
+            case .steam: "steam"
+            case .installer: "installer"
+            case .store(let store): store.id
+            }
+        }
+
+        var label: String {
+            switch self {
+            case .steam: GameSource.steam.name
+            case .installer: GameSource.installer.name
+            case .store(let store): store.name
+            }
+        }
+    }
+
     let appID: String
     let name: String?
     let library: SteamLibrary
     let lastUsed: Date?
+    var source: Source = .steam
+    // The game's own folder for a prefix Cartouche made: <folder>/pfx beside its record.
+    var folder: URL? = nil
+    // The Wine the game's record names, for prefixes outside Steam.
+    var runner: String? = nil
 
-    var root: URL { library.compatdata.appending(path: appID) }
+    var root: URL { folder ?? library.compatdata.appending(path: appID) }
     var pfx: URL { root.appending(path: "pfx") }
 
-    var id: String { "\(library.root.path(percentEncoded: false))#\(appID)" }
+    var id: String {
+        guard let folder else { return "\(library.root.path(percentEncoded: false))#\(appID)" }
+        return "\(source.key)#\(folder.path(percentEncoded: false))"
+    }
 
     var title: String { name ?? String(localized: "App \(appID)") }
+
+    // Rebuilding swaps in a Steam compatibility tool's DLLs: Steam's own prefixes only.
+    var canRebuild: Bool { source == .steam }
+    // An installer game's files live in its prefix (drive_c/Games), so only Uninstall removes it.
+    // A store game's files sit beside it and Cartouche boots a new prefix on the next Play.
+    var canDelete: Bool { source != .installer }
+    // The Wine to open tools with: Steam's tool from the build record, an installer game's
+    // own launcher. A store game's Wine comes from its setup, which only the library resolves.
+    var canRunTools: Bool {
+        if case .store = source { return false }
+        return true
+    }
 }
 
 struct PrefixUsage: Sendable {
@@ -135,6 +178,79 @@ enum PrefixStore {
         libraries: [SteamLibrary] = PrefixStore.libraries(),
         userdata: URL = SupportPaths.Steam.userData.appending(path: "userdata")
     ) -> [WinePrefix] {
+        scan(libraries: libraries, userdata: userdata, live: true)
+    }
+
+    // Entries whose prefix was deleted but whose backups were kept
+    static func backupOnly(
+        libraries: [SteamLibrary] = PrefixStore.libraries(),
+        userdata: URL = SupportPaths.Steam.userData.appending(path: "userdata")
+    ) -> [WinePrefix] {
+        scan(libraries: libraries, userdata: userdata, live: false)
+    }
+
+    // The prefixes Cartouche made itself: each installer or imported game's installs/<slug>/pfx
+    // and each store game's <store>/<slug>-<id>/pfx, named from the game's own record.
+    // With live false, the games whose prefix is gone but whose backups were kept.
+    static func games(
+        installs: URL = GameFolder.installs,
+        previous: [URL] = GameFolder.previous(),
+        stores: StoreFolders = StoreFolders(root: SupportPaths.support.appending(path: "stores", directoryHint: .isDirectory)),
+        live: Bool = true
+    ) -> [WinePrefix] {
+        var found: [WinePrefix] = []
+        let folders = GameFolder.roots(current: installs, previous: previous).flatMap {
+            (try? FileManager.default.contentsOfDirectory(at: $0, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])) ?? []
+        }
+        for root in folders {
+            guard let record = InstalledGames.record(in: GameFolder(root: root)) else { continue }
+            found.append(gamePrefix(appID: root.lastPathComponent, name: record.name, folder: root,
+                                    source: .installer, runner: runnerLabel(record)))
+        }
+        for store in [GameSource.epic, .gog, .amazon] {
+            for record in stores.loadRecords(store) {
+                found.append(gamePrefix(appID: record.id, name: record.title, folder: record.folder,
+                                        source: .store(store), runner: nil))
+            }
+        }
+        return found.filter { prefix in
+            guard isDirectory(prefix.pfx) == live else { return false }
+            return live || !backups(of: prefix).isEmpty
+        }
+        .sorted { ($0.lastUsed ?? .distantPast, $0.appID) > ($1.lastUsed ?? .distantPast, $1.appID) }
+    }
+
+    private static func gamePrefix(
+        appID: String, name: String, folder: URL, source: WinePrefix.Source, runner: String?
+    ) -> WinePrefix {
+        let pfx = folder.appending(path: "pfx")
+        return WinePrefix(
+            appID: appID, name: name, library: library(at: folder.deletingLastPathComponent()),
+            lastUsed: (try? pfx.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate,
+            source: source, folder: folder, runner: runner)
+    }
+
+    private static func isDirectory(_ url: URL) -> Bool {
+        var isDirectory: ObjCBool = false
+        return FileManager.default.fileExists(atPath: url.path(percentEncoded: false), isDirectory: &isDirectory)
+            && isDirectory.boolValue
+    }
+
+    // "Cartouche Wine 26.3", as the runner list names it, from what the record kept of the runner.
+    static func runnerLabel(_ record: InstalledGame) -> String {
+        let name: String
+        if record.runnerID.hasPrefix("wine-crossover-") {
+            name = "Cartouche Wine"
+        } else if let kind = record.wineRunnerKind.flatMap(Runner.Kind.init(rawValue:)) {
+            name = kind.name
+        } else {
+            return record.runnerID
+        }
+        guard let version = record.wineVersion, !version.isEmpty else { return name }
+        return "\(name) \(version)"
+    }
+
+    private static func scan(libraries: [SteamLibrary], userdata: URL, live: Bool) -> [WinePrefix] {
         var shortcuts: [String: String]?
         var found: [WinePrefix] = []
         for library in libraries {
@@ -148,9 +264,10 @@ enum PrefixStore {
                 let appID = entry.lastPathComponent
                 let pfx = entry.appending(path: "pfx")
                 var isDirectory: ObjCBool = false
-                guard FileManager.default.fileExists(atPath: pfx.path(percentEncoded: false), isDirectory: &isDirectory),
-                    isDirectory.boolValue
-                else { continue }
+                let hasPfx = FileManager.default.fileExists(atPath: pfx.path(percentEncoded: false), isDirectory: &isDirectory)
+                    && isDirectory.boolValue
+                guard hasPfx == live else { continue }
+                if !live, backups(of: WinePrefix(appID: appID, name: nil, library: library, lastUsed: nil)).isEmpty { continue }
 
                 var name = appName(appID: appID, in: library)
                 if name == nil, let id = UInt32(appID), id & 0x8000_0000 != 0 {
@@ -328,10 +445,18 @@ enum PrefixStore {
                 && info.st_mode & S_IFMT == S_IFDIR && info.st_uid == getuid()
         }
         let name = backup.url.lastPathComponent
-        guard !prefix.appID.isEmpty, prefix.appID.allSatisfy({ $0.isASCII && $0.isNumber }),
-            ownedDirectory(prefix.library.compatdata), ownedDirectory(prefix.root),
-            prefix.root.resolvingSymlinksInPath().path == prefix.library.root.resolvingSymlinksInPath()
-                .appending(path: "steamapps/compatdata").appending(path: prefix.appID).path,
+        // A Steam entry sits in its library's compatdata under its numeric app ID; a game
+        // Cartouche made has its own folder, named by the record that listed it.
+        let placed: Bool
+        if prefix.folder != nil {
+            placed = prefix.source != .steam && !prefix.appID.isEmpty
+        } else {
+            placed = !prefix.appID.isEmpty && prefix.appID.allSatisfy({ $0.isASCII && $0.isNumber })
+                && ownedDirectory(prefix.library.compatdata)
+                && prefix.root.resolvingSymlinksInPath().path == prefix.library.root.resolvingSymlinksInPath()
+                    .appending(path: "steamapps/compatdata").appending(path: prefix.appID).path
+        }
+        guard placed, ownedDirectory(prefix.root),
             backup.url.standardizedFileURL.deletingLastPathComponent().path == prefix.root.standardizedFileURL.path,
             name == backupPrefix || name.hasPrefix(backupPrefix + "-"),
             ownedDirectory(backup.url)

@@ -8,7 +8,7 @@ struct CartoucheApp: App {
     static let signInWindow = "store-sign-in"
 
     @State var status = SystemStatus()
-    @State var prefixes = PrefixesModel()
+    @State var prefixes = PrefixesModel.live()
     @State var library: LibraryModel
     @State var compat: CompatibilityModel
     @State var steamSetup = SteamSetup()
@@ -75,6 +75,7 @@ struct CartoucheApp: App {
     var body: some Scene {
         Window("Cartouche", id: Self.mainWindow) {
             LibraryWindow(model: library, compat: compat, steamSetup: steamSetup, actions: actions)
+                .environment(runners)
                 .environment(\.gameVerification, verification)
                 .environment(consoleCenter)
                 .environment(controls)
@@ -94,12 +95,13 @@ struct CartoucheApp: App {
                 .storeSignIn(stores)
                 .agentApprovals(agents)
                 .task { await start() }
-                .task { await status.refresh() }
+                .task { await status.keepSteamIntegrationCurrent() }
                 .onChange(of: onboarding?.isPresented ?? false) { _, shown in
                     if shown == false { Task { await consoleCenter.reload(); await consoleCenter.rescanFolders() } }
                 }
                 .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
                     Task { await performance.refreshIfNeeded() }
+                    Task { await status.keepSteamIntegrationCurrentOnActivation() }
                 }
         }
         .defaultSize(width: 1280, height: 820)
@@ -111,7 +113,8 @@ struct CartoucheApp: App {
         .defaultSize(width: 560, height: 760)
 
         Settings {
-            SettingsWindow(model: library, permissions: permissions, consoles: consoles, choices: compat.choices)
+            SettingsWindow(model: library, permissions: permissions, consoles: consoles, choices: compat.choices,
+                           checkForUpdates: updater.check)
                 .environment(consoleCenter)
                 .environment(runners)
                 .environment(onboarding)

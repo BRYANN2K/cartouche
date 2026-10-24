@@ -161,7 +161,20 @@ static int open_download_commands(void) {
         return -1;
     char file[1100];
     np_support_path(file, sizeof(file), home, NP_DOWNLOAD_COMMANDS_FILE);
-    return sys_open(file, O_RDONLY | O_CLOEXEC, 0);
+    // A link planted in its place would hand the page some other file.
+    return sys_open(file, O_RDONLY | O_CLOEXEC | O_NOFOLLOW, 0);
+}
+
+// Set at load, in every process the dylib is inserted into, before Steam's threads
+// open anything through the interpose below; set later it would race those readers.
+__attribute__((constructor))
+static void set_steam_root(void) {
+    const char *home = np_home_dir();
+    if (!home)
+        return;
+    char root[1100];
+    snprintf(root, sizeof(root), "%s/Library/Application Support/Steam", home);
+    np_webpatch_set_steam_root(root);
 }
 
 static int try_serve(const char *path, int oflag) {

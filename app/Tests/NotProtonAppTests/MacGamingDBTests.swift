@@ -6,6 +6,15 @@ import Testing
 @Suite("MacGamingDB read live")
 struct MacGamingDBTests {
 
+    @Test("The source link uses the returned game slug")
+    func sourceReportLink() throws {
+        let entry = try CompatFixture.eldenRingMac()
+        #expect(entry.reportURL?.absoluteString == "https://macgamingdb.app/games/elden-ring")
+        var invalid = entry
+        invalid.slug = "../other"
+        #expect(invalid.reportURL == nil)
+    }
+
     private final class Server: @unchecked Sendable {
         private let lock = NSLock()
         private var answer: @Sendable (URL) throws -> (Data, Int)

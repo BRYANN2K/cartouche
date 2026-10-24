@@ -59,10 +59,25 @@ struct InstalledGame: Codable, Sendable, Equatable, Identifiable {
 
 enum InstalledGames {
 
-    static func all(in installs: URL = GameFolder.installs) -> [InstalledGame] {
-        let folders = (try? FileManager.default.contentsOfDirectory(at: installs, includingPropertiesForKeys: nil)) ?? []
-        return folders.compactMap { record(in: GameFolder(root: $0)) }
-            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    // Every games location, the current one first: a game found in two keeps the current copy.
+    static func all(in installs: URL = GameFolder.installs, previous: [URL] = GameFolder.previous()) -> [InstalledGame] {
+        let roots = GameFolder.roots(current: installs, previous: previous)
+        var found: [InstalledGame] = []
+        var located: [String: URL] = [:]
+        for root in roots {
+            let folders = (try? FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)) ?? []
+            for folder in folders {
+                guard let game = record(in: GameFolder(root: folder)) else { continue }
+                guard located[game.id] == nil else {
+                    AppLog.note("installs: \(game.id) is in more than one games location, \(folder.path(percentEncoded: false)) is left out")
+                    continue
+                }
+                located[game.id] = root
+                found.append(game)
+            }
+        }
+        if roots.count > 1 { GameFolder.note(scanned: roots, found: located) }
+        return found.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }
 
     static func record(in folder: GameFolder) -> InstalledGame? {
@@ -78,22 +93,24 @@ enum InstalledGames {
 enum GameLauncher {
 
     // A shell script with only the Wine variables the game needs, never the app's own environment. The backend and the
-    // game's own variables come from the chosen setup, built the same way as store games.
+    // game's own variables come from the chosen setup, built the same way as store games, and all of it is exported.
     static func script(
         exe: URL, prefix: URL, wine: WineRunner,
         backend: GraphicsBackend? = nil, environment: [String: String] = [:],
-        backends: URL = BackendInstaller.folder
+        backends: URL = BackendInstaller.folder, runners: URL = SupportPaths.runners
     ) -> String {
-        let env = SetupEnvironment.make(wine: wine, prefix: prefix, backend: backend,
-                                        environment: environment, backends: backends, base: [:])
+        let wine = GraphicsRunner.cached(wine, backend: backend, backends: backends, runners: runners)
+        let env = SetupEnvironment.make(wine: wine, prefix: prefix, backend: backend, environment: environment,
+                                        backends: backends, runners: runners, base: [:])
         var lines = ["#!/bin/sh", "# Starts the game in its own prefix. Written by Cartouche."]
-        for key in ["CX_ROOT", "WINELOADER", "WINESERVER", "WINEDLLPATH", "WINEPREFIX", "WINEDEBUG",
-                    "CX_GRAPHICS_BACKEND", "WINEDLLOVERRIDES"] + environment.keys.sorted() {
+        for key in env.keys.sorted() where key != "PATH" {
             if let value = env[key] { lines.append("export \(key)=\(quote(value))") }
         }
         lines.append("export PATH=\(quote(wine.root.appending(path: "bin").path(percentEncoded: false))):\"$PATH\"")
         lines += AdvancedPrefixSettings.launcherLines(environment: env, wine: wine)
+        lines += CrashHandling.launcherLines
         lines += controlsBlock(folder: GameFolder(root: prefix.deletingLastPathComponent()))
+        lines += fpsLines
         lines.append("cd \(quote(exe.deletingLastPathComponent().path(percentEncoded: false))) || exit 1")
         lines.append("exec \(quote(wine.loader.path(percentEncoded: false))) \(quote(exe.path(percentEncoded: false))) \"$@\"")
         return lines.joined(separator: "\n") + "\n"
@@ -102,15 +119,26 @@ enum GameLauncher {
     static func write(
         exe: URL, folder: GameFolder, wine: WineRunner,
         backend: GraphicsBackend? = nil, environment: [String: String] = [:],
-        backends: URL = BackendInstaller.folder
+        backends: URL = BackendInstaller.folder, runners: URL = SupportPaths.runners
     ) throws {
+        let wine = try GraphicsRunner.prepare(wine, backend: backend, backends: backends, runners: runners)
         let text = script(exe: exe, prefix: folder.prefix, wine: wine,
-                          backend: backend, environment: environment, backends: backends)
+                          backend: backend, environment: environment, backends: backends, runners: runners)
         try atomicReplace(folder.launcher, with: Data(text.utf8), step: String(localized: "Write the game's launcher"))
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: folder.launcher.path(percentEncoded: false))
     }
 
     static func quote(_ s: String) -> String {
         "'" + s.replacingOccurrences(of: "'", with: "'\\''") + "'"
+    }
+
+    // The `export NAME='value'` lines script writes, read back; PATH, written over "$PATH", is left out.
+    static func exports(in text: String) -> [String: String] {
+        var found: [String: String] = [:]
+        for line in text.split(whereSeparator: \.isNewline) {
+            guard let match = line.wholeMatch(of: /export ([A-Za-z_][A-Za-z0-9_]*)='(.*)'/) else { continue }
+            found[String(match.1)] = String(match.2).replacingOccurrences(of: "'\\''", with: "'")
+        }
+        return found
     }
 }

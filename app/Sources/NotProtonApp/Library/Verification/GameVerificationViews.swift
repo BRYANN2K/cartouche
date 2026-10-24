@@ -1,5 +1,20 @@
 import SwiftUI
 
+struct GameVerificationBadge: View {
+    let game: Game
+    @Environment(\.gameVerification) private var verification
+
+    var body: some View {
+        let status = verification?.status(for: game.id) ?? .notVerified
+        Image(systemName: status == .notVerified ? "shield" : "checkmark.shield")
+            .font(.system(size: 12))
+            .foregroundStyle(Glass.label2)
+            .help("\(status.title): \(status.detail)")
+            .accessibilityLabel(Text(status.title))
+            .accessibilityHint(Text(status.detail))
+    }
+}
+
 struct GameVerificationRow: View {
     let game: Game
     @Environment(\.gameVerification) private var verification

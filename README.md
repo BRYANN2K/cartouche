@@ -2,7 +2,7 @@
 
 Cartouche is a free macOS game launcher for Apple silicon Macs. It runs Windows games through Steam Play inside the Mac Steam client, through Epic, GOG and Amazon, or from a Windows installer. It also plays console games through its own bundled RetroArch.
 
-Cartouche started as a fork of [NotProton](https://github.com/NotProtonNot/NotProton) and is now its own project; it is not built on NotProton. Agent control through MCP is merged (P11). The app repository stays private until v0.1.0; Wine build recipes and assets are public in [cartouche-wine](https://github.com/BRYANN2K/cartouche-wine). The website is [cartouche.bryann2k.dev](https://cartouche.bryann2k.dev).
+Cartouche started as a fork of [NotProton](https://github.com/NotProtonNot/NotProton) and is now its own project; it is not built on NotProton. Agent control through MCP is merged (P11). The app repository stays private until v0.1.0; Cartouche Wine, our Wine build from CodeWeavers' CrossOver sources (LGPL), has its recipes and assets public in [cartouche-wine](https://github.com/BRYANN2K/cartouche-wine). The website is [cartouche.bryann2k.dev](https://cartouche.bryann2k.dev).
 
 **Status: early development.** There is no release yet. Expect missing features and breaking changes.
 
@@ -38,13 +38,22 @@ Cartouche is free and signed with its own certificate. It is not notarized by Ap
 
 Drop an already-installed Windows game folder to use it in place (the default) or copy it. An in-place import never gives Cartouche ownership of the source files. Removing it from the library must not delete them.
 
-Planned before v0.1.0: built-in zip, rar and 7z extraction, and direct extraction for supported installers with external unpackers. Ranked identification, privacy-gated Steam cover search, PE-based runtime setup and managed-game uninstall are merged. CrossOver Wine becomes the default runner with an explicit first-boot step. Fresh initialization can take several minutes; games must wait until it finishes. See [the roadmap](docs/ROADMAP.md).
+Add Games accepts installers, installed-game folders, console ROMs and archives through one sheet or a window drop. Bundled libarchive handles zip/zip64, 7z, tar and supported RAR variants; encrypted archives are refused. Games extracted from a dropped archive move to the games location; Cartouche never keeps them in `~/Library/Caches`. Supported installers that unpack their data with their own helper programs can be extracted directly. If a direct unpack fails, Try Again runs the original setup under Wine. Output checks distinguish checksum/CRC verification, size-only checks and installed-but-not-verified games. Verify Files can check again later; mismatches offer a standard-method retry, Keep Anyway or Cancel.
+
+Ranked identification, privacy-gated Steam cover search, PE-based runtime setup and managed-game uninstall are merged. Starts With changes the program an installed game launches. Cartouche Wine is recommended for new setups, without replacing explicit existing choices. Fresh initialization can take several minutes; games wait until it finishes. Real-game and clean-machine validation remains before release. See [the roadmap](docs/ROADMAP.md).
 
 ## What it does today
 
-The library lists your Steam, Epic, GOG and Amazon games next to your console games. Store sign-in happens on each store's own page; the tokens stay in the Keychain. Consoles run on a bundled RetroArch build (cores download per console) or on standalone emulators you already have. Netplay, RetroAchievements, per-game controls and couch mode are in. FPS is measured per session and per setup; a MacGamingDB estimate and community compatibility data sit on the game panel.
+- Seven-step setup scans this Mac, recommends Cartouche Wine, imports your own Game Porting Toolkit disk image, connects stores and sets up consoles, controllers and permissions. Downloads continue in Activity while you move on; saved choices and pending work resume after relaunch.
+- Settings gathers Steam integration, Wine versions, prefix backups and restoration, accounts, controllers and privacy. CrossOver.app is optional: Cartouche Wine builds also work as Steam compatibility tools. When Cartouche's install in Steam does not match the app, one Repair action fixes it (Quit Steam and Repair while Steam runs).
+- Cartouche never ships D3DMetal. With Cartouche Wine, D3DMetal comes only from your own Game Porting Toolkit; Get D3DMetal… opens Settings > Runners, where the toolkit is imported.
+- Windows games have per-game Advanced options only where supported: MetalFX upscaling, AVX advertisement, MSync, high resolution and Metal HUD. DLSS needs the supported DXMT extensions; there is no frame-generation switch.
+- Steam downloads show progress with pause/resume and cancellation. Console removal distinguishes hiding library entries from moving owned game/emulator files to the Trash.
+- English, French, Italian and Simplified Chinese UI; French copy follows the reviewed product glossary. Crash reports and diagnostic zips stay local.
 
-Underneath, Cartouche forcibly enables the Steam Play functionality in macOS Steam (which is present and inert) and ports some components of Valve's Proton to macOS. This is NotProton's design, unchanged so far.
+The library lists your Steam, Epic, GOG and Amazon games next to your console games. Each Windows game keeps one installation when you change runners. Store sign-in happens on each store's own page; the tokens stay in the Keychain. Consoles run on a bundled RetroArch build (cores download per console) or on standalone emulators. Adding a console game installs its missing runtime automatically; existing emulators are reused. Netplay, RetroAchievements, per-game controls and couch mode are in. FPS is measured per session and per setup; a MacGamingDB estimate and community compatibility data sit on the game panel.
+
+Underneath, Cartouche forcibly enables the Steam Play functionality in macOS Steam (which is present and inert) and ports some components of Valve's Proton to macOS. This builds on NotProton's original design, with Cartouche's runner registry and Steam export integration.
 
 It is intended to be used with the stable Steam Client (version 1791918634) as well as the beta Steam Client (version 1792192922) paired with **CrossOver 26.3 or CrossOver [Preview](https://www.codeweavers.com/preview) 20261006 / 20260821 / 20261015**.
 
@@ -56,7 +65,7 @@ A good default is to go into Steam Settings - Compatibility and select the Roset
 
 If a game has a native macOS version as well as a Windows one, Steam will download the macOS version. To override this behavior, right click on the game, select Properties, select Compatibility. Enable 'Force the use of a specific Steam Play compatibility tool'. Select whichever version of CrossOver you want to use. That will make Steam download the Windows version. Unchecking the 'Force the use...' box or selecting 'No Compatibility Tool' in the drop down list will revert to the macOS version of the game, with the specifics there varying based on your Steam version.
 
-**Valve Anti-Cheat is not supported.** Proton itself does not support VAC in Valve titles; Valve ships native Linux ports instead. VAC titles will launch in Insecure Mode and will not allow matchmaking.
+**Anti-cheat support varies by game.** Cartouche shows known incompatibilities and links to ProtonDB multiplayer reports. Reports of successful online play do not establish anti-cheat support in Cartouche; unverified games remain marked as unverified.
 
 Cartouche keeps its files in `~/Library/Application Support/Cartouche` and its logs in `~/Library/Logs/Cartouche`, so it does not share them with a NotProton install on the same Mac.
 

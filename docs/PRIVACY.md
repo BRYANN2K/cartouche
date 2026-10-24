@@ -7,7 +7,7 @@ Cartouche v0.1.0 has no server and no account. It does not collect analytics. Ev
 ## What is built and what is planned
 
 - Agent control (P11) is merged. It exposes local tools to the MCP clients you authorize. Clients may send tool results to their own services; review the client’s policy. Cartouche itself sends no agent data to a Cartouche server.
-- Ranked identification, privacy-gated Steam search, PE-based runtime steps, managed-game uninstall and closed-Steam cache handling are merged in main 307ad2c. The archive backend is merged but its app adapter is not wired. Direct-unpacker implementation is merged; automatic failure fallback and app end-to-end checks remain pending.
+- Ranked identification, privacy-gated Steam search, PE-based runtime steps, managed-game uninstall and closed-Steam cache handling are merged in main 307ad2c. The archive backend and its app adapter are merged. Direct unpack is merged, with a fallback to the original setup on Try Again; app end-to-end checks remain pending.
 - FPS tracking (P8) is merged: sessions are measured and stored locally. Sharing them with MacGamingDB is coded but has no destination: MacGamingDB publishes no way to send reports. The sharing UI is hidden in v0.1.0 and comes back as an opt-in in v0.1.1 (see `docs/ROADMAP.md`). Nothing is sent.
 - Store sign-ins (P10), netplay, RetroAchievements, the translation service and iCloud Drive saves (P14) are merged and described below.
 
@@ -81,7 +81,7 @@ Cartouche sends no account, no Mac serial number and no list of your library. Th
 | macgamingdb.app | When you open a game's details or the estimate needs it, if the toggle is on | The Steam App ID of that game, your IP address, and the User-Agent `Cartouche/<version>` with the project website | Yes: Settings > Privacy > Fetch Mac reports from MacGamingDB |
 | store.steampowered.com | When a Windows installer game has no Steam app ID for its cover, and when you use Change Cover > Search Steam; only if the toggle is on | The game's name in a search request, your IP address, and the User-Agent `Cartouche/<version>` | Yes: Settings > Privacy > Fetch Mac reports from MacGamingDB |
 | The Cartouche community site (`CartoucheCommunityURL`; unset in builds until the service is live) | Reading: the app feed at most once an hour once its refresh time has passed, if the Mac reports toggle is on; the fix registry and a fix when you open Review on a shared fix. Sending: only what you confirmed in Share My Results or Share a Fix, and the status of your own contributions in My Contributions | Your IP address and `Cartouche/<version>`. With a contribution: the game's store ID, the report or fix you previewed, and your pseudonymous contributor key. No account, Steam ID, Mac serial, path or log | Reading: Settings > Privacy > Fetch Mac reports. Sending happens only when you press Share; drafts and unsent items can be deleted from My Contributions |
-| github.com release asset `compat-data` (the compatibility file and the signed runner manifest) | At most once a day | A plain download request: your IP address and the User-Agent `Cartouche/<version>` | Yes: Settings > General > Check for updates and compatibility data daily |
+| github.com release assets: `compat-data` (the compatibility file) and `BRYANN2K/cartouche-wine` `manifest` (the signed runner manifest) | At most once a day | A plain download request: your IP address and the User-Agent `Cartouche/<version>` | Yes: Settings > General > Check for updates and compatibility data daily |
 | github.com `appcast.xml` (Sparkle) | The daily update check | A plain download request. The Info.plist does not turn on Sparkle's system profile | Yes: the same switch pauses the automatic check. Check for Updates in the Cartouche menu always works. Beta releases are a separate opt-in |
 | buildbot.libretro.com | When you add a console (its core and the core info archive), or when you pick an official RetroArch release | A plain download request | Cores download only for consoles you add |
 | raw.githubusercontent.com | When you install a redistributable with Winetricks | A plain download request for the pinned Winetricks script | You choose to run it |
@@ -103,7 +103,7 @@ PE-based runtime detection reads local executable imports. Wine Mono covers .NET
 
 Managed-game uninstall is merged: the game and prefix move to the Trash, with Keep save files offered for save folders found in the prefix. Removing an in-place import moves only Cartouche’s prefix and record to the Trash; the external source files stay untouched. Save copies stay locally under Cartouche’s saves folder.
 
-Archive decompression and direct extraction of supported installers with external unpackers run locally and do not upload game files. The archive backend is merged in 95b4e47 but its app adapter is unwired. Direct unpack is merged in 3bb5921; failure fallback and end-to-end app verification are pending.
+Archive decompression and direct extraction of supported installers run locally and do not upload game files. The archive backend is merged in 95b4e47 and its app adapter in 539fbe3. Direct unpack is merged in 3bb5921 and its Try Again fallback on 2026-10-21; end-to-end app verification is pending.
 
 ### The Cartouche community site
 
@@ -137,7 +137,7 @@ Archive decompression and direct extraction of supported installers with externa
 - CI builds it from AppleGamingWiki, ProtonDB and AreWeAntiCheatYet. It holds no MacGamingDB data and nothing about you.
 - The app downloads it at most once a day and keeps the last valid copy. A failed connection does not count as the day's download.
 - A file that fails schema validation, or that is older than the copy in use, is discarded.
-- The runner manifest comes from the same release. The app trusts it only when its `runners.json.sig` signature verifies against the EdDSA public key the app ships (`SUPublicEDKey`); otherwise the bundled manifest stays in use.
+- The runner manifest comes from the `manifest` release of the public `BRYANN2K/cartouche-wine` repository. The app trusts it only when its `runners.json.sig` signature verifies against the EdDSA public key the app ships (`SUPublicEDKey`); otherwise the bundled manifest stays in use.
 - Settings > General > Check for updates and compatibility data daily pauses both downloads when it is off. The switch is on by default.
 
 ### Sparkle updates

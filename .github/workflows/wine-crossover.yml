@@ -38,7 +38,7 @@ jobs:
         run: sh packaging/wine-crossover/build.sh --dry-run "$RUNNER_TEMP/wine-dry"
 
   build:
-    name: build Wine CrossOver
+    name: build Cartouche Wine
     if: github.event_name == 'workflow_dispatch'
     needs: scripts
     # Wine's Unix side is x86_64 code that Rosetta runs, so it is built on x86_64
@@ -156,6 +156,6 @@ jobs:
           tar -xJOf out/"$TAG"-x86_64.tar.xz "$TAG/SOURCE.md" > out/SOURCE.md
           # A prerelease is never "latest", so the app's Sparkle feed is unaffected
           gh release create "$TAG" --prerelease --latest=false \
-            --title "Wine CrossOver $CX_VERSION (build $BUILD_REVISION)" --notes-file out/SOURCE.md \
+            --title "Cartouche Wine $CX_VERSION (build $BUILD_REVISION)" --notes-file out/SOURCE.md \
             out/"$TAG"-x86_64.tar.xz out/"$TAG"-x86_64.tar.xz.sha256 out/manifest-entry.json \
             out/SOURCE.md "out/crossover-sources-$CX_VERSION.tar.gz"

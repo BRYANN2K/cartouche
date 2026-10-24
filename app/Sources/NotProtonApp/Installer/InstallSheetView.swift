@@ -14,7 +14,7 @@ struct InstallSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             switch model.step {
-            case .drop: DropStep(model: model, showConsoleGames: center.showConsoleGames)
+            case .drop: DropStep(model: model)
             case .analysis: AnalysisStep(model: model)
             case .review:
                 if model.isImport { ImportReviewStep(model: model) } else { ReviewStep(model: model) }
@@ -37,7 +37,6 @@ struct InstallSheet: View {
 
 private struct DropStep: View {
     let model: InstallSheetModel
-    var showConsoleGames: (@MainActor () -> Void)?
     @State private var targeted = false
 
     var body: some View {
@@ -157,7 +156,7 @@ private struct ReviewStep: View {
                     Picker("Runner", selection: $model.runnerID) {
                         if model.runners.isEmpty { Text("None set up").tag(String?.none) }
                         ForEach(model.runners) { runner in
-                            Text(verbatim: "\(runner.kind.name) \(runner.displayVersion)").tag(Optional(runner.id))
+                            Text(verbatim: "\(runner.name) \(runner.displayVersion)").tag(Optional(runner.id))
                         }
                     }
                     LabeledContent("Install to") { Text(model.installDir).font(.callout.monospaced()) }
@@ -217,24 +216,43 @@ private struct ImportReviewStep: View {
                     Picker("Runner", selection: $model.runnerID) {
                         if model.runners.isEmpty { Text("None set up").tag(String?.none) }
                         ForEach(model.runners) { runner in
-                            Text(verbatim: "\(runner.kind.name) \(runner.displayVersion)").tag(Optional(runner.id))
+                            Text(verbatim: "\(runner.name) \(runner.displayVersion)").tag(Optional(runner.id))
                         }
                     }
-                    Picker("Game files", selection: $model.storage) {
-                        Text("Use in Place").tag(InstallSheetModel.Storage.inPlace)
-                        Text("Copy into Cartouche").tag(InstallSheetModel.Storage.copy)
+                    // Chosen in the drop sheet: shown, not asked again
+                    if model.decided != nil, let exe = model.chosenExe {
+                        LabeledContent("Starts with") {
+                            Text(verbatim: ExePicker.relative(exe, to: model.programs?.installFolder))
+                                .font(.callout.monospaced()).lineLimit(1).truncationMode(.middle)
+                        }
                     }
-                    .pickerStyle(.radioGroup)
-                    if model.storage == .inPlace && model.onExternalDrive {
-                        Text("This drive must be connected to play.").font(.callout).foregroundStyle(.secondary)
-                    } else if model.storage == .copy && !model.copyFits {
-                        Text("Not enough space to copy the game.").font(.callout).foregroundStyle(.red)
+                    // An extracted archive always moves into Cartouche's games folder: nothing to choose.
+                    if !model.isExtracted {
+                        if model.decided != nil {
+                            LabeledContent("Game files") {
+                                Text(model.storage == .inPlace ? "Use in Place" : "Copy into Cartouche")
+                            }
+                        } else {
+                            Picker("Game files", selection: $model.storage) {
+                                Text("Use in Place").tag(InstallSheetModel.Storage.inPlace)
+                                Text("Copy into Cartouche").tag(InstallSheetModel.Storage.copy)
+                            }
+                            .pickerStyle(.radioGroup)
+                        }
+                        if model.storage == .inPlace && model.onExternalDrive {
+                            Text("This drive must be connected to play.").font(.callout).foregroundStyle(.secondary)
+                        } else if model.storage == .copy && !model.copyFits {
+                            Text("Not enough space to copy the game.").font(.callout).foregroundStyle(.red)
+                        }
                     }
                 }
                 .formStyle(.columns)
+                if model.decided != nil {
+                    Button("Change…") { model.changeChoices() }
+                }
             }
         }
-        if let programs = model.programs {
+        if let programs = model.programs, model.decided == nil {
             Text("Which file starts the game?").font(.headline)
             ExePicker(candidates: programs.candidates, base: programs.installFolder, selection: $model.chosenExe)
         }
@@ -433,6 +451,9 @@ private struct FailureView: View {
                 Button("Try Again") { model.tryAgain() }
                 Button("Recreate Prefix") { model.recreatePrefix() }
             }
+        } else if job.directUnpackFailed, model.fixes.isEmpty {
+            // A direct unpack that stopped without a fix to offer: Try Again runs the original setup.
+            Button("Try Again") { model.tryAgain() }
         }
         if let diagnosis = job.diagnosis {
             if let detail = diagnosis.detail { Text(detail).font(.callout.monospaced()).foregroundStyle(.secondary).textSelection(.enabled) }
@@ -550,7 +571,7 @@ private struct ExePicker: View {
         Picker("Program", selection: $selection) {
             ForEach(Array(candidates.enumerated()), id: \.element.path) { n, candidate in
                 VStack(alignment: .leading) {
-                    Text(relative(candidate.path)).font(.body.monospaced())
+                    Text(Self.relative(candidate.path, to: base)).font(.body.monospaced())
                     Text(ExeStep.reason(candidate.source) + (n == 0 ? " · " + String(localized: "Recommended") : ""))
                         .font(.callout).foregroundStyle(.secondary)
                 }
@@ -561,7 +582,7 @@ private struct ExePicker: View {
         .labelsHidden()
     }
 
-    private func relative(_ path: String) -> String {
+    static func relative(_ path: String, to base: URL?) -> String {
         let prefix = (base?.standardizedFileURL.path(percentEncoded: false) ?? "") + "/"
         return path.hasPrefix(prefix) ? String(path.dropFirst(prefix.count)) : (path as NSString).lastPathComponent
     }
@@ -598,7 +619,7 @@ private struct ReadyStep: View {
                     Button("Move to Trash", role: .destructive) { model.confirmCleanup() }
                     Button("Cancel", role: .cancel) { model.cleanup = .idle }
                 } message: {
-                    Text("setup.exe and its \(job.request.installerFiles.count - 1) other files go to the Trash. The installed game is not touched.")
+                    Text(model.cleanupMessage)
                 }
             }
             Footer {

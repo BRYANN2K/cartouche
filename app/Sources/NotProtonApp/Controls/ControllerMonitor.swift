@@ -89,6 +89,7 @@ final class GameControllerSource: ControllerSource {
     func start(_ changed: @escaping @MainActor () -> Void) {
         guard observers.isEmpty else { return }
         self.changed = changed
+        GCController.shouldMonitorBackgroundEvents = true
         for name in [Notification.Name.GCControllerDidConnect, .GCControllerDidDisconnect] {
             observers.append(NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { _ in
                 MainActor.assumeIsolated { changed() }
@@ -119,7 +120,6 @@ final class GameControllerSource: ControllerSource {
                 try? await Task.sleep(for: interval)
                 guard let self else { return }
                 let now = self.controllers
-                guard !now.isEmpty else { self.last = []; continue }
                 if now != self.last {
                     self.last = now
                     self.changed?()

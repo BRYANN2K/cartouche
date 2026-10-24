@@ -320,7 +320,7 @@ struct EmptyLibraryView: View {
         case .emptySource(let source):
             EmptyState(title: Text("No \(source.name) games yet"),
                        message: source == .steam
-                        ? Text("Your full library appears after Steam has run once while signed in.")
+                        ? Text("Keep Steam signed in to import your library automatically. If it stays empty, update the integration in Settings > Steam.")
                         : Text("Games you own show up here once \(source.name) is running and signed in.")) {
                 if let mark = PlatformMark.source(source) {
                     PlatformMarkView(mark: mark, size: 30)

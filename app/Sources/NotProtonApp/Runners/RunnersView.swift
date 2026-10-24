@@ -14,11 +14,6 @@ struct ThisMacSection: View {
                 Text(verbatim: "\(ProcessInfo.processInfo.processorCount)-core CPU, \(mac.memoryGB) GB")
                     .foregroundStyle(.secondary)
             }
-            LabeledContent {
-                Text("Detected automatically").foregroundStyle(.secondary)
-            } label: {
-                Text("Used for performance estimates")
-            }
         } header: {
             Text("This Mac")
         }
@@ -35,6 +30,14 @@ struct RunnersSection: View {
             }
             ForEach(model.rows) { row in
                 RunnerRow(row: row, model: model)
+            }
+            HStack {
+                Button("Check for Updates") { Task { await model.checkForUpdates() } }
+                    .disabled(model.checkingForUpdates)
+                if model.checkingForUpdates { ProgressView().controlSize(.small) }
+            }
+            if let updateStatus = model.updateStatus {
+                Text(updateStatus).foregroundStyle(.secondary)
             }
             if let message = model.message {
                 Text(message).foregroundStyle(.red)
@@ -58,6 +61,7 @@ private struct RunnerRow: View {
 
     private var working: Bool {
         if case .installing = row.state { return true }
+        if row.updating { return true }
         return row.action == .none && row.kind != .crossOver && (row.state == .available || damaged)
     }
 
@@ -87,6 +91,11 @@ private struct RunnerRow: View {
                     Button("Repair") { Task { await model.perform(.repair, on: row.id) } }
                 case .remove:
                     Button("Remove") { Task { await model.perform(.remove, on: row.id) } }
+                case .update:
+                    Button(String(localized: "Update to \(row.update ?? "")")) {
+                        Task { await model.perform(.update, on: row.id) }
+                    }
+                    .buttonStyle(.pillProminent)
                 case .none:
                     EmptyView()
                 }

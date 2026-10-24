@@ -1,6 +1,7 @@
 
 import AppKit
 import Foundation
+import InstallerKit
 import UniformTypeIdentifiers
 
 enum WineTool: String, CaseIterable, Sendable {
@@ -20,20 +21,59 @@ enum WineTool: String, CaseIterable, Sendable {
 enum PrefixLog: CaseIterable, Sendable {
     case launch
     case wine
+    case game
+    case crash
 
     var label: String {
         switch self {
         case .launch: String(localized: "Launch Log")
         case .wine: String(localized: "Wine Log")
+        case .game: String(localized: "Game Log")
+        case .crash: String(localized: "Crash Report")
         }
     }
 
     func url(for prefix: WinePrefix, launchers: URL = SupportPaths.launchers) -> URL {
         switch self {
         case .launch: prefix.root.appending(path: "cartouche-run.log")
-        case .wine: launchers.appending(path: prefix.appID).appending(path: "cartouche-wine.log")
+        case .wine: Self.latestWineLog(for: prefix) ?? launchers.appending(path: prefix.appID).appending(path: "cartouche-wine.log")
+        case .game: prefix.root.appending(path: CrashLog.gameLog)
+        case .crash: CrashLog.latest(in: prefix.root) ?? prefix.root.appending(path: "\(CrashLog.namePrefix)none.log")
         }
     }
+
+    private static func latestWineLog(for prefix: WinePrefix) -> URL? {
+        let root = prefix.root.appending(path: "cartouche-logs")
+        let folders = (try? FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)) ?? []
+        return folders.compactMap { folder -> (URL, Date)? in
+            let file = folder.appending(path: "wine.log")
+            guard let date = (try? file.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate else { return nil }
+            return (file, date)
+        }.max { $0.1 < $1.1 }?.0
+    }
+
+    // Steam's run script writes the launch and Wine logs; a game Cartouche runs writes its own.
+    static func cases(for prefix: WinePrefix) -> [PrefixLog] {
+        prefix.source == .steam ? allCases : [.game, .crash]
+    }
+
+    // The log the prefix wrote last, a crash report included; nil before any was written.
+    static func latest(for prefix: WinePrefix, launchers: URL = SupportPaths.launchers) -> URL? {
+        cases(for: prefix).compactMap { log -> (URL, Date)? in
+            let url = log.url(for: prefix, launchers: launchers)
+            guard let modified = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+            else { return nil }
+            return (url, modified)
+        }
+        .max { $0.1 < $1.1 }?.0
+    }
+}
+
+// The Wine a prefix opens tools with: its loader, server and the environment that points both at it.
+struct PrefixWine: Sendable {
+    let loader: URL
+    let server: URL
+    let environment: [String: String]
 }
 
 // What compat_run.sh writes to cartouche-build when a tool first runs a prefix.
@@ -172,7 +212,10 @@ enum PrefixTools {
     private static func readyLoader(
         step: String, prefix: WinePrefix, runner: URL, flavor: CompatTool.Flavor
     ) throws -> URL {
-        let loader = loader(runner: runner, flavor: flavor)
+        try readyLoader(step: step, prefix: prefix, loader: loader(runner: runner, flavor: flavor))
+    }
+
+    private static func readyLoader(step: String, prefix: WinePrefix, loader: URL) throws -> URL {
         guard FileManager.default.isExecutableFile(atPath: loader.path(percentEncoded: false)) else {
             throw StepFailure(
                 step: step,
@@ -188,33 +231,81 @@ enum PrefixTools {
         return loader
     }
 
+    // Steam's prefixes run on the tool their build record names; an installer game's on what
+    // its own launcher exports. A store game's Wine is its setup's, which only the library knows.
+    static func wine(for prefix: WinePrefix, step: String) throws -> PrefixWine {
+        switch prefix.source {
+        case .steam:
+            let chosen = try resolvedTool(step: step, for: prefix)
+            return try wine(
+                for: prefix, runner: SupportPaths.clonedRoot(forBuild: chosen.build),
+                flavor: chosen.tool.flavor, step: step)
+        case .installer:
+            guard let found = launcherWine(of: prefix) else {
+                throw StepFailure(step: step, detail: String(localized: "Cartouche couldn’t find \(prefix.title)’s launcher."))
+            }
+            _ = try readyLoader(step: step, prefix: prefix, loader: found.loader)
+            return found
+        case .store:
+            throw StepFailure(
+                step: step,
+                detail: String(localized: "Cartouche can’t open Wine tools for \(prefix.title) here: its Wine comes from the game’s setup in the library."))
+        }
+    }
+
+    static func wine(
+        for prefix: WinePrefix, runner: URL, flavor: CompatTool.Flavor = .fex, step: String
+    ) throws -> PrefixWine {
+        let loader = try readyLoader(step: step, prefix: prefix, runner: runner, flavor: flavor)
+        return PrefixWine(
+            loader: loader, server: layout(runner: runner, flavor: flavor).server,
+            environment: environment(prefix: prefix, runner: runner, flavor: flavor))
+    }
+
+    // A store game's Wine: the runner its setup resolves to, with the environment its launch starts from.
+    static func wine(
+        for prefix: WinePrefix, runner: WineRunner, base: [String: String] = SetupEnvironment.base, step: String
+    ) throws -> PrefixWine {
+        let loader = try readyLoader(step: step, prefix: prefix, loader: runner.loader)
+        return PrefixWine(
+            loader: loader, server: runner.server,
+            environment: WineInstall.environment(runner: runner, prefix: prefix.pfx, inputs: nil, base: base))
+    }
+
+    // The Wine variables GameLauncher wrote into the game's launch script, over the app's
+    // environment as Steam's tools get it, and the runner's bin first on PATH.
+    static func launcherWine(of prefix: WinePrefix) -> PrefixWine? {
+        let script = prefix.root.appending(path: "launch")
+        guard let text = try? String(contentsOf: script, encoding: .utf8) else { return nil }
+        let exports = GameLauncher.exports(in: text)
+        guard let loader = exports["WINELOADER"], let server = exports["WINESERVER"] else { return nil }
+        var environment = ProcessInfo.processInfo.environment
+        environment.merge(exports) { $1 }
+        environment["WINEPREFIX"] = prefix.pfx.path(percentEncoded: false)
+        if let root = exports["CX_ROOT"] {
+            environment["PATH"] = "\(root)/bin:" + (ProcessInfo.processInfo.environment["PATH"] ?? "/usr/bin:/bin")
+        }
+        return PrefixWine(loader: URL(filePath: loader), server: URL(filePath: server), environment: environment)
+    }
+
     static func launch(_ tool: WineTool, in prefix: WinePrefix) throws {
-        let chosen = try resolvedTool(step: String(localized: "Open \(tool.label)"), for: prefix)
-        try launch(
-            tool, in: prefix, runner: SupportPaths.clonedRoot(forBuild: chosen.build),
-            flavor: chosen.tool.flavor
-        )
+        try launch(tool, with: wine(for: prefix, step: String(localized: "Open \(tool.label)")))
     }
 
     static func launch(
         _ tool: WineTool, in prefix: WinePrefix, runner: URL, flavor: CompatTool.Flavor = .fex
     ) throws {
-        let loader = try readyLoader(
-            step: String(localized: "Open \(tool.label)"), prefix: prefix, runner: runner, flavor: flavor
-        )
-        try Shell.detach(
-            loader.path(percentEncoded: false),
-            [tool.rawValue],
-            environment: environment(prefix: prefix, runner: runner, flavor: flavor)
-        )
+        try launch(
+            tool, with: wine(for: prefix, runner: runner, flavor: flavor, step: String(localized: "Open \(tool.label)")))
+    }
+
+    static func launch(_ tool: WineTool, with wine: PrefixWine) throws {
+        try Shell.detach(wine.loader.path(percentEncoded: false), [tool.rawValue], environment: wine.environment)
     }
 
     static func run(_ executable: URL, in prefix: WinePrefix) throws {
-        let chosen = try resolvedTool(step: String(localized: "Run \(executable.lastPathComponent)"), for: prefix)
-        try run(
-            executable, in: prefix, runner: SupportPaths.clonedRoot(forBuild: chosen.build),
-            flavor: chosen.tool.flavor
-        )
+        let step = String(localized: "Run \(executable.lastPathComponent)")
+        try run(executable, with: wine(for: prefix, step: step), step: step)
     }
 
     static func run(
@@ -224,7 +315,10 @@ enum PrefixTools {
         flavor: CompatTool.Flavor = .fex
     ) throws {
         let step = String(localized: "Run \(executable.lastPathComponent)")
-        let loader = try readyLoader(step: step, prefix: prefix, runner: runner, flavor: flavor)
+        try run(executable, with: wine(for: prefix, runner: runner, flavor: flavor, step: step), step: step)
+    }
+
+    static func run(_ executable: URL, with wine: PrefixWine, step: String) throws {
         guard FileManager.default.fileExists(atPath: executable.path(percentEncoded: false)) else {
             throw StepFailure(step: step, detail: String(localized: "No file at \(executable.path(percentEncoded: false))."))
         }
@@ -236,9 +330,9 @@ enum PrefixTools {
         }
 
         try Shell.detach(
-            loader.path(percentEncoded: false),
+            wine.loader.path(percentEncoded: false),
             arguments,
-            environment: environment(prefix: prefix, runner: runner, flavor: flavor),
+            environment: wine.environment,
             currentDirectory: executable.deletingLastPathComponent()
         )
     }
@@ -265,8 +359,11 @@ enum PrefixTools {
     }
 
     static func winetricks(_ verbs: [String], in prefix: WinePrefix) async throws -> URL {
+        try await winetricks(verbs, in: prefix, wine: wine(for: prefix, step: String(localized: "Run Winetricks")))
+    }
+
+    static func winetricks(_ verbs: [String], in prefix: WinePrefix, wine resolved: PrefixWine) async throws -> URL {
         let step = String(localized: "Run Winetricks")
-        let chosen = try resolvedTool(step: step, for: prefix)
         let script = try await PinnedDownload.obtain(
             file: "winetricks",
             sha256: winetricksSHA256,
@@ -277,16 +374,22 @@ enum PrefixTools {
         )
         // Winetricks can run for minutes; the wait never happens on the caller's actor.
         return try await Task.detached {
-            try winetricks(
-                verbs, in: prefix, script: script,
-                runner: SupportPaths.clonedRoot(forBuild: chosen.build), flavor: chosen.tool.flavor
-            )
+            try winetricks(verbs, in: prefix, script: script) { _ in resolved }
         }.value
     }
 
     static func winetricks(
         _ verbs: [String], in prefix: WinePrefix, script: URL, runner: URL,
         flavor: CompatTool.Flavor = .fex
+    ) throws -> URL {
+        try winetricks(verbs, in: prefix, script: script) { step in
+            try wine(for: prefix, runner: runner, flavor: flavor, step: step)
+        }
+    }
+
+    // The Wine is resolved once the prefix is claimed, so a missing loader never hides a running game.
+    private static func winetricks(
+        _ verbs: [String], in prefix: WinePrefix, script: URL, resolve: (String) throws -> PrefixWine
     ) throws -> URL {
         let step = String(localized: "Run Winetricks")
         guard !verbs.isEmpty else {
@@ -299,7 +402,8 @@ enum PrefixTools {
             throw StepFailure(step: step, detail: String(localized: "\(prefix.title) is running. Quit the game first."))
         }
         defer { claim.release() }
-        let loader = try readyLoader(step: step, prefix: prefix, runner: runner, flavor: flavor)
+        let wine = try resolve(step)
+        let loader = wine.loader
         let wrapper = script.deletingLastPathComponent().appending(path: "cartouche-wine")
         do {
             try Data(winetricksWine.utf8).write(to: wrapper, options: .atomic)
@@ -308,8 +412,8 @@ enum PrefixTools {
             throw StepFailure(step: step, detail: error.localizedDescription)
         }
 
-        // cabextract comes from the runner's bin, which environment() puts on PATH.
-        var environment = environment(prefix: prefix, runner: runner, flavor: flavor)
+        // cabextract comes from the runner's bin, which the Wine's environment puts on PATH.
+        var environment = wine.environment
         environment["WINE"] = wrapper.path(percentEncoded: false)
         environment["CARTOUCHE_WINE"] = loader.path(percentEncoded: false)
         // Winetricks reads the architecture from WINE_BIN, which would otherwise be the wrapper.
@@ -320,7 +424,7 @@ enum PrefixTools {
             "/bin/sh", [script.path(percentEncoded: false), "-q"] + verbs,
             environment: environment, to: log
         )
-        _ = try? Shell.run(layout(runner: runner, flavor: flavor).server.path(percentEncoded: false), ["-w"], environment: environment)
+        _ = try? Shell.run(wine.server.path(percentEncoded: false), ["-w"], environment: environment)
         guard status == 0 else {
             throw StepFailure(
                 step: step,
@@ -347,6 +451,24 @@ enum PrefixTools {
 
     static var runnableTypes: [UTType] {
         ["exe", "msi", "bat", "cmd"].compactMap { UTType(filenameExtension: $0) }
+    }
+
+    // The open panel for Run Program…, starting in the game's install folder or the prefix's C: drive.
+    @MainActor static func chooseProgram(for prefix: WinePrefix) -> URL? {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        let types = runnableTypes
+        if !types.isEmpty { panel.allowedContentTypes = types }
+        panel.prompt = String(localized: "Run")
+        panel.message = String(localized: "Choose a Windows program to run in \(prefix.title).")
+        panel.directoryURL = PrefixStore.installDirectory(of: prefix) ?? driveC(of: prefix)
+        return panel.runModal() == .OK ? panel.url : nil
+    }
+
+    static func driveC(of prefix: WinePrefix) -> URL {
+        prefix.pfx.appending(path: "drive_c", directoryHint: .isDirectory)
     }
 
     static func reveal(_ prefix: WinePrefix) {
@@ -378,6 +500,12 @@ enum PrefixTools {
     }
 
     static func delete(_ prefix: WinePrefix) throws {
+        guard prefix.canDelete else {
+            throw StepFailure(
+                step: String(localized: "Delete prefix"),
+                detail: String(localized: "\(prefix.title) keeps its game files in its prefix. Remove the game with Uninstall in the library instead.")
+            )
+        }
         guard let claim = PrefixStore.claim(prefix) else {
             throw StepFailure(
                 step: String(localized: "Delete prefix"),
@@ -385,8 +513,22 @@ enum PrefixTools {
             )
         }
         defer { claim.release() }
-        try WriteRefused.catching(prefix.root) {
-            try FileManager.default.removeItem(at: prefix.root)
+        let fm = FileManager.default
+        // A store game's folder also holds its record and logs: only the prefix goes.
+        if prefix.folder != nil {
+            try WriteRefused.catching(prefix.pfx) { try fm.removeItem(at: prefix.pfx) }
+            return
+        }
+        try WriteRefused.catching(prefix.root) { () throws -> Void in
+            guard !PrefixStore.backups(of: prefix).isEmpty else {
+                try fm.removeItem(at: prefix.root)
+                return
+            }
+            // Backups stay listed and restorable; everything else in the entry goes
+            for entry in try fm.contentsOfDirectory(at: prefix.root, includingPropertiesForKeys: nil)
+            where !entry.lastPathComponent.hasPrefix(PrefixStore.backupPrefix) {
+                try fm.removeItem(at: entry)
+            }
         }
     }
 }

@@ -75,7 +75,7 @@ struct YourPlayTests {
         let scene = try await Scene("yourplay-weighted", sessions: Array(Self.threeSetups.prefix(2)))
         defer { scene.fixture.remove() }
         let content = scene.content
-        #expect(content.sections.prefix(3) == [.play, .yourPlay, .expected])
+        #expect(content.sections.prefix(4) == [.play, .setup, .yourPlay, .expected])
         #expect(content.sections.contains(.yourPlay))
         let play = try #require(content.play)
         #expect(YourPlayText.fps(play.average) == "54 fps")
@@ -85,12 +85,13 @@ struct YourPlayTests {
         await scene.renderPanel("panel-your-play")
     }
 
-    @Test("A game with no session has no Your Play section")
+    @Test("An installed game with no session still reserves Your Play")
     func none() async throws {
         let scene = try await Scene("yourplay-none", sessions: [])
         defer { scene.fixture.remove() }
         #expect(scene.content.play == nil)
-        #expect(!scene.content.sections.contains(.yourPlay))
+        #expect(scene.content.game.installed)
+        #expect(scene.content.sections.prefix(3) == [.play, .setup, .yourPlay])
     }
 
     @Test("Compare Setups lists each setup with average, 1% low and play time, marks the best, and offers to use it")

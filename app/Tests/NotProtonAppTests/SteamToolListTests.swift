@@ -80,26 +80,31 @@ struct SteamToolListTests {
             compatTools: work.appending(path: "compatibilitytools.d"), fexAvailable: true)
 
         #expect(try String(contentsOf: file, encoding: .utf8) == Self.text([
-            "\(Self.p)-\(id)\t\(id)\trosetta\tWine CrossOver 26.3",
+            "\(Self.p)-\(id)\t\(id)\trosetta\tCartouche Wine 26.3",
         ]))
     }
 
-    @Test("A WineHQ build is not a compatibility tool")
-    func wineHQExcluded() throws {
+    @Test("An installed WineHQ build registers as a compatibility tool")
+    func wineHQTools() throws {
         let work = try scratchDirectory("toollist-winehq")
         defer { try? FileManager.default.removeItem(at: work) }
         let runners = work.appending(path: "runners")
-        for build in RunnerManifest.current().builds
-        where build.kind == Runner.Kind.wineBuild.rawValue && build.origin != .cartouche {
-            try Self.wineReceipt(build.id, in: runners)
+        let manifest = try RunnerManifest.bundled()
+        let wineHQ = manifest.builds.filter {
+            $0.kind == Runner.Kind.wineBuild.rawValue && $0.origin == .winehq
         }
+        for build in wineHQ { try Self.wineReceipt(build.id, in: runners) }
         let file = work.appending(path: "tools")
 
         try CompatToolList.sync(
             runners: runners, bridge: work.appending(path: "bridge"), file: file,
-            compatTools: work.appending(path: "compatibilitytools.d"), fexAvailable: true)
+            compatTools: work.appending(path: "compatibilitytools.d"), fexAvailable: true,
+            manifest: manifest)
 
-        #expect(try String(contentsOf: file, encoding: .utf8) == "")
+        #expect(wineHQ.map(\.id) == ["wine-stable-11.0_1", "wine-devel-11.18"])
+        #expect(try String(contentsOf: file, encoding: .utf8) == Self.text(wineHQ.map { build in
+            "\(Self.p)-\(build.id)\t\(build.id)\trosetta\t\(build.title)"
+        }))
     }
 
     @Test("A removed Wine build drops off the list on the next sync")

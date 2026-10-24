@@ -142,8 +142,8 @@ Rules:
 
 ### The per-Mac estimate
 
-- It uses reports with the same play method on Macs whose GPU strength is within 1/1.4 to 1.4 times this Mac's, from the `gpu_strength` table.
-- With fewer than 3 matching reports, it uses the 5 closest.
+- It uses exact-model reports with the selected play method first. Without those, it averages Macs whose GPU strength is within 1/1.4 to 1.4 times the selected Mac’s.
+- Without comparable reports, it uses the nearest available model and identifies the fallback (ADR 0035).
 - It returns a rating, average FPS and typical settings, and says how many reports it used.
 - With no reports for the play method, the panel says "No reports yet for this version" and shows no number.
 
@@ -201,3 +201,8 @@ These are merged. Their shapes come from the code named beside them; none of the
 ## Not decided
 
 - Nothing at the moment.
+
+
+### Switch artwork
+
+Switch games with a 16-character title ID in the filename resolve their icon and banner automatically through the [Nlib API](https://api.nlib.cc/nx). Only the public title ID is requested; the ROM and its path are not sent. Images are cached under `~/Library/Caches/Cartouche/covers/consoles/switch/<title-id>/` and reused offline. A manually selected cover remains the first choice. Other consoles retain libretro-thumbnails. Console cover menus do not search Steam.

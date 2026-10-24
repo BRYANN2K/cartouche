@@ -5,10 +5,19 @@
 #include "../feats/usershortcuts.h"
 #include "../util/ptr.h"
 #include "../util/log.h"
+#include <dlfcn.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <signal.h>
+#include <stdlib.h>
 #include <string.h>
+#include <sys/sysctl.h>
+
+// Steam's allocator, for the strings written into a tool entry Steam owns and frees.
+typedef void *(*fn_PlatAlloc)(unsigned long size);
+typedef void  (*fn_PlatFree)(void *ptr);
+static fn_PlatAlloc g_plat_alloc;
+static fn_PlatFree  g_plat_free;
 
 static void *orig_CCompatManager_Init = NULL;
 typedef void *(*fn_CCompatManager_Init)(void *self, void *arg1);
@@ -60,6 +69,12 @@ void np_hooks_compat_set_helpers(uintptr_t yld_register_tool,
     np_compat_set_mapping_fn(set_compat_tool_mapping);
     np_compat_set_app_mapping_fn(find_mapping);
     np_compat_set_wildcard_fn(get_wildcard_mapping);
+
+    g_plat_alloc = (fn_PlatAlloc)dlsym(RTLD_DEFAULT, "Plat_Alloc");
+    g_plat_free  = (fn_PlatFree)dlsym(RTLD_DEFAULT, "Plat_Free");
+    if (!g_plat_alloc)
+        NP_WARN("np_hooks_compat_set_helpers: Plat_Alloc unresolved, the local tool "
+                "redirect stores Cartouche's own strings in Steam's tool entry");
 }
 
 static void *orig_FindToolForTargetApp = NULL;
@@ -156,7 +171,7 @@ static void instrument_oslist_override_gate(void *address, void *ctx_) {
         return;
     ctx->general.x[0] = 1;
     uint64_t tool = ctx->general.x[21];
-    uint32_t appid = (tool && np_plausible_ptr(tool))
+    uint32_t appid = (tool && np_plausible_ptr(tool) && np_compat_tool_layout_ok())
                      ? *(uint32_t *)(tool + np_compat_tool_off(COMPAT_TOOL_APPID_OFF)) : 0;
     NP_LOG("instrument_oslist_override_gate: appid=%u install platform forced to tool from_oslist", appid);
 }
@@ -174,7 +189,7 @@ static void instrument_resolver_local_redirect(void *address, void *ctx_) {
     np_arm64_ctx_t *ctx = (np_arm64_ctx_t *)ctx_;
 
     uint64_t tool = ctx->general.x[0];
-    if (!tool || !np_plausible_ptr(tool))
+    if (!tool || !np_plausible_ptr(tool) || !np_compat_tool_layout_ok())
         return;
 
     uint32_t tool_appid = *(uint32_t *)(tool + np_compat_tool_off(COMPAT_TOOL_APPID_OFF));
@@ -185,11 +200,34 @@ static void instrument_resolver_local_redirect(void *address, void *ctx_) {
     if (!tool_dir)
         return;
 
+    // Steam treats both fields as its own heap strings and may Plat_Free them, so they
+    // get copies from its allocator. Whether x0 is a per-call copy or the manager's
+    // own entry is not known here, so the old strings are left alone (a small leak)
+    // rather than freed under something else that may still point at them.
+    const char *install = tool_dir;
+    const char *commandline = np_compat_tool_commandline();
+    if (g_plat_alloc) {
+        size_t dir_len = strlen(tool_dir) + 1;
+        size_t cmd_len = strlen(commandline) + 1;
+        char *dir_copy = g_plat_alloc((unsigned long)dir_len);
+        char *cmd_copy = dir_copy ? g_plat_alloc((unsigned long)cmd_len) : NULL;
+        if (!cmd_copy) {
+            if (dir_copy && g_plat_free) g_plat_free(dir_copy);
+            NP_ERR("instrument_resolver_local_redirect: no memory for tool %u's strings, "
+                   "not redirected", tool_appid);
+            return;
+        }
+        memcpy(dir_copy, tool_dir, dir_len);
+        memcpy(cmd_copy, commandline, cmd_len);
+        install = dir_copy;
+        commandline = cmd_copy;
+    }
+
     *(uint32_t *)(tool + TOOL_VERSION_OFF)     = 2;
     *(uint32_t *)(tool + TOOL_DEPENDENCY_OFF)  = 0;
     *(uint32_t *)(tool + np_compat_tool_off(COMPAT_TOOL_APPID_OFF)) = 0;
-    *(const char **)(tool + np_compat_tool_off(COMPAT_TOOL_INSTALL_OFF)) = tool_dir;
-    *(const char **)(tool + TOOL_COMMANDLINE_OFF) = np_compat_tool_commandline();
+    *(const char **)(tool + np_compat_tool_off(COMPAT_TOOL_INSTALL_OFF)) = install;
+    *(const char **)(tool + TOOL_COMMANDLINE_OFF) = commandline;
 
     NP_LOG("instrument_resolver_local_redirect: tool %u routed to local CrossOver tool at %s",
            tool_appid, tool_dir);
@@ -198,12 +236,58 @@ static void instrument_resolver_local_redirect(void *address, void *ctx_) {
 static void *orig_TerminateProcessByPid = NULL;
 typedef int (*fn_TerminateProcessByPid)(int pid);
 
+// The process image of a run script is the shell, so the script is read from its
+// arguments: argv[1] when the kernel ran the script, or the -c command when a shell
+// was asked to. Anything else is not a pid this signals.
+static int runs_tool_script(int pid) {
+    int mib[3] = { CTL_KERN, KERN_ARGMAX, 0 };
+    int argmax = 0;
+    size_t size = sizeof argmax;
+    if (sysctl(mib, 2, &argmax, &size, NULL, 0) != 0 || argmax <= 0) return 0;
+
+    char *buf = malloc((size_t)argmax);
+    if (!buf) return 0;
+    mib[1] = KERN_PROCARGS2;
+    mib[2] = pid;
+    size = (size_t)argmax;
+    int found = 0;
+    if (sysctl(mib, 3, buf, &size, NULL, 0) == 0 && size > sizeof(int)) {
+        // argc, the exec path, NUL padding, then argv.
+        int argc;
+        memcpy(&argc, buf, sizeof argc);
+        const char *p = buf + sizeof argc, *end = buf + size;
+        const char *nul = memchr(p, '\0', (size_t)(end - p));
+        p = nul ? nul : end;
+        while (p < end && !*p) p++;
+        const char *argv[3] = { NULL, NULL, NULL };
+        for (int i = 0; i < argc && i < 3 && p < end; i++) {
+            nul = memchr(p, '\0', (size_t)(end - p));
+            if (!nul) break;
+            argv[i] = p;
+            p = nul + 1;
+        }
+        // hook_launch hands tool launches to "/bin/sh -c <cmd>" or to
+        // STEAM_GAME_LAUNCH_SHELL <cmd>; a shell that execs the script leaves its path.
+        if (argv[1] && argv[1][0] == '-')
+            found = np_compat_runs_tool(argv[2]);
+        else
+            found = np_compat_is_tool_run_path(argv[1]) || np_compat_runs_tool(argv[1]);
+    }
+    free(buf);
+    return found;
+}
+
 static int hook_TerminateProcessByPid(int pid) {
     fn_TerminateProcessByPid orig = (fn_TerminateProcessByPid)orig_TerminateProcessByPid;
     int ret = orig ? orig(pid) : 0;
     if (!orig)
         NP_ERR("hook_TerminateProcessByPid: no original, signalling pid %d directly", pid);
     if (ret == 0 && pid > 0) {
+        if (!runs_tool_script(pid)) {
+            NP_WARN("hook_TerminateProcessByPid: pid %d is not a Cartouche tool's run "
+                    "script, so it is not signalled", pid);
+            return ret;
+        }
         if (kill(pid, SIGTERM) == 0) {
             NP_LOG("hook_TerminateProcessByPid: pid %d has no running application, "
                    "sent SIGTERM to run script for prefix teardown", pid);

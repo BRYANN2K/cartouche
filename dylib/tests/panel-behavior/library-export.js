@@ -100,7 +100,8 @@ function page(opts) {
         result = token ? 1 : 2;
         body = token ? f2(1, token) : [];
       }
-      if (opts.route && msg.route.startsWith('Cartouche.')) {
+      if (msg.route === 'Cartouche.GetInstallCommand#1') body = f2(1, '{}');
+      if (opts.route && ['Cartouche.GetExportToken#1', 'Cartouche.ExportOwnedGames#1'].includes(msg.route)) {
         const real = await opts.route(msg);
         result = real.result; body = real.body;
       }
@@ -123,13 +124,13 @@ function page(opts) {
   // Requeue and the call's own timeouts all land here; the last push of a poll
   // is always the next tick.
   const setTimeout = (f, ms) => { timeouts.push({ f, ms }); return timeouts.length; };
-  const console = { log() {}, warn(m) { warnings.push(String(m)) }, error() {} };
+  const console = { log() {}, info() {}, warn(m) { warnings.push(String(m)) }, error() {} };
   const src = emitWith('export');
-  new Function('window', 'SteamClient', 'WebSocket', 'fetch', 'setTimeout', 'console',
+  new Function('window', 'SteamClient', 'WebSocket', 'fetch', 'setTimeout', 'setInterval', 'console',
                'return ' + src + ';')
-    .call(self, window, SteamClient, FakeWS, fetch, setTimeout, console);
+    .call(self, window, SteamClient, FakeWS, fetch, setTimeout, () => 0, console);
   return {
-    sockets, fetched, warnings,
+    sockets, fetched, warnings, window,
     set token(v) { token = v; },
     get ms() { const t = timeouts[timeouts.length - 1]; return t && t.ms; },
     poll: async () => {
@@ -163,6 +164,17 @@ const payload_json = f => {
     await p.flush();
     t.ok(p.sockets.length === 0 && p.fetched.length === 0 && p.ms === 15000,
          'an empty library polls quietly without asking for the token');
+  }
+
+  // Steam's app store can become available after the patched initializer runs.
+  {
+    const p = page({ noStore: true });
+    await p.flush();
+    p.window.appStore = { allApps: [app(21, { installed: true, local_per_client_data: { installed: false } })] };
+    await p.poll();
+    const doc = payload_json(export_msgs(p.sockets[0])[0]).doc;
+    t.ok(doc.apps.length === 1 && doc.apps[0].appid === 21, 'late app store exports through the public allApps collection');
+    t.ok(doc.apps[0].installed === false, 'a remote installation is not reported as installed on this Mac');
   }
 
   // A populated store exports once.

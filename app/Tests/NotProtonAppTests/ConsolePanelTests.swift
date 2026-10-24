@@ -19,10 +19,32 @@ struct ConsolePanelTests {
                          actions: GameActionRunner(model: scene.library, open: { _ in }))
             .environment(scene.center)
             .environment(\.covers, scene.covers)
+            .environment(\.glassMode, .classic)
             .frame(width: 360, height: 980)
     }
 
-    @Test("Sections in the documented order: Play or Resume, Continue From, play time and achievements, Setup, Controls, Play Together, More…")
+    @Test("Console setup labels remain visible at every inspector width")
+    func widths() async throws {
+        let scene = try await ConsoleScene("console-panel-widths")
+        defer { scene.remove() }
+        let console = try await scene.addGame(console: "snes", name: "Cartouche Homebrew")
+        let game = try #require(scene.library.game(console.id))
+        let compat = try await fixtureCompat(scene.work, defaults: scene.scratch)
+        for width in [300.0, 340, 400] {
+            let panel = GamePanel(game: game, model: scene.library, compat: compat,
+                                  actions: GameActionRunner(model: scene.library, open: { _ in }))
+                .environment(scene.center)
+                .environment(\.covers, scene.covers)
+                .environment(\.glassMode, .classic)
+            let texts = try await renderedTexts(panel, size: CGSize(width: width, height: 980),
+                                                 named: "console-panel-\(Int(width))", dark: true, settle: 0.8)
+            for label in ["Setup", "Core", "Look", "Snes9x", "Original"] {
+                #expect(seen(texts, label), "\(label) cut at \(width): \(texts)")
+            }
+        }
+    }
+
+    @Test("Sections in the documented order: Play or Resume, Setup, Your Play, Continue From, Controls, Play Together, More…")
     func order() async throws {
         let scene = try await ConsoleScene("panel-order")
         defer { scene.remove() }
@@ -30,22 +52,22 @@ struct ConsolePanelTests {
         let system = try #require(scene.center.console(of: game))
 
         var content = ConsolePanelContent(game: game, console: system, states: [], bios: await scene.center.bios(for: game), playing: nil)
-        #expect(content.titles == ["Play", "Your Play", "Setup", "Controls", "Play Together", "More…"])
+        #expect(content.titles == ["Play", "Setup", "Your Play", "Controls", "Play Together", "More…"])
         #expect(content.played == "Not yet")
-        #expect(content.subtitle() == "Super Nintendo. Never played.")
+        #expect(content.subtitle() == "Super Nintendo · Never played")
 
         try scene.writeState(game, slot: 3, picture: try Self.screen("SLOT 3"), age: 3600)
         try scene.writeState(game, slot: nil, picture: try Self.screen("AUTO"), age: 60)
         content = ConsolePanelContent(game: game, console: system, states: await scene.center.states(for: game),
                                       bios: await scene.center.bios(for: game), playing: nil)
-        #expect(content.titles == ["Resume", "Continue From", "Your Play", "Setup", "Controls", "Play Together", "More…"])
+        #expect(content.titles == ["Resume", "Setup", "Your Play", "Continue From", "Controls", "Play Together", "More…"])
         #expect(content.states.map(\.title) == ["Auto", "Slot 3"])
         #expect(content.cores.map(\.name) == ["Snes9x", "bsnes", "Mesen-S"])
 
         let disc = try await scene.addGame(console: "ps1", name: "Saga", discs: 2)
         let ps1 = try #require(scene.center.console(of: disc))
         let warned = ConsolePanelContent(game: disc, console: ps1, states: [], bios: await scene.center.bios(for: disc), playing: nil)
-        #expect(warned.titles == ["Play", "BIOS", "Your Play", "Setup", "Controls", "Play Together", "More…"])
+        #expect(warned.titles == ["Play", "BIOS", "Setup", "Your Play", "Controls", "Play Together", "More…"])
         #expect(!warned.canPlay)
     }
 
@@ -105,7 +127,7 @@ struct ConsolePanelTests {
         // The button, the subtitle and the Played row describe the same fact
         #expect(content.playLabel == "Resume")
         #expect(content.playedAt != nil)
-        #expect(content.subtitle() == "Super Nintendo. Played 7 days ago.")
+        #expect(content.subtitle() == "Super Nintendo · Played 7 days ago")
         #expect(content.played == "7 days ago")
         // So does the library row
         #expect(scene.library.game(game.id)?.status() == "Played 7 days ago")
@@ -118,7 +140,7 @@ struct ConsolePanelTests {
         let merged = try #require(scene.center.game(sramOnly.id))
         let save = ConsolePanelContent(game: merged, console: system, states: [], bios: nil, playing: nil)
         #expect(save.playLabel == "Play")
-        #expect(save.subtitle() == "Super Nintendo. Played 3 days ago.")
+        #expect(save.subtitle() == "Super Nintendo · Played 3 days ago")
         #expect(save.played == "3 days ago")
 
         // A counted session newer than the files wins
@@ -127,7 +149,7 @@ struct ConsolePanelTests {
         let now = try #require(scene.center.game(added.id))
         let today = ConsolePanelContent(game: now, console: system, states: await scene.center.states(for: added),
                                         bios: await scene.center.bios(for: added), playing: nil)
-        #expect(today.subtitle() == "Super Nintendo. Played today.")
+        #expect(today.subtitle() == "Super Nintendo · Played today")
         #expect(today.played == "today")
     }
 

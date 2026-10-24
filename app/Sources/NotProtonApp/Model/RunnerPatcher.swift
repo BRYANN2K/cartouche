@@ -46,10 +46,10 @@ enum RunnerPatcher {
         return outcome
     }
 
-    // A downloaded Wine build ships its ntdll already patched; only the Steam
-    // builtins and the loader entitlement are ours to add.
+    // Downloaded builds need both the loader hook and the Steam builtins.
     static func installWine(root: URL, bridge: URL = SupportPaths.bridge) throws -> Outcome {
         var outcome = Outcome()
+        outcome.ntdll = try WineSteamPatches.install(in: root)
         outcome.builtins = try installBuiltins(root: root, bridge: bridge)
         outcome.loaders = try grantLoaderEntitlement(root: root, fresh: true)
         return outcome

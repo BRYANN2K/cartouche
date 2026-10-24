@@ -21,7 +21,7 @@ struct CoverStore: Sendable {
 
     var steamCache: URL = SupportPaths.Steam.userData.appending(path: "appcache/librarycache")
     var cache: URL = SupportPaths.home.appending(path: "Library/Caches/\(SupportPaths.supportDirName)/covers")
-    var fetch: Fetch = HTTPFetch.download(timeout: 15)
+    var fetch: Fetch = HTTPFetch.download(timeout: 15, userAgent: "Cartouche/\(AppVersion.bundled)")
     // libretro-thumbnails for console games; nil uses the project's server
     var thumbnails: Thumbnails?
     // The exe icon for a placeholder cover (iconmaker through PlaceholderCover); overridable in tests
@@ -40,7 +40,7 @@ struct CoverStore: Sendable {
     }
 
     private func consoleName(_ game: Game) -> (system: String, name: String)? {
-        guard let console = game.console, let name = console.databaseName,
+        guard let console = game.console, console.console != "switch", let name = console.databaseName,
               let system = ConsoleCatalog.console(console.console)?.system else { return nil }
         return (system, name)
     }
@@ -51,6 +51,10 @@ struct CoverStore: Sendable {
 
     func local(for game: Game, kind: ArtKind, override: URL?) -> CoverArt? {
         if kind == .cover, let override, exists(override) { return .image(override) }
+        if let id = SwitchArtwork.titleID(game) {
+            let file = SwitchArtwork.cached(id, kind: kind, cache: cache)
+            if exists(file) { return .image(file) }
+        }
         if let appID = game.steamAppID {
             if let found = steamFile(appID, kind) { return .image(found) }
             let mine = cached(appID, kind)
@@ -70,6 +74,11 @@ struct CoverStore: Sendable {
     // The local art, or Steam's CDN copied into Cartouche's cache, or the drawn cover. Offline, the CDN step fails and the next source is used.
     func art(for game: Game, kind: ArtKind, override: URL?) async -> CoverArt {
         if let found = local(for: game, kind: kind, override: override) { return found }
+        if let id = SwitchArtwork.titleID(game),
+           let saved = await download(QAEnvironment.url(SwitchArtwork.url(id, kind: kind)),
+                                      to: SwitchArtwork.cached(id, kind: kind, cache: cache)) {
+            return .image(saved)
+        }
         if let appID = game.steamAppID, let saved = await download(appID, kind) { return .image(saved) }
         if let remote = game.artwork, let file = storeFile(game), let saved = await download(remote, to: file) { return .image(saved) }
         if let (system, name) = consoleName(game) {
@@ -161,9 +170,13 @@ struct CoverStore: Sendable {
         if let date = (try? FileManager.default.attributesOfItem(
             atPath: mark.path(percentEncoded: false)))?[.modificationDate] as? Date,
            Date().timeIntervalSince(date) < Self.missingTTL { return nil }
-        guard let (data, status) = try? await fetch(url), status == 200, Self.looksLikeImage(data) else {
-            try? FileManager.default.createDirectory(at: mark.deletingLastPathComponent(), withIntermediateDirectories: true)
-            try? Data().write(to: mark)
+        let answer = try? await fetch(url)
+        guard let (data, status) = answer, status == 200, Self.looksLikeImage(data) else {
+            // Only an answer that there is no image is remembered; offline or a server error retries next time
+            if let status = answer?.1, status == 404 || status == 410 || status == 200 {
+                try? FileManager.default.createDirectory(at: mark.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try? Data().write(to: mark)
+            }
             return nil
         }
         try? FileManager.default.removeItem(at: mark)

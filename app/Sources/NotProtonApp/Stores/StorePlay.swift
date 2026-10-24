@@ -13,7 +13,7 @@ final class StoreProcess: @unchecked Sendable {
         run = InstallRun(InstallLaunch(executable: command.executable.path(percentEncoded: false),
                                      arguments: command.arguments, environment: command.environment,
                                      currentDirectory: command.currentDirectory),
-                         output: output)
+                         output: output, outputLimit: InstallEngine.outputLimit)
         try run.start()
     }
 

@@ -33,7 +33,13 @@ public final class FolderWatcher: @unchecked Sendable {
     }
 
     public func watch(_ folders: [URL], latency: TimeInterval = 1) {
-        stop()
+        // FSEvents opens each path during creation. Disconnected volumes and
+        // file providers can block there; never make the UI wait for them.
+        queue.async { self.startWatching(folders, latency: latency) }
+    }
+
+    private func startWatching(_ folders: [URL], latency: TimeInterval) {
+        stopStream()
         guard !folders.isEmpty else { return }
         var context = FSEventStreamContext(
             version: 0, info: Unmanaged.passUnretained(self).toOpaque(), retain: nil, release: nil, copyDescription: nil)
@@ -52,6 +58,10 @@ public final class FolderWatcher: @unchecked Sendable {
     }
 
     public func stop() {
+        queue.async { self.stopStream() }
+    }
+
+    private func stopStream() {
         let old = lock.withLock { () -> FSEventStreamRef? in
             defer { stream = nil }
             return stream
@@ -62,5 +72,5 @@ public final class FolderWatcher: @unchecked Sendable {
         FSEventStreamRelease(old)
     }
 
-    deinit { stop() }
+    deinit { stopStream() }
 }

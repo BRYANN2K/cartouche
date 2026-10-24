@@ -127,7 +127,7 @@ final class GameVerificationCenter: GameVerificationPresenting {
 
     private func folderFor(_ gameID: String) -> GameFolder? {
         guard gameID.hasPrefix("installer:") else { return nil }
-        return GameFolder(root: installs.appending(path: String(gameID.dropFirst("installer:".count))))
+        return GameFolder.of(slug: String(gameID.dropFirst("installer:".count)), in: installs)
     }
 
     private func begin(_ game: Game) {
@@ -218,7 +218,7 @@ final class GameVerificationCenter: GameVerificationPresenting {
         guard let scan = try? PartScanner.scan(source), let setup = scan.setup else { return [] }
         let tool = tool(), runner = toolRunner()
         let entries = try? await Task.detached { () throws -> [InnoFileEntry] in
-            try InnoInspector.listSizes(setup, tool: tool, runner: runner)
+            try GameVerify.scriptEntries(setup, tool: tool, runner: runner)
         }.value
         return GameVerify.installedFiles(from: entries ?? [])
     }

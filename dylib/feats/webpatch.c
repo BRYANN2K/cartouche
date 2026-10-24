@@ -420,12 +420,14 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
 // owned-games list from the app store and, when it changed, sends it through the
 // client's own transport socket to the dylib's Cartouche.ExportOwnedGames#1 route.
 // The socket authenticates like any WebUI connection and the payload carries the
-// per-launch token the route requires; nothing else on the page can know it. The
-// token comes from the loopback host at run time, so a page cached from an earlier
-// launch always presents this launch's token; a refusal backs off and logs once
-// rather than retrying every poll forever.
+// per-launch token the route requires. The token is asked for at run time over the
+// same authenticated socket (Cartouche.GetExportToken#1, served by steam_osx, which
+// holds the token the export route checks), so a page cached from an earlier launch
+// still presents this launch's token; a refusal backs off and logs once rather than
+// retrying every poll forever.
+#include "steaminstall.h"
 #define NP_LIBRARY_EXPORT \
-    "(()=>{if(!window.appStore)return;" \
+    "(()=>{" \
     "const te=new TextEncoder()," \
     "vn=n=>{const b=[];do{let x=n%128;n=(n-x)/128;if(n)x|=128;b.push(x)}while(n);return b}," \
     "f2=(n,v)=>{const b=typeof v===\"string\"?te.encode(v):v;return[...vn(n*8+2),...vn(b.length),...b]}," \
@@ -453,17 +455,18 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     "await new Promise((ok,no)=>{ws.onopen=ok;ws.onerror=no;setTimeout(no,8e3)});" \
     "if((await call(\"TransportAuth.Authenticate#1\",new Uint8Array(0))).er===1)return 1;" \
     "ws.close();return 0}catch(e){ws=0;return 0}}," \
-    "collect=()=>{const S=window.appStore;if(!S||!S.m_mapApps||!S.m_mapApps.size)return null;" \
+    "collect=()=>{const S=window.appStore;if(!S)return null;" \
     "const cm=(this&&this.m_cm)||S.m_cm||(window.collectionStore&&window.collectionStore.m_cm)," \
     "sid=cm&&cm.steamid&&(cm.steamid.ConvertTo64BitString?cm.steamid.ConvertTo64BitString():String(cm.steamid));" \
     "if(!sid)return null;" \
+    "const all=S.allApps||(S.m_mapApps&&[...S.m_mapApps.values()]);if(!all||!all.length)return null;" \
     "const CS=window.collectionStore,hc=CS&&CS.collectionsFromStorage&&CS.collectionsFromStorage.get(\"hidden\")," \
     "ha=hc&&hc.apps,apps=[];" \
-    "for(const a of S.m_mapApps.values()){" \
+    "for(const a of all){" \
     "if(!a||!Number.isInteger(a.appid)||a.appid<=0||!a.BIsOwned||!a.BIsOwned()||" \
     "a.BIsBorrowed&&a.BIsBorrowed()||a.BIsShortcut&&a.BIsShortcut())continue;" \
     "const t=a.canonicalAppType===void 0?a.app_type:a.canonicalAppType;if(t!==void 0&&t!==1)continue;" \
-    "const o={appid:a.appid,name:String(a.display_name||\"\").slice(0,256),installed:!!a.installed};" \
+    "const o={appid:a.appid,name:String(a.display_name||\"\").slice(0,256),installed:!!(a.local_per_client_data?a.local_per_client_data.installed:a.installed)};" \
     "if(a.rt_last_time_played)o.last_played=Math.floor(a.rt_last_time_played);" \
     "if(a.minutes_playtime_forever)o.playtime=Math.floor(a.minutes_playtime_forever);" \
     "if(ha&&(ha.has?ha.has(o.appid):ha.indexOf&&ha.indexOf(o.appid)>=0))o.hidden=true;" \
@@ -480,8 +483,9 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     "const r=await call(\"Cartouche.GetExportToken#1\",new Uint8Array(0)),b=r.body;" \
     "if(r.er!==1||!b||b.length!==34||b[0]!==10||b[1]!==32)return\"\";" \
     "const t=new TextDecoder().decode(b.slice(2));" \
-    "return/^[0-9a-f]{32}$/i.test(t)?t:\"\"}catch(x){return\"\"}}," \
-    "requeue=n=>setTimeout(tick,Math.min(15e3*Math.pow(2,n||0),3e5))," \
+    "return/^[0-9a-f]{32}$/i.test(t)?t:\"\"}catch(x){return\"\"}};" \
+    NP_STEAM_INSTALL \
+    "const requeue=n=>setTimeout(tick,Math.min(15e3*Math.pow(2,n||0),3e5))," \
     "refuse=why=>{fails+=1;if(!warned){warned=1;console.warn(\"Cartouche: \"+why)}requeue(fails)}," \
     "tick=async()=>{try{const e=collect();if(!e)return requeue(0);" \
     "const fp=JSON.stringify(e.apps)+(e.collections?JSON.stringify(e.collections):\"\");" \
@@ -599,6 +603,9 @@ static const np_gate_t g_gates_selecttool[] = {
     NP_MAC_64(APP) ";"
 
 static const np_gate_t g_fixes[] = {
+    { "this.m_clientHandles.Add(SteamClient.Installs.RegisterForShowInstallWizard(this.OnShowInstallWizard))",
+      "this.m_clientHandles.Add((window.__cartoucheInstallUI=1,SteamClient.Installs.RegisterForShowInstallWizard("
+      "(...args)=>{if(!window.__cartoucheInstallOwns?.(args[0]))this.OnShowInstallWizard(...args)})))", 1, 1 },
     { "(\"#AddNonSteam_Filter_Exe_MacOS\"),rFilePatterns:[\"*.app\"]",
       "(\"#AddNonSteam_Filter_Exe_MacOS\"),rFilePatterns:[\"*.app\",\"*.exe\"]", 1, 0 },
     { "{strFileTypeName:\"Image Files (*.tga,*.png)\",rFilePatterns:[\"*.tga\",\"*.png\"]}",
@@ -727,13 +734,44 @@ static int has_suffix(const char *s, const char *suf) {
     return ls >= lf && memcmp(s + ls - lf, suf, lf) == 0;
 }
 
+// Steam's own data directory. Written once by np_webpatch_set_steam_root.
+static char g_steam_root[1024];
+
+void np_webpatch_set_steam_root(const char *root) {
+    if (!root || root[0] != '/' || strlen(root) >= sizeof(g_steam_root)) return;
+    snprintf(g_steam_root, sizeof g_steam_root, "%s", root);
+    size_t n = strlen(g_steam_root);
+    while (n > 1 && g_steam_root[n - 1] == '/')
+        g_steam_root[--n] = '\0';
+}
+
+static int has_dot_segment(const char *path) {
+    for (const char *p = path; *p; ) {
+        const char *slash = strchr(p, '/');
+        size_t len = slash ? (size_t)(slash - p) : strlen(p);
+        if ((len == 1 && p[0] == '.') || (len == 2 && p[0] == '.' && p[1] == '.'))
+            return 1;
+        if (!slash) break;
+        p = slash + 1;
+    }
+    return 0;
+}
+
+// The part of `path` past Steam's own steamui directory: a relative steamui/ path
+// (resolved from Steam's working directory), or an absolute one under the Steam root.
+// A steamui directory anywhere else is not Steam's.
 static const char *inside_steamui(const char *path) {
-    const char *at = strstr(path, "/steamui/");
-    if (at)
-        return at + sizeof("/steamui/") - 1;
+    if (has_dot_segment(path))
+        return NULL;
     if (strncmp(path, "steamui/", sizeof("steamui/") - 1) == 0)
         return path + sizeof("steamui/") - 1;
-    return NULL;
+
+    size_t root_len = strlen(g_steam_root);
+    if (!root_len || strncmp(path, g_steam_root, root_len) != 0 || path[root_len] != '/')
+        return NULL;
+    const char *under = path + root_len;
+    const char *at = strstr(under, "/steamui/");
+    return at ? at + sizeof("/steamui/") - 1 : NULL;
 }
 
 // The compatibility UI has shipped in both chunk~*.js and sp.js.

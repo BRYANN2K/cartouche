@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import Testing
 
@@ -183,6 +184,37 @@ final class BackendInstallerTests {
         #expect(BackendInstaller.installed(in: backends).map(\.backend) == [.dxmt])
     }
 
+    @Test("An update while a game uses the backend is refused with the usual message and keeps the old files")
+    func refusedWhileInUse() async throws {
+        let pin = try pin(.dxmt, for: archive("dxmt-v0.80-builtin.tar.gz", top: "dxmt-v0.80", files: Self.dxmtFiles))
+        let receipt = try await BackendInstaller.install(pin, backends: backends, downloads: downloads)
+        let target = BackendInstaller.folder(for: .dxmt, in: backends)
+        let dxgi = target.appending(path: "x86_64-windows/dxgi.dll")
+        try Data("MZ changed".utf8).write(to: dxgi)
+        do {
+            try await BackendInstaller.install(pin, backends: backends, downloads: downloads, inUse: { $0 == target })
+            Issue.record("installed over a backend in use")
+        } catch let failure as StepFailure {
+            #expect(failure.detail == "A game is using \(pin.name). Quit the game first.")
+        }
+        #expect(Digest.sha256IfPresent(dxgi) != receipt.files["x86_64-windows/dxgi.dll"], "the files in use are untouched")
+    }
+
+    @Test("A process holding one of the backend's files open makes it in use; none, or no receipt, leaves it free")
+    func inUseProbe() async throws {
+        let pin = try pin(.dxmt, for: archive("dxmt-v0.80-builtin.tar.gz", top: "dxmt-v0.80", files: Self.dxmtFiles))
+        try await BackendInstaller.install(pin, backends: backends, downloads: downloads)
+        let target = BackendInstaller.folder(for: .dxmt, in: backends)
+        let other = BackendInstaller.folder(for: .dxvk, in: backends)
+        #expect(try await offMain { BackendInstaller.isInUse(target) } == false)
+        #expect(try await offMain { BackendInstaller.isInUse(other) } == false)
+        let held = try FileHandle(forReadingFrom: target.appending(path: "x86_64-unix/winemetal.so"))
+        #expect(try await offMain { BackendInstaller.isInUse(target) })
+        try held.close()
+        #expect(try await offMain { BackendInstaller.isInUse(target) } == false)
+        #expect(try await offMain { BackendInstaller.isInUse(target, lsof: "/nonexistent/lsof") })
+    }
+
     @Test("An install that cannot write its folder leaves the old one working")
     func keepsOldInstall() async throws {
         let pin = try pin(.dxmt, for: archive("dxmt-v0.80-builtin.tar.gz", top: "dxmt-v0.80", files: Self.dxmtFiles))
@@ -198,5 +230,71 @@ final class BackendInstallerTests {
         }
         restore()
         #expect(try Digest.sha256(of: dxgi) == before, "the previous install is untouched")
+    }
+}
+
+@Suite("Graphics backend manifest refresh")
+struct BackendManifestRefreshTests {
+
+    private static func signed(_ manifest: Data, key: Curve25519.Signing.PrivateKey) throws
+        -> @Sendable (URL) async throws -> (Data, Int) {
+        let signature = try key.signature(for: manifest)
+        let sig = Data(signature.base64EncodedString().utf8)
+        return { url in url.pathExtension == "sig" ? (sig, 200) : (manifest, 200) }
+    }
+
+    private static func bundledText() throws -> String {
+        let file = IdentityTests.repoRoot.appending(path: "app/Sources/NotProtonApp/Resources/backends.json")
+        return try String(contentsOf: file, encoding: .utf8)
+    }
+
+    @Test("The compat-data feed names backends.json beside compat.json.gz")
+    func feed() throws {
+        let compat = try #require(URL(string: "https://github.com/BRYANN2K/cartouche/releases/download/compat-data/compat.json.gz"))
+        #expect(BackendManifest.feed(fromCompat: compat)?.absoluteString
+            == "https://github.com/BRYANN2K/cartouche/releases/download/compat-data/backends.json")
+    }
+
+    @Test("A higher revision with a changed pin is kept; a bad signature leaves the cache alone")
+    func refreshKeepsChangedPin() async throws {
+        let work = try scratchDirectory("backend-manifest")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let cache = work.appending(path: "backends.json")
+        let url = try #require(URL(string: "https://github.com/BRYANN2K/cartouche/releases/download/compat-data/backends.json"))
+        let shipped = try BackendManifest.bundled()
+        var text = try Self.bundledText()
+        text = text.replacingOccurrences(of: "\"revision\": 1", with: "\"revision\": 2")
+        text = text.replacingOccurrences(of: "\"version\": \"0.80\"", with: "\"version\": \"0.81\"")
+        text = text.replacingOccurrences(of: "8f260e36b5739e68", with: "9f260e36b5739e68")
+        let newerData = Data(text.utf8)
+        let newer = try BackendManifest.read(newerData)
+        #expect(BackendManifest.merged(bundled: shipped, refreshed: newer).pin(.dxmt)?.version == "0.81")
+        let sameRevision = text.replacingOccurrences(of: "\"revision\": 2", with: "\"revision\": 1")
+        #expect(BackendManifest.merged(bundled: shipped, refreshed: try BackendManifest.read(Data(sameRevision.utf8))) == shipped)
+
+        let signing = Curve25519.Signing.PrivateKey()
+        let fetch = try Self.signed(newerData, key: signing)
+        let updated = await BackendManifest.refresh(from: url, cache: cache, fetch: fetch, key: signing.publicKey)
+        #expect(updated == .updated(revision: 2))
+        #expect(BackendManifest.current(cache: cache, key: signing.publicKey).pin(.dxmt)?.version == "0.81")
+
+        let again = await BackendManifest.refresh(from: url, cache: cache, fetch: fetch, key: signing.publicKey)
+        #expect(again == .unchanged)
+
+        let forged = try Self.signed(newerData, key: Curve25519.Signing.PrivateKey())
+        let rejected = await BackendManifest.refresh(from: url, cache: cache, fetch: forged, key: signing.publicKey)
+        guard case .rejected = rejected else { Issue.record("\(rejected)"); return }
+        #expect(try Data(contentsOf: cache) == newerData)
+
+        let metal = try Self.bundledText().replacingOccurrences(of: "\"backend\": \"dxmt\"", with: "\"backend\": \"d3dmetal\"")
+            .replacingOccurrences(of: "\"revision\": 1", with: "\"revision\": 9")
+        let refused = try Self.signed(Data(metal.utf8), key: signing)
+        let notDownloadable = await BackendManifest.refresh(from: url, cache: cache, fetch: refused, key: signing.publicKey)
+        guard case .rejected = notDownloadable else { Issue.record("\(notDownloadable)"); return }
+        #expect(try Data(contentsOf: cache) == newerData)
+
+        let missing = await BackendManifest.refresh(from: url, cache: cache, fetch: { _ in (Data(), 404) }, key: signing.publicKey)
+        #expect(missing == .unavailable)
+        #expect(try Data(contentsOf: cache) == newerData)
     }
 }
