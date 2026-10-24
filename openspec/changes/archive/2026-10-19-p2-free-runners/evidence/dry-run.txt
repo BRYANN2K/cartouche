@@ -1,0 +1,10 @@
++ rm -rf /tmp/p2/dry/src /tmp/p2/dry/build /tmp/p2/dry/deps /tmp/p2/dry/install /tmp/p2/dry/llvm-mingw
++ mkdir -p /tmp/p2/dry/src /tmp/p2/dry/build /tmp/p2/dry/deps/lib /tmp/p2/dry/install /tmp/p2/dry/llvm-mingw
++ tar -xzf /tmp/p2/dry/downloads/crossover-sources-26.3.0.tar.gz -C /tmp/p2/dry/src
++ tar -xJf /tmp/p2/dry/downloads/llvm-mingw-20261006.tar.xz -C /tmp/p2/dry/llvm-mingw --strip-components 1
++ sh <repo>/packaging/wine-crossover/bundle-deps.sh /tmp/p2/dry/deps/lib /usr/local/opt/freetype/lib/libfreetype.6.dylib /usr/local/opt/gnutls/lib/libgnutls.30.dylib /usr/local/opt/molten-vk/lib/libMoltenVK.dylib /usr/local/opt/sdl2/lib/libSDL2-2.0.0.dylib
++ /tmp/p2/dry/src/sources/wine/configure --prefix=/tmp/p2/dry/install --enable-archs=i386,x86_64 --disable-tests --with-mingw --with-coreaudio --with-freetype --with-gnutls --with-opencl --with-opengl --with-sdl --with-vulkan --without-alsa --without-capi --without-dbus --without-fontconfig --without-gphoto --without-gssapi --without-gstreamer --without-inotify --without-krb5 --without-netapi --without-oss --without-pcap --without-pulse --without-sane --without-udev --without-usb --without-v4l2 --without-wayland --without-x LDFLAGS=-L/tmp/p2/dry/deps/lib -Wl,-rpath,@loader_path/../../ -Wl,-headerpad_max_install_names CFLAGS=-O2 -mmacosx-version-min=15.0
++ make -j10
++ make install-lib
++ cp -R /tmp/p2/dry/deps/lib/. /tmp/p2/dry/install/lib/
++ sh <repo>/packaging/wine-crossover/check-deps.sh /tmp/p2/dry/install

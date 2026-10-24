@@ -1,0 +1,46 @@
+== A loader that takes the library ==
+  ok    a folder per launch under performance/incoming
+  ok    named <app>-<time>-<pid>
+  ok    the probe passes
+  ok    the counter is inserted
+  ok    the setup: runner
+  ok    the setup: translation
+  ok    the setup: backend
+  ok    the setup: name
+  ok    the settings, and nothing else from the environment
+  ok    a start time
+  ok    no probe marker left
+  ok    the log says so
+  ok    the game runs
+  ok    the game's process wrote its samples
+  ok    at 60 fps
+  ok    the end time is written when the game exits
+== The probe is kept per runner until the loader or the counter changes ==
+  ok    the second launch reuses it
+  ok    a changed loader is tried again
+== A hardened loader ignores the library ==
+  ok    refused
+  ok    nothing inserted
+  ok    the game runs normally
+  ok    and writes no samples
+  ok    the log names the runner
+== A loader dyld kills when the library cannot load ==
+  ok    inserted anyway, the game would not start
+  ok    refused
+  ok    nothing inserted
+  ok    the game runs normally
+== The launcher keeps the overlay and adds the counter last ==
+  ok    overlay shim, Steam's overlay, then the counter
+  ok    without the overlay, the counter alone
+  ok    a refused runner gets nothing
+== open passes the folder only when there is one ==
+  ok    no folder, no arguments
+  ok    a refused runner still records the session
+== Nothing is measured when ==
+  ok    CARTOUCHE_FPS=0 is in the launch options
+  ok    and the log says so
+  ok    the app is unknown
+  ok    the counter is not installed
+== Order in the run script ==
+  ok    probed with the bundle's loader, before the game opens
+==> fpscheck: all assertions hold

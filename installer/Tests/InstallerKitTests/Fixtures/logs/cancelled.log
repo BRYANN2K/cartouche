@@ -1,0 +1,8 @@
+2026-10-19 20:00:00.001   Log opened. (Time zone: UTC+02:00)
+2026-10-19 20:00:00.002   Setup version: Inno Setup version 5.5.0 (u)
+2026-10-19 20:00:09.400   Starting the installation process.
+2026-10-19 20:00:30.120   User canceled the installation process.
+2026-10-19 20:00:30.121   Rolling back changes.
+2026-10-19 20:00:30.700   Got EAbort exception.
+2026-10-19 20:00:30.701   Deinitializing Setup.
+2026-10-19 20:00:30.702   Log closed.

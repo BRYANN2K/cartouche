@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cartouche: install and first launch</title>
+<style>
+:root { color-scheme: dark light; --font: system-ui, -apple-system, "SF Pro Text", sans-serif; --accent: #0A84FF; --green: #30D158; --orange: #FF9F0A; --red: #FF453A;
+  --label: rgba(255,255,255,.92); --label2: rgba(235,235,245,.62); --label3: rgba(235,235,245,.36); --fill: rgba(255,255,255,.08); --fill2: rgba(255,255,255,.14); --sep: rgba(255,255,255,.09);
+  --window: #1C1C1F; --glass: rgba(34,34,38,.6); --spring: cubic-bezier(.32,.72,0,1); }
+@media (prefers-color-scheme: light) { :root { --label: rgba(0,0,0,.88); --label2: rgba(60,60,67,.66); --label3: rgba(60,60,67,.38); --fill: rgba(0,0,0,.05); --fill2: rgba(0,0,0,.09); --sep: rgba(0,0,0,.08); --window: #F3F3F6; --glass: rgba(255,255,255,.7); --accent: #007AFF; --green: #28A745; --orange: #B25E00; } }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; font: 13px/1.4 var(--font); color: var(--label); -webkit-font-smoothing: antialiased;
+  background: radial-gradient(60% 70% at 20% 10%, #3a2d6b 0, transparent 60%), radial-gradient(60% 70% at 85% 80%, #0f4b5a 0, transparent 60%), #0b0c12; }
+@media (prefers-color-scheme: light) { body { background: radial-gradient(60% 70% at 20% 10%, #d9d2f5 0, transparent 60%), radial-gradient(60% 70% at 85% 80%, #c9eef0 0, transparent 60%), #e9eaee; } }
+button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: default; }
+button:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 55%, transparent); outline-offset: 2px; }
+svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.glass { background: var(--glass); backdrop-filter: blur(30px) saturate(180%); -webkit-backdrop-filter: blur(30px) saturate(180%); box-shadow: inset 0 1px 0 rgba(255,255,255,.14), inset 0 0 0 .5px rgba(255,255,255,.12), 0 24px 60px rgba(0,0,0,.4); }
+@media (prefers-color-scheme: light) { .glass { box-shadow: inset 0 0 0 .5px rgba(0,0,0,.08), 0 24px 60px rgba(0,0,0,.16); } }
+
+/* Page chrome (not part of the app) */
+.page-nav { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 50; display: flex; gap: 2px; padding: 3px; border-radius: 11px; background: rgba(127,127,127,.18); backdrop-filter: blur(20px); }
+.page-nav button { padding: 5px 14px; border-radius: 8px; font-size: 12px; color: var(--label2); }
+.page-nav button[aria-pressed="true"] { background: var(--fill2); color: var(--label); font-weight: 600; }
+.stage { min-height: 100vh; display: grid; place-items: center; padding: 70px 20px 40px; }
+.scene { display: none; } .scene.on { display: grid; justify-items: center; gap: 18px; }
+.caption { color: var(--label2); font-size: 12px; text-align: center; max-width: 520px; }
+
+/* Shared window bits */
+.win { border-radius: 16px; overflow: hidden; background: var(--window); box-shadow: 0 30px 80px rgba(0,0,0,.45), 0 0 0 .5px rgba(255,255,255,.14); }
+@media (prefers-color-scheme: light) { .win { box-shadow: 0 30px 80px rgba(0,0,0,.18), 0 0 0 .5px rgba(0,0,0,.12); } }
+.titlebar { height: 38px; display: flex; align-items: center; gap: 8px; padding: 0 14px; font-weight: 600; font-size: 13px; position: relative; }
+.titlebar .t { position: absolute; left: 0; right: 0; text-align: center; pointer-events: none; }
+.lights { display: flex; gap: 8px; } .lights i { width: 12px; height: 12px; border-radius: 50%; background: #FF5F57; } .lights i:nth-child(2) { background: #FEBC2E; } .lights i:nth-child(3) { background: #28C840; }
+.capsule { height: 30px; padding: 0 16px; border-radius: 999px; font-weight: 500; background: var(--fill2); display: inline-flex; align-items: center; gap: 6px; transition: transform .1s; }
+.capsule:active { transform: scale(.97); }
+.capsule.tint { background: var(--accent); color: #fff; }
+.capsule[disabled] { opacity: .45; }
+.form { border-radius: 12px; background: var(--fill); margin-bottom: 12px; }
+.row { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 8px 12px; }
+.row + .row { box-shadow: inset 0 .5px 0 var(--sep); }
+.two b { display: block; font-weight: 600; } .two span { display: block; font-size: 12px; color: var(--label2); }
+.right { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
+.ok { color: var(--green); } .warn { color: var(--orange); } .muted { color: var(--label3); }
+.small-btn { white-space: nowrap; padding: 3px 12px; border-radius: 999px; background: var(--fill2); font-weight: 500; font-size: 12px; }
+.small-btn.tint { background: var(--accent); color: #fff; }
+.switch { width: 34px; height: 20px; border-radius: 999px; background: var(--fill2); position: relative; transition: background .2s; }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.35); transition: transform .28s var(--spring); }
+.switch[aria-checked="true"] { background: var(--green); } .switch[aria-checked="true"]::after { transform: translateX(14px); }
+.mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; }
+
+/* 1. DMG window */
+.dmg { width: 620px; }
+.dmg-body { height: 300px; position: relative; display: flex; align-items: center; justify-content: space-around; padding: 0 70px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--window) 70%, #6c5ce7) 0%, var(--window) 100%); }
+.dmg-item { display: grid; justify-items: center; gap: 8px; font-size: 12px; }
+.dmg-item img, .folder { width: 112px; height: 112px; }
+.folder { border-radius: 18px; background: linear-gradient(#5AC8FA, #2D8CE0); display: grid; place-items: center; box-shadow: 0 10px 22px rgba(0,0,0,.3); }
+.folder svg { width: 54px; height: 54px; stroke: #fff; stroke-width: 1.4; }
+.arrow { width: 90px; height: 24px; stroke: var(--label3); stroke-width: 2; fill: none; }
+.dmg-steps { padding: 14px 22px 18px; border-top: 1px solid var(--sep); }
+.dmg-steps b { display: block; margin-bottom: 6px; }
+.dmg-steps ol { margin: 0; padding-left: 18px; color: var(--label2); } .dmg-steps li { margin: 3px 0; }
+.drag-hint { position: absolute; left: 50%; top: 50%; translate: -50% -50%; }
+.ghost { position: absolute; width: 90px; height: 90px; left: 110px; top: 105px; opacity: 0; pointer-events: none; }
+.ghost.go { animation: drag 1.6s var(--spring) forwards; }
+@keyframes drag { 0% { opacity: .9; transform: none; } 80% { opacity: .9; transform: translate(290px, 0) scale(.9); } 100% { opacity: 0; transform: translate(290px, 0) scale(.6); } }
+
+/* 2. Gatekeeper alert and Settings pane */
+.alert { width: 272px; border-radius: 14px; padding: 18px 16px 14px; text-align: center; }
+.alert img { width: 64px; height: 64px; }
+.alert b { display: block; font-size: 13px; margin: 8px 0 4px; }
+.alert p { margin: 0 0 14px; font-size: 11px; color: var(--label2); }
+.alert .capsule { width: 100%; justify-content: center; height: 28px; margin-top: 6px; border-radius: 7px; }
+.pane { width: 620px; }
+.pane-body { padding: 8px 20px 20px; }
+.pane-body h3 { font-size: 13px; margin: 14px 0 8px; color: var(--label2); }
+.blocked { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; background: color-mix(in srgb, var(--orange) 14%, transparent); }
+.blocked .capsule { margin-left: auto; }
+.pulse { animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 30%, transparent); } }
+.term { width: 620px; }
+.ctl { width: 560px; transition: opacity .35s, transform .35s var(--spring); } .ctl.gone { opacity: 0; transform: scale(.96); }
+.banner { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; margin: 10px 0 12px; background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.banner .two { flex: 1; }
+.ob { transition: opacity .35s, transform .35s var(--spring); } .ob.gone { opacity: 0; transform: scale(.96); }
+.term-body { padding: 14px 16px; background: #0d0e10; color: #d6d6d6; font: 12px/1.6 ui-monospace, Menlo, monospace; min-height: 120px; }
+.term-body .p { color: #7ee787; }
+
+/* 3. Onboarding */
+.ob { width: 640px; border-radius: 22px; overflow: hidden; }
+.ob-top { display: flex; align-items: center; padding: 14px 18px 0; }
+.dots { display: flex; gap: 6px; margin: 0 auto; }
+.dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--fill2); transition: width .3s var(--spring), background .3s; }
+.dots i.on { width: 18px; border-radius: 3px; background: var(--accent); }
+.dots i.done { background: color-mix(in srgb, var(--accent) 50%, transparent); }
+.ob-body { padding: 18px 26px 6px; min-height: 380px; }
+.ob-body h1 { font-size: 24px; letter-spacing: -.02em; margin: 6px 0 4px; }
+.ob-body > p { margin: 0 0 18px; color: var(--label2); font-size: 14px; }
+.hero-icon { width: 76px; height: 76px; display: block; margin: 6px 0 4px; filter: drop-shadow(0 10px 20px rgba(0,0,0,.35)); }
+.ob-foot { display: flex; gap: 8px; padding: 12px 18px 18px; }
+.ob-foot .skip { margin-right: auto; color: var(--label2); padding: 0 6px; }
+.found .right svg { width: 14px; height: 14px; }
+.sys-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+.sys-scroll { max-height: 300px; overflow: auto; margin: 0 -6px; padding: 0 6px; }
+.maker { font-size: 11px; font-weight: 600; color: var(--label3); margin: 4px 2px 6px; }
+.bios { font-style: normal; font-size: 10px; color: var(--orange); }
+.sys { display: grid; gap: 2px; text-align: left; padding: 10px; border-radius: 12px; background: var(--fill); }
+.sys b { font-size: 12px; } .sys span { font-size: 11px; color: var(--label2); }
+.sys.sel { box-shadow: inset 0 0 0 2px var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.sys em { font-style: normal; font-size: 10px; font-weight: 700; color: var(--green); }
+.ready-game { display: flex; gap: 16px; align-items: center; padding: 14px; border-radius: 16px; background: var(--fill); }
+.ready-game .cover { width: 92px; aspect-ratio: 2/3; border-radius: 10px; background: center/cover; box-shadow: 0 10px 22px rgba(0,0,0,.35); }
+.ready-game b { font-size: 17px; display: block; } .ready-game span { color: var(--label2); display: block; margin: 2px 0 10px; }
+.progress { height: 5px; border-radius: 3px; background: var(--fill2); overflow: hidden; flex: 1; } .progress i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .4s linear; }
+
+/* Cartouche explanation sheet, macOS prompts and notification */
+.overlay { position: fixed; inset: 0; z-index: 30; display: none; place-items: center; background: rgba(0,0,0,.25); }
+.overlay.on { display: grid; }
+.explain { width: 380px; border-radius: 18px; padding: 20px; }
+.explain h2 { font-size: 16px; margin: 0 0 6px; } .explain p { margin: 0 0 14px; color: var(--label2); }
+.explain .foot { display: flex; justify-content: flex-end; gap: 8px; }
+.tcc { width: 260px; border-radius: 14px; padding: 16px; text-align: center; }
+.tcc .sysico { width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(#8e8e93, #636366); display: grid; place-items: center; margin: 0 auto 8px; }
+.tcc .sysico svg { width: 26px; height: 26px; stroke: #fff; }
+.tcc b { display: block; font-size: 13px; margin-bottom: 4px; } .tcc p { margin: 0 0 12px; font-size: 11px; color: var(--label2); }
+.tcc .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; } .tcc .capsule { justify-content: center; height: 26px; border-radius: 7px; }
+.notif { position: fixed; z-index: 40; top: 54px; right: 16px; width: 340px; border-radius: 18px; padding: 12px 14px; display: none; gap: 10px; align-items: center; animation: nin .5s var(--spring); }
+.notif.on { display: flex; }
+.notif .sysico { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(#8e8e93, #636366); display: grid; place-items: center; flex: none; }
+.notif .sysico svg { width: 18px; height: 18px; stroke: #fff; }
+.notif b { display: block; } .notif span { display: block; font-size: 12px; color: var(--label2); }
+@keyframes nin { from { opacity: 0; transform: translateX(30px); } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition-duration: .01ms !important; } }
+</style>
+</head>
+<body>
+
+<nav class="page-nav" aria-label="Mockup sections">
+  <button aria-pressed="true" data-scene="dmg">1. Download</button>
+  <button aria-pressed="false" data-scene="gate">2. First open</button>
+  <button aria-pressed="false" data-scene="script">Install script</button>
+  <button aria-pressed="false" data-scene="brew">Homebrew</button>
+  <button aria-pressed="false" data-scene="ob">3. First launch</button>
+  <button aria-pressed="false" data-scene="relaunch">Relaunch</button>
+</nav>
+
+<main class="stage">
+
+  <!-- 1. The disk image -->
+  <section class="scene on" id="s-dmg" aria-label="Disk image">
+    <div class="win dmg">
+      <div class="titlebar"><div class="lights"><i></i><i></i><i></i></div><span class="t">Cartouche 0.1.0</span></div>
+      <div class="dmg-body">
+        <div class="dmg-item"><img src="brand/cartouche-icon-default.svg" alt="">Cartouche</div>
+        <svg class="arrow" viewBox="0 0 90 24"><path d="M2 12h80M72 4l10 8-10 8"/></svg>
+        <div class="dmg-item"><div class="folder"><svg viewBox="0 0 24 24" fill="none"><path d="M12 4l7 4v8l-7 4-7-4V8z"/><path d="M12 12l7-4M12 12v8M12 12L5 8"/></svg></div>Applications</div>
+        <img class="ghost" id="ghost" src="brand/cartouche-icon-default.svg" alt="">
+      </div>
+      <div class="dmg-steps">
+        <b>Drag Cartouche to Applications. The first time you open it:</b>
+        <ol>
+          <li>macOS says it can’t check Cartouche. Click Done.</li>
+          <li>Open System Settings > Privacy & Security, scroll down, click Open Anyway.</li>
+          <li>Confirm with your password. Updates won’t ask again.</li>
+        </ol>
+      </div>
+    </div>
+    <button class="capsule tint" id="do-drag">Drag to Applications</button>
+    <p class="caption">Cartouche is free and signed with its own certificate, not Apple’s paid notarization. That’s why macOS asks once when you use the disk image. The install script avoids it.</p>
+  </section>
+
+  <!-- 2. Gatekeeper, then Open Anyway -->
+  <section class="scene" id="s-gate" aria-label="First open">
+    <div class="glass alert" id="gk" role="alertdialog" aria-label="Cartouche Not Opened">
+      <img src="brand/cartouche-icon-default.svg" alt="">
+      <b>“Cartouche” Not Opened</b>
+      <p>Apple could not verify “Cartouche” is free of malware that may harm your Mac or compromise your privacy.</p>
+      <button class="capsule tint" id="gk-done">Done</button>
+      <button class="capsule">Move to Trash</button>
+    </div>
+    <div class="win pane" id="pane" hidden>
+      <div class="titlebar"><div class="lights"><i></i><i></i><i></i></div><span class="t">Privacy & Security</span></div>
+      <div class="pane-body">
+        <h3>Security</h3>
+        <div class="form"><div class="row">Allow applications from<span class="right muted">App Store & Known Developers</span></div></div>
+        <div class="blocked"><img src="brand/cartouche-icon-default.svg" alt="" width="28" height="28"><div class="two"><b>“Cartouche” was blocked to protect your Mac.</b></div><button class="capsule tint pulse" id="open-anyway">Open Anyway</button></div>
+      </div>
+    </div>
+    <p class="caption">The certificate doesn’t satisfy Gatekeeper, only Apple’s paid notarization does. It keeps Cartouche’s identity stable, so updates and the permissions you grant don’t reset.</p>
+    <p class="caption" id="gate-cap">Step 1 of 3: macOS refuses the first open. Click Done.</p>
+  </section>
+
+  <!-- Install script: curl downloads carry no quarantine flag, so Gatekeeper never asks -->
+  <section class="scene" id="s-script" aria-label="Install script">
+    <div class="win term">
+      <div class="titlebar"><div class="lights"><i></i><i></i><i></i></div><span class="t">Terminal</span></div>
+      <div class="term-body" id="term2"><span class="p">~ %</span> <span id="typed2"></span></div>
+    </div>
+    <button class="capsule tint" id="do-script">Run</button>
+    <p class="caption">The recommended way. One command, and Cartouche opens directly: no “Not Opened” warning, no Open Anyway. The script is short and readable on GitHub before you run it.</p>
+  </section>
+
+  <!-- Homebrew -->
+  <section class="scene" id="s-brew" aria-label="Homebrew">
+    <div class="win term">
+      <div class="titlebar"><div class="lights"><i></i><i></i><i></i></div><span class="t">Terminal</span></div>
+      <div class="term-body" id="term"><span class="p">~ %</span> <span id="typed"></span></div>
+    </div>
+    <button class="capsule tint" id="do-brew">Run</button>
+    <p class="caption">The tap installs the same signed app. The first open still goes through Open Anyway once.</p>
+  </section>
+
+  <!-- 3. First launch -->
+  <section class="scene" id="s-ob" aria-label="First launch">
+    <div class="glass ob" role="dialog" aria-labelledby="ob-title">
+      <div class="ob-top"><div class="dots" id="dots" aria-hidden="true"></div></div>
+      <div class="ob-body" id="ob-body"></div>
+      <div class="ob-foot" id="ob-foot"></div>
+    </div>
+    <button class="capsule" id="sim-quit">Quit and reopen Cartouche</button>
+    <p class="caption">Onboarding saves each step. If Cartouche quits midway, it reopens on the same step with your choices kept.</p>
+  </section>
+
+  <!-- A permission that only applies after a relaunch: Input Monitoring, asked from Controls, never in onboarding -->
+  <section class="scene" id="s-relaunch" aria-label="Permission that needs a relaunch">
+    <div class="win ctl" id="ctl">
+      <div class="titlebar"><div class="lights"><i></i><i></i><i></i></div><span class="t">Controls: Hades</span></div>
+      <div class="pane-body" id="ctl-body"></div>
+    </div>
+    <p class="caption" id="rl-cap">Input Monitoring is the one permission macOS only applies after Cartouche restarts. It’s asked here, the first time you remap the Mac keyboard, never during onboarding.</p>
+  </section>
+</main>
+
+<!-- Cartouche explains, then macOS asks -->
+<div class="overlay" id="ov"></div>
+<div class="glass notif" id="notif" role="status"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const ICON_OK = '<svg class="i ok" viewBox="0 0 16 16"><path d="m3.5 8.5 3 3 6-7"/></svg>';
+const ICON_WARN = '<svg class="i warn" viewBox="0 0 16 16"><path d="M8 2.5 14 13H2z"/><path d="M8 6.5v3M8 11.3v.01"/></svg>';
+const LOCK = '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
+const FOLDER = '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M3 7.5A2 2 0 0 1 5 5.5h4l2 2h8a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+
+// Page sections
+document.querySelectorAll("[data-scene]").forEach(b => b.onclick = () => {
+  document.querySelectorAll("[data-scene]").forEach(x => x.setAttribute("aria-pressed", x === b));
+  document.querySelectorAll(".scene").forEach(s => s.classList.toggle("on", s.id === "s-" + b.dataset.scene));
+  if (b.dataset.scene === "gate") resetGate();
+  if (b.dataset.scene === "ob") { step = 0; resumed = false; renderOb(); }
+  if (b.dataset.scene === "relaunch") { im = "off"; renderCtl(); }
+});
+
+// 1. Drag
+$("#do-drag").onclick = () => { const g = $("#ghost"); g.classList.remove("go"); void g.offsetWidth; g.classList.add("go"); setTimeout(() => document.querySelector('[data-scene="gate"]').click(), 1800); };
+
+// 2. Gatekeeper
+function resetGate() { $("#gk").hidden = false; $("#pane").hidden = true; $("#gate-cap").textContent = "Step 1 of 3: macOS refuses the first open. Click Done."; }
+$("#gk-done").onclick = () => { $("#gk").hidden = true; $("#pane").hidden = false; $("#gate-cap").textContent = "Step 2 of 3: System Settings > Privacy & Security. Click Open Anyway."; };
+$("#open-anyway").onclick = () => { $("#gate-cap").textContent = "Step 3 of 3: macOS asks for your password once. Then Cartouche opens."; setTimeout(() => document.querySelector('[data-scene="ob"]').click(), 1400); };
+
+// Install script
+$("#do-script").onclick = () => {
+  const cmd = "curl -fsSL https://raw.githubusercontent.com/BRYANN2K/cartouche/main/install.sh | sh"; let i = 0; $("#typed2").textContent = "";
+  const t = setInterval(() => { $("#typed2").textContent = cmd.slice(0, ++i); if (i >= cmd.length) { clearInterval(t);
+    $("#term2").insertAdjacentHTML("beforeend", "<br>Downloading Cartouche 0.1.0…<br>Checking the SHA-256… OK<br>Checking the signature… OK (Cartouche, self-signed)<br>Installed in /Applications/Cartouche.app<br>Opening Cartouche…");
+    setTimeout(() => document.querySelector('[data-scene="ob"]').click(), 1800); } }, 22);
+};
+
+// Homebrew
+$("#do-brew").onclick = () => {
+  const cmd = "brew install --cask bryann2k/cartouche/cartouche"; let i = 0; $("#typed").textContent = "";
+  const t = setInterval(() => { $("#typed").textContent = cmd.slice(0, ++i); if (i >= cmd.length) { clearInterval(t);
+    $("#term").insertAdjacentHTML("beforeend", "<br>==> Tapping bryann2k/cartouche<br>==> Downloading Cartouche-0.1.0.zip<br>==> Installing Cartouche<br>==> Moving App 'Cartouche.app' to '/Applications/Cartouche.app'<br>🍺  cartouche was successfully installed!"); } }, 28);
+};
+
+// 3. First launch: five steps, each skippable
+let step = 0, resumed = false;
+// Same catalog as the app: every console Cartouche supports through RetroArch.
+const CATALOG = [
+  ["Nintendo", [["NES", "Mesen"], ["Super Nintendo", "Snes9x"], ["Nintendo 64", "Mupen64Plus-Next"], ["Game Boy and Color", "Gambatte"], ["Game Boy Advance", "mGBA"], ["Nintendo DS", "melonDS DS", 1], ["Virtual Boy", "Beetle VB"]]],
+  ["Sega", [["Master System", "Genesis Plus GX"], ["Mega Drive", "Genesis Plus GX"], ["Sega CD", "Genesis Plus GX", 1], ["32X", "PicoDrive"], ["Saturn", "Beetle Saturn", 1], ["Dreamcast", "Flycast", 1], ["Game Gear", "Genesis Plus GX"]]],
+  ["Sony", [["PlayStation", "SwanStation", 1], ["PSP", "PPSSPP"]]],
+  ["Others", [["PC Engine", "Beetle PCE"], ["Neo Geo", "FinalBurn Neo", 1], ["Arcade", "FinalBurn Neo"], ["Atari 2600", "Stella"], ["Atari Lynx", "Handy", 1], ["WonderSwan", "Beetle WonderSwan"], ["Neo Geo Pocket", "Beetle NeoPop"], ["3DO", "Opera", 1], ["DOS", "DOSBox Pure"], ["ScummVM", "ScummVM"]]],
+];
+const state = { steam: "idle", runner: 0, consoles: new Set(["Game Boy and Color", "Game Boy Advance", "PlayStation"]), downloads: false, fps: true, share: false, folder: true };
+const STEPS = ["Welcome", "PC games", "Consoles", "Folders and privacy", "Ready"];
+function renderOb() {
+  $("#dots").innerHTML = STEPS.map((_, i) => `<i class="${i === step ? "on" : i < step ? "done" : ""}"></i>`).join("");
+  const body = $("#ob-body"), foot = $("#ob-foot");
+  const back = resumed ? `<div class="banner"><div class="two"><b>Welcome back</b><span>You were setting up ${STEPS[step]}. Your choices are kept.</span></div><button class="small-btn" id="restart-ob">Start Over</button></div>` : "";
+  const nav = (next = "Continue", nextDisabled = false) => `${step === 0 ? `<button class="skip" data-skipall>Skip Setup</button>` : step < 4 ? `<button class="skip" data-skip>Skip</button>` : `<span style="margin-right:auto"></span>`}${step ? `<button class="capsule" data-back>Back</button>` : ""}<button class="capsule tint" data-next ${nextDisabled ? "disabled" : ""}>${next}</button>`;
+  if (step === 0) {
+    body.innerHTML = `<img class="hero-icon" src="brand/cartouche-icon-default.svg" alt=""><h1 id="ob-title">Welcome to Cartouche</h1><p>Here is what’s already on this Mac.</p>
+      <div class="form found">
+        <div class="row"><div class="two"><b>Steam</b><span>Signed in as player42, 64 games</span></div><span class="right">${ICON_OK}Found</span></div>
+        <div class="row"><div class="two"><b>Game Porting Toolkit 3</b><span>Gives Windows games D3DMetal, Apple’s DirectX 12 layer</span></div><span class="right">${ICON_OK}Found</span></div>
+        <div class="row"><div class="two"><b>DualSense</b><span>Bluetooth, battery 80%</span></div><span class="right">${ICON_OK}Connected</span></div>
+        <div class="row"><div class="two"><b class="mono">~/Games/ROMs</b><span>76 console games, for Game Boy, Game Boy Advance and PlayStation</span></div><span class="right">${ICON_OK}Found</span></div>
+      </div>`;
+    foot.innerHTML = nav("Set Up");
+  }
+  if (step === 1) {
+    const s = state.steam;
+    body.innerHTML = `<h1 id="ob-title">PC games</h1><p>Windows games run through a free runner. Steam games also get Steam Play.</p>
+      <div class="form">
+        <div class="row"><div class="two"><b>Cartouche Wine 26.3</b><span>Free runner, compiled by Cartouche from CodeWeavers’ open-source code</span></div><span class="right">${state.runner >= 100 ? ICON_OK + "Installed" : state.runner ? `<span class="progress" style="width:90px"><i style="width:${state.runner}%"></i></span>` : `<button class="small-btn tint" id="get-runner">Download</button>`}</span></div>
+        <div class="row"><div class="two"><b>Steam Play in Steam</b><span>${s === "blocked" ? "macOS blocked the change" : s === "done" ? "Steam lists Cartouche’s compatibility tools" : "Cartouche adds its tools to the Steam app"}</span></div>
+          <span class="right">${s === "done" ? ICON_OK + "Ready" : s === "blocked" ? ICON_WARN : `<button class="small-btn tint" id="steam-setup">Set Up</button>`}</span></div>
+        ${s === "blocked" ? `<div class="row"><span class="muted" style="font-size:12px">Allow Cartouche in App Management, then try again.</span><span class="right"><button class="small-btn" id="open-am">Open System Settings</button><button class="small-btn tint" id="steam-retry">Try Again</button></span></div>` : ""}
+      </div>
+      <p class="muted" style="font-size:12px;margin:0 2px">You can skip this and play console games only.</p>`;
+    foot.innerHTML = nav();
+    $("#get-runner")?.addEventListener("click", () => { const t = setInterval(() => { state.runner = Math.min(100, state.runner + 7); renderOb(); if (state.runner >= 100) clearInterval(t); }, 180); });
+    $("#steam-setup")?.addEventListener("click", explainAppManagement);
+    $("#steam-retry")?.addEventListener("click", () => { state.steam = "done"; renderOb(); });
+    $("#open-am")?.addEventListener("click", () => showSettingsAppManagement());
+  }
+  if (step === 2) {
+    const FOUND = { "Game Boy and Color": 37, "Game Boy Advance": 21, "PlayStation": 18 };
+    body.innerHTML = `<h1 id="ob-title">Consoles</h1><p>Consoles with games in your folder are already picked. Only their cores are downloaded.</p>
+      <div class="sys-scroll">${CATALOG.map(([maker, list]) => `<div class="maker">${maker}</div>
+        <div class="sys-grid">${list.map(([n, c, bios]) => `<button class="sys ${state.consoles.has(n) ? "sel" : ""}" data-sys="${n}"><b>${n}</b><span>${c}</span>${FOUND[n] ? `<em>${FOUND[n]} games found</em>` : bios ? `<i class="bios">Needs BIOS</i>` : ""}</button>`).join("")}</div>`).join("")}</div>
+      ${state.consoles.has("PlayStation") ? `<div class="form" style="margin-top:12px"><div class="row">${ICON_WARN}<div class="two"><b>PlayStation needs a BIOS</b><span>scph5501.bin is missing. Dump it from your own console, put it in the BIOS folder.</span></div></div></div>` : ""}`;
+    foot.innerHTML = nav(state.consoles.size ? `Add ${state.consoles.size} ${state.consoles.size === 1 ? "Console" : "Consoles"}` : "Continue");
+    document.querySelectorAll("[data-sys]").forEach(b => b.onclick = () => { const n = b.dataset.sys; state.consoles.has(n) ? state.consoles.delete(n) : state.consoles.add(n); renderOb(); });
+  }
+  if (step === 3) {
+    body.innerHTML = `<h1 id="ob-title">Folders and privacy</h1><p>Where your games are, and what stays on this Mac.</p>
+      <div class="form">
+        <div class="row"><div class="two"><b class="mono">~/Games/ROMs</b><span>Watch for new console games</span></div><span class="right"><button class="switch" role="switch" aria-checked="${state.folder}" data-k="folder" aria-label="Watch ROMs folder"></button></span></div>
+        <div class="row"><div class="two"><b>Suggest installers in Downloads</b><span>${state.downloads === "denied" ? "Cartouche can’t read Downloads. Allow it in System Settings." : "Windows installers that finish downloading"}</span></div><span class="right"><button class="switch" role="switch" aria-checked="${state.downloads === true}" id="dl-toggle" aria-label="Suggest installers in Downloads"></button></span></div>
+      </div>
+      <div class="form">
+        <div class="row"><div class="two"><b>Measure FPS while playing</b><span>Stays on this Mac</span></div><span class="right"><button class="switch" role="switch" aria-checked="${state.fps}" data-k="fps" aria-label="Measure FPS"></button></span></div>
+        <div class="row"><div class="two"><b>Share results with MacGamingDB</b><span>Mac model, setup and FPS. Never your accounts.</span></div><span class="right"><button class="switch" role="switch" aria-checked="${state.share}" data-k="share" aria-label="Share results"></button></span></div>
+      </div>`;
+    foot.innerHTML = nav();
+    document.querySelectorAll("[data-k]").forEach(x => x.onclick = () => { state[x.dataset.k] = !state[x.dataset.k]; renderOb(); });
+    $("#dl-toggle").onclick = () => { if (state.downloads === true) { state.downloads = false; renderOb(); } else explainDownloads(); };
+  }
+  if (step === 4) {
+    const steam = state.steam === "done";
+    body.innerHTML = `<h1 id="ob-title">You’re set</h1><p>${steam ? "64 Steam games" : "Your console games"}${state.consoles.size ? ` and ${state.consoles.size} ${state.consoles.size === 1 ? "console" : "consoles"}` : ""} are in your library.</p>
+      <div class="ready-game">
+        <div class="cover" style="background-image:url(${steam ? "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1245620/library_600x900.jpg" : "https://thumbnails.libretro.com/Nintendo%20-%20Super%20Nintendo%20Entertainment%20System/Named_Boxarts/Super%20Mario%20World%20%28USA%29.png"})${steam ? "" : ";background-size:contain;background-repeat:no-repeat;background-color:#121316"}"></div>
+        <div><b>${steam ? "Elden Ring" : "Super Mario World"}</b><span>${steam ? "Last played yesterday. Expected on this Mac: 52 fps." : "Super Nintendo. Ready with Snes9x."}</span><button class="capsule tint">Play</button></div>
+      </div>
+      <p class="muted" style="font-size:12px;margin:14px 2px 0">Everything you skipped is in Settings.</p>`;
+    foot.innerHTML = nav("Open Library");
+  }
+  if (back) { body.insertAdjacentHTML("afterbegin", back); $("#restart-ob").onclick = () => { step = 0; resumed = false; renderOb(); }; }
+  foot.querySelector("[data-next]")?.addEventListener("click", () => step < 4 ? (step++, resumed = false, renderOb()) : toast("Library opens", "Onboarding done. It won’t show again."));
+  foot.querySelector("[data-back]")?.addEventListener("click", () => { step--; resumed = false; renderOb(); });
+  foot.querySelector("[data-skip]")?.addEventListener("click", () => { step++; resumed = false; renderOb(); });
+  foot.querySelector("[data-skipall]")?.addEventListener("click", () => toast("Library opens", "Nothing was changed. Set things up any time in Settings."));
+}
+
+// Quit midway: the window goes, comes back on the same step.
+$("#sim-quit").onclick = () => { const o = $(".ob"); o.classList.add("gone"); setTimeout(() => { resumed = step > 0; renderOb(); o.classList.remove("gone"); }, 900); };
+
+// Input Monitoring: asked from Controls. macOS applies it only after a relaunch, so Cartouche offers to do it.
+let im = "off";
+const KEY = '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M8 14h8"/></svg>';
+function renderCtl() {
+  const on = im === "on";
+  $("#ctl-body").innerHTML = `
+    ${im === "later" ? `<div class="banner"><div class="two"><b>Relaunch Cartouche to finish</b><span>macOS applies Input Monitoring after a relaunch. Your game and settings stay as they are.</span></div><button class="small-btn tint" id="rl-now">Relaunch</button></div>` : ""}
+    <h3>Mac keyboard and mouse</h3>
+    <div class="form">
+      <div class="row"><div class="two"><b>Remap keys for this game</b><span>${on ? "On. ⌘ acts as Ctrl, Space dashes" : im === "later" ? "Waiting for a relaunch" : "Change what keys do in Hades"}</span></div><span class="right"><button class="switch" role="switch" aria-checked="${on}" id="remap" aria-label="Remap keys"></button></span></div>
+      <div class="row"><div class="two"><b>Left ⌘ acts as Ctrl</b><span>Works without any permission</span></div><span class="right"><button class="switch" role="switch" aria-checked="true" aria-label="Left Command as Ctrl"></button></span></div>
+    </div>`;
+  $("#remap").onclick = () => { if (on) { im = "off"; renderCtl(); } else if (im === "off") explainIM(); };
+  $("#rl-now")?.addEventListener("click", relaunch);
+}
+function explainIM() {
+  openOv(`<div class="glass explain" role="dialog"><h2>Allow Cartouche to read the keyboard?</h2><p>To remap keys while a game runs, macOS needs Input Monitoring. It applies after Cartouche relaunches, which takes a few seconds.</p>
+    <div class="foot"><button class="capsule" data-close>Not Now</button><button class="capsule tint" id="im-go">Continue</button></div></div>`);
+  $("#im-go").onclick = () => { openOv(`<div class="glass tcc" role="alertdialog"><div class="sysico">${KEY}</div><b>Keystroke Receiving</b><p>“Cartouche” would like to receive keystrokes from any application. Grant access in Privacy & Security settings.</p>
+    <div class="pair"><button class="capsule" data-close>Deny</button><button class="capsule tint" id="im-settings">Open System Settings</button></div></div>`);
+    $("#im-settings").onclick = () => openOv(`<div class="win pane" style="width:480px"><div class="titlebar"><div class="lights"><i></i><i></i><i></i></div><span class="t">Input Monitoring</span></div>
+      <div class="pane-body"><p class="muted" style="margin:10px 0 12px;font-size:12px">Allow the applications below to monitor input from your keyboard even while using other applications.</p>
+        <div class="form"><div class="row"><img src="brand/cartouche-icon-default.svg" alt="" width="22" height="22">Cartouche<span class="right"><button class="switch" role="switch" aria-checked="false" id="im-switch" aria-label="Allow Cartouche"></button></span></div></div></div></div>`) || wireIM(); };
+}
+function wireIM() {
+  $("#im-switch").onclick = e => { e.target.setAttribute("aria-checked", "true"); setTimeout(() => openOv(`<div class="glass alert" role="alertdialog"><img src="brand/cartouche-icon-default.svg" alt=""><b>“Cartouche” will not be able to monitor input from your keyboard until it is quit.</b><p>You can choose to quit “Cartouche” now, or do it on your own later.</p>
+      <button class="capsule tint" id="im-quit">Quit & Reopen</button><button class="capsule" id="im-later">Later</button></div>`), 400);
+    document.getElementById("ov").addEventListener("click", function h(ev) {
+      if (ev.target.id === "im-quit") { this.removeEventListener("click", h); closeOv(); relaunch(); }
+      if (ev.target.id === "im-later") { this.removeEventListener("click", h); closeOv(); im = "later"; renderCtl(); $("#rl-cap").textContent = "Later: Cartouche keeps working and offers its own Relaunch button, so you never have to find it in the Dock."; }
+    }); };
+}
+function relaunch() {
+  const w = $("#ctl"); w.classList.add("gone");
+  setTimeout(() => { im = "on"; renderCtl(); w.classList.remove("gone"); toast("Keyboard remapping is on", "Cartouche reopened on the same screen."); $("#rl-cap").textContent = "After the relaunch Cartouche reopens where you were. Never during a game: it waits until the game is closed."; }, 1100);
+}
+
+// App Management: macOS can't be asked in advance. Cartouche explains, tries, macOS blocks and notifies, the user allows it.
+function explainAppManagement() {
+  openOv(`<div class="glass explain" role="dialog" aria-label="Steam needs a change"><h2>Cartouche needs to change the Steam app</h2>
+    <p>To add Steam Play, Cartouche modifies Steam. macOS will block it the first time and ask you to allow Cartouche in App Management.</p>
+    <div class="foot"><button class="capsule" data-close>Not Now</button><button class="capsule tint" id="am-go">Continue</button></div></div>`);
+  $("#am-go").onclick = () => { closeOv(); state.steam = "blocked"; renderOb();
+    notify(LOCK, "“Cartouche” was prevented from modifying apps on your Mac", "Allow it in Privacy & Security > App Management."); };
+}
+function showSettingsAppManagement() {
+  openOv(`<div class="win pane" style="width:480px"><div class="titlebar"><div class="lights"><i></i><i></i><i></i></div><span class="t">App Management</span></div>
+    <div class="pane-body"><p class="muted" style="margin:10px 0 12px;font-size:12px">Allow the applications below to update or delete other applications.</p>
+      <div class="form"><div class="row"><img src="brand/cartouche-icon-default.svg" alt="" width="22" height="22">Cartouche<span class="right"><button class="switch" role="switch" aria-checked="false" id="am-switch" aria-label="Allow Cartouche"></button></span></div></div>
+      <div style="display:flex;justify-content:flex-end"><button class="capsule" data-close>Close</button></div></div></div>`);
+  $("#am-switch").onclick = e => { e.target.setAttribute("aria-checked", "true"); setTimeout(() => { closeOv(); toast("App Management allowed", "Back in Cartouche, click Try Again."); }, 500); };
+}
+// Downloads: a real macOS prompt, after Cartouche's one-line reason.
+function explainDownloads() {
+  openOv(`<div class="glass explain" role="dialog"><h2>Watch your Downloads folder?</h2><p>Cartouche looks for Windows installers that finish downloading and suggests installing them. macOS will ask to confirm.</p>
+    <div class="foot"><button class="capsule" data-close>Not Now</button><button class="capsule tint" id="dl-go">Continue</button></div></div>`);
+  $("#dl-go").onclick = () => openOv(`<div class="glass tcc" role="alertdialog"><div class="sysico">${FOLDER}</div><b>“Cartouche” would like to access files in your Downloads folder.</b><p>Cartouche suggests Windows installers you download.</p>
+    <div class="pair"><button class="capsule" id="tcc-no">Don’t Allow</button><button class="capsule tint" id="tcc-yes">Allow</button></div></div>`);
+  document.getElementById("ov").addEventListener("click", function h(e) {
+    if (e.target.id === "tcc-yes") { state.downloads = true; closeOv(); renderOb(); this.removeEventListener("click", h); }
+    if (e.target.id === "tcc-no") { state.downloads = "denied"; closeOv(); renderOb(); this.removeEventListener("click", h); }
+  });
+}
+function openOv(html) { const o = $("#ov"); o.innerHTML = html; o.classList.add("on"); o.querySelectorAll("[data-close]").forEach(b => b.onclick = closeOv); }
+function closeOv() { $("#ov").classList.remove("on"); }
+function notify(icon, title, body) { const n = $("#notif"); n.innerHTML = `<span class="sysico">${icon}</span><div><b>${title}</b><span>${body}</span></div>`; n.classList.remove("on"); void n.offsetWidth; n.classList.add("on"); setTimeout(() => n.classList.remove("on"), 6000); }
+function toast(title, body) { const n = $("#notif"); n.innerHTML = `<img src="brand/cartouche-icon-default.svg" alt="" width="32" height="32"><div><b>${title}</b><span>${body}</span></div>`; n.classList.remove("on"); void n.offsetWidth; n.classList.add("on"); setTimeout(() => n.classList.remove("on"), 4000); }
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeOv(); });
+renderOb();
+</script>
+</body>
+</html>

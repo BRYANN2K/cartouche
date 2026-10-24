@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Names in the spirit of Lutris</title>
+<style>
+:root { color-scheme: dark light; --bg: #111214; --card: #1A1B1E; --label: rgba(255,255,255,.92); --label2: rgba(235,235,245,.6); --sep: rgba(255,255,255,.08); }
+@media (prefers-color-scheme: light) { :root { --bg: #ECEDF0; --card: #FFFFFF; --label: rgba(0,0,0,.88); --label2: rgba(60,60,67,.62); --sep: rgba(0,0,0,.08); } }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 40px; font: 13px/1.45 system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--label); -webkit-font-smoothing: antialiased; }
+h1 { font-size: 26px; letter-spacing: -.02em; margin: 0 0 4px; }
+.lead { color: var(--label2); margin: 0 0 28px; max-width: 640px; }
+.cands { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px; max-width: 1180px; }
+.cand { background: var(--card); border-radius: 22px; padding: 26px 22px 18px; box-shadow: inset 0 0 0 .5px var(--sep); }
+.icon { width: 176px; height: 176px; display: block; margin: 0 auto 18px; filter: drop-shadow(0 18px 28px rgba(0,0,0,.35)); }
+.name { font-size: 32px; font-weight: 700; letter-spacing: -.025em; text-align: center; margin: 0; }
+.meaning { text-align: center; color: var(--label2); margin: 6px auto 16px; max-width: 280px; }
+.dock { display: flex; align-items: flex-end; justify-content: center; gap: 10px; padding: 10px 14px; margin: 0 auto 14px; width: fit-content; border-radius: 22px;
+  background: rgba(127,127,127,.16); box-shadow: inset 0 0 0 .5px rgba(255,255,255,.12); }
+.dock svg { width: 52px; height: 52px; display: block; }
+.dock .other { width: 52px; height: 52px; border-radius: 12px; background: rgba(127,127,127,.35); }
+.sidebar { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; background: rgba(127,127,127,.12); margin-bottom: 12px; }
+.sidebar b { font-size: 14px; }
+.small { display: flex; align-items: center; justify-content: center; gap: 16px; padding-top: 12px; border-top: 1px solid var(--sep); color: var(--label2); font-size: 11px; }
+.small span { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+</style>
+</head>
+<body>
+<h1>In the spirit of Lutris</h1>
+<p class="lead">Lutris comes from the Latin for otter. Here are three Latin animals, each drawn as a macOS icon and shown in the Dock, in the app’s sidebar, and at 32 and 16 pixels.</p>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <clipPath id="sq"><rect width="1024" height="1024" rx="230"/></clipPath>
+
+    <!-- CASTOR: beaver in profile, river behind -->
+    <linearGradient id="c-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2C6C8C"/><stop offset="1" stop-color="#103A52"/></linearGradient>
+    <linearGradient id="c-fur" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#B9784A"/><stop offset="1" stop-color="#7E4B2A"/></linearGradient>
+    <symbol id="castor" viewBox="0 0 1024 1024">
+      <g clip-path="url(#sq)">
+        <rect width="1024" height="1024" fill="url(#c-bg)"/>
+        <g fill="none" stroke="#fff" stroke-opacity=".12" stroke-width="18" stroke-linecap="round">
+          <path d="M80 820 q60 -30 120 0 t120 0 t120 0 t120 0 t120 0 t120 0 t120 0"/>
+          <path d="M40 900 q60 -30 120 0 t120 0 t120 0 t120 0 t120 0 t120 0 t120 0 t120 0"/>
+        </g>
+        <circle cx="360" cy="300" r="62" fill="#6B3C20"/>
+        <circle cx="360" cy="300" r="30" fill="#4E2A15"/>
+        <path d="M250 560 C250 380 380 270 520 270 C640 270 720 340 760 420 C800 430 840 470 840 520 C840 590 790 640 720 650 C660 720 560 760 470 760 C340 760 250 680 250 560 Z" fill="url(#c-fur)"/>
+        <path d="M640 470 C700 420 820 440 840 520 C840 590 790 640 720 650 C660 650 620 600 620 550 C620 520 625 490 640 470 Z" fill="#D7A274"/>
+        <ellipse cx="808" cy="486" rx="40" ry="32" fill="#2A170C"/>
+        <rect x="700" y="640" width="58" height="92" rx="14" fill="#F7F1E6"/>
+        <path d="M729 645 V720" stroke="#D9CFC0" stroke-width="6"/>
+        <circle cx="575" cy="420" r="30" fill="#1E1008"/>
+        <circle cx="585" cy="410" r="9" fill="#fff"/>
+      </g>
+    </symbol>
+
+    <!-- VULPES: fox face, folded like paper -->
+    <linearGradient id="v-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#25493A"/><stop offset="1" stop-color="#0E2219"/></linearGradient>
+    <symbol id="vulpes" viewBox="0 0 1024 1024">
+      <g clip-path="url(#sq)">
+        <rect width="1024" height="1024" fill="url(#v-bg)"/>
+        <path d="M250 200 L430 420 L250 470 Z" fill="#E2661B"/>
+        <path d="M774 200 L594 420 L774 470 Z" fill="#E2661B"/>
+        <path d="M280 270 L380 410 L272 438 Z" fill="#3A2116"/>
+        <path d="M744 270 L644 410 L752 438 Z" fill="#3A2116"/>
+        <path d="M250 470 L512 380 L774 470 L700 640 L512 820 L324 640 Z" fill="#F08A24"/>
+        <path d="M512 380 L774 470 L700 640 L512 820 Z" fill="#E2741D"/>
+        <path d="M250 470 L420 580 L512 820 L324 640 Z" fill="#F6EFE6"/>
+        <path d="M774 470 L604 580 L512 820 L700 640 Z" fill="#E6DED3"/>
+        <path d="M398 548 Q430 520 462 556 Q430 572 398 548 Z" fill="#20140D"/>
+        <path d="M626 548 Q594 520 562 556 Q594 572 626 548 Z" fill="#20140D"/>
+        <path d="M478 778 H546 L512 826 Z" fill="#20140D"/>
+      </g>
+    </symbol>
+
+    <!-- LEPUS: a hare at full sprint -->
+    <linearGradient id="l-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2A3770"/><stop offset="1" stop-color="#101633"/></linearGradient>
+    <linearGradient id="l-fur" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#D8D2C8"/><stop offset="1" stop-color="#F6F2EC"/></linearGradient>
+    <symbol id="lepus" viewBox="0 0 1024 1024">
+      <g clip-path="url(#sq)">
+        <rect width="1024" height="1024" fill="url(#l-bg)"/>
+        <g stroke="#fff" stroke-opacity=".22" stroke-width="22" stroke-linecap="round">
+          <path d="M110 470 H250"/><path d="M80 560 H230"/><path d="M130 650 H260"/>
+        </g>
+        <path d="M600 330 C560 230 520 150 470 120 C450 160 500 270 560 360 Z" fill="#CFC8BD"/>
+        <path d="M660 330 C640 220 620 130 580 90 C552 130 580 260 620 360 Z" fill="url(#l-fur)"/>
+        <path d="M300 560 C320 440 460 390 580 410 C640 360 760 360 800 430 C830 480 810 540 760 560 C730 600 690 640 640 660 C620 720 560 760 470 760 C380 760 290 690 300 560 Z" fill="url(#l-fur)"/>
+        <path d="M640 660 C700 700 790 740 860 740" fill="none" stroke="url(#l-fur)" stroke-width="54" stroke-linecap="round"/>
+        <path d="M360 700 C300 760 240 790 170 790" fill="none" stroke="#DCD6CC" stroke-width="64" stroke-linecap="round"/>
+        <circle cx="290" cy="520" r="44" fill="#fff"/>
+        <circle cx="712" cy="452" r="22" fill="#1A1F38"/>
+        <circle cx="719" cy="445" r="7" fill="#fff"/>
+        <circle cx="802" cy="478" r="13" fill="#B88A84"/>
+      </g>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="cands">
+  <section class="cand" aria-label="Castor">
+    <svg class="icon" role="img" aria-label="Castor icon"><use href="#castor"/></svg>
+    <h2 class="name">Castor</h2>
+    <p class="meaning">The beaver builds bridges. Here, between Windows and the Mac.</p>
+    <div class="dock"><span class="other"></span><svg><use href="#castor"/></svg><span class="other"></span></div>
+    <div class="sidebar"><svg width="26" height="26"><use href="#castor"/></svg><b>Castor</b></div>
+    <div class="small"><span><svg width="32" height="32"><use href="#castor"/></svg>32 px</span><span><svg width="16" height="16"><use href="#castor"/></svg>16 px</span></div>
+  </section>
+  <section class="cand" aria-label="Vulpes">
+    <svg class="icon" role="img" aria-label="Vulpes icon"><use href="#vulpes"/></svg>
+    <h2 class="name">Vulpes</h2>
+    <p class="meaning">The fox: finds a way around everything.</p>
+    <div class="dock"><span class="other"></span><svg><use href="#vulpes"/></svg><span class="other"></span></div>
+    <div class="sidebar"><svg width="26" height="26"><use href="#vulpes"/></svg><b>Vulpes</b></div>
+    <div class="small"><span><svg width="32" height="32"><use href="#vulpes"/></svg>32 px</span><span><svg width="16" height="16"><use href="#vulpes"/></svg>16 px</span></div>
+  </section>
+  <section class="cand" aria-label="Lepus">
+    <svg class="icon" role="img" aria-label="Lepus icon"><use href="#lepus"/></svg>
+    <h2 class="name">Lepus</h2>
+    <p class="meaning">The hare: speed, from install to first frame.</p>
+    <div class="dock"><span class="other"></span><svg><use href="#lepus"/></svg><span class="other"></span></div>
+    <div class="sidebar"><svg width="26" height="26"><use href="#lepus"/></svg><b>Lepus</b></div>
+    <div class="small"><span><svg width="32" height="32"><use href="#lepus"/></svg>32 px</span><span><svg width="16" height="16"><use href="#lepus"/></svg>16 px</span></div>
+  </section>
+</div>
+</body>
+</html>

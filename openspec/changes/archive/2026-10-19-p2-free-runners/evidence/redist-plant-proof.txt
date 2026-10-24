@@ -1,0 +1,19 @@
+== planted (Apple's d3d12.dll, and libd3dshared.dylib renamed)
+redist-scan: Game Porting Toolkit files found, they must not be redistributed:
+    /tmp/p2/plant/tree/lib/wine/x86_64-windows/d3d12.dll (same bytes as gptk-4.0b3/wine/x86_64-windows/d3d12.dll)
+    /tmp/p2/plant/tree/lib/wine/x86_64-windows/renamed.dll (same bytes as gptk-4.0b3/external/libd3dshared.dylib)
+exit 1
+redist-scan: Game Porting Toolkit files found, they must not be redistributed:
+    /tmp/p2/plant/planted.tar.xz: tree/lib/wine/x86_64-windows/d3d12.dll (same bytes as gptk-4.0b3/wine/x86_64-windows/d3d12.dll)
+    /tmp/p2/plant/planted.tar.xz: tree/lib/wine/x86_64-windows/renamed.dll (same bytes as gptk-4.0b3/external/libd3dshared.dylib)
+exit 1
+== removed
+==> redist-scan: no Game Porting Toolkit file in /tmp/p2/plant/tree
+exit 0
+== repository
+==> redist-scan: no Game Porting Toolkit file in .
+
+real	0m30.374s
+user	0m10.997s
+sys	0m22.345s
+exit 0

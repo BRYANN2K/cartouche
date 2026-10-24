@@ -1,0 +1,10 @@
+{
+  "_about": "TO VERIFY AFTER P10 MERGES. Shape guessed from nile's library list; the spec marks cloud saves and online features 'Not supported yet' for nile.",
+  "account": {"username": "qa.player", "id": "qa-amazon-0001"},
+  "games": [
+    {"id": "amzn1.appg.g1qa0001", "title": "QA Prime Game", "installed": true,
+     "size_bytes": 4200000000, "install_path": "QAPrimeGame/game.exe"},
+    {"id": "amzn1.appg.g1qa0002", "title": "QA Luna Game", "installed": false,
+     "size_bytes": 1700000000}
+  ]
+}

@@ -1,0 +1,94 @@
+// swift-tools-version: 6.2
+import Foundation
+import PackageDescription
+let testsPath = "Tests/NotProtonAppTests"
+let payloadPath = "Sources/NotProtonApp/Resources/payload"
+let packageRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+let hasTests = FileManager.default.fileExists(
+    atPath: packageRoot.appendingPathComponent(testsPath).path)
+
+// make app-payload stages the payload, so a checkout that has not been built does
+// not have it. A declared resource that is missing is a build error, while an app
+// missing the payload is a condition InstallPayload already reports.
+let hasPayload = FileManager.default.fileExists(
+    atPath: packageRoot.appendingPathComponent(payloadPath).path)
+let package = Package(
+    name: "NotProtonApp",
+    defaultLocalization: "en",
+    platforms: [.macOS("15.0")],
+    dependencies: [
+        .package(url: "https://github.com/sparkle-project/Sparkle", exact: "2.10.0"),
+        // Settings > Consoles
+        .package(path: "../retroarch"),
+        // Windows installer analysis and install runner
+        .package(path: "../installer"),
+    ],
+    targets: [
+        // The folder names the app, the dylib and the run script share
+        .target(name: "CartoucheIdentity", path: "Sources/CartoucheIdentity"),
+        // The MCP transports shared by the app and the cartouche-mcp helper
+        .target(
+            name: "CartoucheMCP",
+            dependencies: ["CartoucheIdentity", .product(name: "RetroArchKit", package: "retroarch")],
+            path: "Sources/CartoucheMCP"
+        ),
+        // The stdio helper MCP clients launch; Contents/Helpers/cartouche-mcp
+        .executableTarget(
+            name: "cartouche-mcp",
+            dependencies: ["CartoucheMCP"],
+            path: "Sources/CartoucheMCPHelper"
+        ),
+        .executableTarget(
+            name: "NotProtonApp",
+            dependencies: [
+                "CartoucheIdentity", "CartoucheMCP", .product(name: "Sparkle", package: "Sparkle"),
+                .product(name: "RetroArchKit", package: "retroarch"),
+                .product(name: "InstallerKit", package: "installer"),
+            ],
+            path: "Sources/NotProtonApp",
+            resources: (hasPayload ? [.copy("Resources/payload")] : []) + [
+                .process("Resources/Localization"),
+                .process("Resources/Brand.xcassets"),
+                .copy("Resources/payload.manifest"),
+                .copy("Resources/valve-packages.manifest"),
+                .copy("Resources/compat.schema.json"),
+                .copy("Resources/gpu-strength.json"),
+                .copy("Resources/mac-anticheat.json"),
+                .copy("Resources/protondb-online.json"),
+                .copy("Resources/MacAnticheatData-LICENSE.txt"),
+                .copy("Resources/runners.json"),
+                .copy("Resources/backends.json"),
+                .copy("Resources/store-clients.json"),
+                .copy("Resources/emulators.json"),
+                .copy("Resources/detour2-cartouche-26.3.bin"),
+                .copy("Resources/detour32-cartouche-26.3.bin"),
+                .copy("Resources/detour2.bin"),
+                .copy("Resources/detour2-fex.bin"),
+                .copy("Resources/detour32.bin"),
+                .copy("Resources/detour32-fex.bin"),
+                .copy("Resources/detour64-fex.bin"),
+                .copy("Resources/detour2-cx26.bin"),
+                .copy("Resources/detour32-cx26.bin"),
+                .copy("Resources/detour2-41069.bin"),
+                .copy("Resources/detour32-41069.bin"),
+                .copy("Resources/detour2-fex-41069.bin"),
+                .copy("Resources/detour32-fex-41069.bin"),
+                .copy("Resources/detour64-fex-41069.bin"),
+                .copy("Resources/detour2-41073.bin"),
+                .copy("Resources/detour32-41073.bin"),
+                .copy("Resources/detour2-fex-41073.bin"),
+                .copy("Resources/detour32-fex-41073.bin"),
+                .copy("Resources/detour64-fex-41073.bin"),
+            ],
+            swiftSettings: [.swiftLanguageMode(.v6)]
+        ),
+    ] + (hasTests ? [
+        .testTarget(
+            name: "NotProtonAppTests",
+            dependencies: ["NotProtonApp", "CartoucheMCP",
+                           .product(name: "RetroArchKit", package: "retroarch"),
+                           .product(name: "InstallerKit", package: "installer")],
+            path: testsPath
+        ),
+    ] : [])
+)

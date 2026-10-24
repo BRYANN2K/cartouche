@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cartridge, explored</title>
+<style>
+:root { color-scheme: dark; --label: rgba(255,255,255,.94); --label2: rgba(235,235,245,.6); --sep: rgba(255,255,255,.1); }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 40px; font: 13px/1.45 system-ui, -apple-system, sans-serif; color: var(--label); background: #0E0F12; -webkit-font-smoothing: antialiased; }
+h1 { font-size: 26px; letter-spacing: -.02em; margin: 0 0 4px; }
+h2 { font-size: 15px; margin: 34px 0 12px; }
+.lead { color: var(--label2); margin: 0 0 22px; max-width: 700px; }
+
+/* Names */
+.names { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; max-width: 980px; }
+.name-card { background: #18191D; border-radius: 18px; padding: 18px 20px; box-shadow: inset 0 0 0 .5px var(--sep); }
+.name-card b { display: block; font: 900 30px/1 system-ui; letter-spacing: -.03em; }
+.name-card p { margin: 8px 0 0; color: var(--label2); }
+.name-card .ok { color: #30D158; } .name-card .no { color: #FF6B5E; }
+
+/* Desktop with the four macOS 26 appearances */
+.desk { position: relative; border-radius: 22px; overflow: hidden; max-width: 1180px; padding: 26px 26px 0;
+  background: radial-gradient(60% 80% at 15% 20%, #F2A65A 0, transparent 60%), radial-gradient(60% 70% at 85% 30%, #6C5CE7 0, transparent 60%), radial-gradient(70% 80% at 50% 110%, #0FB9B1 0, transparent 60%), #1B1530; }
+.desk.night { background: radial-gradient(60% 80% at 20% 20%, #3B2A6B 0, transparent 60%), radial-gradient(60% 70% at 85% 40%, #12385A 0, transparent 60%), #07080F; }
+.concepts { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
+.concept { background: rgba(0,0,0,.22); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 18px; padding: 16px; box-shadow: inset 0 0 0 .5px rgba(255,255,255,.14); }
+.concept h3 { margin: 0 0 2px; font-size: 14px; } .concept p { margin: 0 0 12px; color: rgba(255,255,255,.7); font-size: 12px; }
+.modes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.mode { display: grid; justify-items: center; gap: 6px; font-size: 11px; color: rgba(255,255,255,.75); }
+.dockbar { margin: 22px auto 0; width: fit-content; display: flex; gap: 12px; align-items: flex-end; padding: 10px 14px; border-radius: 26px 26px 0 0;
+  background: rgba(255,255,255,.18); backdrop-filter: blur(30px) saturate(180%); -webkit-backdrop-filter: blur(30px) saturate(180%); box-shadow: inset 0 1px 0 rgba(255,255,255,.35); }
+.dockbar .ico { width: 58px; height: 58px; }
+.dockbar .ph { width: 58px; height: 58px; border-radius: 14px; background: rgba(255,255,255,.35); }
+
+/* Icon: macOS rounded square + layers. --s is the size. */
+.ico { --s: 96px; width: var(--s); height: var(--s); border-radius: 22.5%; position: relative; overflow: hidden; flex: none;
+  box-shadow: 0 calc(var(--s) * .06) calc(var(--s) * .14) rgba(0,0,0,.35); }
+.ico svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.ico::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; box-shadow: inset 0 1px 0 rgba(255,255,255,.35), inset 0 0 0 .5px rgba(255,255,255,.18); }
+
+/* Appearances: colors as variables used by the SVG layers */
+.m-default { background: linear-gradient(#FBF6EF, #EADFD1); --body: #4B4F5E; --body2: #3A3D49; --grip: #2E3039; --label: #FF4D5E; --label2: #E23A4C; --pix: #FFFFFF; --pin: #E8B44A; --slot: #2B2D35; --win: #FFFFFF; --dot1: #FF5F57; --dot2: #FEBC2E; --dot3: #28C840; }
+.m-dark { background: linear-gradient(#2A2B31, #141518); --body: #5A5E6E; --body2: #444755; --grip: #34363F; --label: #FF5A69; --label2: #E8475A; --pix: #FFFFFF; --pin: #E8B44A; --slot: #0B0C10; --win: #F2F2F5; --dot1: #FF5F57; --dot2: #FEBC2E; --dot3: #28C840; }
+.m-clear { background: rgba(255,255,255,.14); backdrop-filter: blur(14px) saturate(160%); -webkit-backdrop-filter: blur(14px) saturate(160%);
+  --body: rgba(255,255,255,.34); --body2: rgba(255,255,255,.22); --grip: rgba(255,255,255,.5); --label: rgba(255,255,255,.55); --label2: rgba(255,255,255,.4); --pix: #FFFFFF; --pin: rgba(255,255,255,.75); --slot: rgba(0,0,0,.25); --win: rgba(255,255,255,.85); --dot1: rgba(255,255,255,.9); --dot2: rgba(255,255,255,.9); --dot3: rgba(255,255,255,.9); }
+.m-tinted { --tint: #FF7A3D; background: linear-gradient(color-mix(in srgb, var(--tint) 28%, #15161A), color-mix(in srgb, var(--tint) 12%, #0C0D10));
+  --body: color-mix(in srgb, var(--tint) 45%, #2A2B30); --body2: color-mix(in srgb, var(--tint) 35%, #222327); --grip: color-mix(in srgb, var(--tint) 30%, #18191C); --label: var(--tint); --label2: color-mix(in srgb, var(--tint) 80%, #000); --pix: #FFFFFF; --pin: color-mix(in srgb, var(--tint) 70%, #fff); --slot: #0B0C10; --win: #FFFFFF; --dot1: #fff; --dot2: #fff; --dot3: #fff; }
+.m-clear svg [data-glass] { stroke: rgba(255,255,255,.75); stroke-width: 10; }
+
+.tint-pick { display: flex; gap: 8px; align-items: center; margin: 14px 0 0; color: var(--label2); font-size: 12px; }
+.tint-pick button { width: 18px; height: 18px; border-radius: 50%; border: 0; box-shadow: inset 0 0 0 1px rgba(255,255,255,.4); cursor: pointer; }
+
+/* Small sizes and app header */
+.strip { display: flex; gap: 26px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
+.lockup { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 14px; background: #18191D; box-shadow: inset 0 0 0 .5px var(--sep); }
+.lockup b { font: 900 18px/1 system-ui; letter-spacing: -.02em; }
+.menubar-demo { display: flex; align-items: center; gap: 12px; padding: 4px 12px; border-radius: 8px; background: rgba(255,255,255,.08); font-size: 12px; }
+.menubar-demo svg { width: 16px; height: 16px; fill: #fff; }
+</style>
+</head>
+<body>
+<h1>Cartridge, explored</h1>
+<p class="lead">Plug a Windows game in, it plays. Two names, three icon concepts, and the four macOS 26 appearances each icon must support: Default, Dark, Clear (Liquid Glass) and Tinted.</p>
+
+<h2>Name</h2>
+<div class="names">
+  <div class="name-card"><b>Cartridge</b><p>Everyone knows it. Free on the Mac App Store, Homebrew and among GitHub apps. <span class="no">Note: “Kartridge” was Kongregate’s PC launcher (2018), close in sound.</span></p></div>
+  <div class="name-card"><b>Cartouche</b><p>French for cartridge, and the oval that frames a name in hieroglyphs. Unique, free everywhere. <span class="ok">Feels designed, not generic.</span></p></div>
+</div>
+
+<h2>Icon concepts, in the four macOS appearances</h2>
+<div class="desk" id="desk">
+  <div class="concepts" id="concepts"></div>
+  <div class="dockbar" id="dock"></div>
+</div>
+<div class="tint-pick">Tinted color <button style="background:#FF7A3D" data-tint="#FF7A3D"></button><button style="background:#0A84FF" data-tint="#0A84FF"></button><button style="background:#BF5AF2" data-tint="#BF5AF2"></button><button style="background:#30D158" data-tint="#30D158"></button>
+  <span style="margin-left:14px">Wallpaper</span><button style="background:#6C5CE7" data-wall="day"></button><button style="background:#07080F" data-wall="night"></button></div>
+
+<h2>In the app</h2>
+<div class="strip" id="strip"></div>
+
+<script>
+// Foreground layers, 1024 grid. Colors come from the appearance (CSS variables).
+const PIXEL_PLAY = `<g fill="var(--pix)"><rect x="452" y="398" width="40" height="160"/><rect x="492" y="418" width="40" height="120"/><rect x="532" y="438" width="40" height="80"/><rect x="572" y="458" width="40" height="40"/></g>`;
+const BODY = (y = 0) => `
+  <g transform="translate(0 ${y})">
+    <path data-glass d="M270 170 H682 L754 242 V800 Q754 830 724 830 H300 Q270 830 270 800 Z" fill="var(--body)"/>
+    <path d="M270 170 H682 L754 242 V262 H270 Z" fill="#fff" opacity=".08"/>
+    <g fill="var(--grip)"><rect x="306" y="196" width="16" height="44" rx="8"/><rect x="342" y="196" width="16" height="44" rx="8"/><rect x="378" y="196" width="16" height="44" rx="8"/></g>
+  </g>`;
+const PINS = y => `<rect x="352" y="${830 + y}" width="320" height="86" fill="var(--body2)"/>
+  <g fill="var(--pin)">${Array.from({ length: 8 }, (_, i) => `<rect x="${372 + i * 36}" y="${846 + y}" width="22" height="70"/>`).join("")}</g>`;
+
+const CONCEPTS = [
+  { id: "label", name: "Label", note: "The cartridge, front on. The play button is the game art.",
+    svg: () => `${BODY()}<rect data-glass x="318" y="290" width="388" height="376" rx="30" fill="var(--label)"/><rect x="318" y="612" width="388" height="54" fill="#000" opacity=".14"/>${PIXEL_PLAY}${PINS(0)}`,
+    glyph: `<path d="M3.5 1.5h7l2 2v10h-9z"/><path d="M6.5 5.6v4.8l4-2.4z" fill="#000" fill-opacity=".9"/>` },
+  { id: "insert", name: "Insert", note: "Half way into the slot: the moment a game starts.",
+    svg: null, // drawn in icon(), it needs a clip for the slot
+    glyph: `<path d="M4 1.5h6.5l1.5 1.5v6.5H4z"/><rect x="1.5" y="10.5" width="13" height="2.2" rx="1.1"/>` },
+  { id: "window", name: "Mac window", note: "The label is a Mac window with a game inside.",
+    svg: () => `${BODY()}<rect data-glass x="318" y="290" width="388" height="376" rx="30" fill="var(--win)"/>
+      <circle cx="356" cy="326" r="12" fill="var(--dot1)"/><circle cx="392" cy="326" r="12" fill="var(--dot2)"/><circle cx="428" cy="326" r="12" fill="var(--dot3)"/>
+      <rect x="338" y="352" width="348" height="294" rx="14" fill="var(--label)"/>
+      <g fill="var(--pix)"><rect x="378" y="566" width="268" height="40"/><rect x="418" y="526" width="40" height="40"/><rect x="458" y="486" width="40" height="80"/><rect x="538" y="506" width="40" height="60"/><rect x="586" y="398" width="40" height="40" opacity=".9"/></g>
+      ${PINS(0)}`,
+    glyph: `<path d="M3.5 1.5h7l2 2v10h-9z"/><rect x="5" y="4.5" width="6" height="5.5" rx=".8" fill="#000" fill-opacity=".9"/>` },
+];
+const MODES = [["default", "Default"], ["dark", "Dark"], ["clear", "Clear"], ["tinted", "Tinted"]];
+
+function icon(c, mode, size) {
+  // The Insert concept hides the bottom of the cartridge inside the slot.
+  const inner = c.id === "insert"
+    ? `<defs><clipPath id="cut-${mode}-${size}"><rect x="0" y="0" width="1024" height="736"/></clipPath></defs><g clip-path="url(#cut-${mode}-${size})">${BODY(120)}<rect data-glass x="318" y="410" width="388" height="376" rx="30" fill="var(--label)"/>${PIXEL_PLAY.replace(/y="(\d+)"/g, (m, v) => `y="${+v + 120}"`)}</g>
+       <rect x="150" y="704" width="724" height="64" rx="32" fill="var(--slot)"/><path d="M182 704 H842" stroke="#fff" stroke-opacity=".22" stroke-width="8" stroke-linecap="round"/>`
+    : c.svg();
+  return `<div class="ico m-${mode}" style="--s:${size}px" role="img" aria-label="${c.name} icon, ${mode}"><svg viewBox="0 0 1024 1024">${inner}</svg></div>`;
+}
+
+document.getElementById("concepts").innerHTML = CONCEPTS.map(c => `
+  <div class="concept"><h3>${c.name}</h3><p>${c.note}</p>
+    <div class="modes">${MODES.map(([m, label]) => `<div class="mode">${icon(c, m, 72)}${label}</div>`).join("")}</div>
+  </div>`).join("");
+document.getElementById("dock").innerHTML = `<span class="ph"></span>` + CONCEPTS.map(c => icon(c, "default", 58)).join("") + CONCEPTS.map(c => icon(c, "clear", 58)).join("") + `<span class="ph"></span>`;
+document.getElementById("strip").innerHTML = CONCEPTS.map(c => `
+  <div class="lockup">${icon(c, "default", 28)}<b>Cartridge</b></div>`).join("") +
+  `<div class="menubar-demo">Menu bar ${CONCEPTS.map(c => `<svg viewBox="0 0 16 16">${c.glyph}</svg>`).join("")}</div>` +
+  `<div class="lockup">${CONCEPTS.map(c => icon(c, "default", 16)).join("")}<span style="color:var(--label2);font-size:11px">16 px</span></div>`;
+
+document.querySelectorAll("[data-tint]").forEach(b => b.onclick = () => document.querySelectorAll(".m-tinted").forEach(i => i.style.setProperty("--tint", b.dataset.tint)));
+document.querySelectorAll("[data-wall]").forEach(b => b.onclick = () => document.getElementById("desk").classList.toggle("night", b.dataset.wall === "night"));
+</script>
+</body>
+</html>

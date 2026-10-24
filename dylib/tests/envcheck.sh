@@ -1,0 +1,176 @@
+#!/bin/sh
+# shellcheck disable=SC2034,SC2154
+set -e
+SRC="${1:-$(dirname "$0")/../feats/compat_run.sh}"
+[ -f "$SRC" ] || { echo "envcheck: $SRC not present, skipped"; exit 0; }
+
+strip() { sed 's/^[[:space:]]*//'; }
+dllpath_line=$(grep 'export WINEDLLPATH=' "$SRC" | grep 'x86_64-windows' | strip)
+overrides_line=$(grep 'export WINEDLLOVERRIDES=' "$SRC" | grep 'lsteamclient=b' | strip)
+[ -n "$dllpath_line" ] || { echo "FAIL: WINEDLLPATH merge not found"; exit 1; }
+[ -n "$overrides_line" ] || { echo "FAIL: WINEDLLOVERRIDES merge not found"; exit 1; }
+
+fails=0
+ok() { printf '  ok    %s\n' "$1"; }
+bad() { printf '  FAIL  %s\n         want [%s]\n         got  [%s]\n' "$1" "$2" "$3"; fails=$((fails + 1)); }
+is() { if [ "$2" = "$3" ]; then ok "$1"; else bad "$1" "$2" "$3"; fi; }
+
+echo "== WINEDLLPATH (first match wins, runner first) =="
+CX_ROOT=/R
+wine_unix=/R/lib/wine/x86_64-unix
+WINEDLLPATH=""
+eval "$dllpath_line"
+is "no user value" "/R/lib/wine/x86_64-windows:/R/lib/wine/x86_64-unix" "$WINEDLLPATH"
+WINEDLLPATH="/user/dir"
+eval "$dllpath_line"
+is "user value last" "/R/lib/wine/x86_64-windows:/R/lib/wine/x86_64-unix:/user/dir" "$WINEDLLPATH"
+
+echo "== WINEDLLOVERRIDES (last wins, trio last) =="
+WINEDLLOVERRIDES=""
+eval "$overrides_line"
+is "no user value" "steamclient=n;steamclient64=n;lsteamclient=b" "$WINEDLLOVERRIDES"
+WINEDLLOVERRIDES="winhttp=n,b"
+eval "$overrides_line"
+is "user value first" "winhttp=n,b;steamclient=n;steamclient64=n;lsteamclient=b" "$WINEDLLOVERRIDES"
+WINEDLLOVERRIDES="lsteamclient=n"
+eval "$overrides_line"
+is "trio outranks user" "lsteamclient=n;steamclient=n;steamclient64=n;lsteamclient=b" "$WINEDLLOVERRIDES"
+vc_overrides="vcruntime140_1=n,b;"
+WINEDLLOVERRIDES="vcruntime140_1=b"
+eval "$overrides_line"
+is "user outranks the native runtime" \
+  "vcruntime140_1=n,b;vcruntime140_1=b;steamclient=n;steamclient64=n;lsteamclient=b" "$WINEDLLOVERRIDES"
+vc_overrides=""
+
+echo "== Microsoft's Visual C++ runtime loads when it is installed =="
+vc_fn=$(sed -n '/^native_vc_runtime() {/,/^}/p' "$SRC")
+[ -n "$vc_fn" ] || { echo "FAIL: native_vc_runtime not found"; exit 1; }
+eval "$vc_fn"
+vc_work=$(mktemp -d)
+WINEPREFIX="$vc_work/pfx"
+sys32="$WINEPREFIX/drive_c/windows/system32"
+mkdir -p "$sys32"
+pe() { printf 'MZ%062d%s' 0 "$2" > "$sys32/$1.dll"; }
+is "empty prefix overrides nothing" "" "$(native_vc_runtime)"
+pe vcruntime140 "Wine builtin DLL"
+pe msvcp140_2 "Wine builtin DLL"
+is "Wine's own copies are left alone" "" "$(native_vc_runtime)"
+pe msvcp140_2 "This program cannot be run in DOS mode."
+pe vcruntime140_1 "This program cannot be run in DOS mode."
+: > "$sys32/msvcp140.dll"
+is "Microsoft's copies load first" "msvcp140=n,b;msvcp140_2=n,b;vcruntime140_1=n,b;" "$(native_vc_runtime)"
+rm -rf "$vc_work"
+
+echo "== Apple GPTK initialization and launcher environment =="
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+np_support="$work/Application Support/Cartouche"
+np_build="test"
+library="$np_support/runners/crossover-$np_build/CrossOver/lib64/apple_gptk/external/libd3dshared.dylib"
+init=$(sed -n '/^CX_ROOT=/,/^wine_unix=/p' "$SRC")
+# shellcheck disable=SC2016 # Match the literal launcher loop.
+forward=$(sed -n '/^for name in $(env /,/^done$/p' "$SRC")
+[ -n "$init" ] && [ -n "$forward" ] || { echo "FAIL: runner environment blocks not found"; exit 1; }
+unset CX_APPLEGPTK_LIBD3DSHARED_PATH
+eval "$init"
+is "runner without the library leaves the path unset" "" "${CX_APPLEGPTK_LIBD3DSHARED_PATH:-}"
+mkdir -p "$(dirname "$library")"
+: > "$library"
+eval "$init"
+is "bundled library is selected" "$library" "${CX_APPLEGPTK_LIBD3DSHARED_PATH:-}"
+is "helpers inherit the library path" "$library" "$(sh -c 'printf %s "$CX_APPLEGPTK_LIBD3DSHARED_PATH"')"
+set --
+eval "$forward"
+forwarded=""
+for arg in "$@"; do
+  case "$arg" in CX_APPLEGPTK_LIBD3DSHARED_PATH=*) forwarded=${arg#*=} ;; esac
+done
+is "game launcher receives the path as one argument" "$library" "$forwarded"
+# macOS sed stops at the first invalid UTF-8 value.
+# shellcheck disable=SC2016 # The stub and loop expand inside the child shell.
+after_bad=$(env -i PATH="$PATH" LANG=en_US.UTF-8 DXVK_HUD=1 sh -c '
+  env() { printf "A_BAD=a\377b\nDXVK_HUD=1\n"; }
+  f=$1; set --; eval "$f"; printf "%s " "$@"' sh "$forward")
+is "settings after a non-UTF-8 value are forwarded" "--env DXVK_HUD=1 " "$after_bad"
+
+echo "== D3DMetal comes from the user's installed toolkit =="
+d3d_case=$(sed -n '/^      d3dmetal)$/,/^        ;;$/p' "$SRC" | sed '1d;$d')
+[ -n "$d3d_case" ] || { echo "FAIL: the d3dmetal case was not found"; exit 1; }
+mkdir -p "$np_support/runners/gptk-8.8/lib/external"
+: > "$np_support/runners/gptk-8.8/lib/external/libd3dshared.dylib"
+inplace="$work/in-place-lib"
+mkdir -p "$inplace/external" "$np_support/runners/gptk-9.9"
+: > "$inplace/external/libd3dshared.dylib"
+printf '{"version":"9.9","origin":"x","files":{},"inPlace":"%s"}\n' "$inplace" \
+  > "$np_support/runners/gptk-9.9/.cartouche-runner.json"
+np_gptk=""; np_backend_from=""; np_backend_missing=""
+unset CX_APPLEGPTK_LIBD3DSHARED_PATH
+eval "$d3d_case"
+is "the in-place toolkit supplies D3DMetal" "$inplace/external" "$np_gptk"
+is "its shared library is exported" \
+  "$inplace/external/libd3dshared.dylib" "${CX_APPLEGPTK_LIBD3DSHARED_PATH:-}"
+is "the backend is found" "" "$np_backend_missing"
+mv "$np_support/runners/gptk-9.9" "$work/gptk-9.9"
+np_gptk=""; np_backend_missing=""
+eval "$d3d_case"
+is "a copied toolkit supplies it too" \
+  "$np_support/runners/gptk-8.8/lib/external" "$np_gptk"
+rm -rf "$np_support/runners/gptk-8.8"
+np_gptk=""; np_backend_missing=""
+eval "$d3d_case"
+is "no toolkit is reported missing" "1" "$np_backend_missing"
+mv "$work/gptk-9.9" "$np_support/runners/gptk-9.9"
+
+echo "== Rosetta-only settings on arm64 Wine =="
+drop=$(sed -n '/^np_dropped=""$/,/^fi$/p' "$SRC")
+[ -n "$drop" ] || { echo "FAIL: the arm64 settings block was not found"; exit 1; }
+drop_at=$(grep -n '^np_dropped=""$' "$SRC" | cut -d: -f1)
+# shellcheck disable=SC2016 # Match the literal launcher loop.
+forward_at=$(grep -n '^for name in $(env ' "$SRC" | cut -d: -f1)
+[ "$drop_at" -lt "$forward_at" ] ||
+  bad "the arm64 settings block runs before the forwarding loop" "< $forward_at" "$drop_at"
+seen() { sh -c 'env | sed -nE "s/^(CX_GRAPHICS_BACKEND|D3DM_[A-Z0-9_]*|DXMT_[A-Z0-9_]*|ROSETTA_[A-Z0-9_]*)=.*/\1/p" | sort | tr "\n" " "'; }
+for name in $(seen); do unset -v "$name"; done
+CX_ROOT="/R R"
+set_all() { export CX_GRAPHICS_BACKEND=d3dmetal D3DM_ENABLE_METALFX=1 ROSETTA_ADVERTISE_AVX=0 DXMT_CONFIG=x; }
+set_all
+wine_unix="/R R/lib/wine/x86_64-unix"
+eval "$drop"
+is "x86_64 Wine keeps every setting" \
+  "CX_GRAPHICS_BACKEND D3DM_ENABLE_METALFX DXMT_CONFIG ROSETTA_ADVERTISE_AVX " "$(seen)"
+is "x86_64 Wine logs nothing" "" "$np_dropped"
+wine_unix="/R R/lib/wine/aarch64-unix"
+eval "$drop"
+is "D3DMetal and Rosetta settings leave the environment" "DXMT_CONFIG " "$(seen)"
+is "the run log names what was ignored" \
+  "CX_GRAPHICS_BACKEND=d3dmetal D3DM_ENABLE_METALFX ROSETTA_ADVERTISE_AVX" "$np_dropped"
+set_all
+export CX_GRAPHICS_BACKEND=dxmt
+unset -v D3DM_ENABLE_METALFX ROSETTA_ADVERTISE_AVX
+eval "$drop"
+is "other backends stay" "CX_GRAPHICS_BACKEND DXMT_CONFIG " "$(seen)"
+is "nothing to ignore logs nothing" "" "$np_dropped"
+unset -v CX_GRAPHICS_BACKEND DXMT_CONFIG
+
+echo "== Advanced per-game setup variables =="
+read_setup=$(sed -n '/^read_game_setup() {/,/^}/p' "$SRC")
+eval "$read_setup"
+mkdir -p "$np_support/setups"
+app_id=42
+wine_unix=/R/lib/wine/x86_64-unix
+printf '%s\n' 'WINEMSYNC=1' 'CARTOUCHE_RETINA=1' 'DXMT_METALFX_SPATIAL_SWAPCHAIN=1' 'WINESERVER=refused' > "$np_support/setups/42.env"
+unset WINEMSYNC CARTOUCHE_RETINA DXMT_METALFX_SPATIAL_SWAPCHAIN
+WINESERVER=/fixture/server
+read_game_setup >/dev/null
+is "MSync is read from the game setup" 1 "$WINEMSYNC"
+is "Retina is read from the game setup" 1 "$CARTOUCHE_RETINA"
+is "DXMT spatial is read from the game setup" 1 "$DXMT_METALFX_SPATIAL_SWAPCHAIN"
+is "server override is refused" /fixture/server "$WINESERVER"
+unset WINEMSYNC CARTOUCHE_RETINA DXMT_METALFX_SPATIAL_SWAPCHAIN
+
+if [ "$fails" -eq 0 ]; then
+	echo "==> envcheck: all assertions hold"
+else
+	echo "==> envcheck: $fails failed"
+	exit 1
+fi

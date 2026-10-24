@@ -1,0 +1,63 @@
+== all builds, fexAvailable=true, legacy nobody
+cartouche-proton-fex	27.0.0.40921-fex	fex	CrossOver 2026 08 21-ARM64 - FEX
+cartouche-proton-fex-rosetta	27.0.0.40921-fex	rosetta	CrossOver 2026 08 21-ARM64 - Rosetta
+cartouche-proton-preview	27.0.0.40921	rosetta	CrossOver 2026 08 21-X86 - Rosetta
+cartouche-proton-fex-41069	27.0.0.41069-fex	fex	CrossOver 2026 10 06-ARM64 - FEX
+cartouche-proton-fex-rosetta-41069	27.0.0.41069-fex	rosetta	CrossOver 2026 10 06-ARM64 - Rosetta
+cartouche-proton-preview-41069	27.0.0.41069	rosetta	CrossOver 2026 10 06-X86 - Rosetta
+cartouche-proton-fex-41073	27.0.0.41073-fex	fex	CrossOver 2026 10 15-ARM64 - FEX
+cartouche-proton-fex-rosetta-41073	27.0.0.41073-fex	rosetta	CrossOver 2026 10 15-ARM64 - Rosetta
+cartouche-proton-preview-41073	27.0.0.41073	rosetta	CrossOver 2026 10 15-X86 - Rosetta
+cartouche-proton-26.3	26.3.0.39832	rosetta	CrossOver 26.3
+== all builds, fexAvailable=false, legacy nobody
+cartouche-proton-fex-rosetta	27.0.0.40921-fex	rosetta	CrossOver 2026 08 21-ARM64 - Rosetta
+cartouche-proton-preview	27.0.0.40921	rosetta	CrossOver 2026 08 21-X86 - Rosetta
+cartouche-proton-fex-rosetta-41069	27.0.0.41069-fex	rosetta	CrossOver 2026 10 06-ARM64 - Rosetta
+cartouche-proton-preview-41069	27.0.0.41069	rosetta	CrossOver 2026 10 06-X86 - Rosetta
+cartouche-proton-fex-rosetta-41073	27.0.0.41073-fex	rosetta	CrossOver 2026 10 15-ARM64 - Rosetta
+cartouche-proton-preview-41073	27.0.0.41073	rosetta	CrossOver 2026 10 15-X86 - Rosetta
+cartouche-proton-26.3	26.3.0.39832	rosetta	CrossOver 26.3
+== all builds, fexAvailable=true, legacy 27.0.0.40921-fex
+cartouche-proton	27.0.0.40921-fex	fex	CrossOver 2026 08 21-ARM64 - FEX
+cartouche-proton-fex-rosetta	27.0.0.40921-fex	rosetta	CrossOver 2026 08 21-ARM64 - Rosetta
+cartouche-proton-preview	27.0.0.40921	rosetta	CrossOver 2026 08 21-X86 - Rosetta
+cartouche-proton-fex-41069	27.0.0.41069-fex	fex	CrossOver 2026 10 06-ARM64 - FEX
+cartouche-proton-fex-rosetta-41069	27.0.0.41069-fex	rosetta	CrossOver 2026 10 06-ARM64 - Rosetta
+cartouche-proton-preview-41069	27.0.0.41069	rosetta	CrossOver 2026 10 06-X86 - Rosetta
+cartouche-proton-fex-41073	27.0.0.41073-fex	fex	CrossOver 2026 10 15-ARM64 - FEX
+cartouche-proton-fex-rosetta-41073	27.0.0.41073-fex	rosetta	CrossOver 2026 10 15-ARM64 - Rosetta
+cartouche-proton-preview-41073	27.0.0.41073	rosetta	CrossOver 2026 10 15-X86 - Rosetta
+cartouche-proton-26.3	26.3.0.39832	rosetta	CrossOver 26.3
+== all builds, fexAvailable=true, legacy 27.0.0.40921
+cartouche-proton	27.0.0.40921	rosetta	CrossOver 2026 08 21-X86 - Rosetta
+cartouche-proton-fex	27.0.0.40921-fex	fex	CrossOver 2026 08 21-ARM64 - FEX
+cartouche-proton-fex-rosetta	27.0.0.40921-fex	rosetta	CrossOver 2026 08 21-ARM64 - Rosetta
+cartouche-proton-fex-41069	27.0.0.41069-fex	fex	CrossOver 2026 10 06-ARM64 - FEX
+cartouche-proton-fex-rosetta-41069	27.0.0.41069-fex	rosetta	CrossOver 2026 10 06-ARM64 - Rosetta
+cartouche-proton-preview-41069	27.0.0.41069	rosetta	CrossOver 2026 10 06-X86 - Rosetta
+cartouche-proton-fex-41073	27.0.0.41073-fex	fex	CrossOver 2026 10 15-ARM64 - FEX
+cartouche-proton-fex-rosetta-41073	27.0.0.41073-fex	rosetta	CrossOver 2026 10 15-ARM64 - Rosetta
+cartouche-proton-preview-41073	27.0.0.41073	rosetta	CrossOver 2026 10 15-X86 - Rosetta
+cartouche-proton-26.3	26.3.0.39832	rosetta	CrossOver 26.3
+== all builds, fexAvailable=true, legacy 27.0.0.41069-fex
+cartouche-proton	27.0.0.41069-fex	fex	CrossOver 2026 10 06-ARM64 - FEX
+cartouche-proton-fex	27.0.0.40921-fex	fex	CrossOver 2026 08 21-ARM64 - FEX
+cartouche-proton-fex-rosetta	27.0.0.40921-fex	rosetta	CrossOver 2026 08 21-ARM64 - Rosetta
+cartouche-proton-preview	27.0.0.40921	rosetta	CrossOver 2026 08 21-X86 - Rosetta
+cartouche-proton-fex-rosetta-41069	27.0.0.41069-fex	rosetta	CrossOver 2026 10 06-ARM64 - Rosetta
+cartouche-proton-preview-41069	27.0.0.41069	rosetta	CrossOver 2026 10 06-X86 - Rosetta
+cartouche-proton-fex-41073	27.0.0.41073-fex	fex	CrossOver 2026 10 15-ARM64 - FEX
+cartouche-proton-fex-rosetta-41073	27.0.0.41073-fex	rosetta	CrossOver 2026 10 15-ARM64 - Rosetta
+cartouche-proton-preview-41073	27.0.0.41073	rosetta	CrossOver 2026 10 15-X86 - Rosetta
+cartouche-proton-26.3	26.3.0.39832	rosetta	CrossOver 26.3
+== all builds, fexAvailable=true, legacy 27.0.0.41069
+cartouche-proton	27.0.0.41069	rosetta	CrossOver 2026 10 06-X86 - Rosetta
+cartouche-proton-fex	27.0.0.40921-fex	fex	CrossOver 2026 08 21-ARM64 - FEX
+cartouche-proton-fex-rosetta	27.0.0.40921-fex	rosetta	CrossOver 2026 08 21-ARM64 - Rosetta
+cartouche-proton-preview	27.0.0.40921	rosetta	CrossOver 2026 08 21-X86 - Rosetta
+cartouche-proton-fex-41069	27.0.0.41069-fex	fex	CrossOver 2026 10 06-ARM64 - FEX
+cartouche-proton-fex-rosetta-41069	27.0.0.41069-fex	rosetta	CrossOver 2026 10 06-ARM64 - Rosetta
+cartouche-proton-fex-41073	27.0.0.41073-fex	fex	CrossOver 2026 10 15-ARM64 - FEX
+cartouche-proton-fex-rosetta-41073	27.0.0.41073-fex	rosetta	CrossOver 2026 10 15-ARM64 - Rosetta
+cartouche-proton-preview-41073	27.0.0.41073	rosetta	CrossOver 2026 10 15-X86 - Rosetta
+cartouche-proton-26.3	26.3.0.39832	rosetta	CrossOver 26.3

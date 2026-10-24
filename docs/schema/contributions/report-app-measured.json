@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "app_version": "0.1.0",
+  "origin": "app-measured",
+  "observed_at": "2026-10-20T18:30:00Z",
+  "configuration": {
+    "method": "wine",
+    "store": "steam",
+    "mac": {
+      "model": "Mac16,8",
+      "chip": "M4 Pro",
+      "cpu_cores": 14,
+      "ram_gb": 24,
+      "macos": "26.0.1"
+    },
+    "runner": "CrossOver Wine 26.3",
+    "runner_build": "cx-26.3.0",
+    "translation": "rosetta",
+    "backend": "dxmt",
+    "resolution": { "width": 1920, "height": 1080 }
+  },
+  "outcome": "playable",
+  "crashes": 0,
+  "controller": "not-tested",
+  "performance": {
+    "average_fps": 58.4,
+    "measured_seconds": 1200,
+    "excluded_seconds": 45,
+    "method": "second-buckets-v1",
+    "collector_version": "cartouche-fps-1"
+  },
+  "applied_fixes": [],
+  "consent": {
+    "publish_report": true,
+    "share_statistics": true,
+    "license": "CC0-1.0"
+  }
+}

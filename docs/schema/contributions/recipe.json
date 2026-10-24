@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "title": "DXMT fixes the black screen",
+  "description": "Problem solved: black screen after the \"Play\" button.\nWorked with: CrossOver Wine 26.3, Rosetta — tested twice, café.",
+  "license": "CC0-1.0",
+  "applies_to": {
+    "platform": "macos",
+    "game_builds": [
+      "16234567"
+    ],
+    "runner_builds": [
+      "cx-26.3.0"
+    ],
+    "backends": [
+      "dxmt"
+    ]
+  },
+  "requires": [],
+  "conflicts": [],
+  "operations": [
+    {
+      "type": "set_game_config",
+      "values": {
+        "backend": "dxmt",
+        "translation": "rosetta"
+      }
+    }
+  ],
+  "validation_report_ids": [],
+  "consent_publish": true
+}

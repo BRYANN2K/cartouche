@@ -1,0 +1,161 @@
+name: wine-crossover
+
+# Builds Wine from the CodeWeavers CrossOver sources pinned in
+# packaging/wine-crossover/pins.env, checks the result, and on request publishes
+# it as a release asset with its SHA-256, the runner manifest entry and a copy
+# of the source tarball (the LGPL source offer). No secret is needed.
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the build as a release (from main only)
+        type: boolean
+        default: false
+  pull_request:
+    paths:
+      - packaging/wine-crossover/**
+      - packaging/tests/test_wine_crossover.py
+      - .github/workflows/wine-crossover.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wine-crossover-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  scripts:
+    name: check the build scripts
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Run the script tests
+        run: python3 -m unittest discover -s packaging/tests -p 'test_wine_crossover.py'
+
+      - name: Dry run of the build
+        run: sh packaging/wine-crossover/build.sh --dry-run "$RUNNER_TEMP/wine-dry"
+
+  build:
+    name: build Cartouche Wine
+    if: github.event_name == 'workflow_dispatch'
+    needs: scripts
+    # Wine's Unix side is x86_64 code that Rosetta runs, so it is built on x86_64
+    runs-on: ${{ vars.WINE_RUNNER || 'macos-15-intel' }}
+    timeout-minutes: 300
+    outputs:
+      tag: ${{ steps.package.outputs.tag }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Select the pinned Xcode
+        run: |
+          . packaging/wine-crossover/pins.env
+          sudo xcode-select -s "$XCODE_APP"
+          xcodebuild -version
+
+      - name: Cache the pinned downloads
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: work/downloads
+          key: wine-crossover-downloads-${{ hashFiles('packaging/wine-crossover/pins.env') }}
+
+      - name: Fetch the source tarball and llvm-mingw
+        run: |
+          . packaging/wine-crossover/pins.env
+          sh packaging/wine-crossover/fetch.sh "$CX_SOURCE_URL" "$CX_SOURCE_SHA256" \
+            "work/downloads/crossover-sources-$CX_VERSION.tar.gz"
+          sh packaging/wine-crossover/fetch.sh "$LLVM_MINGW_URL" "$LLVM_MINGW_SHA256" \
+            "work/downloads/llvm-mingw-$LLVM_MINGW_VERSION.tar.xz"
+
+      - name: Install the Homebrew formulas
+        run: |
+          . packaging/wine-crossover/pins.env
+          # shellcheck disable=SC2086
+          brew install $BREW_BUILD_DEPS $BREW_LINK_DEPS
+
+      - name: Build
+        run: sh packaging/wine-crossover/build.sh "$PWD/work"
+
+      - name: Package
+        id: package
+        env:
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          . packaging/wine-crossover/pins.env
+          sh packaging/wine-crossover/package.sh work/install \
+            "work/downloads/crossover-sources-$CX_VERSION.tar.gz" out
+          echo "tag=$(cat out/tag)" >> "$GITHUB_OUTPUT"
+          cat out/manifest-entry.json >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify the archive and run wine --version
+        run: sh packaging/wine-crossover/verify.sh out/*-x86_64.tar.xz | tee out/verify.txt
+
+      - name: Scan the archive for Game Porting Toolkit files
+        run: sh packaging/redist-scan.sh out/*-x86_64.tar.xz
+
+      - name: Boot winecfg in a fresh prefix
+        run: |
+          mkdir -p "$RUNNER_TEMP/runner"
+          tar -xJf out/*-x86_64.tar.xz -C "$RUNNER_TEMP/runner"
+          sh packaging/wine-crossover/boot-check.sh "$RUNNER_TEMP/runner/$(cat out/tag)" out/boot 60
+
+      - name: Resolve the ntdll hook sites
+        # resolve.py reports the values to pin; a build it does not know yet is not an error
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet capstone==5.0.9
+          root="$RUNNER_TEMP/runner/$(cat out/tag)"
+          "$RUNNER_TEMP/venv/bin/python" ntdll-patch/resolve.py "$root" > out/ntdll-resolve.txt 2>&1 || true
+          for arch in x86_64-windows i386-windows; do
+            "$RUNNER_TEMP/venv/bin/python" ntdll-patch/resolve.py --sh "$root/lib/wine/$arch/ntdll.dll" \
+              > "out/ntdll-$arch.sh" 2>&1 || true
+          done
+          cat out/ntdll-resolve.txt
+
+      - name: Keep the build
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: wine-crossover
+          path: out/
+          if-no-files-found: ignore
+
+  publish:
+    name: publish the release
+    needs: build
+    if: inputs.publish && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: wine-crossover
+          path: out
+
+      - name: Fetch the source tarball for the source offer
+        run: |
+          . packaging/wine-crossover/pins.env
+          sh packaging/wine-crossover/fetch.sh "$CX_SOURCE_URL" "$CX_SOURCE_SHA256" \
+            "out/crossover-sources-$CX_VERSION.tar.gz"
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.build.outputs.tag }}
+        run: |
+          . packaging/wine-crossover/pins.env
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "::error::$TAG is already released; bump BUILD_REVISION in pins.env"
+            exit 1
+          fi
+          tar -xJOf out/"$TAG"-x86_64.tar.xz "$TAG/SOURCE.md" > out/SOURCE.md
+          # A prerelease is never "latest", so the app's Sparkle feed is unaffected
+          gh release create "$TAG" --prerelease --latest=false \
+            --title "Cartouche Wine $CX_VERSION (build $BUILD_REVISION)" --notes-file out/SOURCE.md \
+            out/"$TAG"-x86_64.tar.xz out/"$TAG"-x86_64.tar.xz.sha256 out/manifest-entry.json \
+            out/SOURCE.md "out/crossover-sources-$CX_VERSION.tar.gz"

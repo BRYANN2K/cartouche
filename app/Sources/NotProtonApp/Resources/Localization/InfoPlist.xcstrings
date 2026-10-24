@@ -1,0 +1,96 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "NSDownloadsFolderUsageDescription" : {
+      "comment" : "macOS shows this when Cartouche first reads the Downloads folder",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche suggests Windows installers you download."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche détecte les programmes d’installation Windows téléchargés et vous propose d’installer les jeux."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche suggerisce gli installer Windows che scarichi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 会推荐你下载的 Windows 安装程序。"
+          }
+        }
+      }
+    },
+    "NSLocalNetworkUsageDescription" : {
+      "comment" : "macOS shows this when Cartouche first uses the local network",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche finds other players on your network for netplay and LAN games."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche recherche d’autres joueurs sur votre réseau pour les parties en réseau local."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche trova altri giocatori sulla tua rete per il netplay e i giochi in LAN."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 会在你的网络上寻找其他玩家，用于联机对战和局域网游戏。"
+          }
+        }
+      }
+    },
+    "NSRemovableVolumesUsageDescription" : {
+      "comment" : "macOS shows this when Cartouche first reads a folder on an external disk",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche runs games from folders on external disks."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche accède aux dossiers de vos disques externes pour lancer vos jeux."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche avvia i giochi dalle cartelle sui dischi esterni."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 会运行外置磁盘文件夹中的游戏。"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

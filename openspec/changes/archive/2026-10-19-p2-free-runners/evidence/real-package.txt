@@ -1,0 +1,55 @@
+==> package: /tmp/p2/realpkg/out/wine-crossover-26.3.0-1-x86_64.tar.xz (23864 bytes)
+==> check-deps: every Mach-O file in <tmp>/wine-crossover-26.3.0-1 loads only macOS and package libraries
+==> verify: wine-crossover-26.3.0-1 ok
+wine-11.0 (stand-in loader)
+{
+  "id": "wine-crossover-26.3.0-1",
+  "kind": "wineBuild",
+  "origin": "cartouche",
+  "name": "Wine CrossOver",
+  "version": "26.3.0",
+  "displayVersion": "26.3",
+  "url": "https://github.com/BRYANN2K/NotProton/releases/download/wine-crossover-26.3.0-1/wine-crossover-26.3.0-1-x86_64.tar.xz",
+  "size": 23864,
+  "sha256": "dd9ddc719485ceb59960f3bfe7a7284d401cfb2b314b5323943451f30f6b9da3",
+  "root": "wine-crossover-26.3.0-1",
+  "loader": "bin/wine",
+  "flavors": [
+    "rosetta"
+  ]
+}
+# Source code for this build
+
+This is Wine as published by CodeWeavers in the CrossOver 26.3.0 sources,
+built by Cartouche. It is free software under the GNU Lesser General Public
+License, version 2.1 or later (COPYING.LIB, LICENSE, AUTHORS).
+
+It is not CrossOver and is not made or supported by CodeWeavers.
+
+- Source tarball: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
+- Its SHA-256: ac99c8ca4b3848f3e81784135f023df266b61c2345726ea55a50b3e030dd6872
+- A copy of that tarball is attached to the same release as this archive:
+  https://github.com/BRYANN2K/NotProton/releases/tag/wine-crossover-26.3.0-1
+- Build scripts: https://github.com/BRYANN2K/NotProton/tree/4fdc0471d3643bd475737e05d1f8b5d59c61f676/packaging/wine-crossover
+- Toolchain: Xcode at /Applications/Xcode_16.4.app, llvm-mingw 20261006, macOS 15.0 target,
+  Homebrew bison flex pkgconf freetype gnutls molten-vk sdl2 (versions in BUILDINFO.txt)
+wine-crossover-26.3.0-1/
+wine-crossover-26.3.0-1/AUTHORS
+wine-crossover-26.3.0-1/BUILDINFO.txt
+wine-crossover-26.3.0-1/COPYING.LIB
+wine-crossover-26.3.0-1/LICENSE
+wine-crossover-26.3.0-1/SOURCE.md
+wine-crossover-26.3.0-1/bin/
+wine-crossover-26.3.0-1/bin/wine
+wine-crossover-26.3.0-1/bin/wineserver
+wine-crossover-26.3.0-1/lib/
+wine-crossover-26.3.0-1/lib/wine/
+wine-crossover-26.3.0-1/lib/wine/i386-windows/
+wine-crossover-26.3.0-1/lib/wine/i386-windows/ntdll.dll
+wine-crossover-26.3.0-1/lib/wine/x86_64-unix/
+wine-crossover-26.3.0-1/lib/wine/x86_64-unix/wine
+wine-crossover-26.3.0-1/lib/wine/x86_64-windows/
+wine-crossover-26.3.0-1/lib/wine/x86_64-windows/ntdll.dll
+wine-crossover-26.3.0-1/share/
+wine-crossover-26.3.0-1/share/wine/
+wine-crossover-26.3.0-1/share/wine/wine.inf

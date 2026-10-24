@@ -1,0 +1,65 @@
+[
+ {
+  "url": "https://www.ea.com/games/apex-legends",
+  "name": "Apex Legends",
+  "logo": "",
+  "native": false,
+  "status": "Denied",
+  "reference": "",
+  "anticheats": [
+   "Easy Anti-Cheat",
+   "Hyperion"
+  ],
+  "updates": [
+   {
+    "name": "Enabled Linux support shortly after SteamDeck launch",
+    "date": "2022-03-01T18:00:27+00:00",
+    "reference": "https://steamdb.info/patchnotes/8270674/"
+   },
+   {
+    "name": "Linux support disabled",
+    "date": "Oct 31, 2024, 4:07 PM UTC",
+    "reference": "https://x.com/PlayApex/status/1852019667315102151"
+   }
+  ],
+  "storeIds": {
+   "steam": "1172470"
+  },
+  "slug": "apex-legends",
+  "dateChanged": "2024-10-31T18:29:00.000Z"
+ },
+ {
+  "url": "https://blog.counter-strike.net/",
+  "name": "Counter-Strike: Global Offensive",
+  "logo": "",
+  "native": true,
+  "status": "Supported",
+  "reference": "",
+  "anticheats": [
+   "VAC"
+  ],
+  "updates": [],
+  "storeIds": {
+   "steam": "730"
+  },
+  "slug": "counterstrike-global-offensive",
+  "dateChanged": "2024-01-19T04:40:56.000Z"
+ },
+ {
+  "url": "https://www.bandainamcoent.com/games/elden-ring",
+  "name": "Elden Ring",
+  "logo": "",
+  "native": false,
+  "status": "Supported",
+  "reference": "https://www.forbes.com/sites/jasonevangelho/2022/02/27/yes-elden-ring-is-perfectly-playable-on-linux-including-online-features/?sh=43f5085d1aaf",
+  "anticheats": [
+   "Easy Anti-Cheat"
+  ],
+  "updates": [],
+  "storeIds": {
+   "steam": "1245620"
+  },
+  "slug": "elden-ring",
+  "dateChanged": "2024-09-08T21:25:56.890Z"
+ }
+]

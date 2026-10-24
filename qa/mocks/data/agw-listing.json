@@ -1,0 +1,55 @@
+{
+ "batchcomplete": true,
+ "query": {
+  "pages": [
+   {
+    "pageid": 296,
+    "ns": 0,
+    "title": "Disco Elysium",
+    "contentmodel": "wikitext",
+    "pagelanguage": "en",
+    "pagelanguagehtmlcode": "en",
+    "pagelanguagedir": "ltr",
+    "touched": "2023-06-10T21:47:06Z",
+    "lastrevid": 5181,
+    "length": 3593
+   },
+   {
+    "pageid": 533,
+    "ns": 0,
+    "title": "Apex Legends",
+    "contentmodel": "wikitext",
+    "pagelanguage": "en",
+    "pagelanguagehtmlcode": "en",
+    "pagelanguagedir": "ltr",
+    "touched": "2023-12-14T08:18:54Z",
+    "lastrevid": 4647,
+    "length": 2607
+   },
+   {
+    "pageid": 1795,
+    "ns": 0,
+    "title": "Elden Ring",
+    "contentmodel": "wikitext",
+    "pagelanguage": "en",
+    "pagelanguagehtmlcode": "en",
+    "pagelanguagedir": "ltr",
+    "touched": "2025-05-12T09:59:08Z",
+    "lastrevid": 10743,
+    "length": 5088
+   },
+   {
+    "pageid": 2340,
+    "ns": 0,
+    "title": "Counter-Strike 2",
+    "contentmodel": "wikitext",
+    "pagelanguage": "en",
+    "pagelanguagehtmlcode": "en",
+    "pagelanguagedir": "ltr",
+    "touched": "2025-08-10T10:48:46Z",
+    "lastrevid": 10994,
+    "length": 3453
+   }
+  ]
+ }
+}

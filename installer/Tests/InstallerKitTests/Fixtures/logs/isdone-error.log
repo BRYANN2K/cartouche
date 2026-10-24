@@ -1,0 +1,9 @@
+2026-10-19 22:10:00.010   Log opened. (Time zone: UTC+02:00)
+2026-10-19 22:10:00.011   Setup version: Inno Setup version 5.5.0 (u)
+2026-10-19 22:10:04.200   Starting the installation process.
+2026-10-19 22:10:09.731   Message box (OK):
+                          ISDone.dll: It is not found any file specified for ISArcExtract
+2026-10-19 22:10:11.004   User chose OK.
+2026-10-19 22:10:11.020   Rolling back changes.
+2026-10-19 22:10:11.500   Deinitializing Setup.
+2026-10-19 22:10:11.501   Log closed.

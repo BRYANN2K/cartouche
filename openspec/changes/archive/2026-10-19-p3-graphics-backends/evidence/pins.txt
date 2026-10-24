@@ -1,0 +1,12 @@
+# GitHub REST API and raw files, checked 2026-10-19
+$ api.github.com/repos/3Shain/dxmt/releases/latest
+v0.80 2026-04-23T10:52:06Z
+  dxmt-v0.80-builtin.tar.gz 18681669 sha256:8f260e36b5739e68f3bad613381441385c4dc7b85b78ba8de653d5a6a264529d
+$ api.github.com/repos/Gcenx/DXVK-macOS/releases/latest
+v1.10.3-20230507-repack 2024-07-23T13:51:20Z
+  dxvk-macOS-async-v1.10.3-20230507-repack-builtin.tar.gz 2785833 sha256:810b1e5caf8ce975b784fae866a130ad23fa0ea233b0e5609cbc4a45f3ef6f00
+  dxvk-macOS-async-v1.10.3-20230507-repack.tar.gz 2793443 None
+$ raw.githubusercontent.com/3Shain/dxmt/v0.80/LICENSE, line 1
+MIT License
+$ raw.githubusercontent.com/Gcenx/DXVK-macOS/v1.10.3-20230507-repack/LICENSE, line 4
+                          zlib/libpng license

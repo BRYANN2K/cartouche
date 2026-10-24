@@ -1,0 +1,25 @@
+sigcheck rc=0 | signatures/macos.arm64/1790904859.json: 21 signatures, all referenced
+callscheck rc=0 | ==> 39 anchor cases resolve as expected
+webpatch-fixtures rc=0 | ==> gate table and 4 webpatch fixtures: anchors intact, drift refused
+peicon-fixtures rc=0 | ==> peicon fixtures: hostile resources bounded, valid icon intact
+panel-behavior rc=0 | ==> panel behavior: renders as expected, no stale arguments
+spawn-env rc=0 | ==> spawn env: steam_osx and Steam Helper keep the insert, every other child loses it
+activatecheck rc=0 | ==> activatecheck: Steam hands off after losing the menu bar and skips menu bar clicks
+compatcheck rc=0 | ==> backendcheck: all assertions hold
+compatsvc-check rc=0 | ==> compatsvc: the tool list, the none entry, the priorities, the specify handler, and the route states all answer
+shortcutcheck rc=0 | shortcut-launch: Steam-made shortcuts get artwork, custom icons and bad arguments are left alone
+launch-shell rc=0 | ==> launch-shell: all assertions hold
+envcheck rc=0 | ==> envcheck: all assertions hold
+buildcheck rc=0 | ==> buildcheck: all assertions hold
+settingscheck rc=0 | ==> settingscheck: all assertions hold
+routecheck rc=0 | ==> routecheck: all assertions hold
+bridgecheck rc=0 | ==> bridgecheck: the bridge stages on fresh, current, stale and incomplete prefixes
+gamedrivecheck rc=0 | gamedrivecheck: all passed
+launchercheck rc=0 | launchercheck: all passed
+seedcheck rc=0 | seedcheck: 0 failures
+backendcheck rc=0 | ==> backendcheck: all assertions hold
+packagingcheck rc=0 | OK
+runcheck rc=0 | ==> runcheck: shellcheck not present, skipped
+scriptcheck rc=0 | ==> scriptcheck: shellcheck not present, skipped
+redistscan rc=0 | ==> redist-scan: no Game Porting Toolkit file in .
+retroarch-tests rc=0 | ✔ Test run with 67 tests in 9 suites passed after 24.580 seconds.

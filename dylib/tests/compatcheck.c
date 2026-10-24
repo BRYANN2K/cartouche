@@ -1,0 +1,1359 @@
+// The layout probes read instruction words straight out of the client, and everything else
+// reaches it through a function pointer an installer sets. Including the unit rather than
+// linking points the probes at synthesised instructions and the pointers at stubs. No Steam.
+#include <dlfcn.h>
+#include <stdlib.h>
+
+static void *checked_calloc(size_t count, size_t size);
+static void checked_free(void *ptr);
+static void *checked_dlsym(void *handle, const char *name);
+
+#define calloc checked_calloc
+#define free checked_free
+#define dlsym checked_dlsym
+#include "../feats/compat.c"
+#undef calloc
+#undef free
+#undef dlsym
+#include "../feats/usershortcuts.c"
+
+#include <stdio.h>
+#include <pthread.h>
+#include <stdatomic.h>
+#include <sys/wait.h>
+
+static atomic_int home_calls;
+static atomic_int home_ready;
+
+// Silent, because half of these checks drive paths whose whole job is to refuse and log.
+int   np_log_level = -1;
+FILE *np_log_file  = NULL;
+
+int np_log_first_hit(const void *anchor, unsigned long tag) {
+    (void)anchor; (void)tag;
+    return 1;
+}
+
+static char test_home[768];
+
+const char *np_home_dir(void) {
+    if (atomic_fetch_add(&home_calls, 1) == 0) {
+        usleep(50000);
+        atomic_store(&home_ready, 1);
+    }
+    return test_home[0] ? test_home : "/nonexistent";
+}
+
+int np_get_section_containing(const struct mach_header_64 *mh, intptr_t slide,
+                              uintptr_t addr, uintptr_t *out_base, size_t *out_size) {
+    (void)mh; (void)slide; (void)addr; (void)out_base; (void)out_size;
+    return -1;
+}
+
+uintptr_t np_rtti_vptr(const struct mach_header_64 *mh, intptr_t slide,
+                       uintptr_t text_base, size_t text_size, const char *type_name) {
+    (void)mh; (void)slide; (void)text_base; (void)text_size; (void)type_name;
+    return 0;
+}
+
+static int failures;
+
+static void check(int ok, const char *what) {
+    if (!ok) {
+        printf("FAIL %s\n", what);
+        failures++;
+    }
+}
+
+static int track_registration, fail_calloc, missing_allocator;
+static int buffer_allocations, buffer_successes, buffer_frees, registration_calls, path_frees;
+static void *registration_buffer;
+static void *path_allocations[16];
+static int path_count;
+
+static void *checked_calloc(size_t count, size_t size) {
+    if (!track_registration) return calloc(count, size);
+    buffer_allocations++;
+    if (fail_calloc) return NULL;
+    registration_buffer = calloc(count, size);
+    buffer_successes += registration_buffer != NULL;
+    return registration_buffer;
+}
+
+static void checked_free(void *ptr) {
+    if (track_registration && ptr && ptr == registration_buffer) {
+        buffer_frees++;
+        registration_buffer = NULL;
+    }
+    for (int i = 0; i < path_count; i++)
+        check(!ptr || ptr != path_allocations[i], "Steam strings never reach libc free");
+    free(ptr);
+}
+
+static void stub_plat_free(void *ptr) {
+    for (int i = 0; i < path_count; i++) {
+        if (ptr && path_allocations[i] == ptr) {
+            path_allocations[i] = NULL;
+            path_frees++;
+            free(ptr);
+            return;
+        }
+    }
+    check(0, "Plat_Free receives only an owned path string, once");
+}
+
+static void *checked_dlsym(void *handle, const char *name) {
+    check(handle == RTLD_DEFAULT && !strcmp(name, "Plat_Free"),
+          "registration resolves Steam's exported deallocator");
+    return missing_allocator ? NULL : (void *)stub_plat_free;
+}
+
+static void *first_fallback(void *arg) {
+    int *ok = arg;
+    const char *name = np_compat_fallback_tool_name();
+    *ok = atomic_load(&home_ready) && strcmp(name, "cartouche-proton") == 0;
+    return NULL;
+}
+
+static void concurrent_fallback_cases(void) {
+    pthread_t threads[16];
+    int results[16] = {0};
+    size_t started = 0;
+    for (; started < 16; started++) {
+        if (pthread_create(&threads[started], NULL, first_fallback, &results[started]) != 0) {
+            check(0, "the fallback reader thread starts");
+            break;
+        }
+    }
+    for (size_t i = 0; i < started; i++) {
+        pthread_join(threads[i], NULL);
+        check(results[i], "every first fallback read waits for initialization");
+    }
+    check(atomic_load(&home_calls) == 2, "the tool list is initialized once");
+}
+
+// A64 encodings the probes look for.
+#define NOP 0xD503201Fu
+static uint32_t ldr32_x0(uint32_t off, uint32_t rt) { return 0xB9400000u | ((off / 4u) << 10) | rt; }
+static uint32_t ldr64(uint32_t base, uint32_t off, uint32_t rt) {
+    return 0xF9400000u | ((off / 8u) << 10) | (base << 5) | rt;
+}
+static uint32_t ldrb(uint32_t base, uint32_t off, uint32_t rt) {
+    return 0x39400000u | (off << 10) | (base << 5) | rt;
+}
+static uint32_t mov_x0(uint32_t rd) { return 0xAA0003E0u | rd; }
+static uint32_t cbz(int32_t words, uint32_t rt) {
+    return 0x34000000u | (((uint32_t)words & 0x7FFFFu) << 5) | rt;
+}
+
+// The gate the probe is handed: the appid load, a branch past it, and the install load
+// the branch lands near. Laid out in a fresh buffer so one case cannot feed the next.
+#define CODE_WORDS 64
+#define GATE_IDX   32
+static uint32_t code[CODE_WORDS];
+
+static uintptr_t build_gate(uint32_t appid_off, uint32_t install_off) {
+    for (int i = 0; i < CODE_WORDS; i++) code[i] = NOP;
+    code[GATE_IDX]     = ldr32_x0(appid_off, 3);
+    code[GATE_IDX + 1] = cbz(4, 3);                       // lands on GATE_IDX + 5
+    code[GATE_IDX + 5] = ldr64(0, install_off, 4);
+    return (uintptr_t)&code[GATE_IDX];
+}
+
+// The far-end corroboration: two loads through x21 inside the window the probe scans.
+static uint32_t oslist_code[CODE_WORDS];
+
+static uintptr_t build_oslist(uint32_t from_off, uint32_t to_off) {
+    for (int i = 0; i < CODE_WORDS; i++) oslist_code[i] = NOP;
+    oslist_code[GATE_IDX]     = ldr64(21, from_off, 1);
+    oslist_code[GATE_IDX + 1] = ldr64(21, to_off, 2);
+    return (uintptr_t)&oslist_code[GATE_IDX];
+}
+
+static void probe_cases(void) {
+    g_tool_shift = 0;
+    check(np_compat_probe_tool_layout(build_gate(0x60, 0x58), 0) == 1,
+          "the reference layout probes clean");
+    check(g_tool_shift == 0, "the reference layout reports no shift");
+    check(np_compat_tool_stride() == COMPAT_TOOL_STRIDE, "an unshifted entry keeps its stride");
+
+    g_tool_shift = 0;
+    check(np_compat_probe_tool_layout(build_gate(0x68, 0x60), 0) == 1,
+          "a client that grew the entry by 8 probes clean");
+    check(np_compat_tool_off(COMPAT_TOOL_APPID_OFF) == 0x68, "appid follows the shift");
+    check(np_compat_tool_off(COMPAT_TOOL_INSTALL_OFF) == 0x60, "install follows the shift");
+    check(np_compat_tool_off(COMPAT_TOOL_GATE_FLAGS_OFF) == COMPAT_TOOL_GATE_FLAGS_OFF,
+          "a field ahead of the insertion point does not follow the shift");
+    check(np_compat_tool_stride() == COMPAT_TOOL_STRIDE + 8, "the entry widens by what it moved");
+
+    // A shift already established has to survive a probe that cannot agree with itself,
+    // because a half-written layout is worse than the one being replaced.
+    g_tool_shift = 8;
+    check(np_compat_probe_tool_layout(build_gate(0x68, 0x58), 0) == 0,
+          "appid and install disagreeing about the shift is refused");
+    check(g_tool_shift == 8, "a refused probe leaves the shift alone");
+
+    g_tool_shift = 0;
+    check(np_compat_probe_tool_layout(0, 0) == 0, "no gate is refused");
+
+    for (int i = 0; i < CODE_WORDS; i++) code[i] = NOP;
+    check(np_compat_probe_tool_layout((uintptr_t)&code[GATE_IDX], 0) == 0,
+          "a gate that is not the appid load is refused");
+
+    uintptr_t gate = build_gate(0x60, 0x58);
+    code[GATE_IDX + 1] = NOP;
+    check(np_compat_probe_tool_layout(gate, 0) == 0, "an appid load with no branch after it is refused");
+
+    gate = build_gate(0x60, 0x58);
+    code[GATE_IDX + 5] = NOP;
+    check(np_compat_probe_tool_layout(gate, 0) == 0, "a branch landing on no install load is refused");
+}
+
+static void oslist_cases(void) {
+    g_tool_shift = 0;
+    check(np_compat_probe_tool_layout(build_gate(0x68, 0x60), build_oslist(0x78, 0x80)) == 1,
+          "the far end agreeing on the shift probes clean");
+    check(g_tool_shift == 8, "agreement at both ends keeps the shift");
+
+    g_tool_shift = 0;
+    check(np_compat_probe_tool_layout(build_gate(0x68, 0x60), build_oslist(0x70, 0x78)) == 0,
+          "the near fields moving and the oslist not is refused");
+    check(g_tool_shift == 0, "a far-end disagreement writes no shift");
+
+    // Whichever order the comparison loads them in, the higher offset is to_oslist.
+    g_tool_shift = 0;
+    check(np_compat_probe_tool_layout(build_gate(0x68, 0x60), build_oslist(0x80, 0x78)) == 1,
+          "the oslist pair is read by offset rather than by load order");
+}
+
+static void enabled_cases(void) {
+    g_enabled_off = COMPAT_MANAGER_ENABLED_OFF;
+
+    for (int i = 0; i < CODE_WORDS; i++) code[i] = NOP;
+    code[0] = mov_x0(21);
+    code[1] = ldrb(21, 0x7C0, 8);
+    check(np_compat_probe_enabled_off((uintptr_t)code) == 1, "the enabled flag probes clean");
+    check(np_compat_enabled_off() == 0x7C0, "the probed flag offset is what gets reported");
+
+    g_enabled_off = COMPAT_MANAGER_ENABLED_OFF;
+    for (int i = 0; i < CODE_WORDS; i++) code[i] = NOP;
+    code[0] = mov_x0(21);
+    code[1] = ldrb(21, 0x20, 8);
+    check(np_compat_probe_enabled_off((uintptr_t)code) == 0,
+          "a byte read too early in the object is not taken for the flag");
+    check(np_compat_enabled_off() == COMPAT_MANAGER_ENABLED_OFF,
+          "a refused flag probe leaves the baseline in place");
+
+    for (int i = 0; i < CODE_WORDS; i++) code[i] = NOP;
+    code[0] = ldrb(21, 0x7C0, 8);
+    check(np_compat_probe_enabled_off((uintptr_t)code) == 0,
+          "a body that never parks this in a register is refused");
+
+    check(np_compat_probe_enabled_off(0) == 0, "no function is refused");
+}
+
+// A manager holding `count` entries, the one at `named_slot` carrying the tool name.
+static uint8_t manager[0x400];
+static uint8_t entries[(COMPAT_MANAGER_TOOLS_HEADROOM + 64) * (COMPAT_TOOL_STRIDE + 64)];
+
+static void *build_manager(uint32_t count, int named_slot) {
+    memset(manager, 0, sizeof manager);
+    memset(entries, 0, sizeof entries);
+    *(uint8_t **)(manager + COMPAT_MANAGER_TOOL_ARRAY_OFF) = entries;
+    *(uint32_t *)(manager + COMPAT_MANAGER_TOOL_COUNT_OFF) = count;
+    if (named_slot >= 0) {
+        uint8_t *entry = entries + (size_t)named_slot * np_compat_tool_stride();
+        *(const char **)(entry + COMPAT_TOOL_NAME_OFF) = TOOL_DIR_NAME;
+    }
+    return manager;
+}
+
+static void manager_cases(void) {
+    g_tool_shift = 0;
+
+    void *mgr = build_manager(3, 1);
+    void *want = entries + np_compat_tool_stride();
+    check(np_compat_registered_tool(mgr) == want, "the entry registered under the tool name is found");
+
+    check(np_compat_registered_tool(build_manager(3, -1)) == NULL,
+          "a manager holding no entry of ours reports none");
+    check(np_compat_registered_tool(NULL) == NULL, "no manager reports no entry");
+
+    // A count this large means the offset it was read from moved, so the array it
+    // describes is not one to walk.
+    uint32_t cap = np_compat_manager_tools_max();
+    check(cap <= COMPAT_MANAGER_TOOLS_HEADROOM + 64, "the manager fixture holds the cap");
+    check(np_compat_registered_tool(build_manager(cap + 1, 1)) == NULL,
+          "a count past the cap is refused rather than walked");
+    check(np_compat_registered_tool(build_manager(cap, -1)) == NULL,
+          "a count at the cap is still walked");
+
+    mgr = build_manager(3, 1);
+    *(uint8_t **)((uint8_t *)mgr + COMPAT_MANAGER_TOOL_ARRAY_OFF) = NULL;
+    check(np_compat_registered_tool(mgr) == NULL, "a manager with no array is refused");
+
+    // The walk steps by the live stride, so an entry that grew is still found.
+    g_tool_shift = 8;
+    mgr = build_manager(3, 2);
+    check(np_compat_registered_tool(mgr) == entries + 2 * np_compat_tool_stride(),
+          "the walk steps by the live stride rather than the baseline");
+    g_tool_shift = 0;
+}
+
+static void stub_register_tool(void *mgr, void *source);
+
+// A shift past the registration buffer's headroom, or backwards into the fixed fields,
+// is refused and turns tool entries off rather than reading or freeing past the buffer.
+static void oversize_shift_cases(void) {
+    g_tool_shift = 0;
+    g_tool_layout_refused = 0;
+    check(np_compat_probe_tool_layout(build_gate(0x60 + COMPAT_TOOL_SHIFT_MAX,
+                                                 0x58 + COMPAT_TOOL_SHIFT_MAX), 0) == 1
+          && np_compat_tool_layout_ok() && g_tool_shift == COMPAT_TOOL_SHIFT_MAX,
+          "a shift at the headroom still fits the buffer");
+
+    g_tool_shift = 0;
+    check(np_compat_probe_tool_layout(build_gate(0x60 + COMPAT_TOOL_SHIFT_MAX + 8,
+                                                 0x58 + COMPAT_TOOL_SHIFT_MAX + 8), 0) == 0,
+          "a shift past the headroom is refused");
+    check(!np_compat_tool_layout_ok() && g_tool_shift == 0,
+          "a refused shift is not taken and turns the layout off");
+
+    tool_entry_t *saved_tools = g_tools;
+    int saved_count = g_tool_count, saved_present = g_tool_list_present;
+    int saved_loaded = g_lists_loaded;
+    int64_t saved_check = atomic_load(&g_tools_next_check);
+    tool_entry_t tools[1] = {0};
+    snprintf(tools[0].name, sizeof tools[0].name, "%s", TOOL_DIR_NAME);
+    g_tools = tools;
+    g_tool_count = 1;
+    g_tool_list_present = 1;
+    g_lists_loaded = 1;
+    atomic_store(&g_tools_next_check, INT64_MAX);
+    void *mgr = build_manager(3, 1);
+    check(np_compat_registered_tool(mgr) == NULL, "a refused layout finds no tool entry");
+    np_compat_set_register_fn((uintptr_t)stub_register_tool);
+    registration_calls = 0;
+    check(np_compat_register_crossover(mgr) == 0 && registration_calls == 0,
+          "a refused layout registers nothing");
+    np_compat_set_register_fn(0);
+
+    check(np_compat_probe_tool_layout(build_gate(0x58, 0x50), 0) == 0 && !np_compat_tool_layout_ok(),
+          "a negative shift is refused");
+
+    check(np_compat_probe_tool_layout(build_gate(0x60, 0x58), 0) == 1 && np_compat_tool_layout_ok(),
+          "a later clean probe turns the layout back on");
+    check(np_compat_registered_tool(mgr) == entries + np_compat_tool_stride(),
+          "a clean layout finds the entry again");
+
+    g_tools = saved_tools;
+    g_tool_count = saved_count;
+    g_tool_list_present = saved_present;
+    g_lists_loaded = saved_loaded;
+    atomic_store(&g_tools_next_check, saved_check);
+    g_tool_shift = 0;
+}
+
+#define REGISTRATION_CLIENT_SHIFT 8
+static const uint32_t registration_paths[] = {160, 168, 176, 216, 224, 232, 240, 288};
+static const uint32_t registration_strings[] = {
+    64, 80, 96, 120, 128, 160, 168, 176, 216, 224, 232, 240, 288
+};
+static int partial_paths;
+
+static void stub_register_tool(void *mgr, void *source) {
+    uint8_t *tool = source;
+    uint32_t *count = (uint32_t *)((uint8_t *)mgr + COMPAT_MANAGER_TOOL_COUNT_OFF);
+    uint8_t *copy = entries + (*count)++ * np_compat_tool_stride();
+    registration_calls++;
+    for (size_t i = 0; i < sizeof(registration_paths) / sizeof(*registration_paths); i++) {
+        if (partial_paths && i % 2) continue;
+        char *path = strdup("/pfx/drive_c/users/steamuser");
+        path_allocations[path_count++] = path;
+        *(char **)(tool + registration_paths[i] + g_tool_shift - REGISTRATION_CLIENT_SHIFT) = path;
+    }
+    memcpy(copy, tool, np_compat_tool_stride());
+    for (size_t i = 0; i < sizeof(registration_strings) / sizeof(*registration_strings); i++) {
+        uint32_t field = registration_strings[i];
+        uint32_t off = field + (field >= 96 ? g_tool_shift - REGISTRATION_CLIENT_SHIFT : 0);
+        const char *str = *(const char **)(tool + off);
+        *(char **)(copy + off) = str ? strdup(str) : NULL;
+    }
+}
+
+static void registration_case(int shift, int mode) {
+    tool_entry_t tools[2] = {0};
+    g_tool_shift = shift;
+    g_tools = tools;
+    g_tool_count = mode == 4 ? 0 : 2;
+    int existing = mode == 1 ? 2 : mode == 2 ? 1 : 0;
+    fail_calloc = mode == 3;
+    missing_allocator = mode == 5;
+    partial_paths = mode == 6;
+    build_manager(existing, -1);
+    for (int i = 0; i < g_tool_count; i++) {
+        snprintf(tools[i].name, sizeof(tools[i].name), "cartouche-%d", i);
+        snprintf(tools[i].display, sizeof(tools[i].display), "Tool %d", i);
+        snprintf(tools[i].dir, sizeof(tools[i].dir), "/tools/tool%d", i);
+        if (i < existing)
+            *(const char **)(entries + i * np_compat_tool_stride() + COMPAT_TOOL_NAME_OFF) = tools[i].name;
+    }
+    track_registration = 1;
+    np_compat_register_crossover(NULL);
+    np_compat_register_crossover(manager);
+    check(buffer_allocations == 0, "registration waits for a manager and function");
+    np_compat_set_register_fn((uintptr_t)stub_register_tool);
+    int added = np_compat_register_crossover(manager);
+    int expected = fail_calloc ? 0 : g_tool_count - existing;
+    check(added == expected, "registration reports the tools it added");
+    check(registration_calls == expected, "only missing tools are registered");
+    check(registration_buffer == NULL, "the temporary entry buffer is freed");
+    check(buffer_frees == buffer_successes, "each successful allocation is freed once");
+    check(path_frees == (missing_allocator ? 0 : path_count), "every owned path uses Plat_Free");
+    // The manager's copies are still live here, so a repeat pass finds every tool it
+    // already holds: nothing registers twice, and only a failed allocation is retried.
+    int attempts = buffer_allocations;
+    check(np_compat_register_crossover(manager) == 0
+          && registration_calls == expected
+          && buffer_allocations == attempts + (fail_calloc ? 1 : 0),
+          "repeated queries register nothing twice, retrying only a failed allocation");
+    for (int i = existing; i < existing + expected; i++) {
+        uint8_t *copy = entries + i * np_compat_tool_stride();
+        check(!strcmp(*(char **)(copy + COMPAT_TOOL_NAME_OFF), tools[i].name),
+              "the manager's name survives temporary cleanup");
+        for (size_t j = 0; j < sizeof(registration_strings) / sizeof(*registration_strings); j++) {
+            uint32_t field = registration_strings[j];
+            uint32_t off = field + (field >= 96 ? shift - REGISTRATION_CLIENT_SHIFT : 0);
+            char *str = *(char **)(copy + off);
+            if (field >= 160 && str)
+                check(!strcmp(str, "/pfx/drive_c/users/steamuser"), "the manager owns its path copy");
+            free(str);
+        }
+    }
+    for (int i = 0; i < path_count; i++) free(path_allocations[i]);
+    free(registration_buffer);
+}
+
+static void registration_cases(void) {
+    const int shifts[] = {0, 8, 64};
+    for (size_t i = 0; i < sizeof(shifts) / sizeof(*shifts); i++) {
+        for (int mode = 0; mode < 7; mode++) {
+            fflush(NULL);
+            pid_t child = fork();
+            if (child == 0) {
+                failures = 0;
+                registration_case(shifts[i], mode);
+                fflush(NULL);
+                _exit(failures ? 1 : 0);
+            }
+            int status = 0;
+            check(child > 0 && waitpid(child, &status, 0) == child &&
+                  WIFEXITED(status) && WEXITSTATUS(status) == 0,
+                  "registration ownership case passes");
+        }
+    }
+}
+
+static void tool_list_cases(void) {
+    static const char path[] = "out/compatcheck-tools";
+    FILE *f = fopen(path, "w");
+    if (!f) {
+        check(0, "the tool list fixture can be written");
+        return;
+    }
+    fputs("cartouche-proton\t27.0.0.40921-fex\tfex\tCrossOver Preview (FEX)\n"
+          "cartouche-proton-fex-41069\t27.0.0.41069-fex\tfex\tCrossOver Preview 41069 (FEX)\n"
+          "cartouche-proton-fex-rosetta\t27.0.0.40921-fex\trosetta\tCrossOver Preview (Rosetta)\n"
+          "cartouche-proton-26.3\t26.3.0.39832\trosetta\tCrossOver 26.3\n"
+          "cartouche-proton-wine-stable-11.0_1\twine-stable-11.0_1\trosetta\tWine 11.0\n"
+          "cartouche-proton-slash\twine/stable\trosetta\tSlash\n"
+          "cartouche-proton\t26.3.0.39832\trosetta\tDuplicate\n"
+          "proton-other\t1\trosetta\tForeign\n"
+          "cartouche-proton-x\t1\tarm\tBad flavor\n"
+          "cartouche-proton-q\t1\trosetta\tQuote\"d\n"
+          "cartouche-proton-short\t1\trosetta\n"
+          "\n", f);
+    fclose(f);
+
+    int kept = np_compat_load_tool_list(path, "/tools");
+    unlink(path);
+
+    check(kept == 5, "only well-formed, unique, cartouche-named lines are kept");
+    check(strcmp(g_tools[0].name, "cartouche-proton") == 0
+          && strcmp(g_tools[0].flavor, "fex") == 0, "the first line stays first");
+    check(strcmp(g_tools[3].build, "26.3.0.39832") == 0
+          && strcmp(g_tools[3].dir, "/tools/cartouche-proton-26.3") == 0,
+          "each tool carries its build and directory");
+    check(strcmp(g_tools[4].build, "wine-stable-11.0_1") == 0
+          && strcmp(g_tools[4].name, "cartouche-proton-wine-stable-11.0_1") == 0,
+          "a WineHQ build id may contain an underscore");
+
+    uint8_t *mgr = build_manager(3, -1);
+    *(const char **)(entries + np_compat_tool_stride() + COMPAT_TOOL_NAME_OFF) = "cartouche-proton-26.3";
+    check(np_compat_registered_tool(mgr) == entries + np_compat_tool_stride(),
+          "the most preferred tool the manager holds is the default");
+    *(const char **)(entries + COMPAT_TOOL_NAME_OFF) = "cartouche-proton";
+    check(np_compat_registered_tool(mgr) == entries,
+          "the first listed tool wins when the manager holds it");
+
+    const char *fex[3] = { NULL, NULL, NULL };
+    check(np_compat_fex_tools(fex, 3) == 2 && strcmp(fex[0], "cartouche-proton") == 0
+          && strcmp(fex[1], "cartouche-proton-fex-41069") == 0 && !fex[2],
+          "only the fex flavor counts as FEX, not a FEX build's Rosetta tool");
+    fex[0] = fex[1] = NULL;
+    check(np_compat_fex_tools(fex, 1) == 1 && strcmp(fex[0], "cartouche-proton") == 0 && !fex[1],
+          "the FEX list stops at its limit, keeping the first listed");
+
+    f = fopen(path, "w");
+    if (!f) {
+        check(0, "the long tool list fixture can be written");
+        return;
+    }
+    for (int i = 0; i < 40; i++)
+        fprintf(f, "cartouche-proton-%d\t1\trosetta\tTool %d\n", i, i);
+    fclose(f);
+    kept = np_compat_load_tool_list(path, "/tools");
+    unlink(path);
+    check(kept == 40 && strcmp(g_tools[39].name, "cartouche-proton-39") == 0
+          && strcmp(g_tools[0].dir, "/tools/cartouche-proton-0") == 0, "a long list keeps every tool");
+    check(strcmp(np_compat_fallback_tool_name(), "cartouche-proton-0") == 0,
+          "the fallback is the first configured tool");
+    check(np_compat_fex_tools(fex, 3) == 0, "a list with no FEX tool has no FEX names");
+
+    check(np_compat_load_tool_list("out/compatcheck-missing", "/tools") == 0
+          && !g_tool_list_present, "a missing list keeps no tools and says so");
+}
+
+static void tool_launch_cases(void) {
+    static const char *tool[] = {
+        "'/tools/compatibilitytools.d/cartouche-proton/.'/run waitforexitandrun  '/g/game.exe'",
+        "A=1 '/tools/compatibilitytools.d/cartouche-proton-26.3/.'/run waitforexitandrun  '/g/game.exe' -x",
+        "'/tools/compatibilitytools.d/cartouche-proton-fex-rosetta/.'/run run ",
+        "'/tools/compatibilitytools.d/cartouche-proton'/run waitforexitandrun  '/g/game.exe'",
+        "'/Volumes/Ext/Steam/compatibilitytools.d/cartouche-proton/.'/run waitforexitandrun '/g/game.exe'",
+    };
+    static const char *native[] = {
+        "'/g/Game.app' -windowed",
+        "'/g/Game.app/Contents/MacOS/Game'",
+        "'/tools/compatibilitytools.d/proton-other/.'/run waitforexitandrun '/g/game.exe'",
+        "'/tools/compatibilitytools.d/cartouche-proton/Game' -x",
+        "'/tools/compatibilitytools.d/cartouche-proton/sub/.'/run waitforexitandrun '/g/game.exe'",
+        "'/tools/compatibilitytools.d/cartouche-proton'/other '/g/game.exe'",
+        "",
+    };
+    for (size_t i = 0; i < sizeof(tool) / sizeof(tool[0]); i++)
+        check(np_compat_runs_tool(tool[i]), tool[i]);
+    for (size_t i = 0; i < sizeof(native) / sizeof(native[0]); i++)
+        check(!np_compat_runs_tool(native[i]), native[i]);
+    check(!np_compat_runs_tool(NULL), "no command line is no tool launch");
+
+    // What a stopped run script's argv[1] holds, before Steam's SIGTERM reaches it.
+    static const char *scripts[] = {
+        "/Users/u/Library/Application Support/Steam/compatibilitytools.d/cartouche-proton/./run",
+        "/Users/u/Library/Application Support/Steam/compatibilitytools.d/cartouche-proton-26.3/run",
+        "/Volumes/Ext/compatibilitytools.d/cartouche-proton-fex-41069-dxvk/run",
+    };
+    static const char *not_scripts[] = {
+        "run",
+        "/bin/sh",
+        "compatibilitytools.d/cartouche-proton/run",
+        "/x/compatibilitytools.d/proton-other/run",
+        "/x/compatibilitytools.d/cartouche-proton/runner",
+        "/x/compatibilitytools.d/cartouche-proton/sub/run",
+        "/x/compatibilitytools.d/cartouche-proton/../../bin/run",
+        "/x/compatibilitytools.d/cartouche-proton/run/compatibilitytools.d/cartouche-proton/run",
+        "/x/compatibilitytools.d/cartouche-proton/run waitforexitandrun",
+    };
+    for (size_t i = 0; i < sizeof(scripts) / sizeof(scripts[0]); i++)
+        check(np_compat_is_tool_run_path(scripts[i]), scripts[i]);
+    for (size_t i = 0; i < sizeof(not_scripts) / sizeof(not_scripts[0]); i++)
+        check(!np_compat_is_tool_run_path(not_scripts[i]), not_scripts[i]);
+    check(!np_compat_is_tool_run_path(NULL), "no path is no run script");
+}
+
+static int put(const char *dir, const char *name, const char *text) {
+    char path[768];
+    snprintf(path, sizeof(path), "%s/%s", dir, name);
+    FILE *f = fopen(path, "w");
+    if (!f) return -1;
+    fputs(text, f);
+    return fclose(f);
+}
+
+static int exists(const char *path) {
+    return access(path, F_OK) == 0;
+}
+
+static void stale_tool_cases(void) {
+    char root[] = "out/compatcheck-toolsd.XXXXXX";
+    if (!mkdtemp(root)) {
+        check(0, "the tools directory fixture can be made");
+        return;
+    }
+    char current[700], legacy[700], user[700], lookalike[700];
+    snprintf(current, sizeof(current), "%s/cartouche-proton-26.3", root);
+    snprintf(legacy, sizeof(legacy), "%s/cartouche-proton", root);
+    snprintf(user, sizeof(user), "%s/cartouche-proton-mine", root);
+    snprintf(lookalike, sizeof(lookalike), "%s/cartouche-proton-copy", root);
+    const char *dirs[] = { current, legacy, user, lookalike };
+    for (size_t i = 0; i < 4; i++) mkdir(dirs[i], 0755);
+
+    put(current, "flavor", "rosetta\n");
+    put(current, "run", "#!/bin/sh\n# cartouche CrossOver compatibility tool shim\n");
+    put(legacy, "run", "#!/bin/sh\n# cartouche CrossOver compatibility tool shim\nset -e\n");
+    put(legacy, "toolmanifest.vdf", "\"manifest\" {}\n");
+    put(legacy, "compatibilitytool.vdf", "\"compatibilitytools\" {}\n");
+    put(user, "run", "#!/bin/sh\nexec my-wine \"$@\"\n");
+    put(lookalike, "run", "#!/bin/sh\n# cartouche CrossOver compatibility tool shim\n");
+    put(lookalike, "notes.txt", "mine\n");
+
+    g_tool_count = 0;
+    remove_unlisted_tools(root);
+
+    check(!exists(current), "an unlisted tool with a flavor file is removed");
+    check(!exists(legacy), "the single-tool dylib's directory is removed");
+    check(exists(user), "a cartouche directory the user wrote stays");
+    char notes[768];
+    snprintf(notes, sizeof(notes), "%s/notes.txt", lookalike);
+    check(exists(notes), "files this project did not write stay with their directory");
+
+    remove(notes);
+    char path[768];
+    snprintf(path, sizeof(path), "%s/run", user);
+    remove(path);
+    rmdir(user);
+    rmdir(lookalike);
+    rmdir(root);
+}
+
+static int read_back(const char *dir, const char *name, char *out, size_t size) {
+    char path[768];
+    snprintf(path, sizeof(path), "%s/%s", dir, name);
+    FILE *f = fopen(path, "r");
+    if (!f) return -1;
+    size_t got = fread(out, 1, size - 1, f);
+    out[got] = '\0';
+    fclose(f);
+    return 0;
+}
+
+// One tool per runner tool and graphics backend pair, after the runner tools
+static void backend_list_cases(void) {
+    static const char tools[] = "out/compatcheck-tools";
+    static const char pairs[] = "out/compatcheck-backend-tools";
+    FILE *f = fopen(tools, "w");
+    FILE *g = fopen(pairs, "w");
+    if (!f || !g) {
+        check(0, "the backend list fixtures can be written");
+        if (f) fclose(f);
+        if (g) fclose(g);
+        return;
+    }
+    fputs("cartouche-proton-26.3\t26.3.0.39832\trosetta\tCrossOver 26.3\n"
+          "cartouche-proton-fex-41073\t27.0.0.41073-fex\tfex\tCrossOver 2026 10 15-ARM64 - FEX\n", f);
+    fclose(f);
+    fputs("cartouche-proton-26.3-d3dmetal\t26.3.0.39832\trosetta\td3dmetal\tCrossOver 26.3 \xc2\xb7 D3DMetal\n"
+          "cartouche-proton-26.3-dxmt\t26.3.0.39832\trosetta\tdxmt\tCrossOver 26.3 \xc2\xb7 DXMT\n"
+          "cartouche-proton-fex-41073-dxvk\t27.0.0.41073-fex\tfex\tdxvk\tCrossOver 2026 10 15-ARM64 - FEX \xc2\xb7 DXVK\n"
+          "cartouche-proton-26.3-metal\t26.3.0.39832\trosetta\tmetal\tUnknown backend\n"
+          "cartouche-proton-26.3-four\t26.3.0.39832\trosetta\tNo backend field\n"
+          "cartouche-proton-26.3\t26.3.0.39832\trosetta\tdxmt\tTakes a runner tool's name\n"
+          "proton-other-dxmt\t1\trosetta\tdxmt\tForeign\n"
+          "cartouche-proton-26.3-wined3d\t26.3.0.39832\trosetta\twined3d\tCrossOver 26.3 \xc2\xb7 wined3d\n", g);
+    fclose(g);
+
+    int base = np_compat_load_tool_list(tools, "/tools");
+    int added = np_compat_load_backend_tool_list(pairs, "/tools");
+    check(base == 2 && added == 4 && g_tool_count == 6,
+          "four well-formed pairs follow the two runner tools, the rest are skipped");
+    check(strcmp(g_tools[0].name, "cartouche-proton-26.3") == 0 && !g_tools[0].backend[0]
+          && strcmp(np_compat_fallback_tool_name(), "cartouche-proton-26.3") == 0,
+          "a runner tool stays first and stays the default");
+    check(strcmp(g_tools[2].name, "cartouche-proton-26.3-d3dmetal") == 0
+          && strcmp(g_tools[2].backend, "d3dmetal") == 0
+          && strcmp(g_tools[2].display, "CrossOver 26.3 \xc2\xb7 D3DMetal") == 0
+          && strcmp(g_tools[2].dir, "/tools/cartouche-proton-26.3-d3dmetal") == 0,
+          "a pair carries its backend, its \"<runner> \xc2\xb7 <backend>\" name and its directory");
+    check(strcmp(g_tools[4].backend, "dxvk") == 0 && strcmp(g_tools[4].flavor, "fex") == 0,
+          "a FEX tool's pair keeps the FEX flavor");
+    check(strcmp(g_tools[5].backend, "wined3d") == 0, "lines after a bad one are still read");
+    const char *fex[4] = { NULL, NULL, NULL, NULL };
+    check(np_compat_fex_tools(fex, 4) == 2 && strcmp(fex[1], "cartouche-proton-fex-41073-dxvk") == 0,
+          "FEX pairs count as FEX tools");
+    check(np_compat_load_backend_tool_list("out/compatcheck-missing", "/tools") == 0 && g_tool_count == 6,
+          "a missing backend list adds nothing and keeps the runner tools");
+
+    char root[] = "out/compatcheck-pairs.XXXXXX";
+    if (!mkdtemp(root)) {
+        check(0, "the pair directory fixture can be made");
+        unlink(tools);
+        unlink(pairs);
+        return;
+    }
+    for (int i = 0; i < g_tool_count; i++)
+        snprintf(g_tools[i].dir, sizeof(g_tools[i].dir), "%s/%s", root, g_tools[i].name);
+    char text[64];
+    check(write_tool(&g_tools[3]) == 0 && read_back(g_tools[3].dir, "backend", text, sizeof(text)) == 0
+          && strcmp(text, "dxmt\n") == 0, "a pair's directory names its backend for the run script");
+    check(read_back(g_tools[3].dir, "build", text, sizeof(text)) == 0 && strcmp(text, "26.3.0.39832\n") == 0
+          && read_back(g_tools[3].dir, "flavor", text, sizeof(text)) == 0 && strcmp(text, "rosetta\n") == 0,
+          "a pair runs the same build and flavor as its runner tool");
+    char decl[512];
+    check(read_back(g_tools[3].dir, "compatibilitytool.vdf", decl, sizeof(decl)) == 0
+          && strstr(decl, "\"display_name\" \"CrossOver 26.3 \xc2\xb7 DXMT\"") != NULL,
+          "Steam's menu shows the pair as \"<runner> \xc2\xb7 <backend>\"");
+    // A tool that lost its backend loses the file too
+    mkdir(g_tools[0].dir, 0755);
+    put(g_tools[0].dir, "backend", "dxvk\n");
+    char stale[768];
+    snprintf(stale, sizeof(stale), "%s/backend", g_tools[0].dir);
+    check(write_tool(&g_tools[0]) == 0 && !exists(stale), "a runner tool has no backend file");
+
+    // Unlisting the pair removes every file it wrote, the backend file included
+    g_tool_count = 1;
+    remove_unlisted_tools(root);
+    check(!exists(g_tools[3].dir), "an unlisted pair is removed whole");
+    check(exists(g_tools[0].dir), "a listed tool stays");
+
+    static const char *const files[] = {
+        "compatibilitytool.vdf", "toolmanifest.vdf", "run", "flavor", "build", "backend",
+    };
+    for (size_t i = 0; i < sizeof(files) / sizeof(files[0]); i++) {
+        char path[768];
+        snprintf(path, sizeof(path), "%s/%s", g_tools[0].dir, files[i]);
+        unlink(path);
+    }
+    rmdir(g_tools[0].dir);
+    rmdir(root);
+    unlink(tools);
+    unlink(pairs);
+    g_tool_count = 0;
+}
+
+static uint32_t stub_platforms_value;
+static uint32_t stub_platforms(void *mgr, uint32_t appid) {
+    (void)mgr; (void)appid;
+    return stub_platforms_value;
+}
+
+static const char *stub_mapping_entry[3];
+static void *stub_find_mapping(void *mgr, uint32_t appid) {
+    (void)mgr; (void)appid;
+    return stub_mapping_entry;
+}
+
+static uint32_t last_priority;
+static uint32_t last_appid;
+static void stub_set_mapping(void *mgr, uint32_t appid, const char *tool_name,
+                             const char *config, uint32_t priority) {
+    (void)mgr; (void)tool_name; (void)config;
+    last_appid = appid;
+    last_priority = priority;
+}
+
+static void installed_fn_cases(void) {
+    // Nothing installed is the state before the client has given the function up, and
+    // every one of these reads as "cannot say" rather than as an answer.
+    g_get_valid_platforms = NULL;
+    g_find_mapping = NULL;
+    check(np_compat_valid_platforms(manager, 7) == 0, "no platforms function reports no platform");
+    check(np_compat_would_force(manager, 7) == false, "no platforms function forces nothing");
+    check(np_compat_app_mapping(manager, 7) == NULL, "no mapping function reports no mapping");
+
+    np_compat_set_valid_platforms_fn((uintptr_t)stub_platforms);
+    stub_platforms_value = COMPAT_PLATFORM_WINDOWS;
+    check(np_compat_would_force(manager, 7), "a windows-only app takes the default");
+
+    stub_platforms_value = COMPAT_PLATFORM_WINDOWS | COMPAT_PLATFORM_MACOS;
+    check(!np_compat_would_force(manager, 7), "an app with a macOS build is left alone");
+
+    stub_platforms_value = COMPAT_PLATFORM_MACOS;
+    check(!np_compat_would_force(manager, 7), "a macOS-only app is left alone");
+
+    stub_platforms_value = COMPAT_PLATFORM_WINDOWS;
+    check(!np_compat_would_force(manager, 0), "appid zero is not an app to force");
+    check(np_compat_valid_platforms(NULL, 7) == 0, "no manager reports no platform");
+
+    np_compat_set_app_mapping_fn((uintptr_t)stub_find_mapping);
+    stub_mapping_entry[0] = "cartouche-proton";
+    check(np_compat_app_mapping(manager, 7) != NULL, "a mapped app reports its entry");
+    check(strcmp(np_compat_app_mapping(manager, 7), "cartouche-proton") == 0,
+          "the name in the entry is what comes back");
+    check(np_compat_app_mapping(manager, 0) == NULL,
+          "appid zero is refused rather than reaching the global entry");
+
+    // An entry naming nothing is how the client holds an app that was taken off tools.
+    stub_mapping_entry[0] = "";
+    check(np_compat_app_mapping(manager, 7) == NULL, "an empty name reports no mapping");
+    stub_mapping_entry[0] = NULL;
+    check(np_compat_app_mapping(manager, 7) == NULL, "an entry naming nothing reports no mapping");
+
+    np_compat_set_mapping_fn((uintptr_t)stub_set_mapping);
+    last_priority = 0;
+    np_compat_map_tool(manager, 7, "cartouche-proton");
+    check(last_appid == 7 && last_priority == COMPAT_MAPPING_PRIORITY_APP,
+          "an app mapping outranks the global one");
+
+    last_priority = 0;
+    np_compat_map_tool(manager, 0, "cartouche-proton");
+    check(last_appid == 0 && last_priority == COMPAT_MAPPING_PRIORITY_GLOBAL,
+          "the global mapping stays under the threshold that skips the platform check");
+
+    last_priority = 0;
+    np_compat_map_tool(manager, 7, NULL);
+    check(last_priority == 0, "mapping an app to no tool at all reaches the client as nothing");
+}
+
+static const uint32_t SET_SHORTCUT_EXE[] = {
+    0xD10103FF, 0xA90157F6, 0xA9024FF4, 0xA9037BFD, 0x9100C3FD, 0xAA0303F3, 0xB940380A,
+    0x3100055F, 0x54000200, 0xAA0003F4, 0xF9402808, 0x91001109, 0x93407D4A, 0x8B0A150B,
+    0xB940116D, 0xAA0803EC, 0x6B0101BF, 0x54000068, 0xAA0903EC, 0x54000222, 0xD37BE94A,
+    0xB86A698A, 0x3100055F, 0x54FFFEA1, 0xB40000D3, 0xF90003E1, 0x900056E1, 0x912B9021,
+    0xAA1303E0, 0x94167236, 0x52800000, 0xA9437BFD, 0xA9424FF4, 0xA94157F6, 0x910103FF,
+    0xD65F03C0, 0xF9400D75, 0x910042A0, 0xAA0203E1, 0x9416718C, 0xAA1503E0, 0xAA1303E1,
+    0x9400000B, 0xB40000B3, 0xF9400268, 0xB4000068, 0x39400108, 0x35FFFDE8, 0xAA1403E0,
+    0xAA1503E1, 0x97FFFDB6, 0x52800020, 0x17FFFFEB,
+};
+#define SET_EXE_NOTIFY_BL 50
+
+static const uint32_t SHORTCUT_NOTIFY[] = {
+    0xD100C3FF, 0xA9014FF4, 0xA9027BFD, 0x910083FD, 0xAA0003F3, 0xB9400028, 0xB9000BE8,
+    0xF9403428, 0xF100011F, 0x1A9F07E8, 0x390033E8, 0xF9400414,
+};
+
+static const uint32_t GET_WILDCARD_MAPPING[0x100 / sizeof(uint32_t)] = {
+    0xD10143FF, 0xA90257F6, 0xA9034FF4, 0xA9047BFD, 0x910103FD, 0x34000541, 0xAA0103F4,
+    0xAA0003F5, 0xB90017FF, 0x910FE000, 0x910053E1, 0x97FFFF0B, 0xAA0003F3, 0xB4000180,
+    0xF9400268, 0xB9401108, 0x7103E91F, 0x5400010B, 0xF90003F4, 0xF0008E20, 0x912A6000,
+    0x900077E1, 0x91024C21, 0x97E8D865, 0x14000023, 0xB9001FF4, 0x39006FFF, 0x911A62A0,
+    0x910073E1, 0x91006FE2, 0x97FF0A8C, 0x340003C0,
+};
+#define WILDCARD_LOOKUP_BL 30
+
+#define NOTIFY_AT 64
+
+static uintptr_t bl_dest(const uint32_t *at) {
+    uintptr_t target = 0;
+    a64_bl((uintptr_t)at, *at, &target);
+    return target;
+}
+
+static void shortcut_probe_cases(void) {
+    static uint32_t code[NOTIFY_AT + 16];
+    memcpy(code, SET_SHORTCUT_EXE, sizeof(SET_SHORTCUT_EXE));
+    memcpy(code + NOTIFY_AT, SHORTCUT_NOTIFY, sizeof(SHORTCUT_NOTIFY));
+    code[SET_EXE_NOTIFY_BL] = 0x94000000u | (uint32_t)(NOTIFY_AT - SET_EXE_NOTIFY_BL);
+
+    check(probe_layout((uintptr_t)code, (uintptr_t)code, sizeof(code)) == 1,
+          "SetShortcutExe gives up the table layout");
+    check(g_layout.root == 0x38 && g_layout.nodes == 0x50 && g_layout.stride == 32,
+          "the tree root, node array and stride come from the walk");
+    check(g_layout.key == 0x10 && g_layout.value == 0x18,
+          "a node keys on the appid and points at the shortcut");
+    check(g_layout.exe == 0x10 && g_layout.remote == 0x68,
+          "the exe string and the remote id come from the setter and its notify");
+
+    layout_t kept = g_layout;
+    code[SET_EXE_NOTIFY_BL] = 0xD503201Fu;
+    check(probe_layout((uintptr_t)code, (uintptr_t)code, sizeof(code)) == 0,
+          "a setter that never notifies is refused");
+    check(memcmp(&g_layout, &kept, sizeof(kept)) == 0, "a refused walk keeps the last layout");
+    check(probe_layout(0, 0, 0) == 0, "an unresolved setter is refused");
+    code[SET_EXE_NOTIFY_BL] = 0x94000000u | (uint32_t)(NOTIFY_AT - SET_EXE_NOTIFY_BL);
+    check(probe_layout((uintptr_t)code, (uintptr_t)code, NOTIFY_AT * 4) == 0,
+          "a notify outside the text section is refused");
+
+    const uint32_t *call = &GET_WILDCARD_MAPPING[WILDCARD_LOOKUP_BL];
+    check(np_compat_probe_windows_only_off((uintptr_t)GET_WILDCARD_MAPPING,
+                                           bl_dest(call)) == 1,
+          "the lookup call in GetWildcardMapping gives up its table");
+    check(g_windows_only_off == 0x698, "the table is the call's first argument");
+
+    g_windows_only_off = 0;
+    check(np_compat_probe_windows_only_off((uintptr_t)GET_WILDCARD_MAPPING,
+                                           bl_dest(call) + 4) == 0,
+          "a lookup GetWildcardMapping never calls is refused");
+    check(g_windows_only_off == 0, "a refused probe leaves no table");
+}
+
+#define TEST_USER_SIZE       0x10000
+#define TEST_SHORTCUTS_OFF   0x5CC8
+#define TEST_GATE_OFF        0x698
+#define TEST_MANAGER_SIZE    0x800
+
+typedef struct {
+    uint8_t *mgr;
+    uint8_t *user;
+    uint8_t  nodes[3][32];
+    uint8_t *shortcut[3];
+} shortcut_world_t;
+
+static const uint32_t world_appid[3] = { 0x80000002u, 0x80000001u, 0x80000003u };
+
+static void put_node(shortcut_world_t *w, int i, int32_t left, int32_t right) {
+    memcpy(w->nodes[i] + NODE_LEFT_OFF, &left, sizeof(left));
+    memcpy(w->nodes[i] + NODE_RIGHT_OFF, &right, sizeof(right));
+    memcpy(w->nodes[i] + 0x10, &world_appid[i], sizeof(uint32_t));
+    memcpy(w->nodes[i] + 0x18, &w->shortcut[i], sizeof(uint8_t *));
+}
+
+static void set_exe(shortcut_world_t *w, int i, const char *exe) {
+    memcpy(w->shortcut[i] + 0x10, &exe, sizeof(exe));
+}
+
+static void build_world(shortcut_world_t *w) {
+    w->mgr  = calloc(1, TEST_MANAGER_SIZE);
+    w->user = calloc(1, TEST_USER_SIZE);
+    memcpy(w->mgr + COMPAT_MANAGER_USER_OFF, &w->user, sizeof(w->user));
+
+    uint8_t *shortcuts = w->user + TEST_SHORTCUTS_OFF;
+    memcpy(shortcuts, &g_vptr, sizeof(g_vptr));
+    int32_t root = 0;
+    memcpy(shortcuts + 0x38, &root, sizeof(root));
+    uint8_t *nodes = &w->nodes[0][0];
+    memcpy(shortcuts + 0x50, &nodes, sizeof(nodes));
+
+    for (int i = 0; i < 3; i++) w->shortcut[i] = calloc(1, 0x80);
+    put_node(w, 0, 1, 2);
+    put_node(w, 1, NODE_NONE, NODE_NONE);
+    put_node(w, 2, NODE_NONE, NODE_NONE);
+}
+
+static void free_world(shortcut_world_t *w) {
+    for (int i = 0; i < 3; i++) free(w->shortcut[i]);
+    free(w->user);
+    free(w->mgr);
+}
+
+static void shortcut_exe_cases(void) {
+    static const char vptr_target = 0;
+    g_vptr = (uintptr_t)&vptr_target;
+    atomic_store(&g_shortcuts_off, 0);
+    atomic_store(&g_scan_missed, 0);
+
+    shortcut_world_t w = {0};
+    build_world(&w);
+
+    set_exe(&w, 0, "\"C:\\Games\\Game.EXE\"");
+    set_exe(&w, 1, "/Applications/Game/run.exe");
+    set_exe(&w, 2, "\"/Applications/Game.app\"");
+
+    check(np_usershortcuts_runs_exe(w.user, world_appid[0]), "a quoted browsed exe takes the default");
+    check(atomic_load(&g_shortcuts_off) == TEST_SHORTCUTS_OFF,
+          "the table is found inside CUser by its vptr");
+    check(np_usershortcuts_runs_exe(w.user, world_appid[1]), "a typed unquoted exe takes the default");
+    check(!np_usershortcuts_runs_exe(w.user, world_appid[2]), "a Mac app is left alone");
+    check(!np_usershortcuts_runs_exe(w.user, 0x80000004u), "an appid with no shortcut is left alone");
+    check(!np_usershortcuts_runs_exe(w.user, 0x00000002u), "a Steam appid is never a shortcut");
+    check(!np_usershortcuts_runs_exe(NULL, world_appid[0]), "no user answers no");
+
+    set_exe(&w, 2, "C:\\Games\\setup.Exe");
+    check(np_usershortcuts_runs_exe(w.user, world_appid[2]), "the extension matches in any case");
+    set_exe(&w, 2, "C:\\Games\\launch.exe.bat");
+    check(!np_usershortcuts_runs_exe(w.user, world_appid[2]), "only the last extension counts");
+    set_exe(&w, 2, "C:\\Games.exe\\launcher");
+    check(!np_usershortcuts_runs_exe(w.user, world_appid[2]), "a dot in a folder name is no extension");
+    set_exe(&w, 2, "");
+    check(!np_usershortcuts_runs_exe(w.user, world_appid[2]), "an empty exe is left alone");
+    set_exe(&w, 2, NULL);
+    check(!np_usershortcuts_runs_exe(w.user, world_appid[2]), "a shortcut with no exe is left alone");
+    set_exe(&w, 2, (const char *)(uintptr_t)0x10);
+    check(!np_usershortcuts_runs_exe(w.user, world_appid[2]), "an exe pointer below 4 GB is not read");
+    set_exe(&w, 2, &"C:\\Games\\setup.exe"[1]);
+    check(np_usershortcuts_runs_exe(w.user, world_appid[2]), "an unaligned exe string is still read");
+
+    put_node(&w, 2, NODE_NONE, 0);
+    check(!np_usershortcuts_runs_exe(w.user, 0x80000004u), "a looping tree stops at the depth cap");
+    put_node(&w, 2, NODE_NONE, -2);
+    check(!np_usershortcuts_runs_exe(w.user, 0x80000004u), "a corrupt node index stops the walk");
+    put_node(&w, 2, NODE_NONE, NODE_NONE);
+
+    uint64_t remote = 0x1234;
+    memcpy(w.shortcut[1] + 0x68, &remote, sizeof(remote));
+    check(!np_usershortcuts_runs_exe(w.user, world_appid[1]), "a remote client's shortcut is left alone");
+    remote = 0;
+    memcpy(w.shortcut[1] + 0x68, &remote, sizeof(remote));
+
+    check(np_compat_user(w.mgr) == w.user, "the manager hands over its CUser");
+    g_windows_only_off = TEST_GATE_OFF;
+    check(np_compat_is_windows_only_table(w.mgr, w.mgr + TEST_GATE_OFF),
+          "the probed table is the windows-only one");
+    check(!np_compat_is_windows_only_table(w.mgr, w.mgr + TEST_GATE_OFF - 0x60),
+          "any other table is not");
+    check(!np_compat_is_windows_only_table(NULL, w.mgr + TEST_GATE_OFF),
+          "no manager has no table");
+    g_windows_only_off = 0;
+    check(!np_compat_is_windows_only_table(w.mgr, w.mgr),
+          "without a probed table nothing matches");
+
+    memset(w.user + TEST_SHORTCUTS_OFF, 0, sizeof(uintptr_t));
+    atomic_store(&g_shortcuts_off, 0);
+    check(!np_usershortcuts_runs_exe(w.user, world_appid[0]), "a CUser with no table answers no");
+    check(atomic_load(&g_scan_missed) == (uintptr_t)w.user, "the failed search is remembered");
+
+    uint8_t *other = calloc(1, TEST_USER_SIZE);
+    memcpy(other + TEST_SHORTCUTS_OFF, w.user + TEST_SHORTCUTS_OFF, 0x60);
+    memcpy(other + TEST_SHORTCUTS_OFF, &g_vptr, sizeof(g_vptr));
+    check(np_usershortcuts_runs_exe(other, world_appid[0]), "a new CUser is searched again");
+
+    int32_t empty = NODE_NONE;
+    memcpy(other + TEST_SHORTCUTS_OFF + 0x38, &empty, sizeof(empty));
+    check(!np_usershortcuts_runs_exe(other, world_appid[0]), "an empty tree has no shortcuts");
+    free(other);
+
+    free_world(&w);
+}
+
+static char mapped_tools[8][64];
+static uint32_t mapped_apps[8];
+static uint32_t mapped_priorities[8];
+static int mapped_count;
+static void record_mapping(void *mgr, uint32_t appid, const char *tool_name,
+                           const char *config, uint32_t priority) {
+    (void)mgr; (void)config;
+    if (mapped_count >= 8) return;
+    mapped_apps[mapped_count] = appid;
+    mapped_priorities[mapped_count] = priority;
+    snprintf(mapped_tools[mapped_count], sizeof(mapped_tools[0]), "%s", tool_name);
+    mapped_count++;
+}
+
+// The per-game choices Cartouche leaves for Steam
+static void request_cases(void) {
+    static const char path[] = "out/compatcheck-compat-requests";
+    uint8_t manager[16] = { 0 };
+    np_compat_set_mapping_fn((uintptr_t)record_mapping);
+    mapped_count = 0;
+
+    check(np_compat_apply_requests_from(manager, path) == 0 && mapped_count == 0,
+          "no request file maps nothing");
+
+    FILE *f = fopen(path, "w");
+    if (!f) {
+        check(0, "the request fixture can be written");
+        return;
+    }
+    fputs("1245620\tcartouche-proton-26.3-d3dmetal\n"
+          "413150\t\n"
+          "730\tproton_9\n"
+          "0\tcartouche-proton-26.3-dxmt\n"
+          "0\t\n"
+          "12x\tcartouche-proton-26.3-dxmt\n"
+          "99999999999\tcartouche-proton-26.3-dxmt\n"
+          "no tab here\n"
+          "570\tcartouche-proton-fex-41073-dxvk\r\n", f);
+    fclose(f);
+
+    // Without the client's mapping function nothing is applied and nothing is lost
+    np_compat_set_mapping_fn(0);
+    check(np_compat_apply_requests_from(manager, path) == 0 && exists(path),
+          "requests wait while the mapping function is missing");
+    np_compat_set_mapping_fn((uintptr_t)record_mapping);
+
+    int applied = np_compat_apply_requests_from(manager, path);
+    check(applied == 4 && mapped_count == 4, "four well-formed requests are applied, the rest skipped");
+    check(mapped_apps[0] == 1245620 && strcmp(mapped_tools[0], "cartouche-proton-26.3-d3dmetal") == 0
+          && mapped_priorities[0] == COMPAT_MAPPING_PRIORITY_APP,
+          "a game is mapped to the pair Cartouche chose, as a per-app choice");
+    check(mapped_apps[1] == 413150 && mapped_tools[1][0] == '\0',
+          "an empty tool clears the forced tool, back to the Mac version");
+    check(mapped_apps[2] == 0 && strcmp(mapped_tools[2], "cartouche-proton-26.3-dxmt") == 0
+          && mapped_priorities[2] == COMPAT_MAPPING_PRIORITY_GLOBAL,
+          "app 0 sets the default for every other Windows game, and is never cleared");
+    check(mapped_apps[3] == 570 && strcmp(mapped_tools[3], "cartouche-proton-fex-41073-dxvk") == 0,
+          "a CRLF line is read as its tool");
+    check(!exists(path) && !exists("out/compatcheck-compat-requests.applying"),
+          "the request file is consumed, so Steam's own later choice is not overridden");
+
+    mapped_count = 0;
+    check(np_compat_apply_requests_from(manager, path) == 0 && mapped_count == 0,
+          "a consumed file is not applied twice");
+    check(np_compat_apply_requests_from(NULL, path) == 0, "no manager, nothing applied");
+
+    // A line over the buffer is read in two pieces; neither maps anything, and the
+    // line after it still applies
+    f = fopen(path, "w");
+    if (!f) {
+        check(0, "the request fixture can be written");
+        return;
+    }
+    fprintf(f, "620\tcartouche-proton-26.3%-300s-dxmt\n", "x");
+    fputs("1245620\tcartouche-proton-26.3-dxvk\n", f);
+    fclose(f);
+    check(np_compat_apply_requests_from(manager, path) == 1 && mapped_count == 1
+          && mapped_apps[0] == 1245620,
+          "an over-long line maps nothing and does not eat the next line");
+
+    // A crash after the rename leaves the requests behind; the next pass applies them
+    mapped_count = 0;
+    f = fopen("out/compatcheck-compat-requests.applying", "w");
+    if (!f) {
+        check(0, "the request fixture can be written");
+        return;
+    }
+    fputs("413150\tcartouche-proton-26.3-dxmt\n", f);
+    fclose(f);
+    check(np_compat_apply_requests_from(manager, path) == 1 && mapped_count == 1
+          && mapped_apps[0] == 413150
+          && !exists("out/compatcheck-compat-requests.applying"),
+          "a leftover .applying file is applied, not orphaned");
+
+    // A leftover and a fresh file together: the rename must not replace the leftover
+    // unread, and the older requests go first so the newer ones win.
+    mapped_count = 0;
+    f = fopen("out/compatcheck-compat-requests.applying", "w");
+    if (!f) {
+        check(0, "the request fixture can be written");
+        return;
+    }
+    fputs("413150\tcartouche-proton-26.3-dxmt\n", f);
+    fclose(f);
+    f = fopen(path, "w");
+    if (!f) {
+        check(0, "the request fixture can be written");
+        return;
+    }
+    fputs("413150\tcartouche-proton-26.3-dxvk\n", f);
+    fclose(f);
+    check(np_compat_apply_requests_from(manager, path) == 2 && mapped_count == 2
+          && strcmp(mapped_tools[0], "cartouche-proton-26.3-dxmt") == 0
+          && strcmp(mapped_tools[1], "cartouche-proton-26.3-dxvk") == 0,
+          "a leftover is applied before a fresh file takes its name");
+    check(!exists(path) && !exists("out/compatcheck-compat-requests.applying"),
+          "both request files are consumed");
+    np_compat_set_mapping_fn(0);
+}
+
+static void mkdirs(const char *path);
+
+// Tool files are replaced whole, left alone when current, and only steam_osx writes them.
+static void tool_file_cases(void) {
+    char root[] = "out/compatcheck-files.XXXXXX";
+    if (!mkdtemp(root)) {
+        check(0, "the tool file fixture directory can be made");
+        return;
+    }
+    char path[768];
+    snprintf(path, sizeof path, "%s/run", root);
+
+    check(write_file(path, "#!/bin/sh\n", 1) == 1, "a missing file is written");
+    struct stat a, b;
+    check(stat(path, &a) == 0 && (a.st_mode & 0777) == 0755, "an executable gets 0755");
+    check(write_file(path, "#!/bin/sh\n", 1) == 0, "an unchanged file is left alone");
+    check(stat(path, &b) == 0 && a.st_ino == b.st_ino, "an unchanged file keeps its inode");
+
+    check(write_file(path, "#!/bin/sh\nexit 0\n", 1) == 1, "changed content is written");
+    char got[64];
+    check(read_back(root, "run", got, sizeof got) == 0 && strcmp(got, "#!/bin/sh\nexit 0\n") == 0,
+          "the new content is in place");
+    check(stat(path, &b) == 0 && a.st_ino != b.st_ino,
+          "a change replaces the file rather than rewriting it in place");
+
+    chmod(path, 0644);
+    check(write_file(path, "#!/bin/sh\nexit 0\n", 1) == 1 && stat(path, &b) == 0
+          && (b.st_mode & 0777) == 0755, "a wrong mode is corrected even when content matches");
+
+    snprintf(path, sizeof path, "%s/flavor", root);
+    check(write_file(path, "fex\n", 0) == 1 && stat(path, &b) == 0
+          && (b.st_mode & 0777) == 0644, "a plain file gets 0644");
+
+    DIR *d = opendir(root);
+    int leftovers = 0;
+    for (struct dirent *e; d && (e = readdir(d)); )
+        leftovers += strchr(e->d_name, '.') && e->d_name[0] != '.';
+    if (d) closedir(d);
+    check(leftovers == 0, "no temp file is left beside the tool files");
+
+    snprintf(path, sizeof path, "%s/nodir/run", root);
+    check(write_file(path, "x", 0) == -1, "a write that cannot land reports failure");
+
+    snprintf(path, sizeof path, "%s/run", root);
+    unlink(path);
+    snprintf(path, sizeof path, "%s/flavor", root);
+    unlink(path);
+    rmdir(root);
+
+    // A Steam Helper process reaches the same code and must not touch the files.
+    int saved = g_owns_tool_files;
+    g_owns_tool_files = 0;
+    char steam[768], tools_dir[768];
+    snprintf(steam, sizeof steam, "%s/Library/Application Support/Steam", test_home);
+    snprintf(tools_dir, sizeof tools_dir, "%s/compatibilitytools.d", steam);
+    mkdirs(steam);
+    tool_entry_t *saved_tools = g_tools;
+    int saved_count = g_tool_count, saved_present = g_tool_list_present;
+    tool_entry_t tools[1] = {0};
+    snprintf(tools[0].name, sizeof tools[0].name, "cartouche-proton-helper");
+    snprintf(tools[0].flavor, sizeof tools[0].flavor, "rosetta");
+    snprintf(tools[0].build, sizeof tools[0].build, "1");
+    snprintf(tools[0].display, sizeof tools[0].display, "Helper");
+    snprintf(tools[0].dir, sizeof tools[0].dir, "%s/cartouche-proton-helper", tools_dir);
+    g_tools = tools;
+    g_tool_count = 1;
+    g_tool_list_present = 1;
+    pthread_mutex_lock(&g_tools_lock);
+    ensure_tool_manifest_locked();
+    pthread_mutex_unlock(&g_tools_lock);
+    check(!exists(tools[0].dir), "a process other than steam_osx writes no tool files");
+
+    g_owns_tool_files = saved;
+    if (saved) {
+        pthread_mutex_lock(&g_tools_lock);
+        ensure_tool_manifest_locked();
+        pthread_mutex_unlock(&g_tools_lock);
+        snprintf(path, sizeof path, "%s/run", tools[0].dir);
+        check(exists(path), "steam_osx writes the tool files");
+        g_tool_count = 0;
+        remove_unlisted_tools(tools_dir);
+    }
+    g_tools = saved_tools;
+    g_tool_count = saved_count;
+    g_tool_list_present = saved_present;
+}
+
+// The directory handed to the resolver stays readable after the lock is dropped and
+// the list replaced.
+static void tool_dir_cases(void) {
+    tool_entry_t *saved_tools = g_tools;
+    int saved_count = g_tool_count;
+    int saved_loaded = g_lists_loaded;
+    int64_t saved_check = atomic_load(&g_tools_next_check);
+    g_lists_loaded = 1;
+    atomic_store(&g_tools_next_check, INT64_MAX);
+
+    tool_entry_t *first = calloc(1, sizeof *first);
+    snprintf(first->dir, sizeof first->dir, "/tools/first");
+    g_tools = first;
+    g_tool_count = 1;
+    const char *dir = np_compat_tool_dir();
+    check(dir == first->dir, "the first tool's directory is its own list entry");
+
+    tool_entry_t second[1] = {0};
+    snprintf(second[0].dir, sizeof second[0].dir, "/tools/second");
+    retire_tools(first);
+    g_tools = second;
+    check(strcmp(dir, "/tools/first") == 0, "a replaced list leaves the handed-out dir intact");
+
+    g_tool_count = 0;
+    const char *fallback = np_compat_tool_dir();
+    check(fallback && np_compat_tool_dir() == fallback,
+          "the fallback directory is one stable buffer");
+
+    g_tools = saved_tools;
+    g_tool_count = saved_count;
+    g_lists_loaded = saved_loaded;
+    atomic_store(&g_tools_next_check, saved_check);
+}
+
+static void mkdirs(const char *path) {
+    char tmp[768];
+    snprintf(tmp, sizeof tmp, "%s", path);
+    for (char *p = tmp + 1; *p; p++) {
+        if (*p == '/') { *p = '\0'; mkdir(tmp, 0755); *p = '/'; }
+    }
+    mkdir(tmp, 0755);
+}
+
+// The app writes and extends its tool list while Steam runs; a list that appears or
+// grows mid-session has to reach the live manager, not just the next launch.
+static void reload_cases(void) {
+    if (!test_home[0]) {
+        check(0, "a scratch HOME exists for the reload checks");
+        return;
+    }
+
+    char support[768], steam[768];
+    snprintf(support, sizeof support,
+             "%s/Library/Application Support/Cartouche", test_home);
+    snprintf(steam, sizeof steam,
+             "%s/Library/Application Support/Steam", test_home);
+    mkdirs(support);
+    mkdirs(steam);
+
+    // With no list on disk the refresh keeps reporting none.
+    np_compat_load_tool_list("out/compatcheck-missing", "/tools");
+    atomic_store(&g_tools_next_check, 0);
+    check(np_compat_registered_tool(build_manager(3, -1)) == NULL,
+          "no list still answers no registered tool");
+    check(g_tool_count == 0 && !g_tool_list_present,
+          "an absent list stays absent until the file exists");
+
+    put(support, "tools",
+        "cartouche-proton-26.3\t26.3.0.39832\trosetta\tCrossOver 26.3\n");
+    atomic_store(&g_tools_next_check, 0);
+    check(g_tool_count == 0, "the stale answer holds until the next poll");
+    check(strcmp(np_compat_fallback_tool_name(), "cartouche-proton-26.3") == 0
+          && g_tool_count == 1 && g_tool_list_present,
+          "a list appearing mid session is picked up");
+
+    char rundir[768];
+    snprintf(rundir, sizeof rundir,
+             "%s/compatibilitytools.d/cartouche-proton-26.3/run", steam);
+    check(exists(rundir), "a tool appearing late gets its manifest directory written");
+
+    // Extending the list registers only the new tool into a live manager.
+    put(support, "tools",
+        "cartouche-proton-26.3\t26.3.0.39832\trosetta\tCrossOver 26.3\n"
+        "cartouche-proton-fex\t27.0.0.40921-fex\tfex\tCrossOver 2026 FEX\n");
+    g_tool_shift = 0;
+    uint8_t *mgr = build_manager(1, -1);
+    *(const char **)(entries + COMPAT_TOOL_NAME_OFF) = "cartouche-proton-26.3";
+    registration_calls = 0;
+    np_compat_set_register_fn((uintptr_t)stub_register_tool);
+    atomic_store(&g_tools_next_check, 0);
+    int added = np_compat_register_crossover(mgr);
+    check(added == 1 && registration_calls == 1,
+          "a tool added mid session registers into the live manager");
+    check(*(uint32_t *)(mgr + COMPAT_MANAGER_TOOL_COUNT_OFF) == 2,
+          "the manager now holds both tools");
+    check(np_compat_register_crossover(mgr) == 0 && registration_calls == 1,
+          "a second pass registers nothing twice");
+
+    // Removing the list unlists the tools.
+    char tools_path[768];
+    snprintf(tools_path, sizeof tools_path, "%s/tools", support);
+    remove(tools_path);
+    atomic_store(&g_tools_next_check, 0);
+    (void)np_compat_fallback_tool_name();
+    check(g_tool_count == 0 && !g_tool_list_present,
+          "a list removed mid session unlists the tools");
+
+    for (int i = 0; i < path_count; i++) free(path_allocations[i]);
+    path_count = 0;
+    np_compat_set_register_fn(0);
+}
+
+int main(void) {
+    char home_tmpl[] = "out/compatcheck-home.XXXXXX";
+    if (mkdtemp(home_tmpl))
+        snprintf(test_home, sizeof(test_home), "%s", home_tmpl);
+    // This check stands in for steam_osx, the one process that writes tool files.
+    g_owns_tool_files = 1;
+
+    concurrent_fallback_cases();
+    probe_cases();
+    oslist_cases();
+    enabled_cases();
+    manager_cases();
+    oversize_shift_cases();
+    registration_cases();
+    tool_list_cases();
+    tool_launch_cases();
+    stale_tool_cases();
+    backend_list_cases();
+    request_cases();
+    tool_file_cases();
+    tool_dir_cases();
+    installed_fn_cases();
+    shortcut_probe_cases();
+    shortcut_exe_cases();
+    reload_cases();
+
+    if (failures) {
+        printf("==> compat: %d check(s) failed\n", failures);
+        return 1;
+    }
+    printf("==> compat: layout probes hold, the tool array walk is bounded, "
+           "installed functions answer\n");
+    return 0;
+}

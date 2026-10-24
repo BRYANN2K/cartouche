@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "app_version": "0.1.0",
+  "origin": "manual",
+  "observed_at": "2026-10-21T09:00:00Z",
+  "configuration": {
+    "method": "wine",
+    "store": "steam",
+    "runner": "CrossOver Wine 26.3",
+    "runner_build": "cx-26.3.0",
+    "translation": "rosetta",
+    "backend": "d3dmetal"
+  },
+  "outcome": "does-not-launch",
+  "crashes": 0,
+  "controller": "not-tested",
+  "comment": "Black screen after the launcher.",
+  "anticheat": {
+    "mode": "protected-matchmaking",
+    "result": "not-tested",
+    "names": ["VAC"]
+  },
+  "applied_fixes": [],
+  "consent": {
+    "publish_report": true,
+    "share_statistics": false,
+    "license": "CC0-1.0"
+  }
+}

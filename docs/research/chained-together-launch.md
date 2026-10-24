@@ -1,0 +1,15 @@
+# Chained Together Steam launch, 2026-10-23
+
+App ID: 2567870. Runner: wine-crossover-26.3.0-2. Both D3DMetal and DXMT launch attempts reached ChainedTogether.exe and ChainedTogether-Win64-Shipping.exe, then the Steam shim reported `steam_client_init: CreateSteamPipe failed`. Steam subsequently received another steam://run request. Steam's process list ending with status 0 described the launcher, not a verified playable game session.
+
+The downloaded runner preparation incorrectly assumed its ntdll was already patched for the Steam bridge. It installed lsteamclient but did not redirect the Valve Windows steamclient exports to that bridge. Direct lsteamclient initialization connected to the native Steam client successfully. An isolated engine copy with the inspected ntdll hook also connected successfully when using the Windows steamclient entry point.
+
+The x86_64 resolver now understands the frame-pointer spill used by this build. Both x86_64 and i386 hooks have exact input, payload and output SHA-256 pins. The app uses the existing NtdllPatcher validation, retains originals, updates the runner receipt only for verified known transitions and invalidates graphics clones when their source ntdll changes. Unknown Wine binaries are not patched with these offsets. These pins cover the inspected Cartouche 26.3 binaries, not arbitrary WineHQ builds.
+
+Each compatibility-script invocation now creates a unique directory in the game's compatdata/cartouche-logs, containing launch.log and, for a game launch, wine.log. The cached macOS launcher receives the attempt directory through an environment variable, avoiding a bundle rewrite for each timestamp. Existing aggregate launch logs are retained when migrating, and cartouche-run.log points at the newest attempt. Wine's own launcher status is recorded separately from LaunchServices' open status. The game menu provides Show Launch Logs. Cartouche's app.log records Steam launch requests and their selected runner/graphics configuration.
+
+This script change is carried by integration revision 0.1.0-5. The running Steam integration rewrites its owned scripts from its embedded payload; therefore activating this logging change requires the existing manual Steam integration update flow. Do not silently restart or reinject Steam.
+
+Validation artifacts: `.scratch/qualification-0.1.0/chained-launch/`. `final-tests.log`: 139 tests in 12 suites passed, including application of both patches against real installed clean binaries. `shell-checks.log` covers shell syntax/lint, launcher lifecycle, bridge staging and separate attempt logs. Initial logs were preserved in `before/`. `steam-probe-patched.log` records a valid native Steam pipe through the patched Windows DLL entry point.
+
+Valve describes the Steamworks initialization and client IPC requirements in [Steamworks API Overview](https://partner.steamgames.com/doc/sdk/api) and the [steam_api reference](https://partner.steamgames.com/doc/api/steam_api). These explain why successful executable creation alone does not establish a working Steamworks connection.

@@ -1,0 +1,165 @@
+import Foundation
+
+struct CommandResult: Sendable {
+    let status: Int32
+    let stdout: String
+    let stderr: String
+    let outputLost: Bool
+
+    init(status: Int32, stdout: String, stderr: String, outputLost: Bool = false) {
+        self.status = status
+        self.stdout = stdout
+        self.stderr = stderr
+        self.outputLost = outputLost
+    }
+
+    var succeeded: Bool { status == 0 }
+}
+
+struct CommandFailure: LocalizedError {
+    let command: String
+    let status: Int32
+    let stderr: String
+
+    var errorDescription: String? {
+        let detail = stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+        if detail.isEmpty { return String(localized: "\(command) failed with status \(status).") }
+        return String(localized: "\(command) failed with status \(status): \(detail)")
+    }
+}
+
+private final class DataBox: @unchecked Sendable {
+    var data = Data()
+}
+
+enum Shell {
+
+    private static let outputDrainTimeout: DispatchTimeInterval = .seconds(10)
+
+    // A process wait on the main thread stalls every view update. Debug builds
+    // trap so a caller on the main actor is found instead of shipped.
+    static func assertOffMain(_ caller: String = #function) {
+        #if DEBUG
+        assert(!Thread.isMainThread, "Shell.\(caller) waits on a process; call it from Task.detached, not the main actor")
+        #endif
+    }
+
+    static func run(
+        _ executable: String,
+        _ arguments: [String],
+        environment: [String: String]? = nil,
+        currentDirectory: URL? = nil,
+        drainTimeout: DispatchTimeInterval = outputDrainTimeout
+    ) throws -> CommandResult {
+        assertOffMain()
+        let process = Process()
+        process.executableURL = URL(filePath: executable)
+        process.arguments = arguments
+        if let environment { process.environment = environment }
+        if let currentDirectory { process.currentDirectoryURL = currentDirectory }
+
+        let out = Pipe(), err = Pipe()
+        process.standardOutput = out
+        process.standardError = err
+
+        try process.run()
+
+        let outBox = DataBox(), errBox = DataBox()
+        let group = DispatchGroup()
+
+        for (pipe, box) in [(out, outBox), (err, errBox)] {
+            group.enter()
+            DispatchQueue.global(qos: .userInitiated).async {
+                box.data = pipe.fileHandleForReading.readDataToEndOfFile()
+                group.leave()
+            }
+        }
+
+        process.waitUntilExit()
+
+        if group.wait(timeout: .now() + drainTimeout) == .timedOut {
+            AppLog.note("\(executable) exited but left its output open")
+            return CommandResult(
+                status: process.terminationStatus, stdout: "", stderr: "", outputLost: true)
+        }
+
+        return CommandResult(
+            status: process.terminationStatus,
+            stdout: String(decoding: outBox.data, as: UTF8.self),
+            stderr: String(decoding: errBox.data, as: UTF8.self)
+        )
+    }
+
+    @discardableResult
+    static func check(
+        _ executable: String,
+        _ arguments: [String],
+        environment: [String: String]? = nil,
+        currentDirectory: URL? = nil,
+        drainTimeout: DispatchTimeInterval = outputDrainTimeout
+    ) throws -> String {
+        let result = try run(
+            executable, arguments, environment: environment, currentDirectory: currentDirectory,
+            drainTimeout: drainTimeout)
+        guard result.succeeded else {
+            let reason = result.stderr.isEmpty ? result.stdout : result.stderr
+            throw CommandFailure(
+                command: (executable as NSString).lastPathComponent,
+                status: result.status,
+                stderr: reason.isEmpty && result.outputLost
+                    ? String(localized: "Its output was still open when it exited, so none was captured.")
+                    : reason
+            )
+        }
+        return result.stdout
+    }
+
+    static func detach(
+        _ executable: String,
+        _ arguments: [String],
+        environment: [String: String],
+        currentDirectory: URL? = nil
+    ) throws {
+        let process = Process()
+        process.executableURL = URL(filePath: executable)
+        process.arguments = arguments
+        process.environment = environment
+        if let currentDirectory { process.currentDirectoryURL = currentDirectory }
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+        try process.run()
+    }
+
+    static func logged(
+        _ executable: String,
+        _ arguments: [String],
+        environment: [String: String],
+        to log: URL
+    ) throws -> Int32 {
+        assertOffMain()
+        guard FileManager.default.createFile(atPath: log.path(percentEncoded: false), contents: nil)
+        else { throw CocoaError(.fileWriteUnknown, userInfo: [NSFilePathErrorKey: log.path(percentEncoded: false)]) }
+        let handle = try FileHandle(forWritingTo: log)
+        defer { try? handle.close() }
+
+        let process = Process()
+        process.executableURL = URL(filePath: executable)
+        process.arguments = arguments
+        process.environment = environment
+        process.standardInput = FileHandle.nullDevice
+        process.standardOutput = handle
+        process.standardError = handle
+        try process.run()
+        process.waitUntilExit()
+        return process.terminationStatus
+    }
+
+    static func processIsRunning(
+        named name: String, pgrep: String = "/usr/bin/pgrep",
+        drainTimeout: DispatchTimeInterval = outputDrainTimeout
+    ) -> Bool {
+        guard let result = try? run(pgrep, ["-x", "-U", String(getuid()), name], drainTimeout: drainTimeout)
+        else { return false }
+        return result.succeeded
+    }
+}

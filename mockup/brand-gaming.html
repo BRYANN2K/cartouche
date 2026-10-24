@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gaming directions</title>
+<style>
+:root { color-scheme: dark light; --bg: #0E0F11; --card: #18191C; --label: rgba(255,255,255,.94); --label2: rgba(235,235,245,.58); --sep: rgba(255,255,255,.08); }
+@media (prefers-color-scheme: light) { :root { --bg: #ECEDF0; --card: #FFFFFF; --label: rgba(0,0,0,.9); --label2: rgba(60,60,67,.62); --sep: rgba(0,0,0,.08); } }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 40px; font: 13px/1.45 system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--label); -webkit-font-smoothing: antialiased; }
+h1 { font-size: 26px; letter-spacing: -.02em; margin: 0 0 4px; }
+.lead { color: var(--label2); margin: 0 0 28px; max-width: 660px; }
+.cands { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 18px; max-width: 1180px; }
+.cand { background: var(--card); border-radius: 22px; padding: 26px 22px 18px; box-shadow: inset 0 0 0 .5px var(--sep); }
+.icon { width: 176px; height: 176px; display: block; margin: 0 auto 20px; filter: drop-shadow(0 18px 28px rgba(0,0,0,.4)); }
+.word { text-align: center; margin: 0; line-height: 1; }
+.w-cart { font: 900 34px/1 system-ui; letter-spacing: -.03em; font-stretch: condensed; text-transform: uppercase; }
+.w-joy { font: 800 36px/1 ui-rounded, system-ui; letter-spacing: -.02em; }
+.w-save { font: 800 26px/1 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .14em; text-transform: uppercase; }
+.meaning { text-align: center; color: var(--label2); margin: 10px auto 16px; max-width: 280px; }
+.dock { display: flex; align-items: flex-end; justify-content: center; gap: 10px; padding: 10px 14px; margin: 0 auto 14px; width: fit-content; border-radius: 22px; background: rgba(127,127,127,.16); }
+.dock svg { width: 52px; height: 52px; display: block; }
+.dock .other { width: 52px; height: 52px; border-radius: 12px; background: rgba(127,127,127,.35); }
+.sidebar { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; background: rgba(127,127,127,.12); margin-bottom: 12px; }
+.sidebar b { font-size: 14px; }
+.small { display: flex; align-items: center; justify-content: center; gap: 16px; padding-top: 12px; border-top: 1px solid var(--sep); color: var(--label2); font-size: 11px; }
+.small span { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.check { font-size: 11px; color: var(--label2); text-align: center; margin-top: 12px; }
+</style>
+</head>
+<body>
+<h1>Gaming first</h1>
+<p class="lead">Three directions that read as games at a glance: an object every player knows, drawn as a solid macOS icon. Each is shown with its wordmark, in the Dock, the sidebar, and at 32 and 16 pixels.</p>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <clipPath id="sq"><rect width="1024" height="1024" rx="230"/></clipPath>
+
+    <!-- CARTRIDGE -->
+    <linearGradient id="k-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#26272D"/><stop offset="1" stop-color="#0F1013"/></linearGradient>
+    <linearGradient id="k-body" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#55596A"/><stop offset="1" stop-color="#30333D"/></linearGradient>
+    <linearGradient id="k-label" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF3D5F"/><stop offset="1" stop-color="#FF9A3C"/></linearGradient>
+    <symbol id="cart" viewBox="0 0 1024 1024">
+      <g clip-path="url(#sq)">
+        <rect width="1024" height="1024" fill="url(#k-bg)"/>
+        <path d="M262 170 H690 L762 242 V800 Q762 830 732 830 H292 Q262 830 262 800 Z" fill="url(#k-body)"/>
+        <path d="M262 170 H690 L762 242 V262 H262 Z" fill="#fff" opacity=".07"/>
+        <g fill="#24262E"><rect x="300" y="196" width="16" height="44" rx="8"/><rect x="336" y="196" width="16" height="44" rx="8"/><rect x="372" y="196" width="16" height="44" rx="8"/><rect x="408" y="196" width="16" height="44" rx="8"/></g>
+        <rect x="312" y="290" width="400" height="380" rx="30" fill="url(#k-label)"/>
+        <g fill="#fff">
+          <rect x="452" y="400" width="40" height="160"/><rect x="492" y="420" width="40" height="120"/><rect x="532" y="440" width="40" height="80"/><rect x="572" y="460" width="40" height="40"/>
+        </g>
+        <rect x="312" y="616" width="400" height="54" fill="#000" opacity=".16"/>
+        <rect x="352" y="830" width="320" height="90" fill="#30333D"/>
+        <g fill="#E7B54C"><rect x="372" y="846" width="22" height="74"/><rect x="408" y="846" width="22" height="74"/><rect x="444" y="846" width="22" height="74"/><rect x="480" y="846" width="22" height="74"/><rect x="516" y="846" width="22" height="74"/><rect x="552" y="846" width="22" height="74"/><rect x="588" y="846" width="22" height="74"/><rect x="624" y="846" width="22" height="74"/></g>
+      </g>
+    </symbol>
+
+    <!-- JOYPAD: the D-pad -->
+    <linearGradient id="j-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3A2A8C"/><stop offset="1" stop-color="#170F45"/></linearGradient>
+    <linearGradient id="j-pad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#D9D6E8"/></linearGradient>
+    <symbol id="joy" viewBox="0 0 1024 1024">
+      <g clip-path="url(#sq)">
+        <rect width="1024" height="1024" fill="url(#j-bg)"/>
+        <path d="M412 196 H612 Q642 196 642 226 V382 H798 Q828 382 828 412 V612 Q828 642 798 642 H642 V798 Q642 828 612 828 H412 Q382 828 382 798 V642 H226 Q196 642 196 612 V412 Q196 382 226 382 H382 V226 Q382 196 412 196 Z" fill="#0D0830" transform="translate(0 22)" opacity=".55"/>
+        <path d="M412 196 H612 Q642 196 642 226 V382 H798 Q828 382 828 412 V612 Q828 642 798 642 H642 V798 Q642 828 612 828 H412 Q382 828 382 798 V642 H226 Q196 642 196 612 V412 Q196 382 226 382 H382 V226 Q382 196 412 196 Z" fill="url(#j-pad)"/>
+        <circle cx="512" cy="512" r="70" fill="#E4E1F0"/>
+        <circle cx="512" cy="512" r="70" fill="none" stroke="#C9C4DD" stroke-width="10"/>
+        <g fill="#3A2A8C">
+          <path d="M512 248 L560 316 H464 Z"/><path d="M512 776 L560 708 H464 Z"/><path d="M248 512 L316 464 V560 Z"/><path d="M776 512 L708 464 V560 Z"/>
+        </g>
+      </g>
+    </symbol>
+
+    <!-- SAVEPOINT: the glowing save crystal from RPGs, in pixels -->
+    <radialGradient id="s-glow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#7DF9FF" stop-opacity=".55"/><stop offset="1" stop-color="#7DF9FF" stop-opacity="0"/></radialGradient>
+    <symbol id="save" viewBox="0 0 1024 1024">
+      <g clip-path="url(#sq)">
+        <rect width="1024" height="1024" fill="#0B1030"/>
+        <circle cx="512" cy="500" r="380" fill="url(#s-glow)"/>
+        <g fill="#FFFFFF" opacity=".8"><rect x="180" y="200" width="24" height="24"/><rect x="820" y="260" width="24" height="24"/><rect x="230" y="760" width="24" height="24"/><rect x="790" y="720" width="24" height="24"/><rect x="140" y="480" width="16" height="16"/><rect x="870" y="520" width="16" height="16"/></g>
+        <g id="crystal">
+          <!-- rows of 40px pixels, light left face, dark right face -->
+          <rect x="472" y="180" width="40" height="40" fill="#E9FDFF"/><rect x="512" y="180" width="40" height="40" fill="#8FE7F2"/>
+          <rect x="432" y="220" width="80" height="40" fill="#C8F7FF"/><rect x="512" y="220" width="80" height="40" fill="#5CCBE0"/>
+          <rect x="392" y="260" width="120" height="40" fill="#A8F0FF"/><rect x="512" y="260" width="120" height="40" fill="#3DB2CF"/>
+          <rect x="352" y="300" width="160" height="40" fill="#8EE8FA"/><rect x="512" y="300" width="160" height="40" fill="#2A9BBE"/>
+          <rect x="312" y="340" width="200" height="40" fill="#7ADDF5"/><rect x="512" y="340" width="200" height="40" fill="#2189AF"/>
+          <rect x="312" y="380" width="200" height="40" fill="#68D2F0"/><rect x="512" y="380" width="200" height="40" fill="#1A7AA2"/>
+          <rect x="312" y="420" width="400" height="40" fill="#FFFFFF" opacity=".95"/>
+          <rect x="312" y="460" width="200" height="40" fill="#4FB9E2"/><rect x="512" y="460" width="200" height="40" fill="#146992"/>
+          <rect x="352" y="500" width="160" height="40" fill="#43ABD9"/><rect x="512" y="500" width="160" height="40" fill="#115B83"/>
+          <rect x="392" y="540" width="120" height="40" fill="#389CCD"/><rect x="512" y="540" width="120" height="40" fill="#0E4E74"/>
+          <rect x="432" y="580" width="80" height="40" fill="#2E8DC0"/><rect x="512" y="580" width="80" height="40" fill="#0B4266"/>
+          <rect x="472" y="620" width="40" height="40" fill="#257EB2"/><rect x="512" y="620" width="40" height="40" fill="#09385A"/>
+        </g>
+        <rect x="352" y="760" width="320" height="40" fill="#7DF9FF" opacity=".25"/>
+        <rect x="392" y="800" width="240" height="40" fill="#7DF9FF" opacity=".15"/>
+      </g>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="cands">
+  <section class="cand" aria-label="Cartridge">
+    <svg class="icon" role="img" aria-label="Cartridge icon"><use href="#cart"/></svg>
+    <p class="word w-cart">Cartridge</p>
+    <p class="meaning">Plug a Windows game in, it plays. The play button is on the label.</p>
+    <div class="dock"><span class="other"></span><svg><use href="#cart"/></svg><span class="other"></span></div>
+    <div class="sidebar"><svg width="26" height="26"><use href="#cart"/></svg><b>Cartridge</b></div>
+    <div class="small"><span><svg width="32" height="32"><use href="#cart"/></svg>32 px</span><span><svg width="16" height="16"><use href="#cart"/></svg>16 px</span></div>
+    <p class="check">Free on Mac App Store and Homebrew.</p>
+  </section>
+  <section class="cand" aria-label="Joypad">
+    <svg class="icon" role="img" aria-label="Joypad icon"><use href="#joy"/></svg>
+    <p class="word w-joy">Joypad</p>
+    <p class="meaning">The D-pad: the first thing your thumb finds on any controller.</p>
+    <div class="dock"><span class="other"></span><svg><use href="#joy"/></svg><span class="other"></span></div>
+    <div class="sidebar"><svg width="26" height="26"><use href="#joy"/></svg><b>Joypad</b></div>
+    <div class="small"><span><svg width="32" height="32"><use href="#joy"/></svg>32 px</span><span><svg width="16" height="16"><use href="#joy"/></svg>16 px</span></div>
+    <p class="check">Free on Mac App Store and Homebrew.</p>
+  </section>
+  <section class="cand" aria-label="Savepoint">
+    <svg class="icon" role="img" aria-label="Savepoint icon"><use href="#save"/></svg>
+    <p class="word w-save">Savepoint</p>
+    <p class="meaning">The glowing crystal where your progress is safe. Your games, safe on the Mac.</p>
+    <div class="dock"><span class="other"></span><svg><use href="#save"/></svg><span class="other"></span></div>
+    <div class="sidebar"><svg width="26" height="26"><use href="#save"/></svg><b>Savepoint</b></div>
+    <div class="small"><span><svg width="32" height="32"><use href="#save"/></svg>32 px</span><span><svg width="16" height="16"><use href="#save"/></svg>16 px</span></div>
+    <p class="check">Free on Mac App Store and Homebrew.</p>
+  </section>
+</div>
+</body>
+</html>

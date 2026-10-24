@@ -1,0 +1,15 @@
+# Task: finish merging main into phase/crossover-default
+
+Repo: the current directory, branch phase/crossover-default (your earlier CrossOver default work, committed as 9ff87e5, with the release pin filled: size 149444708, sha256 60400817…). The orchestrator ran `git merge main`; main now also has: the Liquid Glass redesign (new GamePanel/InstallSheet visuals, unified Add Games), the direct unpack install path (InstallEngine runDirectUnpack, InstallJob/InstallSheetModel changes, unarc driver), runtimes per verb (runtimeSteps), uninstall for installer games (GameActions removeInstalled), Steam export, integration fix in AgentBackend (runWinetricks awaits the run).
+
+Conflicts: app/Sources/NotProtonApp/Agent/AgentBackend.swift, Installer/InstallSheetView.swift, Library/GameActions.swift, Resources/Localization/Localizable.xcstrings.
+Resolve keeping BOTH sides' behavior: main's features and visuals + your first-boot phase ("Preparing Windows environment" with elapsed/Show Log/Try Again/Recreate Prefix — restyle it to match the new InstallSheet design), default runner, Graphics menu reasons. For the xcstrings, union of keys, keep xcstringstool format. Make sure the first-boot gate also runs before the direct-unpack path (prefix must be ready before the unarc driver runs).
+No conflict markers left. Run `(cd installer && swift test $S)` and `(cd app && swift test --no-parallel $S --filter 'Runner|Backend|Setup|Install|Prefix|Onboarding|GameMenu|Unpack|WineBootstrap')`, then the full app suite: only known environmental failures.
+Finish with a short report: how each conflict was resolved, test summary lines.
+
+Rules (same as the Claude implementers): never push. NEVER run git add, commit, merge, stash, checkout or reset: read-only git only; the orchestrator stages and commits. Do not install software. Tests use fixtures and a scratch HOME; never touch the user's real ~/Library, ~/Documents, Steam, Keychain, RetroArch, emulators or store accounts. No piracy wording, no ROM/BIOS/key links, no DRM circumvention, never bundle D3DMetal/GPTK. Keep edits to shared files small and additive. New UI strings get zh-Hans and it translations in app/Sources/NotProtonApp/Resources/Localization/Localizable.xcstrings, in xcstringstool's exact format (json.dumps(indent=2, separators=(",", " : "), sort_keys=True, ensure_ascii=False), empty dicts as `{\n\n}`, no trailing newline), never rewriting existing entries. SwiftUI work follows the existing views and mockup/launcher.html (Apple design, no AI slop). English UI.
+
+## Building and testing inside your sandbox
+Your shell can only write inside this worktree. Always `export TMPDIR="$PWD/.tmp" && mkdir -p "$TMPDIR"`. For Swift use `S="--disable-sandbox --cache-path $PWD/.swiftpm/cache --config-path $PWD/.swiftpm/config --security-path $PWD/.swiftpm/security"` and run `(cd app && swift test --no-parallel $S)`. Vision OCR and WKWebView fail in the sandbox: ignore those failures. Known baseline: 34 payload-related failures that also fail on main. Remove .tmp/.swiftpm/scratch at the end.
+
+Finish with a short report: tasks done and not done with reasons, test results, things to review.

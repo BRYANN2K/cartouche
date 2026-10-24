@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Name and icon</title>
+<style>
+:root { color-scheme: dark light; --bg: #111214; --card: #1A1B1E; --label: rgba(255,255,255,.92); --label2: rgba(235,235,245,.6); --sep: rgba(255,255,255,.08); --accent: #0A84FF; }
+@media (prefers-color-scheme: light) { :root { --bg: #ECEDF0; --card: #FFFFFF; --label: rgba(0,0,0,.88); --label2: rgba(60,60,67,.62); --sep: rgba(0,0,0,.08); --accent: #007AFF; } }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 40px; font: 13px/1.45 system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--label); -webkit-font-smoothing: antialiased; }
+h1 { font-size: 26px; letter-spacing: -.02em; margin: 0 0 4px; }
+.lead { color: var(--label2); margin: 0 0 28px; max-width: 640px; }
+.cands { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; max-width: 1180px; }
+.cand { background: var(--card); border-radius: 22px; padding: 22px; box-shadow: inset 0 0 0 .5px var(--sep); }
+.cand.pick { box-shadow: inset 0 0 0 2px var(--accent); }
+.icon { width: 168px; height: 168px; display: block; margin: 6px auto 18px; filter: drop-shadow(0 18px 28px rgba(0,0,0,.35)); }
+.name { font-size: 30px; font-weight: 700; letter-spacing: -.025em; text-align: center; margin: 0; }
+.meaning { text-align: center; color: var(--label2); margin: 6px auto 18px; max-width: 280px; }
+.row { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-top: 1px solid var(--sep); font-size: 12px; }
+.row span:first-child { color: var(--label2); }
+.ok { color: #30D158; } .warn { color: #FF9F0A; }
+.sizes { display: flex; align-items: flex-end; justify-content: center; gap: 14px; padding: 14px 0 6px; border-top: 1px solid var(--sep); }
+.sizes svg { display: block; }
+.lockup { display: flex; align-items: center; gap: 8px; justify-content: center; padding: 12px 0 2px; border-top: 1px solid var(--sep); }
+.lockup b { font-size: 15px; }
+.menubar { display: flex; align-items: center; gap: 10px; justify-content: center; margin-top: 10px; padding: 5px 12px; border-radius: 8px; background: rgba(127,127,127,.14); font-size: 12px; }
+.menubar svg { width: 16px; height: 16px; fill: currentColor; }
+.tag { display: inline-block; font-size: 11px; font-weight: 600; color: var(--accent); margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<h1>Name and icon</h1>
+<p class="lead">Three names, each with one idea behind it. Every icon is shown at Dock size, at 32 and 16 pixels, and as a one-color menu bar glyph, because a mark that only works big is not a mark.</p>
+
+<!-- Shared icon symbols (1024 grid, macOS rounded square) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <clipPath id="sq"><rect width="1024" height="1024" rx="230"/></clipPath>
+
+    <!-- ORIEL: a bay window jutting out of a wall, lit from inside -->
+    <linearGradient id="o-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#25304F"/><stop offset="1" stop-color="#0D1222"/></linearGradient>
+    <radialGradient id="o-light" cx=".5" cy=".62" r=".7"><stop offset="0" stop-color="#FFD58A"/><stop offset=".6" stop-color="#FFA544"/><stop offset="1" stop-color="#E0761F"/></radialGradient>
+    <linearGradient id="o-side" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#B95A17"/><stop offset="1" stop-color="#E88A31"/></linearGradient>
+    <symbol id="oriel" viewBox="0 0 1024 1024">
+      <g clip-path="url(#sq)">
+        <rect width="1024" height="1024" fill="url(#o-bg)"/>
+        <ellipse cx="512" cy="760" rx="360" ry="70" fill="#FFB056" opacity=".16"/>
+        <path d="M232 352 L392 300 V724 L232 672 Z" fill="url(#o-side)"/>
+        <path d="M792 352 L632 300 V724 L792 672 Z" fill="#C86A20"/>
+        <rect x="392" y="300" width="240" height="424" fill="url(#o-light)"/>
+        <g fill="none" stroke="#F4EFE6" stroke-width="22" stroke-linejoin="round">
+          <path d="M232 352 L392 300 H632 L792 352 V672 L632 724 H392 L232 672 Z"/>
+          <path d="M392 300 V724 M632 300 V724 M232 440 L392 404 H632 L792 440"/>
+        </g>
+        <path d="M200 340 L392 276 H632 L824 340" fill="none" stroke="#F4EFE6" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M206 690 L392 750 H632 L818 690" fill="none" stroke="#F4EFE6" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="0" y="0" width="1024" height="512" fill="#fff" opacity=".04"/>
+      </g>
+    </symbol>
+    <symbol id="oriel-glyph" viewBox="0 0 16 16"><path d="M1.5 4.6 5.6 3.2h4.8l4.1 1.4v6.8l-4.1 1.4H5.6l-4.1-1.4zm4.6.1v6.6h3.8V4.7zM2.9 5.6v4.8l1.8.6V5z M13.1 5.6 11.3 5v6l1.8-.6z" fill-rule="evenodd"/></symbol>
+
+    <!-- UNCORK: the cork leaving the bottle -->
+    <linearGradient id="u-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8E1D3B"/><stop offset="1" stop-color="#4A0A1F"/></linearGradient>
+    <linearGradient id="u-cork" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#C98F53"/><stop offset=".5" stop-color="#E8B67A"/><stop offset="1" stop-color="#B57B44"/></linearGradient>
+    <linearGradient id="u-glass" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#14261E"/><stop offset=".35" stop-color="#2E4A3C"/><stop offset="1" stop-color="#0F1C16"/></linearGradient>
+    <symbol id="uncork" viewBox="0 0 1024 1024">
+      <g clip-path="url(#sq)">
+        <rect width="1024" height="1024" fill="url(#u-bg)"/>
+        <path d="M402 1024 V640 Q402 600 430 590 H594 Q622 600 622 640 V1024 Z" fill="url(#u-glass)"/>
+        <rect x="384" y="568" width="256" height="52" rx="22" fill="#2B4538"/>
+        <rect x="430" y="640" width="26" height="340" rx="13" fill="#fff" opacity=".12"/>
+        <g transform="rotate(-16 512 400)">
+          <rect x="420" y="250" width="184" height="250" rx="36" fill="url(#u-cork)"/>
+          <ellipse cx="512" cy="258" rx="92" ry="26" fill="#F2CB95"/>
+          <g fill="#9B6533" opacity=".55"><circle cx="470" cy="340" r="9"/><circle cx="548" cy="380" r="7"/><circle cx="500" cy="430" r="8"/><circle cx="560" cy="310" r="6"/></g>
+        </g>
+        <g stroke="#F6E7D4" stroke-width="26" stroke-linecap="round">
+          <path d="M318 520 L262 488"/><path d="M706 520 L762 488"/><path d="M330 600 L262 606"/><path d="M694 600 L762 606"/>
+        </g>
+      </g>
+    </symbol>
+    <symbol id="uncork-glyph" viewBox="0 0 16 16"><g transform="rotate(-16 8 6)"><rect x="5.6" y="2.2" width="4.8" height="6" rx="1.1"/></g><path d="M5.4 10.6h5.2v1H10v3.4H6v-3.4h-.6z"/><path d="M2.8 8.6 4.2 9.2M13.2 8.6l-1.4.6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></symbol>
+
+    <!-- TRANSOM: the fan window above a door, like a sunrise -->
+    <linearGradient id="t-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#17463F"/><stop offset="1" stop-color="#08201C"/></linearGradient>
+    <radialGradient id="t-light" cx=".5" cy="1" r="1"><stop offset="0" stop-color="#FFE3A1"/><stop offset=".55" stop-color="#FFB24D"/><stop offset="1" stop-color="#F2843A"/></radialGradient>
+    <symbol id="transom" viewBox="0 0 1024 1024">
+      <g clip-path="url(#sq)">
+        <rect width="1024" height="1024" fill="url(#t-bg)"/>
+        <path d="M212 580 A300 300 0 0 1 812 580 Z" fill="url(#t-light)"/>
+        <g fill="none" stroke="#F3EEE4" stroke-width="22" stroke-linecap="round">
+          <path d="M212 580 A300 300 0 0 1 812 580 Z" stroke-linejoin="round"/>
+          <path d="M392 580 A120 120 0 0 1 632 580"/>
+          <path d="M512 460 V280 M427 495 L300 368 M597 495 L724 368 M392 580 H212 M632 580 H812"/>
+        </g>
+        <path d="M232 620 H792" stroke="#F3EEE4" stroke-width="30" stroke-linecap="round"/>
+        <path d="M282 660 V1024 M742 660 V1024" stroke="#F3EEE4" stroke-width="30" stroke-linecap="round"/>
+        <rect x="312" y="660" width="400" height="364" fill="#000" opacity=".22"/>
+      </g>
+    </symbol>
+    <symbol id="transom-glyph" viewBox="0 0 16 16"><path d="M2 9.4a6 6 0 0 1 12 0zm2.2-1h7.6a3.9 3.9 0 0 0-7.6 0z" fill-rule="evenodd"/><rect x="2.2" y="10.4" width="11.6" height="1.2" rx=".6"/><rect x="3.2" y="12.2" width="1.2" height="3.6" rx=".6"/><rect x="11.6" y="12.2" width="1.2" height="3.6" rx=".6"/></symbol>
+  </defs>
+</svg>
+
+<div class="cands">
+  <section class="cand pick" aria-label="Oriel">
+    <span class="tag">Recommended</span>
+    <svg class="icon" role="img" aria-label="Oriel icon"><use href="#oriel"/></svg>
+    <h2 class="name">Oriel</h2>
+    <p class="meaning">An oriel is a bay window that juts out of a wall. Windows games, opening onto your Mac.</p>
+    <div class="row"><span>Mac App Store</span><span class="ok">No app with this name</span></div>
+    <div class="row"><span>Homebrew</span><span class="ok">Free</span></div>
+    <div class="row"><span>GitHub</span><span class="ok">One 1991 script interpreter, 57 stars</span></div>
+    <div class="row"><span>Says itself</span><span>OR-ee-el, same in French</span></div>
+    <div class="sizes"><svg width="64" height="64"><use href="#oriel"/></svg><svg width="32" height="32"><use href="#oriel"/></svg><svg width="16" height="16"><use href="#oriel"/></svg></div>
+    <div class="lockup"><svg width="26" height="26"><use href="#oriel"/></svg><b>Oriel</b></div>
+    <div class="menubar"><svg><use href="#oriel-glyph"/></svg>Menu bar</div>
+  </section>
+
+  <section class="cand" aria-label="Uncork">
+    <span class="tag" style="visibility:hidden">.</span>
+    <svg class="icon" role="img" aria-label="Uncork icon"><use href="#uncork"/></svg>
+    <h2 class="name">Uncork</h2>
+    <p class="meaning">The engine is Wine. Uncorking it lets the games out.</p>
+    <div class="row"><span>Mac App Store</span><span class="ok">No app with this name</span></div>
+    <div class="row"><span>Homebrew</span><span class="ok">Free</span></div>
+    <div class="row"><span>GitHub</span><span class="ok">Small unrelated repos</span></div>
+    <div class="row"><span>Says itself</span><span class="warn">Less natural in French</span></div>
+    <div class="sizes"><svg width="64" height="64"><use href="#uncork"/></svg><svg width="32" height="32"><use href="#uncork"/></svg><svg width="16" height="16"><use href="#uncork"/></svg></div>
+    <div class="lockup"><svg width="26" height="26"><use href="#uncork"/></svg><b>Uncork</b></div>
+    <div class="menubar"><svg><use href="#uncork-glyph"/></svg>Menu bar</div>
+  </section>
+
+  <section class="cand" aria-label="Transom">
+    <span class="tag" style="visibility:hidden">.</span>
+    <svg class="icon" role="img" aria-label="Transom icon"><use href="#transom"/></svg>
+    <h2 class="name">Transom</h2>
+    <p class="meaning">The fan window above a door. Light from Windows, coming into the room.</p>
+    <div class="row"><span>Mac App Store</span><span class="ok">No app with this name</span></div>
+    <div class="row"><span>Homebrew</span><span class="ok">Free</span></div>
+    <div class="row"><span>GitHub</span><span class="ok">Small unrelated repos</span></div>
+    <div class="row"><span>Says itself</span><span class="warn">Word few people know</span></div>
+    <div class="sizes"><svg width="64" height="64"><use href="#transom"/></svg><svg width="32" height="32"><use href="#transom"/></svg><svg width="16" height="16"><use href="#transom"/></svg></div>
+    <div class="lockup"><svg width="26" height="26"><use href="#transom"/></svg><b>Transom</b></div>
+    <div class="menubar"><svg><use href="#transom-glyph"/></svg>Menu bar</div>
+  </section>
+</div>
+</body>
+</html>

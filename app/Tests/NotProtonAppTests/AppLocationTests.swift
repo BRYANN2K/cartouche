@@ -1,0 +1,269 @@
+import AppKit
+import Foundation
+import Testing
+
+@testable import NotProtonApp
+
+// Task 2.5: Move to Applications. The disk image is real, made and mounted in a
+// scratch folder; "Applications" is a scratch folder too, and nothing relaunches.
+@Suite("Move to Applications")
+@MainActor
+struct AppLocationTests {
+
+    @Test("Where Cartouche runs from decides whether it offers to move")
+    func classify() {
+        let home = URL(filePath: "/Users/player")
+        let root = URL(filePath: "/")
+        let cases: [(String, URL?, Bool, AppLocation)] = [
+            ("/Applications/Cartouche.app", root, false, .applications),
+            ("/private/var/folders/xy/T/AppTranslocation/0A1B/d/Cartouche.app", URL(filePath: "/private/var/folders/xy/T/AppTranslocation/0A1B"), true, .translocated),
+            ("/Volumes/Cartouche/Cartouche.app", URL(filePath: "/Volumes/Cartouche"), true, .diskImage),
+            ("/Users/player/Downloads/Cartouche.app", root, false, .downloads),
+            ("/Users/player/Downloads/Cartouche 2/Cartouche.app", root, false, .downloads),
+            // A disk the user keeps apps on, a build folder: left alone
+            ("/Volumes/Games SSD/Apps/Cartouche.app", URL(filePath: "/Volumes/Games SSD"), false, .elsewhere),
+            ("/Users/player/Code/Cartouche/out/Cartouche.app", root, false, .elsewhere),
+            ("/Users/player/Applications/Cartouche.app", root, false, .elsewhere),
+        ]
+        for (path, volume, readOnly, expected) in cases {
+            #expect(AppLocation.of(bundle: URL(filePath: path), volume: volume, readOnly: readOnly, home: home) == expected, "\(path)")
+        }
+        let offering = [AppLocation.translocated, .diskImage, .downloads, .applications, .elsewhere].filter { $0.offersMove }
+        #expect(offering == [.translocated, .diskImage, .downloads])
+    }
+
+    @Test("The alert says Move to Applications, with Move and Quit")
+    func alert() {
+        let alert = MoveToApplications.alert(.diskImage)
+        #expect(alert.messageText == "Move to Applications")
+        #expect(alert.buttons.map(\.title) == ["Move", "Quit"])
+        #expect(alert.informativeText.contains("disk image"))
+        #expect(MoveToApplications.alert(.downloads).informativeText.contains("Downloads"))
+
+        // The alert as macOS draws it, without showing it
+        if let folder = ProcessInfo.processInfo.environment["CARTOUCHE_SNAPSHOTS"] {
+            useCartoucheIcon()
+            for dark in [false, true] {
+                let alert = MoveToApplications.alert(.diskImage)
+                alert.window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
+                alert.layout()
+                guard let view = alert.window.contentView,
+                      let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { continue }
+                view.cacheDisplay(in: view.bounds, to: rep)
+                let url = URL(filePath: folder).appending(path: "move-to-applications-\(dark ? "dark" : "light").png")
+                try? rep.representation(using: .png, properties: [:])?.write(to: url)
+            }
+        }
+    }
+
+    struct MountedImage {
+        let work: URL
+        let mount: URL
+        var app: URL { mount.appending(path: "Cartouche.app") }
+
+        init() async throws {
+            let scratch = try scratchDirectory("dmg-move")
+            work = scratch
+            let source = scratch.appending(path: "source/Cartouche.app/Contents/MacOS")
+            try FileManager.default.createDirectory(at: source, withIntermediateDirectories: true)
+            try FileManager.default.copyItem(at: URL(filePath: "/usr/bin/true"), to: source.appending(path: "Cartouche"))
+            let image = scratch.appending(path: "Cartouche.dmg").path(percentEncoded: false)
+            // hdiutil waits on a process: never on this suite's main actor
+            let made = try await offMain { try Shell.run("/usr/bin/hdiutil", [
+                "create", "-quiet", "-srcfolder", scratch.appending(path: "source").path(percentEncoded: false),
+                "-volname", "Cartouche", "-format", "UDZO", image,
+            ]) }
+            try #require(made.succeeded)
+            let mountPoint = scratch.appending(path: "mount")
+            mount = mountPoint
+            let attached = try await offMain { try Shell.run("/usr/bin/hdiutil", [
+                "attach", "-quiet", "-readonly", "-nobrowse", "-noautoopen", "-mountpoint", mountPoint.path(percentEncoded: false), image,
+            ]) }
+            try #require(attached.succeeded)
+        }
+
+        func remove() async {
+            let mount = mount, work = work
+            _ = try? await offMain { try Shell.run("/usr/bin/hdiutil", ["detach", "-quiet", "-force", mount.path(percentEncoded: false)]) }
+            try? FileManager.default.removeItem(at: work)
+        }
+
+        var location: AppLocation {
+            let values = try? app.resourceValues(forKeys: [.volumeURLKey, .volumeIsReadOnlyKey])
+            return AppLocation.of(bundle: app, volume: values?.volume, readOnly: values?.volumeIsReadOnly ?? false)
+        }
+    }
+
+    @Test("Opened from the mounted disk image: Move copies it to Applications and relaunches from there")
+    func moveFromDiskImage() async throws {
+        let image = try await MountedImage()
+        defer { Task { await image.remove() } }
+        #expect(image.location == .diskImage)
+
+        let applications = image.work.appending(path: "Applications")
+        try FileManager.default.createDirectory(at: applications, withIntermediateDirectories: true)
+        var relaunched: [URL] = []
+        var asked: [AppLocation] = []
+        var quits = 0
+        let mover = AppMover(destination: applications.appending(path: "Cartouche.app"), relauncher: { relaunched.append($0) })
+
+        let goesOn = MoveToApplications.check(
+            location: image.location, mover: mover, ask: { asked.append($0); return .move }, quit: { quits += 1 },
+            bundle: image.app)
+
+        #expect(!goesOn, "onboarding does not start from the disk image")
+        #expect(asked == [.diskImage])
+        // The copy runs off the main actor; the relaunch lands back on it
+        #expect(await waitFor { !relaunched.isEmpty || quits > 0 })
+        #expect(relaunched == [applications.appending(path: "Cartouche.app")])
+        #expect(quits == 0)
+        #expect(FileManager.contentsEqual(image.app.appending(path: "Contents/MacOS/Cartouche"),
+                                          applications.appending(path: "Cartouche.app/Contents/MacOS/Cartouche")))
+        // Nothing is left half-copied next to it
+        #expect(try FileManager.default.contentsOfDirectory(atPath: applications.path(percentEncoded: false)) == ["Cartouche.app"])
+    }
+
+    @Test("An older copy in Applications is replaced")
+    func replacesOlderCopy() async throws {
+        let image = try await MountedImage()
+        defer { Task { await image.remove() } }
+        let destination = image.work.appending(path: "Applications/Cartouche.app")
+        try FileManager.default.createDirectory(at: destination.appending(path: "Contents/MacOS"), withIntermediateDirectories: true)
+        try Data("old".utf8).write(to: destination.appending(path: "Contents/MacOS/Cartouche"))
+
+        try await offMain { try AppMover.move(image.app, to: destination) }
+
+        #expect(FileManager.contentsEqual(image.app.appending(path: "Contents/MacOS/Cartouche"),
+                                          destination.appending(path: "Contents/MacOS/Cartouche")))
+    }
+
+    @Test("A copy running from the destination is never replaced")
+    func destinationRunning() async throws {
+        let work = try scratchDirectory("running-move")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let source = work.appending(path: "Cartouche.app/Contents/MacOS")
+        try FileManager.default.createDirectory(at: source, withIntermediateDirectories: true)
+        try Data("new".utf8).write(to: source.appending(path: "Cartouche"))
+        let destination = work.appending(path: "Applications/Cartouche.app")
+        try FileManager.default.createDirectory(
+            at: destination.appending(path: "Contents/MacOS"), withIntermediateDirectories: true)
+        try Data("old".utf8).write(to: destination.appending(path: "Contents/MacOS/Cartouche"))
+
+        var relaunched = 0
+        let mover = AppMover(destination: destination, relauncher: { _ in relaunched += 1 },
+                             destinationRunning: { _ in true })
+        await #expect(throws: AppMover.Failed.self) {
+            try await mover.moveAndRelaunch(work.appending(path: "Cartouche.app"))
+        }
+        #expect(relaunched == 0)
+        #expect(try Data(contentsOf: destination.appending(path: "Contents/MacOS/Cartouche")) == Data("old".utf8))
+    }
+
+    private func app(at url: URL, short: String, build: String, binary: String) throws {
+        let contents = url.appending(path: "Contents")
+        try FileManager.default.createDirectory(at: contents.appending(path: "MacOS"), withIntermediateDirectories: true)
+        try Data(binary.utf8).write(to: contents.appending(path: "MacOS/Cartouche"))
+        let info: NSDictionary = ["CFBundleShortVersionString": short, "CFBundleVersion": build]
+        try info.write(to: contents.appending(path: "Info.plist"))
+    }
+
+    @Test("Versions compare by marketing version, then by build")
+    func versionOrder() {
+        let v = { AppBundleVersion(short: $0, build: $1) }
+        #expect(v("0.10.0", "1").isNewer(than: v("0.9.0", "50")))
+        #expect(!v("0.9.0", "50").isNewer(than: v("0.10.0", "1")))
+        #expect(v("0.1.0", "12").isNewer(than: v("0.1.0", "9")))
+        #expect(!v("0.1.0", "9").isNewer(than: v("0.1.0", "9")))
+        #expect(v("0.1.0", "12").display == "0.1.0 (12)")
+    }
+
+    @Test("A newer copy in Applications is never replaced without asking; Open Newer Copy and Quit leave it alone")
+    func newerCopyAsks() async throws {
+        let work = try scratchDirectory("newer-move")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let source = work.appending(path: "Volume/Cartouche.app")
+        let destination = work.appending(path: "Applications/Cartouche.app")
+        try app(at: source, short: "0.1.0", build: "5", binary: "old")
+        try app(at: destination, short: "0.2.0", build: "9", binary: "new")
+        let pair = try #require(AppBundleVersion.newer(installed: destination, than: source))
+        #expect(pair.installed == "0.2.0 (9)" && pair.current == "0.1.0 (5)")
+        #expect(AppBundleVersion.newer(installed: source, than: destination) == nil)
+
+        for choice in [MoveToApplications.ReplaceChoice.openInstalled, .quit] {
+            var relaunched: [URL] = []
+            var asked: [String] = []
+            var quits = 0
+            let goesOn = MoveToApplications.check(
+                location: .diskImage, mover: AppMover(destination: destination, relauncher: { relaunched.append($0) }),
+                ask: { _ in .move }, askReplace: { asked.append("\($0) over \($1)"); return choice },
+                quit: { quits += 1 }, bundle: source)
+            #expect(!goesOn)
+            #expect(await waitFor { !relaunched.isEmpty || quits > 0 })
+            #expect(asked == ["0.2.0 (9) over 0.1.0 (5)"])
+            #expect(relaunched == (choice == .openInstalled ? [destination] : []))
+            #expect(quits == (choice == .quit ? 1 : 0))
+            #expect(try Data(contentsOf: destination.appending(path: "Contents/MacOS/Cartouche")) == Data("new".utf8))
+        }
+
+        var relaunched: [URL] = []
+        _ = MoveToApplications.check(
+            location: .diskImage, mover: AppMover(destination: destination, relauncher: { relaunched.append($0) }),
+            ask: { _ in .move }, askReplace: { _, _ in .replace }, quit: {}, bundle: source)
+        #expect(await waitFor { !relaunched.isEmpty })
+        #expect(try Data(contentsOf: destination.appending(path: "Contents/MacOS/Cartouche")) == Data("old".utf8))
+    }
+
+    @Test("A quarantined copy arrives in Applications without the mark")
+    func stripsQuarantine() async throws {
+        let work = try scratchDirectory("quarantine-move")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let source = work.appending(path: "source/Cartouche.app")
+        let macos = source.appending(path: "Contents/MacOS")
+        try FileManager.default.createDirectory(at: macos, withIntermediateDirectories: true)
+        try FileManager.default.copyItem(at: URL(filePath: "/usr/bin/true"), to: macos.appending(path: "Cartouche"))
+        try await offMain { try Shell.check("/usr/bin/xattr",
+            ["-w", "com.apple.quarantine", "0081;00000000;Cartouche;", source.path(percentEncoded: false)]) }
+
+        let destination = work.appending(path: "Applications/Cartouche.app")
+        try FileManager.default.createDirectory(
+            at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try await offMain { try AppMover.move(source, to: destination) }
+
+        #expect(FileManager.default.fileExists(atPath: destination.appending(path: "Contents/MacOS/Cartouche").path(percentEncoded: false)))
+        let probe = try await offMain { try Shell.run("/usr/bin/xattr",
+            ["-p", "com.apple.quarantine", destination.path(percentEncoded: false)]) }
+        #expect(!probe.succeeded, "the moved copy is still quarantined")
+    }
+
+    @Test("Quit leaves everything as it was")
+    func quit() async throws {
+        let image = try await MountedImage()
+        defer { Task { await image.remove() } }
+        let destination = image.work.appending(path: "Applications/Cartouche.app")
+        var relaunched = 0
+        var quits = 0
+        let goesOn = MoveToApplications.check(
+            location: .diskImage, mover: AppMover(destination: destination, relauncher: { _ in relaunched += 1 }),
+            ask: { _ in .quit }, quit: { quits += 1 }, bundle: image.app)
+        #expect(!goesOn)
+        #expect(quits == 1)
+        #expect(relaunched == 0)
+        #expect(!FileManager.default.fileExists(atPath: destination.path(percentEncoded: false)))
+    }
+
+    @Test("From Applications or a build folder nothing is asked")
+    func nothingAsked() {
+        for location in [AppLocation.applications, .elsewhere] {
+            var asked = 0
+            let goesOn = MoveToApplications.check(location: location, ask: { _ in asked += 1; return .quit }, quit: {})
+            #expect(goesOn)
+            #expect(asked == 0)
+        }
+    }
+}
+
+extension FileManager {
+    static func contentsEqual(_ a: URL, _ b: URL) -> Bool {
+        FileManager.default.contentsEqual(atPath: a.path(percentEncoded: false), andPath: b.path(percentEncoded: false))
+    }
+}

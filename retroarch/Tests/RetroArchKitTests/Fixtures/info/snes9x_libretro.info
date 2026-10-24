@@ -1,0 +1,16 @@
+# Written for the tests in the shape of the libretro .info files
+display_name = "Nintendo - SNES / SFC (Snes9x)"
+corename = "Snes9x"
+supported_extensions = "smc|sfc|swc|fig|bs|st"
+license = "Non-commercial"
+systemname = "Super Nintendo Entertainment System"
+systemid = "super_nes"
+
+firmware_count = 2
+firmware0_desc = "BS-X.bin (BS-X - Satellaview BIOS)"
+firmware0_path = "BS-X.bin"
+firmware0_opt = "true"
+firmware1_desc = "STBIOS.bin (Sufami Turbo (Japan))"
+firmware1_path = "STBIOS.bin"
+firmware1_opt = "true"
+notes = "(!) BS-X.bin (md5): fed4d8242cfbed61343d53d48432aced|(!) STBIOS.bin (md5): d3a44ba7d42a74d3ac58cb9c14c6a5ca|(!) A note about the BS-X menu."

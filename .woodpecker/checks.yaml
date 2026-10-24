@@ -1,0 +1,51 @@
+# Port of the Linux jobs of ci.yml and lint.yml: shell lint, OpenSpec,
+# redistribution scan. Runs on the in-cluster Kubernetes agent.
+when:
+  - event: pull_request
+  - event: push
+    branch: main
+  - event: manual
+
+variables:
+  - &python docker.io/library/python:3.12-slim-bookworm@sha256:6a0e06f5ba0b373d051aabd3fffb9b873f27f9a2a3a14bcbe37dee6f0e3bbc70
+  - &node docker.io/library/node:22-bookworm-slim@sha256:de170b39439eb0e5a3444ad7d60b015614a381e10fecae2e30ec9e735122f38d
+  - &resources
+    kubernetes:
+      resources:
+        requests: {cpu: 250m, memory: 256Mi}
+        limits: {cpu: "1", memory: 1Gi}
+
+steps:
+  - name: shell-scripts
+    image: *python
+    backend_options: *resources
+    environment:
+      SHELLCHECK_VERSION: 0.11.0
+      SHELLCHECK_SHA256: 8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198
+    commands:
+      - apt-get update -qq && apt-get install -y -qq --no-install-recommends git make xz-utils >/dev/null
+      - git config --global --add safe.directory "$CI_WORKSPACE"
+      - git rev-parse --is-inside-work-tree
+      - python3 -c "import urllib.request,sys; urllib.request.urlretrieve(sys.argv[1], '/tmp/sc.tar.xz')" "https://github.com/koalaman/shellcheck/releases/download/v$SHELLCHECK_VERSION/shellcheck-v$SHELLCHECK_VERSION.linux.x86_64.tar.xz"
+      - echo "$SHELLCHECK_SHA256  /tmp/sc.tar.xz" | sha256sum -c -
+      - tar xJf /tmp/sc.tar.xz -C /tmp && install "/tmp/shellcheck-v$SHELLCHECK_VERSION/shellcheck" /usr/local/bin/shellcheck
+      - 'shellcheck --version | grep -qx "version: $SHELLCHECK_VERSION"'
+      - make scriptcheck
+      - make runcheck
+
+  - name: openspec
+    image: *node
+    backend_options: *resources
+    environment:
+      OPENSPEC_VERSION: 1.14.3
+    commands:
+      - npm install --global --no-fund --no-audit "@fission-ai/openspec@$OPENSPEC_VERSION"
+      - openspec validate --all --strict --no-interactive
+
+  - name: redistribution
+    image: *python
+    backend_options: *resources
+    commands:
+      - sh packaging/redist-scan.sh .
+      - sh packaging/tests/redist-scan-test.sh
+      - python3 packaging/tests/workflow_check.py

@@ -1,0 +1,32 @@
+name: store-clients
+
+# The app downloads legendary, gogdl, comet and nile from their own GitHub
+# releases and runs a file only when it matches its pin. This checks every pin
+# against the release it names, by GitHub's own digest and by hashing the file,
+# whenever the pins change and once a week, in case a release asset is replaced.
+on:
+  push:
+    branches: [main]
+    paths: [app/Sources/NotProtonApp/Resources/store-clients.json, packaging/store_clients.py]
+  pull_request:
+    paths: [app/Sources/NotProtonApp/Resources/store-clients.json, packaging/store_clients.py]
+  schedule:
+    - cron: "41 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Check the pins
+        run: python3 packaging/store_clients.py check app/Sources/NotProtonApp/Resources/store-clients.json
+
+      - name: Compare them with the releases and hash each file
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 packaging/store_clients.py verify app/Sources/NotProtonApp/Resources/store-clients.json --download "$RUNNER_TEMP/store-clients"

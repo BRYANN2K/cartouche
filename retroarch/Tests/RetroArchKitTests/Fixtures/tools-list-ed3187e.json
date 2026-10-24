@@ -1,0 +1,1258 @@
+{
+ "tools": [
+  {
+   "annotations": {
+    "destructiveHint": false
+   },
+   "description": "Load the shader preset at the given path.",
+   "inputSchema": {
+    "properties": {
+     "preset": {
+      "description": "Path to a shader preset, absolute or under the shader directory. Empty turns the shader off.",
+      "type": "string"
+     }
+    },
+    "required": [
+     "preset"
+    ],
+    "type": "object"
+   },
+   "name": "SET_SHADER"
+  },
+  {
+   "annotations": {
+    "destructiveHint": false,
+    "readOnlyHint": true
+   },
+   "description": "Report whether content is playing or paused, with its system and the content's file name, or that no content is loaded.",
+   "inputSchema": {
+    "properties": {},
+    "type": "object"
+   },
+   "name": "GET_STATUS"
+  },
+  {
+   "annotations": {
+    "destructiveHint": false,
+    "readOnlyHint": true
+   },
+   "description": "Report an option's value, or list every option with its value.",
+   "inputSchema": {
+    "properties": {
+     "option": {
+      "description": "An option name, as GET_OPTION with no argument lists.",
+      "type": "string"
+     }
+    },
+    "type": "object"
+   },
+   "name": "GET_OPTION",
+   "outputSchema": {
+    "properties": {
+     "rows": {
+      "items": {
+       "properties": {
+        "option": {
+         "description": "The option's name, as SET_OPTION takes it.",
+         "type": "string"
+        },
+        "value": {
+         "description": "Its state - on or off - or, for one that only reports, what it reports.",
+         "type": "string"
+        }
+       },
+       "required": [
+        "option",
+        "value"
+       ],
+       "type": "object"
+      },
+      "type": "array"
+     }
+    },
+    "required": [
+     "rows"
+    ],
+    "type": "object"
+   }
+  },
+  {
+   "annotations": {
+    "destructiveHint": false
+   },
+   "description": "Turn an option on or off. Asking for the state it is already in changes nothing.",
+   "inputSchema": {
+    "properties": {
+     "option": {
+      "description": "An option name, as GET_OPTION with no argument lists.",
+      "type": "string"
+     },
+     "state": {
+      "description": "The state to put it in.",
+      "enum": [
+       "on",
+       "off"
+      ],
+      "type": "string"
+     }
+    },
+    "required": [
+     "option",
+     "state"
+    ],
+    "type": "object"
+   },
+   "name": "SET_OPTION",
+   "outputSchema": {
+    "properties": {
+     "rows": {
+      "items": {
+       "properties": {
+        "option": {
+         "type": "string"
+        },
+        "value": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "option",
+        "value"
+       ],
+       "type": "object"
+      },
+      "type": "array"
+     }
+    },
+    "required": [
+     "rows"
+    ],
+    "type": "object"
+   }
+  },
+  {
+   "annotations": {
+    "destructiveHint": false,
+    "readOnlyHint": true
+   },
+   "description": "Report the lines RetroArch has logged since the given line, then where to ask from next time (next), and how many of the lines asked for were already gone (skipped).",
+   "inputSchema": {
+    "properties": {
+     "since": {
+      "description": "The first line wanted, as NEXT gave it; 0 when left out.",
+      "type": "integer"
+     }
+    },
+    "type": "object"
+   },
+   "name": "GET_LOG",
+   "outputSchema": {
+    "properties": {
+     "next": {
+      "description": "The line to ask for next, as GET_LOG's since takes it.",
+      "type": "integer"
+     },
+     "skipped": {
+      "description": "Lines that were asked for but had already left the log.",
+      "type": "integer"
+     }
+    },
+    "type": "object"
+   }
+  },
+  {
+   "annotations": {
+    "destructiveHint": false
+   },
+   "description": "Pause and advance the content by the given number of frontend frames, excluding speculative replay calls; finish paused. Over MCP one request runs nine seconds of frames at most (540 at 60fps), as PRESS, RUN_UNTIL and STEPS do.",
+   "inputSchema": {
+    "properties": {
+     "count": {
+      "description": "How many frames to run; ask again to run more.",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "count"
+    ],
+    "type": "object"
+   },
+   "name": "RUN_FRAMES",
+   "outputSchema": {
+    "properties": {
+     "frames": {
+      "description": "The frames run.",
+      "type": "integer"
+     },
+     "rows": {
+      "items": {
+       "properties": {
+        "address": {
+         "description": "Where it is, in hexadecimal.",
+         "type": "string"
+        },
+        "label": {
+         "description": "What the client called it.",
+         "type": "string"
+        },
+        "value": {
+         "description": "What the byte holds, in decimal from 0 to 255, or none where nothing maps it now.",
+         "type": "string"
+        }
+       },
+       "required": [
+        "label",
+        "address",
+        "value"
+       ],
+       "type": "object"
+      },
+      "type": "array"
+     }
+    },
+    "required": [
+     "rows"
+    ],
+    "type": "object"
+   }
+  },
+  {
+   "annotations": {
+    "destructiveHint": false
+   },
+   "description": "Hold RetroPad buttons or stick axes for the core, over the player's own input, until set again or released. Answers with the player, the buttons held and the axes held, none for either where nothing is.",
+   "inputSchema": {
+    "properties": {
+     "control": {
+      "description": "A RetroPad button or stick axis, or several joined by \"+\" to hold together: b, y, select, start, up, down, left, right, a, x, l, r, l2, r2, l3, r3, left_x, left_y, right_x, right_y. \"right+a\" runs and jumps in one request.",
+      "type": "string"
+     },
+     "player": {
+      "description": "The player, from 1.",
+      "type": "integer"
+     },
+     "value": {
+      "description": "1 holds a button and 0 lets it go; an axis takes -32768 to 32767, 0 letting it go.",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "player",
+     "control",
+     "value"
+    ],
+    "type": "object"
+   },
+   "name": "SET_INPUT",
+   "outputSchema": {
+    "properties": {
+     "rows": {
+      "items": {
+       "properties": {
+        "axes": {
+         "description": "The axes held, as name=value separated by spaces, or none.",
+         "type": "string"
+        },
+        "buttons": {
+         "description": "The buttons held, separated by spaces, or none.",
+         "type": "string"
+        },
+        "player": {
+         "description": "The player the controls are held for, from 1.",
+         "type": "string"
+        }
+       },
+       "required": [
+        "player",
+        "buttons",
+        "axes"
+       ],
+       "type": "object"
+      },
+      "type": "array"
+     }
+    },
+    "required": [
+     "rows"
+    ],
+    "type": "object"
+   }
+  },
+  {
+   "annotations": {
+    "destructiveHint": false
+   },
+   "description": "Press RetroPad buttons for some frames and let go, in one request; with until, run on until a condition holds. What SET_INPUT holds stays held. Answers with what WATCH watches; the content finishes paused.",
+   "inputSchema": {
+    "properties": {
+     "control": {
+      "description": "A RetroPad button, or several joined by \"+\": b, y, select, start, up, down, left, right, a, x, l, r, l2, r2, l3, r3. \"right+a\" runs and jumps.",
+      "type": "string"
+     },
+     "frames": {
+      "description": "Frames to hold them. A tap is 2 to 4; hold longer with SET_INPUT.",
+      "type": "integer"
+     },
+     "player": {
+      "description": "The player, from 1.",
+      "type": "integer"
+     },
+     "until": {
+      "description": "Then run until this holds, as RUN_UNTIL's: \"1d == 0\" lands a jump.",
+      "type": "string"
+     }
+    },
+    "required": [
+     "player",
+     "control",
+     "frames"
+    ],
+    "type": "object"
+   },
+   "name": "PRESS",
+   "outputSchema": {
+    "properties": {
+     "frames": {
+      "description": "The frames run.",
+      "type": "integer"
+     },
+     "met": {
+      "description": "With until: frames run until it held.",
+      "type": "integer"
+     },
+     "rows": {
+      "items": {
+       "properties": {
+        "address": {
+         "type": "string"
+        },
+        "label": {
+         "type": "string"
+        },
+        "value": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "label",
+        "address",
+        "value"
+       ],
+       "type": "object"
+      },
+      "type": "array"
+     },
+     "value": {
+      "description": "With until: what it read.",
+      "type": "integer"
+     },
+     "waiting": {
+      "description": "With until: frames run without.",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "rows"
+    ],
+    "type": "object"
+   }
+  },
+  {
+   "annotations": {
+    "destructiveHint": false
+   },
+   "description": "Run the content until memory meets a condition, in one request rather than running frames and reading again. Answers with the frames run - met, or waiting: ask again - what WATCH watches and the value.",
+   "inputSchema": {
+    "properties": {
+     "address": {
+      "description": "A system address in hexadecimal, as GET_MEMORY_MAP gives them; high:low, such as 6d:86, reads two bytes as one value.",
+      "type": "string"
+     },
+     "condition": {
+      "description": "How it compares with the value.",
+      "enum": [
+       "==",
+       "!=",
+       "<",
+       ">",
+       "<=",
+       ">="
+      ],
+      "type": "string"
+     },
+     "frames": {
+      "description": "Frames to wait at most; as many as a request runs when left out.",
+      "type": "integer"
+     },
+     "value": {
+      "description": "What to compare it with: 0 to 255, or 0 to 65535 for high:low.",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "address",
+     "condition",
+     "value"
+    ],
+    "type": "object"
+   },
+   "name": "RUN_UNTIL",
+   "outputSchema": {
+    "properties": {
+     "met": {
+      "description": "The frames run until the condition held.",
+      "type": "integer"
+     },
+     "rows": {
+      "items": {
+       "properties": {
+        "address": {
+         "type": "string"
+        },
+        "label": {
+         "type": "string"
+        },
+        "value": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "label",
+        "address",
+        "value"
+       ],
+       "type": "object"
+      },
+      "type": "array"
+     },
+     "value": {
+      "description": "What the memory waited on holds now.",
+      "type": "integer"
+     },
+     "waiting": {
+      "description": "The frames run without it meeting it; ask again to wait more.",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "rows"
+    ],
+    "type": "object"
+   }
+  },
+  {
+   "annotations": {
+    "destructiveHint": false
+   },
+   "description": "Run a stretch of play - approach, jump, land - in one request. Answers done, waiting (time ran out: ask again from step) or stopped, with the frames run, what WATCH watches and the step it ended on.",
+   "inputSchema": {
+    "properties": {
+     "steps": {
+      "description": "In order, separated by \";\": run <frames>, press <player> <controls> <frames>, until <condition> as RUN_UNTIL's, and one stop <condition> that ends the list where it holds: \"until 86 >= 200; press 1 a 20; until 1d == 0; stop e == 11\".",
+      "type": "string"
+     }
+    },
+    "required": [
+     "steps"
+    ],
+    "type": "object"
+   },
+   "name": "STEPS",
+   "outputSchema": {
+    "properties": {
+     "done": {
+      "description": "Frames run, every step done.",
+      "type": "integer"
+     },
+     "rows": {
+      "items": {
+       "properties": {
+        "address": {
+         "type": "string"
+        },
+        "label": {
+         "type": "string"
+        },
+        "value": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "label",
+        "address",
+        "value"
+       ],
+       "type": "object"
+      },
+      "type": "array"
+     },
+     "step": {
+      "description": "The step it ended on, from 1.",
+      "type": "integer"
+     },
+     "stopped": {
+      "description": "Frames run when stop held.",
+      "type": "integer"
+     },
+     "waiting": {
+      "description": "Frames run before time ran out.",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "rows"
+    ],
+    "type": "object"
+   }
+  },
+  {
+   "annotations": {
+    "destructiveHint": false
+   },
+   "description": "Watch bytes at system addresses under labels, so RUN_FRAMES, PRESS, RUN_UNTIL and STEPS answer with them and a step needs no reads after it. With none, answers what is watched and what each holds now, in decimal. 16 at most; cleared when content closes.",
+   "inputSchema": {
+    "properties": {
+     "watches": {
+      "description": "Labels and system addresses in hexadecimal, as GET_MEMORY_MAP gives them, in pairs: \"x 86 mode 770\" on a NES, \"x 7e0086\" on a SNES. A label already watched is replaced, and off for its address stops watching it. 16 at most.",
+      "type": "string"
+     }
+    },
+    "type": "object"
+   },
+   "name": "WATCH",
+   "outputSchema": {
+    "properties": {
+     "rows": {
+      "items": {
+       "properties": {
+        "address": {
+         "type": "string"
+        },
+        "label": {
+         "type": "string"
+        },
+        "value": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "label",
+        "address",
+        "value"
+       ],
+       "type": "object"
+      },
+      "type": "array"
+     }
+    },
+    "required": [
+     "rows"
+    ],
+    "type": "object"
+   }
+  },
+  {
+   "annotations": {
+    "destructiveHint": false
+   },
+   "description": "Let go of everything SET_INPUT holds, for one player, or every player when given none. Answers as GET_INPUT does, for that player or the first.",
+   "inputSchema": {
+    "properties": {
+     "player": {
+      "description": "The player, from 1; every player when left out.",
+      "type": "integer"
+     }
+    },
+    "type": "object"
+   },
+   "name": "RELEASE_INPUT",
+   "outputSchema": {
+    "properties": {
+     "rows": {
+      "items": {
+       "properties": {
+        "axes": {
+         "type": "string"
+        },
+        "buttons": {
+         "type": "string"
+        },
+        "player": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "player",
+        "buttons",
+        "axes"
+       ],
+       "type": "object"
+      },
+      "type": "array"
+     }
+    },
+    "required": [
+     "rows"
+    ],
+    "type": "object"
+   }
+  },
+  {
+   "annotations": {
+    "destructiveHint": false,
+    "readOnlyHint": true
+   },
+   "description": "Report what a player holds, without changing it: SET_INPUT has to set something to answer and RELEASE_INPUT lets go before it does.",
+   "inputSchema": {
+    "properties": {
+     "player": {
+      "description": "The player, from 1; the first when left out.",
+      "type": "integer"
+     }
+    },
+    "type": "object"
+   },
+   "name": "GET_INPUT",
+   "outputSchema": {
+    "properties": {
+     "rows": {
+      "items": {
+       "properties": {
+        "axes": {
+         "type": "string"
+        },
+        "buttons": {
+         "type": "string"
+        },
+        "player": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "player",
+        "buttons",
+        "axes"
+       ],
+       "type": "object"
+      },
+      "type": "array"
+     }
+    },
+    "required": [
+     "rows"
+    ],
+    "type": "object"
+   }
+  },
+  {
+   "annotations": {
+    "destructiveHint": false,
+    "readOnlyHint": true
+   },
+   "description": "List the running core's options: key, value and description; with a key, that option with the values it takes.",
+   "inputSchema": {
+    "properties": {
+     "option": {
+      "description": "A core option key, as GET_CORE_OPTION with no argument lists it.",
+      "type": "string"
+     }
+    },
+    "type": "object"
+   },
+   "name": "GET_CORE_OPTION",
+   "outputSchema": {
+    "properties": {
+     "rows": {
+      "items": {
+       "properties": {
+        "description": {
+         "description": "What the option is called in the menu.",
+         "type": "string"
+        },
+        "key": {
+         "description": "The option's key, as SET_CORE_OPTION takes it.",
+         "type": "string"
+        },
+        "value": {
+         "description": "The value it has now.",
+         "type": "string"
+        },
+        "values": {
+         "description": "The values it takes, separated by \"|\"; given only where the option was asked for by key.",
+         "type": "string"
+        }
+       },
+       "required": [
+        "key",
+        "value",
+        "description"
+       ],
+       "type": "object"
+      },
+      "type": "array"
+     }
+    },
+    "required": [
+     "rows"
+    ],
+    "type": "object"
+   }
+  },
+  {
+   "annotations": {
+    "destructiveHint": false
+   },
+   "description": "Set a core option to one of its values. Asking for the value it already has changes nothing.",
+   "inputSchema": {
+    "properties": {
+     "option": {
+      "description": "A core option key, as GET_CORE_OPTION with no argument lists it.",
+      "type": "string"
+     },
+     "value": {
+      "description": "One of the values GET_CORE_OPTION with the key lists.",
+      "type": "string"
+     }
+    },
+    "required": [
+     "option",
+     "value"
+    ],
+    "type": "object"
+   },
+   "name": "SET_CORE_OPTION"
+  },
+  {
+   "annotations": {
+    "destructiveHint": false,
+    "readOnlyHint": true
+   },
+   "description": "List the installed cores: name and the path LOAD_CONTENT takes. With a content path, only the cores that support it.",
+   "inputSchema": {
+    "properties": {
+     "content": {
+      "description": "A content path. Left out, every installed core; given, only the cores that support it.",
+      "type": "string"
+     }
+    },
+    "type": "object"
+   },
+   "name": "LIST_CORES",
+   "outputSchema": {
+    "properties": {
+     "more": {
+      "description": "The reply was cut short.",
+      "type": "boolean"
+     },
+     "rows": {
+      "items": {
+       "properties": {
+        "name": {
+         "description": "The core's display name.",
+         "type": "string"
+        },
+        "path": {
+         "description": "The core's path, as LOAD_CONTENT takes it.",
+         "type": "string"
+        }
+       },
+       "required": [
+        "name",
+        "path"
+       ],
+       "type": "object"
+      },
+      "type": "array"
+     }
+    },
+    "required": [
+     "rows"
+    ],
+    "type": "object"
+   }
+  },
+  {
+   "annotations": {
+    "destructiveHint": false,
+    "readOnlyHint": true
+   },
+   "description": "List the playlists, as GET_PLAYLIST takes them.",
+   "inputSchema": {
+    "properties": {},
+    "type": "object"
+   },
+   "name": "LIST_PLAYLISTS",
+   "outputSchema": {
+    "properties": {
+     "more": {
+      "description": "The reply was cut short.",
+      "type": "boolean"
+     },
+     "rows": {
+      "items": {
+       "properties": {
+        "playlist": {
+         "description": "The playlist's name, as GET_PLAYLIST takes it.",
+         "type": "string"
+        }
+       },
+       "required": [
+        "playlist"
+       ],
+       "type": "object"
+      },
+      "type": "array"
+     }
+    },
+    "required": [
+     "rows"
+    ],
+    "type": "object"
+   }
+  },
+  {
+   "annotations": {
+    "destructiveHint": false,
+    "readOnlyHint": true
+   },
+   "description": "List a playlist's entries: index, label, content path and core path, 200 at a time, and where to go on from when there are more.",
+   "inputSchema": {
+    "properties": {
+     "first": {
+      "description": "The entry to start at; the first when left out.",
+      "type": "integer"
+     },
+     "playlist": {
+      "description": "A playlist name as LIST_PLAYLISTS gives it, \".lpl\" and all.",
+      "type": "string"
+     }
+    },
+    "required": [
+     "playlist"
+    ],
+    "type": "object"
+   },
+   "name": "GET_PLAYLIST",
+   "outputSchema": {
+    "properties": {
+     "more": {
+      "description": "The reply was cut short.",
+      "type": "boolean"
+     },
+     "next": {
+      "description": "The entry the next page starts at, as GET_PLAYLIST's first takes it.",
+      "type": "integer"
+     },
+     "rows": {
+      "items": {
+       "properties": {
+        "content": {
+         "description": "The content's path, as LOAD_CONTENT takes it.",
+         "type": "string"
+        },
+        "core": {
+         "description": "The core's path, as LOAD_CONTENT takes it; empty where the playlist names none.",
+         "type": "string"
+        },
+        "index": {
+         "description": "The entry's number in the playlist.",
+         "type": "string"
+        },
+        "label": {
+         "description": "The entry's name.",
+         "type": "string"
+        }
+       },
+       "required": [
+        "index",
+        "label",
+        "content",
+        "core"
+       ],
+       "type": "object"
+      },
+      "type": "array"
+     }
+    },
+    "required": [
+     "rows"
+    ],
+    "type": "object"
+   }
+  },
+  {
+   "annotations": {
+    "destructiveHint": false
+   },
+   "description": "Show a message on screen.",
+   "inputSchema": {
+    "properties": {
+     "message": {
+      "description": "The text to show on screen.",
+      "type": "string"
+     }
+    },
+    "required": [
+     "message"
+    ],
+    "type": "object"
+   },
+   "name": "SHOW_MSG"
+  },
+  {
+   "annotations": {
+    "destructiveHint": false,
+    "readOnlyHint": true
+   },
+   "description": "Read bytes from core memory at a system address. Answers with the address and the bytes, in hexadecimal.",
+   "inputSchema": {
+    "properties": {
+     "address": {
+      "description": "The address to read from, in hexadecimal.",
+      "type": "string"
+     },
+     "bytes": {
+      "description": "How many bytes to read, a count.",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "address",
+     "bytes"
+    ],
+    "type": "object"
+   },
+   "name": "READ_CORE_MEMORY"
+  },
+  {
+   "annotations": {
+    "destructiveHint": false,
+    "readOnlyHint": true
+   },
+   "description": "List the core's memory map: a region's start, length, select and disconnect are hexadecimal, as READ_CORE_MEMORY takes them.",
+   "inputSchema": {
+    "properties": {},
+    "type": "object"
+   },
+   "name": "GET_MEMORY_MAP",
+   "outputSchema": {
+    "properties": {
+     "rows": {
+      "items": {
+       "properties": {
+        "access": {
+         "description": "rw, ro, or none where the core exposes none.",
+         "type": "string"
+        },
+        "disconnect": {
+         "description": "Which address bits it ignores.",
+         "type": "string"
+        },
+        "kind": {
+         "description": "system, save, video or other.",
+         "type": "string"
+        },
+        "length": {
+         "description": "How many bytes it covers.",
+         "type": "string"
+        },
+        "order": {
+         "description": "big or little.",
+         "type": "string"
+        },
+        "select": {
+         "description": "Which address bits name the region.",
+         "type": "string"
+        },
+        "space": {
+         "description": "What the core calls the address space, or empty.",
+         "type": "string"
+        },
+        "start": {
+         "description": "The region's first address.",
+         "type": "string"
+        }
+       },
+       "required": [
+        "start",
+        "length",
+        "select",
+        "disconnect",
+        "kind",
+        "access",
+        "order",
+        "space"
+       ],
+       "type": "object"
+      },
+      "type": "array"
+     }
+    },
+    "required": [
+     "rows"
+    ],
+    "type": "object"
+   }
+  },
+  {
+   "annotations": {
+    "destructiveHint": true
+   },
+   "description": "Write bytes to core memory at a system address. Answers with the address and how many bytes were written.",
+   "inputSchema": {
+    "properties": {
+     "address": {
+      "description": "The address to write to, in hexadecimal.",
+      "type": "string"
+     },
+     "bytes": {
+      "description": "The bytes to write, in hexadecimal, separated by spaces.",
+      "type": "string"
+     }
+    },
+    "required": [
+     "address",
+     "bytes"
+    ],
+    "type": "object"
+   },
+   "name": "WRITE_CORE_MEMORY"
+  },
+  {
+   "annotations": {
+    "destructiveHint": true
+   },
+   "description": "Save a state to a slot, or load the one in it.",
+   "inputSchema": {
+    "properties": {
+     "action": {
+      "description": "Save to the slot, overwriting it, or load from it, replacing the game state.",
+      "enum": [
+       "save",
+       "load"
+      ],
+      "type": "string"
+     },
+     "slot": {
+      "description": "The slot number.",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "action",
+     "slot"
+    ],
+    "type": "object"
+   },
+   "name": "STATE"
+  },
+  {
+   "annotations": {
+    "destructiveHint": true
+   },
+   "description": "Play, seek, record, halt or checkpoint a replay.",
+   "inputSchema": {
+    "properties": {
+     "action": {
+      "description": "Play the replay in a slot, seek the playing one to a frame, record one to the current slot, halt playing or recording, or add a checkpoint to the one recording.",
+      "enum": [
+       "play",
+       "seek",
+       "record",
+       "halt",
+       "checkpoint"
+      ],
+      "type": "string"
+     },
+     "number": {
+      "description": "The slot to play, or the frame to seek to.",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "action"
+    ],
+    "type": "object"
+   },
+   "name": "REPLAY"
+  },
+  {
+   "annotations": {
+    "destructiveHint": true
+   },
+   "description": "Load a core library, start it without content, or unload it.",
+   "inputSchema": {
+    "properties": {
+     "action": {
+      "description": "Load a core library, start the loaded one without content, or close the content and unload the core.",
+      "enum": [
+       "load",
+       "start",
+       "unload"
+      ],
+      "type": "string"
+     },
+     "core": {
+      "description": "load: the path, as LIST_CORES gives it.",
+      "type": "string"
+     }
+    },
+    "required": [
+     "action"
+    ],
+    "type": "object"
+   },
+   "name": "CORE"
+  },
+  {
+   "annotations": {
+    "destructiveHint": true
+   },
+   "description": "Load the content at the given path with the core at the given path, or with a core that supports it where the core path is DETECT or empty.",
+   "inputSchema": {
+    "properties": {
+     "content": {
+      "description": "Path to the content, as GET_PLAYLIST gives it.",
+      "type": "string"
+     },
+     "core": {
+      "description": "Path to the core to load it with, as LIST_CORES and GET_PLAYLIST give it; DETECT, as a playlist entry with no core of its own gives it, picks a core that supports the content.",
+      "type": "string"
+     },
+     "paused": {
+      "description": "on: pause once it has loaded, before it runs on, so nothing happens before the first step.",
+      "enum": [
+       "on",
+       "off"
+      ],
+      "type": "string"
+     }
+    },
+    "required": [
+     "content"
+    ],
+    "type": "object"
+   },
+   "name": "LOAD_CONTENT"
+  },
+  {
+   "annotations": {
+    "destructiveHint": true
+   },
+   "description": "Close the running content.",
+   "inputSchema": {
+    "properties": {},
+    "type": "object"
+   },
+   "name": "CLOSE_CONTENT"
+  },
+  {
+   "annotations": {
+    "destructiveHint": false
+   },
+   "description": "Restart the video or audio driver, or all drivers.",
+   "inputSchema": {
+    "properties": {
+     "driver": {
+      "description": "Which driver, or all of them.",
+      "enum": [
+       "video",
+       "audio",
+       "all"
+      ],
+      "type": "string"
+     }
+    },
+    "required": [
+     "driver"
+    ],
+    "type": "object"
+   },
+   "name": "REINIT"
+  },
+  {
+   "annotations": {
+    "destructiveHint": false
+   },
+   "description": "Press a menu button: move, confirm (a) or back (b).",
+   "inputSchema": {
+    "properties": {
+     "button": {
+      "description": "The menu button to press.",
+      "enum": [
+       "up",
+       "down",
+       "left",
+       "right",
+       "a",
+       "b"
+      ],
+      "type": "string"
+     }
+    },
+    "required": [
+     "button"
+    ],
+    "type": "object"
+   },
+   "name": "MENU"
+  },
+  {
+   "annotations": {
+    "destructiveHint": false
+   },
+   "description": "Eject or insert the virtual disc, or select the next or previous disc image.",
+   "inputSchema": {
+    "properties": {
+     "action": {
+      "description": "Eject or insert the disc, or select the next or previous image.",
+      "enum": [
+       "eject",
+       "next",
+       "prev"
+      ],
+      "type": "string"
+     }
+    },
+    "required": [
+     "action"
+    ],
+    "type": "object"
+   },
+   "name": "DISK"
+  },
+  {
+   "annotations": {
+    "destructiveHint": true
+   },
+   "description": "Quit RetroArch.",
+   "inputSchema": {
+    "properties": {},
+    "type": "object"
+   },
+   "name": "QUIT"
+  },
+  {
+   "annotations": {
+    "destructiveHint": true
+   },
+   "description": "Reset the running content.",
+   "inputSchema": {
+    "properties": {},
+    "type": "object"
+   },
+   "name": "RESET"
+  },
+  {
+   "annotations": {
+    "destructiveHint": false
+   },
+   "description": "Take a screenshot.",
+   "inputSchema": {
+    "properties": {},
+    "type": "object"
+   },
+   "name": "SCREENSHOT"
+  }
+ ]
+}

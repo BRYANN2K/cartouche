@@ -1,0 +1,58 @@
+schema: spec-driven
+
+context: |
+  Language: en
+  All artifacts must be written in en.
+  Keep OpenSpec structural headings and SHALL/MUST keywords in English.
+
+  Product: Cartouche, a free macOS game launcher forked from NotProton (GPL-3.0).
+  It runs Windows games on Apple silicon Macs through Steam Play inside the Mac
+  Steam client, store clients (Epic, GOG, Amazon) and Windows installers, with
+  free runners (Wine CrossOver built by our CI from CodeWeavers' LGPL sources, WineHQ builds, Game Porting Toolkit) and graphics
+  backends (D3DMetal, DXMT, DXVK, wined3d).
+
+  Stack: Swift 6 and SwiftUI for the app (app/), C for the Steam-side dylib
+  (dylib/), Swift packages for engines (installer/ InstallerKit). GitHub Actions
+  for CI, Sparkle for updates, GitHub Releases and a personal Homebrew tap for
+  distribution.
+
+  Constraints:
+  - macOS 15 minimum. Liquid Glass on macOS 26, classic materials on 15. FEX on 26 only.
+  - Free signing only: one self-signed certificate, stable across releases. No notarization.
+  - No server. Compatibility data is a JSON file built nightly by CI.
+  - Never bundle D3DMetal or any Apple GPTK file. Detect the user's own copy.
+  - No DRM circumvention, no piracy-specific features or wording.
+  - UI copy in English. Anti-slop rules in FORK-PLAN.md ("Règles d'interface").
+  - Independent fork: no pull requests to NotProton upstream.
+
+  Scope: one scope, phases P0 to P16, all built before the first public
+  release, v0.1.0. Consoles (bundled RetroArch) are a core feature.
+
+  Reference material: FORK-PLAN.md, mockup/launcher.html (interactive mockup),
+  mockup/INSTALLER.md, mockup/MCP.md, mockup/AUDIT.md, docs/ROADMAP.md,
+  docs/ORCHESTRATION.md.
+
+rules:
+  proposal:
+    - State what is out of scope in a "Non-goals" bullet under What Changes.
+    - Name the phase it depends on, if any.
+  specs:
+    - Every requirement has at least one scenario.
+    - Every THEN is observable and checkable (a value, a file, a UI state, an exit code, a time limit). No "works well", "is fast", "is intuitive".
+    - Scenarios are the acceptance criteria. A phase is not done until each one has evidence.
+  design:
+    - Each decision lists the alternative that was rejected and why.
+  tasks:
+    - Each task states its verification in the same line.
+    - Tasks are at most half a day of work.
+    - The last group is "Acceptance" and maps every scenario to its evidence in evidence.md.
+
+operations:
+  apply:
+    guidance:
+      - Work on the branch phase/<change-id>, never on main.
+      - Run the full test suite before marking a group done.
+      - Record evidence (command output, screenshot path, test name) per scenario in evidence.md.
+  archive:
+    guidance:
+      - Archive only after the orchestrator review passed and the branch is merged.

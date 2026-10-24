@@ -1,0 +1,7 @@
+# libarchive for Cartouche.app/Contents/Helpers. BSD-2-Clause.
+# liblzma and zstd are built from these sources and linked into the dylib so it
+# needs only system libraries at run time; zlib, bzip2 and iconv are the OS's.
+# Each line: name url sha256
+libarchive  https://github.com/libarchive/libarchive/releases/download/v3.8.9/libarchive-3.8.9.tar.gz  f5a6539059cf5e597dbeda37bfa4874b1e8dea063c8d93bf85a2b44af90a5bd4
+xz          https://github.com/tukaani-project/xz/releases/download/v5.8.4/xz-5.8.4.tar.gz              0014c7886930454fe8bd4228665b51af55eeae560ea135c9c4cd33f55b2591d9
+zstd        https://github.com/facebook/zstd/releases/download/v1.5.7/zstd-1.5.7.tar.gz                eb33e51f49a15e023950cd7825ca74a4a2b43db8354825ac24fc1b7ee09e6fa3

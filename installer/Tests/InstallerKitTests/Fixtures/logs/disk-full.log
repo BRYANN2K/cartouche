@@ -1,0 +1,9 @@
+2026-10-19 23:00:00.001   Log opened. (Time zone: UTC+02:00)
+2026-10-19 23:00:00.002   Setup version: Inno Setup version 5.5.0 (u)
+2026-10-19 23:00:03.100   Starting the installation process.
+2026-10-19 23:20:41.330   Message box (OK):
+                          An error occurred while unpacking: Unarc.dll returned an error code: -12
+                          ERROR: There is not enough space on the disk
+2026-10-19 23:20:44.002   User chose OK.
+2026-10-19 23:20:44.010   Rolling back changes.
+2026-10-19 23:20:45.300   Log closed.

@@ -1,0 +1,12 @@
+2026-10-19 21:00:01.120   Log opened. (Time zone: UTC+02:00)
+2026-10-19 21:00:01.120   Setup version: Inno Setup version 5.5.0 (u)
+2026-10-19 21:00:01.130   Created temporary directory: C:\users\crossover\Temp\is-4F2KD.tmp
+2026-10-19 21:00:01.131   Extracting temporary file: C:\users\crossover\Temp\is-4F2KD.tmp\unarc.dll
+2026-10-19 21:00:05.402   Starting the installation process.
+2026-10-19 21:03:12.850   Message box (OK):
+                          An error occurred while unpacking: Unarc.dll returned an error code: -11
+                          ERROR: archive data corrupted (decompression fails)
+2026-10-19 21:03:15.002   User chose OK.
+2026-10-19 21:03:15.010   Rolling back changes.
+2026-10-19 21:03:15.900   Deinitializing Setup.
+2026-10-19 21:03:15.901   Log closed.

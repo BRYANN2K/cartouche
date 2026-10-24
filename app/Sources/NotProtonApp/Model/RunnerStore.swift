@@ -1,0 +1,256 @@
+import Foundation
+
+enum RunnerState: Sendable, Equatable {
+    case none
+    case ready(builds: [String])
+    case unpatched(builds: [String], problems: [String])
+
+    var builds: [String] {
+        switch self {
+        case .none: []
+        case .ready(let builds): builds
+        case .unpatched(let builds, _): builds
+        }
+    }
+}
+
+enum RunnerStore {
+
+    static func state(
+        runners: URL = SupportPaths.runners,
+        pins: [RunnerBuild] = SupportedRunners.all,
+        verify: @Sendable (RunnerBuild, URL) -> [String] = {
+            RunnerPatcher.verify(build: $0, root: $1)
+        }
+    ) -> RunnerState {
+        let installed = installedBuilds(in: runners, pins: pins)
+        return state(of: installed, problems: problems(of: installed, runners: runners, verify: verify))
+    }
+
+    static func problems(
+        of builds: [RunnerBuild], runners: URL, verify: (RunnerBuild, URL) -> [String]
+    ) -> [String: [String]] {
+        var problems: [String: [String]] = [:]
+        for build in builds {
+            let found = verify(build, SupportPaths.clonedRoot(forBuild: build.id, runners: runners))
+            if !found.isEmpty { problems[build.id] = found }
+        }
+        return problems
+    }
+
+    static func state(of installed: [RunnerBuild], problems: [String: [String]]) -> RunnerState {
+        guard !installed.isEmpty else { return .none }
+
+        var unpatched: [String] = []
+        var lines: [String] = []
+        for build in installed {
+            guard let found = problems[build.id] else { continue }
+            unpatched.append(build.id)
+            lines += found.map { "\(build.id): \($0)" }
+        }
+        if unpatched.isEmpty { return .ready(builds: installed.map(\.id)) }
+        return .unpatched(builds: unpatched, problems: lines)
+    }
+
+    static func clonedBuilds(in runners: URL = SupportPaths.runners) -> [String] {
+        let fm = FileManager.default
+        let entries = (try? fm.contentsOfDirectory(at: runners, includingPropertiesForKeys: nil)) ?? []
+        return entries
+            .map(\.lastPathComponent)
+            .filter { $0.hasPrefix("crossover-") }
+            .map { String($0.dropFirst("crossover-".count)) }
+            // A downloaded Wine id (wine-…) is never a CrossOver build, whatever made the folder
+            .filter { !$0.hasPrefix("wine-") }
+            .sorted()
+    }
+
+    static func orphanedClones(
+        in runners: URL = SupportPaths.runners, pins: [RunnerBuild] = SupportedRunners.all
+    ) -> [String] {
+        clonedBuilds(in: runners).filter { SupportedRunners.build(id: $0, in: pins) == nil }
+    }
+
+    static func damagedClones(
+        in runners: URL = SupportPaths.runners, pins: [RunnerBuild] = SupportedRunners.all
+    ) -> [String] {
+        clonedBuilds(in: runners).filter {
+            SupportedRunners.build(id: $0, in: pins) != nil
+                && !RunnerInstaller.hasClone(forBuild: $0, runners: runners)
+        }
+    }
+
+    static func cloneSize(forBuild build: String, runners: URL = SupportPaths.runners) -> Int64 {
+        let root = SupportPaths.runnerRoot(forBuild: build, runners: runners)
+        guard let walker = FileManager.default.enumerator(
+            at: root,
+            includingPropertiesForKeys: [.totalFileAllocatedSizeKey, .fileAllocatedSizeKey],
+            options: [.skipsHiddenFiles]
+        ) else { return 0 }
+
+        var total: Int64 = 0
+        for case let url as URL in walker {
+            let values = try? url.resourceValues(
+                forKeys: [.totalFileAllocatedSizeKey, .fileAllocatedSizeKey]
+            )
+            let bytes = values?.totalFileAllocatedSize ?? values?.fileAllocatedSize ?? 0
+            total += Int64(bytes)
+        }
+        return total
+    }
+
+    static func installedBuilds(
+        in runners: URL = SupportPaths.runners, pins: [RunnerBuild] = SupportedRunners.all
+    ) -> [RunnerBuild] {
+        clonedBuilds(in: runners)
+            .compactMap { build(cloned: $0, runners: runners, pins: pins) }
+            .filter { RunnerInstaller.hasClone(forBuild: $0.id, runners: runners) }
+    }
+
+    private static func build(cloned id: String, runners: URL, pins: [RunnerBuild]) -> RunnerBuild? {
+        guard let build = SupportedRunners.build(id: id, in: pins) else { return nil }
+        guard !build.rebuilds.isEmpty else { return build }
+        let root = SupportPaths.clonedRoot(forBuild: id, runners: runners)
+        let loader = Clean.copy(of: CrossOverSource.unixLoader(inRoot: root))
+        return Digest.sha256IfPresent(loader).flatMap(build.matching(loaderSHA256:)) ?? build
+    }
+}
+
+enum CompatToolList {
+
+    static func contents(_ tools: [InstalledTool]) -> String {
+        tools.map { "\($0.name)\t\($0.build)\t\($0.tool.flavor.rawValue)\t\($0.display)\n" }.joined()
+    }
+
+    static func installed(
+        runners: URL = SupportPaths.runners, file: URL = SupportPaths.toolList
+    ) -> [InstalledTool] {
+        resolved(runners: runners, file: file).tools
+    }
+
+    static func backendFile(beside file: URL) -> URL {
+        file.deletingLastPathComponent().appending(path: SupportPaths.backendToolList.lastPathComponent)
+    }
+
+    static func backendContents(_ tools: [BackendTool]) -> String {
+        tools.map { "\($0.name)\t\($0.build)\t\($0.flavor.rawValue)\t\($0.backend.rawValue)\t\($0.display)\n" }.joined()
+    }
+
+    static func backendTools(
+        for tools: [InstalledTool], runners: URL = SupportPaths.runners,
+        backends: URL = BackendInstaller.folder, manifest: RunnerManifest = .current()
+    ) -> [BackendTool] {
+        var wineAvailability: BackendAvailability?
+        return SupportedRunners.backendTools(for: tools) { tool in
+            if let build = manifest.build(id: tool.build),
+               build.kind == Runner.Kind.wineBuild.rawValue {
+                if wineAvailability == nil {
+                    wineAvailability = Self.wineAvailability(
+                        tools, manifest: manifest, runners: runners, backends: backends)
+                }
+                let runner = Runner(
+                    id: build.id, kind: .wineBuild, version: build.version,
+                    displayVersion: build.displayVersion, flavors: [tool.tool.flavor],
+                    state: .ready, build: nil, source: nil, isInstalled: true)
+                return BackendSupport.backends(
+                    for: runner, translation: tool.tool.flavor == .fex ? .fex : .rosetta,
+                    availability: wineAvailability ?? BackendAvailability())
+            }
+            let root = SupportPaths.clonedRoot(forBuild: tool.build, runners: runners)
+            return BackendSupport.crossOver(
+                translation: tool.tool.flavor == .fex ? .fex : .rosetta,
+                d3dMetal: RunnerRegistry.crossOverD3DMetal(inRoot: root) != nil)
+        }
+    }
+
+    // What a downloaded Wine build can serve: wined3d always, Cartouche's DXMT or
+    // DXVK when downloaded, D3DMetal from its own files or the user's toolkit.
+    private static func wineAvailability(
+        _ tools: [InstalledTool], manifest: RunnerManifest, runners: URL, backends: URL
+    ) -> BackendAvailability {
+        var out = BackendAvailability()
+        for tool in tools where manifest.build(id: tool.build)?.origin == .cartouche {
+            out.crossOverWine.insert(tool.build)
+            let root = WineRunnerInstaller.dir(for: tool.build, runners: runners)
+            if RunnerRegistry.crossOverD3DMetal(inRoot: root) != nil
+                || PortingToolkitSource.libd3dshared(runners: runners) != nil {
+                out.d3dMetalRunners.insert(tool.build)
+            }
+        }
+        out.hasGamePortingToolkit = PortingToolkitSource.libd3dshared(runners: runners) != nil
+        out.installed = Set(BackendInstaller.installed(in: backends).map(\.backend))
+        return out
+    }
+
+    private static func resolved(
+        runners: URL, file: URL, fexAvailable: Bool = CompatTool.Flavor.fexAvailable,
+        manifest: RunnerManifest = .current()
+    ) -> (builds: [RunnerBuild], listed: String?, tools: [InstalledTool]) {
+        let builds = RunnerStore.installedBuilds(in: runners)
+        let listed = try? String(contentsOf: file, encoding: .utf8)
+        // On Sequoia a FEX tool stays only if an earlier install listed it.
+        let kept = Set((listed ?? "").split(separator: "\n").compactMap {
+            $0.split(separator: "\t").first.map(String.init)
+        })
+        let tools = SupportedRunners.tools(for: builds, fexAvailable: fexAvailable, keeping: kept)
+            + wineTools(runners: runners, manifest: manifest, fexAvailable: fexAvailable, keeping: kept)
+        return (builds, listed, tools)
+    }
+
+    // Installed Wine builds are compatibility tools: Cartouche Wine and WineHQ.
+    // The manifest id is the build. GPTK has no Wine loader, so it is not a tool.
+    // Each flavor the build serves is a tool of its own.
+    private static func wineTools(
+        runners: URL, manifest: RunnerManifest, fexAvailable: Bool, keeping kept: Set<String>
+    ) -> [InstalledTool] {
+        manifest.builds.flatMap { build -> [InstalledTool] in
+            guard build.kind == Runner.Kind.wineBuild.rawValue,
+                  build.origin == .cartouche || build.origin == .winehq,
+                  // The build field can only hold what the dylib's tool line accepts
+                  build.id.allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber || "._-".contains($0)) }),
+                  WineRunnerInstaller.isInstalled(build.id, runners: runners)
+            else { return [] }
+            return build.cpuFlavors.compactMap { flavor in
+                let name = flavor == .fex
+                    ? "\(SupportPaths.toolPrefix)-fex-\(build.id)"
+                    : "\(SupportPaths.toolPrefix)-\(build.id)"
+                guard flavor != .fex || fexAvailable || kept.contains(name) else { return nil }
+                let display = flavor == .fex ? "\(build.title) FEX" : build.title
+                return InstalledTool(
+                    tool: CompatTool(name: name, flavor: flavor, display: display),
+                    build: build.id)
+            }
+        }
+    }
+
+    @discardableResult
+    static func sync(
+        runners: URL = SupportPaths.runners,
+        bridge: URL = SupportPaths.bridge,
+        file: URL = SupportPaths.toolList,
+        compatTools: URL = SupportPaths.Steam.compatTools,
+        fexAvailable: Bool = CompatTool.Flavor.fexAvailable,
+        manifest: RunnerManifest = .current()
+    ) throws -> Bool {
+        let (builds, listed, tools) = resolved(
+            runners: runners, file: file, fexAvailable: fexAvailable, manifest: manifest)
+        var changed = try write(contents(tools), to: file, had: listed)
+        let pairs = backendFile(beside: file)
+        changed = try write(
+            backendContents(backendTools(for: tools, runners: runners, manifest: manifest)),
+            to: pairs, had: try? String(contentsOf: pairs, encoding: .utf8)) || changed
+        NtdllPatcher.pruneBuilds(keeping: Set(builds.map(\.id)), in: bridge)
+        return changed
+    }
+
+    private static func write(_ text: String, to file: URL, had listed: String?) throws -> Bool {
+        let changed = listed != text
+        if changed {
+            try FileManager.default.createDirectory(
+                at: file.deletingLastPathComponent(), withIntermediateDirectories: true
+            )
+            try atomicReplace(file, with: Data(text.utf8), step: String(localized: "Update compatibility tools"))
+        }
+        return changed
+    }
+
+}

@@ -1,0 +1,15 @@
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const path=require('path');
+(async()=>{const browser=await chromium.launch({headless:true});const page=await browser.newPage({viewport:{width:1440,height:960},colorScheme:'dark'});const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('file://'+process.cwd()+'/mockup/launcher.html'); await page.waitForTimeout(700);
+await page.selectOption('#state-pick','ob-new');await page.waitForTimeout(400);
+const shot=async n=>{await page.screenshot({path:process.cwd()+'/.claude/reports/mockup-captures/'+n+'.png'});};
+for(const lang of ['en','fr']) {await page.evaluate(l=>{ob.lang=l;ob.task=true;ob.cores=true;ob.steam=true;ob.consoles=['Super Nintendo','PlayStation'];ob.rom=true;},lang);for(let i=0;i<7;i++){await page.evaluate(i=>openOnboarding(i),i);await shot(`onboarding-${lang}-${i+1}`);} }
+await page.evaluate(()=>{ob.lang='en';ob.controller=false;openOnboarding(4);});await shot('onboarding-no-controller');
+await page.evaluate(()=>{ob.lang='en';openOnboarding(2,true);});await shot('onboarding-resume');
+await page.evaluate(()=>closeSheet()); await page.waitForTimeout(300);
+for(const lang of ['en','fr']) {await page.selectOption('#mock-language',lang);for(const backend of ['d3d','dxmt']){await page.selectOption('#state-pick','advanced-'+backend);await page.waitForTimeout(400);if(backend==='dxmt'){await page.locator('[data-advanced-toggle="spatial"]').click();}await page.locator('[data-advanced]').evaluate(el=>el.scrollIntoView({block:'end'}));await shot(`advanced-${lang}-${backend}`);console.log(lang,backend,await page.locator('[data-advanced-toggle]').count());}}
+await page.selectOption('#state-pick','advanced-dxmt');await page.locator('[data-advanced]').evaluate(el=>el.open=false);await shot('advanced-collapsed');
+await page.evaluate(()=>{ob.lang='en';ob.interrupted=true;openOnboarding(2,true);});await shot('onboarding-interrupted');await page.locator('[data-retry]').click();if(await page.locator('[data-retry]').count()) throw Error('retry did not clear');
+await page.selectOption('#state-pick','ob-new');for(let i=0;i<7;i++)await page.locator('[data-skip]').click();if(await page.evaluate(()=>ob.task))throw Error('skip started download');
+await page.selectOption('#state-pick','ob-new');await page.locator('[data-next]').click();await page.locator('[data-next]').click();if(!await page.evaluate(()=>ob.task))throw Error('continue did not start task');await page.reload();await page.selectOption('#state-pick','first');if(await page.evaluate(()=>ob.step)!==2)throw Error('resume step');
+console.log('ASSERTIONS PASS: skip-all, background continue, reload resume, retry, backend gates');console.log('ERRORS',errors);await browser.close(); if(errors.length) process.exitCode=1;})();

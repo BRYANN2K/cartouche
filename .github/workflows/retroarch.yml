@@ -1,0 +1,184 @@
+name: retroarch
+
+# Builds the bundled RetroArch from vendor/RetroArch and tests RetroArchKit.
+# It runs when the submodule or the RetroArch code moves, not on every push.
+on:
+  push:
+    branches: [main]
+    paths:
+      - .gitmodules
+      - vendor/RetroArch
+      - retroarch/**
+      - .github/workflows/retroarch.yml
+  pull_request:
+    paths:
+      - .gitmodules
+      - vendor/RetroArch
+      - retroarch/**
+      - .github/workflows/retroarch.yml
+  workflow_dispatch:
+    inputs:
+      network:
+        description: Also run the tests that download real cores from the libretro buildbot
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: no RetroArch or core binary in git
+    runs-on: xcode-27
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          submodules: true
+
+      - name: Scan the tracked files, and prove the scan fails on a planted core
+        run: make -s retroarch-scancheck
+
+  kit:
+    name: RetroArchKit tests
+    runs-on: xcode-27
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          submodules: true
+
+      - name: Record the toolchain
+        run: |
+          sudo xcode-select -s /Applications/Xcode_27.0.app
+          xcodebuild -version
+          swift --version
+
+      - name: Read the pinned commit
+        id: pin
+        run: echo "commit=$(git ls-tree HEAD vendor/RetroArch | awk '{ print $3 }')" >> "$GITHUB_OUTPUT"
+
+      - name: Restore the test rig
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: build/retroarch-rig
+          key: retroarch-rig-xcode-27-${{ steps.pin.outputs.commit }}-${{ hashFiles('retroarch/scripts/build-test-rig.sh', 'retroarch/Tests/testcore/*') }}
+
+      - name: Build the command-line RetroArch and the test core
+        run: make retroarch-rig retroarch-testcore
+
+      - name: Run the RetroArchKit tests, with the MCP contract and integration tests
+        env:
+          CARTOUCHE_RETROARCH: ${{ github.workspace }}/build/retroarch-rig/retroarch
+          CARTOUCHE_TEST_CORE: ${{ github.workspace }}/build/retroarch-rig/cartouche_test_libretro.dylib
+          CARTOUCHE_NETWORK_TESTS: ${{ inputs.network && '1' || '' }}
+        run: make -s retroarch-tests
+
+      - name: Check the RetroArchKit translations
+        run: make -s retroarch-l10ncheck
+
+  build:
+    name: RetroArch.app, run ${{ matrix.run }}
+    runs-on: xcode-27
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        run: [1, 2]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          submodules: true
+
+      - name: Record the toolchain
+        run: |
+          sudo xcode-select -s /Applications/Xcode_27.0.app
+          xcodebuild -version
+          echo "macOS SDK $(xcrun --sdk macosx --show-sdk-version)"
+
+      # RetroArch compiles its Metal shaders at build time
+      - name: Get the Metal toolchain
+        run: xcrun metal --version >/dev/null 2>&1 || xcodebuild -downloadComponent MetalToolchain
+
+      # No derived data cache: the two runs must each build from source
+      - name: Build RetroArch.app
+        run: make retroarch RETROARCH_DERIVED=build/retroarch-derived-${{ matrix.run }}
+
+      - name: Record what was built
+        run: |
+          shasum -a 256 out/retroarch/RetroArch.app/Contents/MacOS/RetroArch | tee out/retroarch/RetroArch.sha256
+          ditto -c -k --keepParent out/retroarch/RetroArch.app out/retroarch/RetroArch.zip
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: RetroArch-run-${{ matrix.run }}
+          path: |
+            out/retroarch/RetroArch.zip
+            out/retroarch/RetroArch.commit
+            out/retroarch/RetroArch.sha256
+
+  reproducible:
+    name: both runs name the pinned commit
+    needs: build
+    runs-on: xcode-27
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: RetroArch-run-*
+
+      - name: Check both builds
+        run: |
+          pinned=$(git ls-tree HEAD vendor/RetroArch | awk '{ print $3 }')
+          for run in 1 2; do
+            mkdir -p "scratch/run-$run"
+            ditto -x -k "RetroArch-run-$run/RetroArch.zip" "scratch/run-$run"
+            test "$(cat "RetroArch-run-$run/RetroArch.commit")" = "$pinned"
+            sh retroarch/scripts/check-retroarch.sh "scratch/run-$run/RetroArch.app" "$pinned"
+          done
+          v1=$(scratch/run-1/RetroArch.app/Contents/MacOS/RetroArch --version 2>&1 | sed -n 's/^Version: //p')
+          v2=$(scratch/run-2/RetroArch.app/Contents/MacOS/RetroArch --version 2>&1 | sed -n 's/^Version: //p')
+          echo "run 1: $v1"
+          echo "run 2: $v2"
+          test "$v1" = "$v2"
+          # Byte identity is reported, not required: the binary carries __DATE__
+          if cmp -s RetroArch-run-1/RetroArch.sha256 RetroArch-run-2/RetroArch.sha256; then
+            echo "::notice::the two executables are byte-identical"
+          else
+            echo "::notice::the two executables differ in bytes: $(cut -c1-16 RetroArch-run-*/RetroArch.sha256 | tr '\n' ' ')"
+          fi
+
+  embed:
+    name: embedded under Cartouche.app/Contents/Helpers
+    needs: build
+    runs-on: xcode-27
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Record the toolchain
+        run: sudo xcode-select -s /Applications/Xcode_27.0.app
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: RetroArch-run-1
+          path: scratch/retroarch-artifact
+
+      # The Wine payload is app.yml's job; an app without it is enough to
+      # show where RetroArch goes and that the bundle signs
+      - name: Build Cartouche.app without the payload
+        run: make -o app-payload app
+
+      - name: Embed RetroArch and sign the bundle
+        run: |
+          mkdir -p out/retroarch
+          ditto -x -k scratch/retroarch-artifact/RetroArch.zip out/retroarch
+          make retroarch-embed
+
+      - name: Check the embedded copy
+        run: |
+          pinned=$(git ls-tree HEAD vendor/RetroArch | awk '{ print $3 }')
+          sh retroarch/scripts/check-retroarch.sh out/Cartouche.app/Contents/Helpers/RetroArch.app "$pinned"
+          codesign -dv out/Cartouche.app/Contents/Helpers/RetroArch.app 2>&1 | grep -E '^(Identifier|Signature)'

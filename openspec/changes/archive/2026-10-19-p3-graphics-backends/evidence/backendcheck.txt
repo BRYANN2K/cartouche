@@ -1,0 +1,50 @@
+== CrossOver loads its own copy of each backend ==
+  ok    d3dmetal: CX_GRAPHICS_BACKEND
+  ok    d3dmetal: no Cartouche files in WINEDLLPATH
+  ok    d3dmetal: no DLL override
+  ok    d3dmetal: logged as CrossOver's
+  ok    d3dmetal: nothing missing
+  ok    dxmt: CX_GRAPHICS_BACKEND
+  ok    dxmt: no Cartouche files in WINEDLLPATH
+  ok    dxmt: no DLL override
+  ok    dxmt: logged as CrossOver's
+  ok    dxmt: nothing missing
+  ok    dxvk: CX_GRAPHICS_BACKEND
+  ok    dxvk: no Cartouche files in WINEDLLPATH
+  ok    dxvk: no DLL override
+  ok    dxvk: logged as CrossOver's
+  ok    dxvk: nothing missing
+  ok    wined3d: CX_GRAPHICS_BACKEND
+  ok    wined3d: no Cartouche files in WINEDLLPATH
+  ok    wined3d: no DLL override
+  ok    wined3d: logged as CrossOver's
+  ok    wined3d: nothing missing
+== The tool's backend replaces the launch option, and says so ==
+  ok    launch option replaced
+  ok    the log names both
+  ok    a tool without a backend leaves the launch option
+  ok    and loads nothing of Cartouche's
+  ok    a garbled backend file is ignored
+== Another Wine loads Cartouche's pinned DXMT or DXVK as builtin DLLs ==
+  ok    dxmt not downloaded: the launch is refused
+  ok    dxmt not downloaded: no override
+  ok    dxmt first in WINEDLLPATH
+  ok    dxmt builtins outrank the launch options
+  ok    dxmt logged from the backends folder
+  ok    dxvk first in WINEDLLPATH
+  ok    dxvk builtins
+  ok    no dxmt with dxvk
+  ok    wined3d is Wine's own
+  ok    wined3d builtins
+  ok    d3dmetal without CrossOver is refused
+  ok    a backend folder without its receipt is not used
+== The game's own variables ==
+  ok    allowed names are set, PATH is not, a launch option wins
+  ok    PATH refused in the log
+  ok    launch option kept in the log
+  ok    D3DMetal settings stay out on arm64 Wine
+  ok    the game launcher receives the Metal HUD
+  ok    no app, no setup file read
+== A missing backend stops the launch before the prefix is touched ==
+  ok    refused after the runner check, before the prefix lock
+==> backendcheck: all assertions hold

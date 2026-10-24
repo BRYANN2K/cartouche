@@ -1,0 +1,14 @@
+{
+  "_about": "TO VERIFY AFTER P10 MERGES. Shape guessed from legendary's list output: the app bundles legendary, gogdl and nile, so these stand in for each client's account library.",
+  "account": {"displayName": "QA Player", "id": "qa-epic-0001"},
+  "games": [
+    {"id": "Fortnite", "app_name": "Fortnite", "title": "Fortnite", "installed": false,
+     "size_bytes": 28000000000, "can_run_offline": true, "namespace": "fn"},
+    {"id": "8931e9d3f5f04a2eb5be56e0e4d6f4a4", "app_name": "QA Free Game", "title": "QA Free Game",
+     "installed": true, "size_bytes": 1200000000, "can_run_offline": true, "namespace": "qa",
+     "install_path": "QAFreeGame/QAFreeGame.exe"},
+    {"id": "a1b2c3d4e5f64a7b8c9d0e1f2a3b4c5d", "app_name": "QA Cloud Saver", "title": "QA Cloud Saver",
+     "installed": false, "size_bytes": 800000000, "can_run_offline": false, "namespace": "qa",
+     "cloud_saves": true}
+  ]
+}

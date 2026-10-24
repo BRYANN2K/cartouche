@@ -1,0 +1,29 @@
+✔ Test "The counter's lines parse, and broken ones are skipped" passed after 0.018 seconds.
+✔ Test "14.2 h at 56 fps and 1.1 h at 34 fps average 54 fps, not 45" passed after 0.018 seconds.
+✔ Test "A refused runner counts play time, and the latest session says measurement was refused" passed after 0.018 seconds.
+✔ Test "The run script and the Makefile use the names in cartouche_identity.h" passed after 0.018 seconds.
+✔ Test "Each setup is summed over its sessions, best first, with play time and 1% low" passed after 0.018 seconds.
+✔ Test "A payload staged before P8 still installs, and games then run unmeasured" passed after 0.019 seconds.
+✔ Test "A payload with the counter deploys it beside the overlay shim, without stopping Steam" passed after 0.022 seconds.
+✔ Suite "Frame counter deployment" passed after 0.022 seconds.
+✔ Test "The same through the SQLite store" passed after 0.025 seconds.
+✔ Suite "Play time averages" passed after 0.025 seconds.
+✔ Test "A runner that refused the counter still records the session and its play time" passed after 0.027 seconds.
+✔ Test "The first 30 seconds and loading screens do not count" passed after 0.035 seconds.
+✔ Test "A running game's folder waits, a killed run script's folder is read as ended at its last sample" passed after 0.037 seconds.
+✔ Test "Each folder is read once, a folder that is not a launch is dropped, and helpers that present little are ignored" passed after 0.047 seconds.
+✔ Test "Background time is ignored: 2 minutes away in a 10-minute session leave 8 minutes, minus the first 30 seconds" passed after 0.050 seconds.
+✔ Test "The 1% low is the mean of the slowest 1% of counted seconds" passed after 0.053 seconds.
+✔ Suite "Performance store" passed after 0.053 seconds.
+✔ Test "A game with no session has no Your Play section" passed after 0.303 seconds.
+✔ Test "Sessions the run script leaves are read in when the panel refreshes" passed after 0.304 seconds.
+✔ Test "Off by default: with default settings, no request during or after a session carries play data" passed after 1.266 seconds.
+✔ Test "This build has no MacGamingDB address, so sharing is unavailable and sends nothing even when on" passed after 0.195 seconds.
+✔ Test "What is shared: chip, RAM, macOS version, runner, backend, settings and FPS, and no account name, path or Steam ID" passed after 0.041 seconds.
+✔ Test "Only measured sessions are reported, and sharing off sends none" passed after 0.001 seconds.
+✔ Suite "Sharing frame rates" passed after 1.505 seconds.
+✔ Test "The panel shows the average weighted by play time, the 1% low and the play time, after Play" passed after 3.018 seconds.
+✔ Test "A runner that refuses the counter: the panel says FPS can't be measured with this runner" passed after 3.367 seconds.
+✔ Test "Compare Setups lists each setup with average, 1% low and play time, marks the best, and offers to use it" passed after 3.972 seconds.
+✔ Suite "Your Play" passed after 3.973 seconds.
+✔ Test run with 23 tests in 5 suites passed after 3.973 seconds.

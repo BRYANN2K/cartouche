@@ -1,0 +1,6 @@
+arm64 accuracy: 300 s locked at 60, 267 s counted, average 60.00 fps (min 59, max 61), 18000 frames presented
+arm64 overhead: 5 runs of 10 s, without 113.70 fps ( 113.7 113.7 113.7 113.7 113.7 ), with 113.70 fps ( 113.7 113.7 113.7 113.7 113.7 ), difference +0.00%
+x86_64 accuracy: 300 s locked at 60, 268 s counted, average 60.00 fps (min 59, max 61), 18000 frames presented
+x86_64 overhead: 5 runs of 10 s, without 112.68 fps ( 112.7 112.7 112.7 112.7 112.6 ), with 112.70 fps ( 112.7 112.7 112.7 112.7 112.7 ), difference +0.02%
+==> fps counter bench: accuracy within 60 +- 1 fps and overhead under 1%
+exit 0

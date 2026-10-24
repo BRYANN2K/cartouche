@@ -1,0 +1,34 @@
+--platforms lists Mac games, and Windows games including those with no oslist or a Mac build too
+--platforms on a cache that stops early prints nothing and fails
+--platforms rejects invalid entry sizes
+A Steam carrying Finder info or a resource fork still installs, and only those are cleared
+A Steam carrying a different build of the dylib is patched again
+A cache that is not a cache fails instead of printing garbage
+A failed install records the bundle before copying its dylib
+A failure while signing puts the plist back, so the bundle still starts
+A full install puts every artifact in place and declares the insert
+A missing Steam bundle is reported as its own condition
+A recognized runner folder with invalid binaries is refused before deployment
+A running game prevents file replacement before Steam is stopped
+A second account installs its own components without touching a patched Steam
+A v28 cache with inline keys resolves the same values
+A v29 cache resolves the client icon, which is not the icon we used to guess
+An app cannot borrow its section terminator from outside its entry
+An app the cache does not carry prints nothing and fails
+An insert belonging to something else stops the install and is left alone
+An install writes no build record until it is finished
+An older package is refused before any installed files change
+Changed helpers are updated without replacing the matching dylib
+Deeply nested appinfo sections fail without crashing the helper
+Finishing records nothing when the installed content is not current
+Finishing records the build
+Install updates every deployed tool's script and runner bridge copy
+Installing another Steam preserves the disconnected installation
+Installing over an existing install is allowed and refreshes it
+Repairing missing pinned components stops Steam even when bundled files already match
+Setting the insert keeps the rest of Valve's environment
+The bundle is signed inner to outer, so every seal verifies afterwards
+The installer records the package build time rather than the installation time
+The plist backup records the state before the first install only
+The shipped app carries a payload staged by make
+Wine running from an unsupported clone also blocks installation

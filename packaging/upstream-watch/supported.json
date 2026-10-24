@@ -1,0 +1,10 @@
+{
+  "_comment": "Versions Cartouche supports or has already looked at. The watch opens an issue for any other version it sees. Baseline checked 2026-10-19.",
+  "notproton": ["1.2.0"],
+  "steam": ["1788400362", "1789086785", "1790904859", "1791918634", "1792192922"],
+  "crossover-source": ["26.3.0"],
+  "wine-macos": ["11.18"],
+  "dxmt": ["0.80"],
+  "gptk-apple": ["4"],
+  "gptk": ["3.0-3"]
+}

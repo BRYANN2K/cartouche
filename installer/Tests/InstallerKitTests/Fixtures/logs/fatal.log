@@ -1,0 +1,7 @@
+2026-10-19 19:00:00.001   Log opened. (Time zone: UTC+02:00)
+2026-10-19 19:00:00.002   Setup version: Inno Setup version 5.5.0 (u)
+2026-10-19 19:00:02.900   Starting the installation process.
+2026-10-19 19:00:03.120   Fatal exception during installation process (EAccessViolation):
+2026-10-19 19:00:03.121   Access violation at address 00403A2C in module 'setup.tmp'.
+2026-10-19 19:00:03.700   Rolling back changes.
+2026-10-19 19:00:04.001   Log closed.

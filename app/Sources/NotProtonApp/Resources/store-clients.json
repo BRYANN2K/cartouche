@@ -1,0 +1,42 @@
+{
+  "format": 1,
+  "revision": 1,
+  "clients": [
+    {
+      "client": "legendary",
+      "version": "0.21.1",
+      "license": "GPL-3.0",
+      "source": "https://github.com/derrod/legendary",
+      "url": "https://github.com/derrod/legendary/releases/download/0.21.1/legendary_macOS_arm64",
+      "size": 15275984,
+      "sha256": "d87978321dba9cb731fab40c72f0a30bed55baca8b5341ab21024c5733cd837e"
+    },
+    {
+      "client": "gogdl",
+      "version": "1.3.1",
+      "license": "GPL-3.0",
+      "source": "https://github.com/Heroic-Games-Launcher/heroic-gogdl",
+      "url": "https://github.com/Heroic-Games-Launcher/heroic-gogdl/releases/download/v1.3.1/gogdl_macos_arm64",
+      "size": 11031600,
+      "sha256": "33a6d9b329c35f1caa7968009bf2f4f0a6f57cd00f749a4d2cb2204f3e794d2e"
+    },
+    {
+      "client": "comet",
+      "version": "0.3.2",
+      "license": "Apache-2.0",
+      "source": "https://github.com/imLinguin/comet",
+      "url": "https://github.com/imLinguin/comet/releases/download/v0.3.2/comet-aarch64-apple-darwin",
+      "size": 10988560,
+      "sha256": "d53b90a3ac32c9fc61b731a6ced8a241f9476ffa0144b47a77da52db25d2362c"
+    },
+    {
+      "client": "nile",
+      "version": "1.2.0",
+      "license": "GPL-3.0",
+      "source": "https://github.com/imLinguin/nile",
+      "url": "https://github.com/imLinguin/nile/releases/download/v1.2.0/nile_macOS_arm64",
+      "size": 8348560,
+      "sha256": "6cc74eb19117c8c309b0b94657e1e267642a3b4840d7386a133dcf6f3bffeab0"
+    }
+  ]
+}

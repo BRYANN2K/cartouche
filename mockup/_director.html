@@ -1,0 +1,36 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>director</title>
+<style>html,body{margin:0;height:100%;background:#000}iframe{border:0;width:100vw;height:100vh;display:block}</style>
+<iframe id="f"></iframe>
+<script>
+const f = document.getElementById("f");
+const click = (d, sel, i = 0) => { const el = d.querySelectorAll(sel)[i]; if (el) el.click(); };
+const steps = [
+  w => {},
+  (w, d) => click(d, "#v-library .cover-wrap, #v-library .cover", 1),
+  w => w.openDetails && w.openDetails(),
+  w => w.openControls && w.openControls(),
+  w => w.openAddConsoles && w.openAddConsoles(),
+  w => w.openRomImport && w.openRomImport(),
+  (w, d) => { click(d, "#sys-nav button, #sys-nav .nav", 0); },
+  (w, d) => { click(d, "#sys-nav button, #sys-nav .nav", 0); setTimeout(() => w.openRetroDetails && w.openRetroDetails(), 600); },
+  (w, d) => click(d, '[data-go="runners"]'),
+  w => w.openSettings && w.openSettings(),
+  (w, d) => click(d, "#open-install"),
+  w => w.openOnboarding && w.openOnboarding(),
+  (w, d) => click(d, '[data-menu="status"]'),
+  ...["first","loading","empty","offline","steam","expired","dlpaused","dlerror","crash","installerror","search","notify"]
+    .map(s => w => w.pickState && w.pickState(s)),
+];
+function run() {
+  const n = parseInt(location.hash.slice(1) || "0", 10);
+  f.onload = () => setTimeout(() => {
+    try { const w = f.contentWindow; steps[n] && steps[n](w, w.document); } catch (e) { console.error(e); }
+    const ctl = f.contentDocument.querySelector(".mock-ctl"); if (ctl) ctl.style.display = "none";
+  }, 700);
+  f.src = "launcher.html?" + Date.now();
+}
+window.addEventListener("hashchange", run);
+run();
+</script>

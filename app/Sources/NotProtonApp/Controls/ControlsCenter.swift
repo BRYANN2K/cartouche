@@ -1,0 +1,218 @@
+import AppKit
+import Foundation
+import GameController
+import Observation
+
+@MainActor
+final class ControlsSession {
+    let game: Game
+    let remap: GatedOption
+    let play: GatedOption
+    var opensOnKeyboard = false
+
+    init(game: Game, controls: GameControls, remapFlow: PermissionFlow, playFlow: PermissionFlow) {
+        self.game = game
+        remap = GatedOption(.inputMonitoring, flow: remapFlow, isOn: controls.remapKeys)
+        play = GatedOption(.accessibility, flow: playFlow, isOn: controls.playWithController)
+    }
+}
+
+@MainActor
+@Observable
+final class ControlsCenter {
+
+    let monitor: ControllerMonitor
+    let couch: CouchNavigator
+    private(set) var presented: Game?
+    private(set) var session: ControlsSession?
+    private(set) var controls: [String: GameControls] = [:]
+    private(set) var diagramState = PadState.idle
+    var diagramVisible = false
+    var problem: String?
+
+    @ObservationIgnored let store: ControlsStore
+    @ObservationIgnored var files: ControlsFiles
+    @ObservationIgnored let flow: PermissionFlow
+    @ObservationIgnored let playFlow: PermissionFlow
+    @ObservationIgnored weak var relaunch: RelaunchService?
+    @ObservationIgnored weak var library: LibraryModel?
+    @ObservationIgnored let reader: any PadReader
+    @ObservationIgnored let focus: any GameFocus
+    @ObservationIgnored let keyboardPlay: KeyboardPlayBridge
+    @ObservationIgnored let remapper: KeyRemapper
+    @ObservationIgnored var isActive: @MainActor () -> Bool = { NSApp.isActive }
+    @ObservationIgnored var backgroundEvents: @MainActor (Bool) -> Void = { GCController.shouldMonitorBackgroundEvents = $0 }
+    @ObservationIgnored private var monitoringBackground = false
+    @ObservationIgnored var open: @MainActor (URL) -> Void = { NSWorkspace.shared.open($0) }
+    @ObservationIgnored private var loop: Task<Void, Never>?
+    @ObservationIgnored private var frontObserver: (any NSObjectProtocol)?
+    @ObservationIgnored private(set) var frontmostGame: Game?
+
+    init(
+        permissions: PermissionCenter, files: ControlsFiles, store: ControlsStore = ControlsStore(),
+        source: any ControllerSource = GameControllerSource(), reader: any PadReader = GameControllerPadReader(),
+        poster: any InputPoster = LiveInputPoster(), focus: any GameFocus = LiveGameFocus(),
+        tap: any KeyTapping = LiveKeyTap(), defaults: UserDefaults = .standard
+    ) {
+        monitor = ControllerMonitor(source: source)
+        couch = CouchNavigator(defaults: defaults)
+        self.store = store
+        self.files = files
+        flow = PermissionFlow(center: permissions)
+        playFlow = PermissionFlow(center: permissions)
+        self.reader = reader
+        self.focus = focus
+        keyboardPlay = KeyboardPlayBridge(reader: reader, poster: poster, focus: focus)
+        remapper = KeyRemapper(tap: tap)
+    }
+
+    var permissions: PermissionCenter { flow.center }
+
+    func load() async {
+        controls = await store.all()
+    }
+
+    func connect(relaunch: RelaunchService, library: LibraryModel) {
+        self.relaunch = relaunch
+        self.library = library
+        couch.library = library
+        relaunch.center = permissions
+        relaunch.watch(flow) { [weak self] in self?.route }
+    }
+
+    func start(relaunch: RelaunchService, library: LibraryModel) async {
+        guard loop == nil else { return }
+        connect(relaunch: relaunch, library: library)
+        monitor.start()
+        await load()
+        couch.start()
+        frontObserver = NotificationCenter.default.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.tick(now: ProcessInfo.processInfo.systemUptime) }
+        }
+        loop = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self else { return }
+                let fast = self.wantsFastPoll
+                if fast || self.needsPolling { self.tick(now: ProcessInfo.processInfo.systemUptime) }
+                try? await Task.sleep(for: fast ? .milliseconds(16) : .seconds(1))
+            }
+        }
+    }
+
+    func controls(for game: Game) -> GameControls { controls[game.id] ?? GameControls() }
+
+    // MARK: The sheet
+
+    func present(_ game: Game) {
+        session = ControlsSession(game: game, controls: controls(for: game), remapFlow: flow, playFlow: playFlow)
+        session?.remap.onWaitingForRelaunch = { [weak self] in self?.relaunch?.markWaiting($0) }
+        presented = game
+    }
+
+    func dismiss() {
+        presented = nil
+        session = nil
+        diagramVisible = false
+        diagramState = .idle
+    }
+
+    var route: ScreenRoute? { presented.map { ScreenRoute.controls(game: $0.id, finishing: .inputMonitoring) } }
+
+    func reopen(_ route: ScreenRoute) async {
+        guard route.screen == "controls", let id = route.detail, let game = library?.game(id) else { return }
+        library?.select(id)
+        await permissions.refresh()
+        present(game)
+        if route.finishing == .inputMonitoring, let session {
+            session.opensOnKeyboard = true
+            session.remap.finishAfterRelaunch()
+            if session.remap.isOn { await update(game) { $0.remapKeys = true } }
+        }
+    }
+
+    func update(_ game: Game, _ change: (inout GameControls) -> Void) async {
+        var value = controls(for: game)
+        change(&value)
+        guard value != controls(for: game) else { return }
+        controls[game.id] = value
+        do {
+            try await store.set(value, for: game.id)
+            try files.apply(value, to: game)
+            problem = nil
+        } catch {
+            problem = String(localized: "Cartouche couldn’t save the controls: \(error.localizedDescription)")
+        }
+        tick(now: ProcessInfo.processInfo.systemUptime)
+    }
+
+    // Steam Input settings live in Steam.
+    func openInSteam(_ game: Game) {
+        guard let appID = game.steamAppID else { return }
+        open(URL(string: "steam://nav/games/details/\(appID)")!)
+    }
+
+    // MARK: The poll
+
+    var keyboardPlayGames: [Game] {
+        guard permissions.state(.accessibility) == .allowed else { return [] }
+        return games { $0.playWithController }
+    }
+
+    var keyRemapGames: [Game] {
+        guard permissions.state(.inputMonitoring) == .allowed else { return [] }
+        return games { $0.remapKeys && !$0.keyRemaps.isEmpty }
+    }
+
+    private func games(_ wanted: (GameControls) -> Bool) -> [Game] {
+        controls.filter { wanted($0.value) }.keys.sorted().compactMap { library?.game($0) }
+    }
+
+    var needsPolling: Bool { diagramVisible || couch.isOn || !keyboardPlayGames.isEmpty || !keyRemapGames.isEmpty }
+
+    // 16 ms only while a game that needs it, or couch mode's window, is in front, or while the controller diagram shows in the active app; else once a second plus frontmost changes.
+    private var wantsFastPoll: Bool {
+        if diagramVisible && isActive() { return true }
+        if couch.isOn && isActive() { return true }
+        guard let frontmostGame else { return false }
+        return keyboardPlayGames.contains { $0.id == frontmostGame.id }
+    }
+
+    // Posted keys and mouse buttons go up before the process goes away
+    func endForTermination() {
+        keyboardPlay.reset()
+    }
+
+    func tick(now: Double) {
+        let state = reader.read()
+        let diagram = diagramVisible && isActive() ? state ?? .idle : .idle
+        if diagramState != diagram { diagramState = diagram }
+        couch.tick(isActive() ? state : nil, at: now)
+
+        let playing = keyboardPlayGames
+        let remapping = keyRemapGames
+        let frontmost = (playing + remapping).first(where: focus.isFrontmost)
+        frontmostGame = frontmost
+
+        let wantBackground = !playing.isEmpty
+        if wantBackground != monitoringBackground {
+            monitoringBackground = wantBackground
+            backgroundEvents(wantBackground)
+        }
+
+        if let game = playing.first(where: { $0.id == frontmost?.id }) {
+            keyboardPlay.tick(game)
+        } else {
+            keyboardPlay.reset()
+        }
+
+        if let game = remapping.first(where: { $0.id == frontmost?.id }) {
+            if !remapper.tick(game, remaps: controls(for: game).keyRemaps), problem == nil {
+                problem = String(localized: "macOS did not let Cartouche read the keyboard. Check Input Monitoring in System Settings.")
+            }
+        } else {
+            remapper.stop()
+        }
+    }
+}
