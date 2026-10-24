@@ -57,6 +57,7 @@ launch() {
 		STEAM_COMPAT_DATA_PATH=$data
 		np_build=$build
 		np_display="display of $build"
+		# shellcheck disable=SC2030 # each launch runs in its own subshell
 		CX_ROOT="$np_support/runners/crossover-$build/CrossOver"
 		log=/dev/null
 		# shellcheck disable=SC2329 # called by the extracted refusal
@@ -135,6 +136,7 @@ resolve() {
 		np_flavor=$2
 		eval "$init"
 		eval "$loader"
+		# shellcheck disable=SC2031 # read inside the same subshell
 		printf '%s\n%s\n' "$CX_ROOT" "$WINELOADER"
 	)
 }

@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck disable=SC2015 # ok and bad never fail, so A && ok || bad is safe
 # The frame counter in a real Metal app, for each slice: a scene locked at 60 fps is
 # counted at 60, a background app is marked, nothing is written without a session
 # folder, the run script's probe sees the library, and a hardened binary refuses it

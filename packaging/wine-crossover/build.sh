@@ -12,6 +12,7 @@
 set -eu
 
 here="$(cd "$(dirname "$0")" && pwd -P)"
+# shellcheck source=/dev/null # path computed at run time
 . "${PINS_FILE:-$here/pins.env}"
 
 dry=

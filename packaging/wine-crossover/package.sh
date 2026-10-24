@@ -9,6 +9,7 @@
 set -eu
 
 here="$(cd "$(dirname "$0")" && pwd -P)"
+# shellcheck source=/dev/null # path computed at run time
 . "${PINS_FILE:-$here/pins.env}"
 
 [ $# -eq 3 ] || { echo "usage: package.sh <install folder> <source tarball> <out folder>" >&2; exit 2; }

@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck disable=SC2034,SC2154,SC2016 # variables belong to the extracted script; patterns are literal
 set -eu
 src="${1:-$(dirname "$0")/../feats/compat_run.sh}"
 work=$(mktemp -d)

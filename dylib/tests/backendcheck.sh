@@ -128,12 +128,15 @@ is "no app, no setup file read" "" "$(read_game_setup)"
 unset -v MTL_HUD_ENABLED DXMT_LOG_LEVEL DXVK_HUD CX_GRAPHICS_BACKEND
 
 echo "== A missing backend stops the launch before the prefix is touched =="
+# shellcheck disable=SC2016 # Match the literal line.
 refuse_at=$(grep -n '^if \[ -n "\$np_backend_missing" \]; then$' "$SRC" | cut -d: -f1)
 check_at=$(grep -n '^stage_step="runner check"$' "$SRC" | cut -d: -f1)
 prefix_at=$(grep -n '^  prepare_prefix_directory$' "$SRC" | cut -d: -f1)
-[ -n "$refuse_at" ] && [ "$check_at" -lt "$refuse_at" ] && [ "$refuse_at" -lt "$prefix_at" ] \
-  && ok "refused after the runner check, before the prefix lock" \
-  || bad "refused after the runner check, before the prefix lock" "$check_at < x < $prefix_at" "$refuse_at"
+if [ -n "$refuse_at" ] && [ "$check_at" -lt "$refuse_at" ] && [ "$refuse_at" -lt "$prefix_at" ]; then
+  ok "refused after the runner check, before the prefix lock"
+else
+  bad "refused after the runner check, before the prefix lock" "$check_at < x < $prefix_at" "$refuse_at"
+fi
 
 if [ "$fails" -eq 0 ]; then
   echo "==> backendcheck: all assertions hold"

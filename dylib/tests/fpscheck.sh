@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck disable=SC2015 # ok and bad never fail, so A && ok || bad is safe
 # The frame counter as the run script injects it (P8). Blocks are cut out of the script
 # and run against scratch trees, with the Metal test app standing in for Wine's loader:
 # one that takes the library, a hardened one that ignores it, and one that dyld kills
