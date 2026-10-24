@@ -23,6 +23,8 @@ final class SteamStep {
     }
 
     private(set) var phase: Phase = .idle
+    var waitingForWine = false
+    @ObservationIgnored var checkAccess: @MainActor () throws -> Void = {}
     @ObservationIgnored var beforeInstall: @MainActor () async throws -> Void = {}
     @ObservationIgnored var didSetUp: @MainActor () -> Void = {}
 
@@ -65,6 +67,7 @@ final class SteamStep {
 
     var detail: String {
         switch phase {
+        case .working where waitingForWine: String(localized: "Waiting for Cartouche Wine to finish")
         case .idle, .working: String(localized: "Cartouche adds its tools to the Steam app")
         case .blocked(let remedy):
             remedy == .appManagement ? Permission.appManagement.deniedMessage : remedy.advice
@@ -146,6 +149,7 @@ final class SteamStep {
         let looksAllowed = center.state(.appManagement) == .allowed
         phase = .working
         do {
+            try checkAccess()
             try await beforeInstall()
             try await work()
             center.record(.allowed, for: .appManagement)
@@ -160,7 +164,12 @@ final class SteamStep {
                 return .unknown
             }
             center.record(.denied, for: .appManagement)
-            phase = looksAllowed || visitedSettings ? .notApplied : .blocked(.appManagement)
+            if looksAllowed || visitedSettings {
+                phase = .notApplied
+            } else {
+                phase = .blocked(.appManagement)
+                openSettings()
+            }
             return .denied
         } catch {
             if usesNotProton?() == true {

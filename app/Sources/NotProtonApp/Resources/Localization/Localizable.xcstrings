@@ -35502,6 +35502,28 @@
         }
       }
     },
+    "Waiting for Cartouche Wine to finish" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En attente de la fin de Cartouche Wine"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In attesa che Cartouche Wine finisca"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在等待 Cartouche Wine 完成"
+          }
+        }
+      }
+    },
     "Waiting for Steam" : {
       "localizations" : {
         "fr" : {

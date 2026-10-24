@@ -66,8 +66,23 @@ final class SteamStepTests {
         #expect(step.canContinue)
         #expect(step.flow.center.state(.appManagement) == .denied)
 
-        step.openSettings()
-        #expect(opened.first == "x-apple.systempreferences:com.apple.preference.security?Privacy_AppBundles")
+        #expect(opened == ["x-apple.systempreferences:com.apple.preference.security?Privacy_AppBundles"], "App Management opened at the refusal")
+    }
+
+    @Test("The write check runs before the wait for Wine, so the refusal comes at the click")
+    func accessCheckedBeforeWine() async {
+        let step = makeStep()
+        var waited = false
+        step.checkAccess = { [unowned self] in
+            let probe = contents.appending(path: "MacOS/.probe")
+            try WriteRefused.catching(probe) { try Data().write(to: probe) }
+        }
+        step.beforeInstall = { waited = true }
+        step.setUp()
+        await step.flow.confirm()
+
+        #expect(step.phase == .blocked(.appManagement))
+        #expect(!waited)
     }
 
     @Test("Allowed after the refusal: Try Again finishes the step")

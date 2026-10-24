@@ -142,6 +142,8 @@ final class OnboardingModel {
         state = store.load() ?? OnboardingState()
         steamStep.beforeInstall = { [weak self] in
             guard let self else { return }
+            self.steamStep.waitingForWine = self.setup.runner.working
+            defer { self.steamStep.waitingForWine = false }
             while self.setup.runner.working { try await Task.sleep(for: .milliseconds(100)) }
             if let problem = self.setup.runner.problem {
                 throw StepFailure(step: WineRunnerInstaller.step, detail: problem)

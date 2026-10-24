@@ -33,6 +33,13 @@ extension CartoucheApp {
             needsRepair: { [systemStatus] in systemStatus.needsRepairInSteam },
             updatesItself: { [systemStatus] in systemStatus.updatesItself },
             upkeepFailed: { [systemStatus] in systemStatus.upkeep == .failed })
+        step.checkAccess = {
+            do {
+                try SteamInstaller.assertBundleIsWritable(SupportPaths.Steam.app)
+            } catch let refusal as WriteRefused where refusal.remedy == .appManagement {
+                throw refusal
+            } catch {}
+        }
         let consoleSetup: ConsoleSetup = .live(paths: consoles.paths)
         let setup = SetupTasks(
             installRunner: { [runners, library] build in
