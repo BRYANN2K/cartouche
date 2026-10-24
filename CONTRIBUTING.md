@@ -13,7 +13,7 @@ Cartouche is an independent fork of NotProton, licensed GPL-3.0. It keeps NotPro
 
 ## Branches
 
-- `main` holds stable releases and `beta` holds betas. Open pull requests against `beta`; never commit to `main` or `beta` directly.
+- `dev` is where work lands: open pull requests against `dev`. `beta` holds betas and `main` holds stable releases; both only move forward from `dev`, never with direct commits.
 - Name your branch after what it does: `feat/<topic>`, `fix/<topic>`, `docs/<topic>` or `ci/<topic>`.
 - Checks run on Woodpecker (`.woodpecker/`) for every pull request. See `docs/RELEASE.md`.
 - Write commit messages in the imperative, one idea per commit.

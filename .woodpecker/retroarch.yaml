@@ -5,7 +5,7 @@ labels:
 
 when:
   - event: push
-    branch: main
+    branch: [dev, beta, main]
     path: [.gitmodules, vendor/RetroArch, 'retroarch/**', .woodpecker/retroarch.yaml]
   - event: pull_request
     path: [.gitmodules, vendor/RetroArch, 'retroarch/**', .woodpecker/retroarch.yaml]

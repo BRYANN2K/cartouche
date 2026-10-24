@@ -11,12 +11,13 @@ How a Cartouche release is built, signed and published, and what the maintainer 
 
 ## Branches and CI
 
-- `main` holds stable releases and `beta` holds betas. Tag `vX.Y.Z` on `main` and `vX.Y.Z-beta.N` on `beta`.
-- GitHub Actions is blocked by billing for this private repository, so checks run on Woodpecker:
+- `dev` is the integration branch: pull requests target it. A beta promotes `dev` into `beta`; a release promotes `beta` (or `dev`) into `main`. Until the first beta, `beta` sits at `main`.
+- Tag `vX.Y.Z` on `main` and `vX.Y.Z-beta.N` on `beta`.
+- Checks run on Woodpecker, not GitHub Actions:
   - `.woodpecker/app.yaml`: app build and Swift tests on the self-hosted Mac agent (`platform: darwin/arm64`, local backend).
   - `.woodpecker/checks.yaml`: shell lint, OpenSpec validation and the redistribution scan, on the Linux agent.
   - `.woodpecker/retroarch.yaml`: RetroArch scan and kit jobs on the Mac agent, when `retroarch/` or the submodule changes.
-- They run on pull requests, pushes to `main` and manual runs. Gitignored inputs (Dobby, Wine trees, the Proton tarball, innoextract, libarchive, fonts) come from `$CARTOUCHE_CI_CACHE` through `.woodpecker/cache.sh`. The first run on an empty cache is a manual run with `CARTOUCHE_CI_COLD=1`.
+- They run on pull requests, pushes to `dev`, `beta` and `main`, and manual runs. Gitignored inputs (Dobby, Wine trees, the Proton tarball, innoextract, libarchive, fonts) come from `$CARTOUCHE_CI_CACHE` through `.woodpecker/cache.sh`. The first run on an empty cache is a manual run with `CARTOUCHE_CI_COLD=1`.
 - The GitHub workflows in `.github/workflows/` stay as the reference and as the release path described below until a Woodpecker release pipeline replaces it.
 
 ### Published Wine builds

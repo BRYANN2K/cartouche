@@ -3,7 +3,7 @@
 when:
   - event: pull_request
   - event: push
-    branch: main
+    branch: [dev, beta, main]
   - event: manual
 
 variables:
