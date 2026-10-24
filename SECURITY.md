@@ -45,7 +45,8 @@ This is a short summary. Agent control (P11) is specified in `openspec/specs/age
 The MCP server lets an AI agent read the library and act on it through the same functions the UI uses. The threat is a malicious or confused agent, or a network party reaching the server.
 
 - The default transport is stdio: a `cartouche-mcp` helper binary the client starts (`claude mcp add cartouche -- cartouche-mcp`). The helper speaks MCP over stdio to the client and reaches the app over a Unix socket at `~/Library/Application Support/Cartouche/agent/mcp.sock`. The socket's folder is 0700 and the socket 0600; the app accepts a peer only when it runs as the same user (`getpeereid`) and its executable is the bundled helper inside the app (`LOCAL_PEERPID` + `proc_pidpath`). An agent never reaches the app's internals directly.
-- The optional HTTP transport listens on 127.0.0.1 only, is off by default and needs a token. Requests without it get HTTP 401. Remote access from another machine is a non-goal.
+- The optional HTTP transport listens on 127.0.0.1 only, is off by default and needs a bearer token: 32 bytes from the system CSPRNG, kept in the Keychain. Requests without it get HTTP 401. Remote access from another machine is a non-goal.
+- A client's name is only a claim. Approvals and the action log show it as "an agent claiming to be …", with its transport, per peer.
 - Three access levels: Read only, Standard (default) and Full. Every tool belongs to a level; a call above the level set in Settings is refused and names the level it needs.
 - Tools that install, delete or run an executable wait for approval in the app. A notification asks "Allow?" and the tool returns only after Allow or Deny.
 - Every agent action is logged in Settings > Agents with the client name and time. Configuration changes can be undone from the log, and the undo is itself recorded.
@@ -59,6 +60,9 @@ The MCP server lets an AI agent read the library and act on it through the same 
 - Compatibility data and installer metadata come from outside. The app validates the data against a schema and discards invalid files.
 - Installer analysis never executes files from the dropped folder.
 - FPS data stays on the Mac unless the user turns on sharing.
+- Community contributions leave the Mac only after the user confirmed a preview. A shared fix is applied only after its registry and artifact verify against a key shipped with the app; the key inside a downloaded artifact is never trusted, and nothing in a fix's text is executed.
+- The official RetroArch download is pinned by size and SHA-256 and must carry libretro's Developer ID. A core build that differs from the recorded one is held until the user asks again.
+- A host that answers 429 or 503 is paused, honoring Retry-After with capped backoff.
 
 ## Out of scope
 
