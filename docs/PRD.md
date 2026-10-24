@@ -194,7 +194,7 @@ Each measure comes from a scenario in an OpenSpec change. A phase is done only w
 
 ## Interface rules
 
-From `FORK-PLAN.md` ("Règles d'interface"). Full rules will live in `docs/DESIGN.md` (P5).
+The rules every screen follows.
 
 - One panel for every game. Modules follow ADR 0037. A module with nothing to say is omitted. Details still holds the long report.
 - One performance number: the user's FPS if they played, else the estimate for their Mac.

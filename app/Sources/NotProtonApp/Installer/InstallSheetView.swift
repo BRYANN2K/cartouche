@@ -1,4 +1,4 @@
-// Steps follow mockup/launcher.html; closing never stops an install.
+// Closing the sheet never stops an install.
 
 import AppKit
 import InstallerKit

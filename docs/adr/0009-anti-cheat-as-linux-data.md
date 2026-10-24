@@ -23,4 +23,3 @@ Cartouche shows anti-cheat information as what ProtonDB and AreWeAntiCheatYet re
 
 - The ProtonDB export is ODbL: cite ProtonDB and share derived data under the same license.
 - Players still must judge risk themselves. Ban risk is theirs.
-- The older text in `FORK-PLAN.md` (the verdict table) is superseded by this decision.

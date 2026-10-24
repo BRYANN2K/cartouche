@@ -99,7 +99,7 @@ until curl -fsS -o /dev/null "$BASE/__control" 2>/dev/null; do
 done
 echo "==> Mock server on $BASE (pid $MOCK_PID)"
 
-# The profile's built-in mock scenarios (the machine state the persona starts
+# The profile's built-in mock scenarios (the machine state a session starts
 # from); the checklist can arm more live through /__control.
 for name in $ARM; do
     curl -fsS -X POST "$BASE/__control/$name" >/dev/null \

@@ -35,7 +35,6 @@ line only lands after warm-up anyway, partial seconds never enter the numbers.
 - Per-backend run in a real game: **needs maintainer**. Install the counter through
   Steam Play Setup, pick a game with an in-game limiter at 60 fps (V-Sync off, static
   spot), play 5 minutes per backend, then Compare Setups should read 59–61 for each.
-  Steps are in `openspec/changes/archive/2026-10-19-p8-performance-tracking/evidence.md`.
 
 ## Overhead measurement procedure
 

@@ -168,7 +168,7 @@ Archive decompression and direct extraction of supported installers run locally 
 
 The full owned-games list comes from Steam’s signed-in client, through a WebUI route registered by Cartouche’s injected dylib. Only Cartouche’s injected page script receives the random token for that Steam launch. The dylib validates the request and atomically writes SteamExport v1 `steam-library.json` locally. This adds no loopback HTTP service and requires neither a public Steam profile nor a user Web API key. The export stays on your Mac; this feature does not upload your library to Cartouche.
 
-When Steam is closed, Cartouche uses the last account-matched export even if stale and labels it cached/stale. Installed status comes from appmanifests. localconfig.vdf is play data only, not ownership. Implementation is merged in 451e393 / de0e6ec. It polls every 15 seconds and sends only changes, validates payloads up to 4 MB, writes mode 0600 and refuses symlinks. Real Steam verification remains pending; see ADR 0022 and `openspec/changes/steam-export/`.
+When Steam is closed, Cartouche uses the last account-matched export even if stale and labels it cached/stale. Installed status comes from appmanifests. localconfig.vdf is play data only, not ownership. Implementation is merged in 451e393 / de0e6ec. It polls every 15 seconds and sends only changes, validates payloads up to 4 MB, writes mode 0600 and refuses symlinks. Real Steam verification remains pending; see ADR 0022.
 
 ## What stays on your Mac
 

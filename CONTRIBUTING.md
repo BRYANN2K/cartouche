@@ -6,8 +6,8 @@ Cartouche is an independent fork of NotProton, licensed GPL-3.0. It keeps NotPro
 
 ## How work is organized
 
-- Work is planned with OpenSpec. Each phase of `docs/ROADMAP.md` is one change in `openspec/changes/<change-id>/`.
-- A change has a proposal, specs, tasks and sometimes a design. Every requirement has at least one scenario. Scenarios are the acceptance criteria.
+- Requirements live in `openspec/specs/<capability>/spec.md`, in OpenSpec format.
+- Propose a change as an OpenSpec change (proposal, spec deltas, tasks) in your branch. Once merged, its specs are folded into `openspec/specs/`. Every requirement has at least one scenario. Scenarios are the acceptance criteria.
 - Read `docs/PRD.md` and `docs/TRD.md` first. Decisions are in `docs/adr/`.
 - Open an issue or a discussion before a large change. Do not start code for something that has no spec.
 
@@ -22,7 +22,7 @@ Cartouche is an independent fork of NotProton, licensed GPL-3.0. It keeps NotPro
 
 - Run the full test suite before you ask for review. Do not delete or skip a test to make it pass.
 - Run `openspec validate --all --strict` when you touch `openspec/`.
-- For each scenario in your change, add a block to `openspec/changes/<change-id>/evidence.md`: the check (a test name, a command or a screenshot) and the observed result.
+- For each scenario in your change, list in the pull request the check (a test name, a command or a screenshot) and the observed result.
 - Evidence must show the THEN of the scenario. A claim without a test, output or screenshot does not count.
 - UI changes need screenshots in light and dark, on macOS 15 and 26, with Reduce Motion checked.
 - Work that needs a real Mac or a real game is tested by the maintainer. Write the steps for them.

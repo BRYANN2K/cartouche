@@ -2,7 +2,7 @@
 
 One scope. Every phase below is built before the first public release, **v0.1.0**. Versions then follow 0.x until the maintainer declares 1.0.
 
-Each phase is one OpenSpec change in `openspec/changes/`. A phase is done when every scenario of its specs has evidence, the review passed, and the change is archived.
+Each phase was one OpenSpec change. A phase is done when every scenario of its specs has evidence and the review passed; its specs then live in `openspec/specs/`.
 
 ## Phases
 
@@ -30,7 +30,7 @@ Each phase is one OpenSpec change in `openspec/changes/`. A phase is done when e
 
 ## Current status (2026-10-21, end of day)
 
-P0–P18 have code on main. P10 remains in `openspec/changes/`; the other phase changes are archived. Archival is not proof that every original criterion passed. Merged code and fixture tests do not replace real-service, real-game or clean-machine release checks.
+P0–P18 have code on main. All phase specs are folded into `openspec/specs/`. That is not proof that every original criterion passed. Merged code and fixture tests do not replace real-service, real-game or clean-machine release checks.
 
 The work merged on the integration branch on 2026-10-21 has not been compiled or run yet. Every item below marked "merged" is pending build and live check.
 
@@ -72,7 +72,7 @@ Also merged: drop handoff and Back to Add Games, direct-unpack fallback on Try A
 - Live checks: Steam export after Repair; a controller with Cartouche Wine 26.3.0-2; D3DMetal on Silksong; installer with an external unpacker: install, cancel and direct-unpack fallback; CarX Street setup under Cartouche Wine.
 - Cartouche Wine 26.3.0-2 (SDL3 for controllers, bundled Wine Mono and Wine Gecko) is in progress, not released.
 - Maintainer tasks: GitHub billing or a self-hosted runner (`MACOS_RUNNER`), the signing certificate and secrets, the Sparkle EdDSA key, the Homebrew tap repository. See `docs/RELEASE.md`.
-- Earlier evidence still open: real Steam owned-list freshness and account switching, tool registration and download controls; real runner first boot and frame-counter injection; user-supplied RAR coverage; real store sign-ins, two-Mac cloud saves, netplay and RetroAchievements; permissions on supported macOS versions; onboarding captures. QA persona runs (`qa/`) remain postponed, not passed.
+- Earlier evidence still open: real Steam owned-list freshness and account switching, tool registration and download controls; real runner first boot and frame-counter injection; user-supplied RAR coverage; real store sign-ins, two-Mac cloud saves, netplay and RetroAchievements; permissions on supported macOS versions; onboarding captures. Manual QA runs with `qa/` remain postponed, not passed.
 
 ### After v0.1.0
 

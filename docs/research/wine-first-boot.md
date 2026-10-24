@@ -8,7 +8,7 @@ Wine’s internal five-minute boot wait expired while prefix installation contin
 
 The launcher must serialize setup per prefix, await boot completion, drain the Wine server, check success and only then enable launch. Show “Preparing Windows environment”, logs, cancellation and retry. Interrupted prefixes need repair, not an assumed-ready state. Do not apply the experiment’s Mono/Gecko-disabling overrides to ordinary launches.
 
-Original local evidence: docs/research/local-games-and-wine.md section 3 and /tmp/cx-lab/REPORT.md. Those paths are session artifacts, not portable release evidence. Preserve the measurements above in docs; keep real-machine first-boot validation on the release checklist.
+The measurements above come from a local CrossOver 26.3 experiment. Keep real-machine first-boot validation on the release checklist.
 
 ## CI follow-up (2026-10-20)
 

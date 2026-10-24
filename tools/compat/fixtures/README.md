@@ -1,6 +1,6 @@
 # Compatibility fixtures
 
-Recorded answers from the four sources and Steam, used by the builder tests instead of the network. `2026-10-19/` was recorded on 2026-10-19 with `record_fixtures.py` for Elden Ring (1245620), Apex Legends (1172470), Counter-Strike 2 (730) and Disco Elysium (632470). Its MacGamingDB rows for Elden Ring are the same 25 rows, in the same order, as the 2026-10-18 pull in `mockup/launcher.html`.
+Recorded answers from the four sources and Steam, used by the builder tests instead of the network. `2026-10-19/` was recorded on 2026-10-19 with `record_fixtures.py` for Elden Ring (1245620), Apex Legends (1172470), Counter-Strike 2 (730) and Disco Elysium (632470).
 
 Each file keeps the shape the source serves, cut down:
 

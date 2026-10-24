@@ -27,7 +27,7 @@ to `kill`.
 | `offline` | `senior --stale` | `net-down`, `controller-dualsense` |
 | `broken` | `senior --damage` | `controller-dualsense`, `store-token-expired:epic`, `crash-missing-dll`, `installer-fail-unarc` |
 
-Every row a persona should try is in `qa/scenarios.md` (do/expect, spec source,
+Every row to try is in `qa/scenarios.md` (do/expect, spec source,
 world + mock to use). Arm mock scenarios live:
 `curl -X POST http://127.0.0.1:8890/__control/<name>` — `GET /__control` lists
 them; `qa/mocks/README.md` documents the routes.
@@ -66,8 +66,5 @@ of dmgs — see `qa/mocks/README.md` and `qa/world/README.md`.
 | File | What it is |
 |---|---|
 | `scenarios.md` | Scenario checklist by screen; defines the profile/mock contract |
-| `personas/{beginner,medium,senior}.md` | Maya, Dan, Priya — the three testers |
-| `report-template.md` | Findings table + narrative + coverage |
 | `world/make_world.py` | Deterministic scratch-HOME generator |
 | `mocks/server.py` | All external services + `__control` on 127.0.0.1 |
-| `reports/` | Generated reports, transcripts, `shots/` |

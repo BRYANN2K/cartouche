@@ -216,7 +216,7 @@ Keyboard-only controller mapping is opt-in; the diagram previews choices, while 
 - An action log in Settings > Agents, with undo for configuration changes.
 - Tools never return tokens, passwords, Keychain items or files outside the app folder and folders the user granted.
 - Agents reach RetroArch only through Cartouche's relay over RetroArch's own `--mcp-stdio`; input tools are refused in a Hardcore session.
-- Tool list: `mockup/MCP.md`. Threat model: `SECURITY.md`.
+- Tool list: `app/Sources/NotProtonApp/Agent/` (`AgentReadTools.swift`, `AgentActionTools.swift`, `AgentControls.swift`). Threat model: `SECURITY.md`.
 
 ### Sparkle updates
 
@@ -290,61 +290,61 @@ The compatibility schemas and the FPS store schema are in `docs/DATA-SCHEMA.md`.
 Each phase is one OpenSpec change. Order, dependencies and waves: `docs/ROADMAP.md`.
 
 ### P0 Rebrand
-Own name, bundle ID `dev.bryann2k.cartouche` (ADR 0014), data and log folders, Sparkle feed and key, icon. One data root constant shared with the dylib. Change: [`p0-rebrand-cartouche`](../openspec/changes/archive/2026-10-19-p0-rebrand-cartouche/). Spec: `openspec/specs/app-identity/`. Merged.
+Own name, bundle ID `dev.bryann2k.cartouche` (ADR 0014), data and log folders, Sparkle feed and key, icon. One data root constant shared with the dylib. Spec: `openspec/specs/app-identity/`. Merged.
 
 ### P1 Runner model
-Runner protocol, registry and states. CrossOver re-expressed on it with identical behavior. Damage detection by pinned hashes. Change: [`p1-runner-model`](../openspec/changes/archive/2026-10-19-p1-runner-model/). Spec: `openspec/specs/runner-management/`. Merged.
+Runner protocol, registry and states. CrossOver re-expressed on it with identical behavior. Damage detection by pinned hashes. Spec: `openspec/specs/runner-management/`. Merged.
 
 ### P2 Free runners
-CI build of Cartouche Wine, WineHQ runner, GPTK detection. Manifest with SHA-256. The Runners model fetches a newer manifest at most once a day (`RunnerManifest.refresh`). Cartouche Wine Steam tools are merged; WineHQ/GPTK still need pinned offsets. Change: [`p2-free-runners`](../openspec/changes/archive/2026-10-19-p2-free-runners/). Spec: `openspec/specs/runner-sources/`. Merged.
+CI build of Cartouche Wine, WineHQ runner, GPTK detection. Manifest with SHA-256. The Runners model fetches a newer manifest at most once a day (`RunnerManifest.refresh`). Cartouche Wine Steam tools are merged; WineHQ/GPTK still need pinned offsets. Spec: `openspec/specs/runner-sources/`. Merged.
 
 ### P3 Graphics backends
-Per-game setup, one Steam tool per runner and backend pair, Mac or Windows version, pinned DXMT and DXVK. Change: [`p3-graphics-backends`](../openspec/changes/archive/2026-10-19-p3-graphics-backends/). Spec: `openspec/specs/game-setup/`. Merged.
+Per-game setup, one Steam tool per runner and backend pair, Mac or Windows version, pinned DXMT and DXVK. Spec: `openspec/specs/game-setup/`. Merged.
 
 ### P4 Compatibility data
-Nightly JSON, offline-first client, per-Mac estimate, Linux anti-cheat data, attribution. MacGamingDB is read live, not published. Change: [`p4-compatibility-data`](../openspec/changes/archive/2026-10-19-p4-compatibility-data/). Spec: `openspec/specs/compatibility-data/`. Merged.
+Nightly JSON, offline-first client, per-Mac estimate, Linux anti-cheat data, attribution. MacGamingDB is read live, not published. Spec: `openspec/specs/compatibility-data/`. Merged.
 
 ### P5 Library app
-SwiftUI library, Steam import, favorites, search, all screen states, both macOS versions. The importer combines any account-matched export, installed manifests and play data. The Steam-side writer was added in 451e393 and merged in de0e6ec, closing the old archived P5 implementation gap. Change: [`p5-library-app`](../openspec/changes/archive/2026-10-19-p5-library-app/). Merged and archived. Real Steam freshness remains a manual check.
+SwiftUI library, Steam import, favorites, search, all screen states, both macOS versions. The importer combines any account-matched export, installed manifests and play data. The Steam-side writer was added in 451e393 and merged in de0e6ec, closing the old archived P5 implementation gap. Merged and archived. Real Steam freshness remains a manual check.
 
 ### P6 Windows installer
-Analysis, install with progress, retry, playable result. Change: [`p6-windows-installer`](../openspec/changes/archive/2026-10-19-p6-windows-installer/). Spec: `openspec/specs/windows-installer/`. Merged.
+Analysis, install with progress, retry, playable result. Spec: `openspec/specs/windows-installer/`. Merged.
 
 ### P7 Downloads and activity
-One activity slot, Steam download progress, cover reveal shader in Metal, notifications. Change: [`p7-downloads-activity`](../openspec/changes/archive/2026-10-19-p7-downloads-activity/). Spec: `openspec/specs/activity/`. Merged. Pausing a real Steam download is a manual check in its evidence.
+One activity slot, Steam download progress, cover reveal shader in Metal, notifications. Spec: `openspec/specs/activity/`. Merged. Pausing a real Steam download is a manual check in its evidence.
 
 ### P8 Performance tracking
-Frame counter injected in the Wine process (x86_64 and arm64), SQLite store, comparison of setups, opt-in sharing that stays unavailable while MacGamingDB has no report endpoint. Change: [`p8-performance-tracking`](../openspec/changes/archive/2026-10-19-p8-performance-tracking/). Spec: `openspec/specs/performance-tracking/`. Merged. Injection on each real runner is a manual check in its evidence.
+Frame counter injected in the Wine process (x86_64 and arm64), SQLite store, comparison of setups, opt-in sharing that stays unavailable while MacGamingDB has no report endpoint. Spec: `openspec/specs/performance-tracking/`. Merged. Injection on each real runner is a manual check in its evidence.
 
 ### P9 Release pipeline
-CI, stable self-signed signing, Sparkle appcast, Homebrew tap, upstream watch. Change: [`p9-release-pipeline`](../openspec/changes/archive/2026-10-19-p9-release-pipeline/). Spec: `openspec/specs/release-pipeline/`. Guide: `docs/RELEASE.md`. Merged. Its manual checks for the maintainer are listed in its evidence.
+CI, stable self-signed signing, Sparkle appcast, Homebrew tap, upstream watch. Spec: `openspec/specs/release-pipeline/`. Guide: `docs/RELEASE.md`. Merged. Its manual checks for the maintainer are listed in its evidence.
 
 ### P10 Store integrations
-Epic, GOG and Amazon through downloaded pinned CLIs, tokens in the Keychain. Change: [`p10-store-integrations`](../openspec/changes/p10-store-integrations/). Merged, not archived. Real sign-in and two-Mac cloud saves are maintainer steps in its evidence.
+Epic, GOG and Amazon through downloaded pinned CLIs, tokens in the Keychain. Merged, not archived. Real sign-in and two-Mac cloud saves are maintainer steps in its evidence.
 
 ### P11 Agent control
-MCP server, access levels, approvals, action log. Change: [`p11-agent-control`](../openspec/changes/archive/2026-10-19-p11-agent-control/). Merged and archived.
+MCP server, access levels, approvals, action log. Merged and archived.
 
 ### P12 RetroArch bundle
-CI builds RetroArch from a pinned commit, signs it and embeds it. Cartouche drives it over MCP stdio, with a fallback to UDP commands on older releases. Version choice in Settings > Consoles. Change: [`p12-retroarch-bundle`](../openspec/changes/archive/2026-10-19-p12-retroarch-bundle/). Spec: `openspec/specs/retroarch-runtime/`. Guide: `docs/RETROARCH.md`. Merged. Research: `docs/research/retroarch-frontend.md`.
+CI builds RetroArch from a pinned commit, signs it and embeds it. Cartouche drives it over MCP stdio, with a fallback to UDP commands on older releases. Version choice in Settings > Consoles. Spec: `openspec/specs/retroarch-runtime/`. Guide: `docs/RETROARCH.md`. Merged. Research: `docs/research/retroarch-frontend.md`.
 
 ### P13 Console library
-Add Consoles, games added by checksum from the + sheet or watched folders, libretro covers, console game panel (Continue From save states, achievements count, look, input lag, hardcore, discs, BIOS status, CRT launch). Cores downloaded per console. Change: [`p13-console-library`](../openspec/changes/archive/2026-10-19-p13-console-library/). Spec: `openspec/specs/console-library/`. Merged.
+Add Consoles, games added by checksum from the + sheet or watched folders, libretro covers, console game panel (Continue From save states, achievements count, look, input lag, hardcore, discs, BIOS status, CRT launch). Cores downloaded per console. Spec: `openspec/specs/console-library/`. Merged.
 
 ### P14 Console extras
-Netplay, RetroAchievements account linking with Hardcore, screen translation, Coach mode, iCloud Drive saves. Change: [`p14-console-extras`](../openspec/changes/archive/2026-10-19-p14-console-extras/). Merged and archived. Real lobby, live RetroAchievements, real iCloud sync and a second Mac are maintainer steps in its evidence.
+Netplay, RetroAchievements account linking with Hardcore, screen translation, Coach mode, iCloud Drive saves. Merged and archived. Real lobby, live RetroAchievements, real iCloud sync and a second Mac are maintainer steps in its evidence.
 
 ### P15 Controls
-Controller status, remapping (Steam Input, `SDL_GAMECONTROLLERCONFIG`, RetroArch remap files), Mac keyboard and mouse options, controller for keyboard-only games, couch mode. Change: [`p15-controls`](../openspec/changes/archive/2026-10-19-p15-controls/). Spec: `openspec/specs/controls/`. Merged. Research: `docs/research/controls.md`.
+Controller status, remapping (Steam Input, `SDL_GAMECONTROLLERCONFIG`, RetroArch remap files), Mac keyboard and mouse options, controller for keyboard-only games, couch mode. Spec: `openspec/specs/controls/`. Merged. Research: `docs/research/controls.md`.
 
 ### P16 Standalone emulators
-Detect and launch Dolphin, PCSX2, PPSSPP, Azahar, xemu, Ryubing and others. Not bundled. Change: [`p16-standalone-emulators`](../openspec/changes/archive/2026-10-19-p16-standalone-emulators/). Spec: `openspec/specs/standalone-emulators/`. Merged. Research: `docs/research/bonus-emulators.md`.
+Detect and launch Dolphin, PCSX2, PPSSPP, Azahar, xemu, Ryubing and others. Not bundled. Spec: `openspec/specs/standalone-emulators/`. Merged. Research: `docs/research/bonus-emulators.md`.
 
 ### P17 Mac permissions
-Change: [`p17-mac-permissions`](../openspec/changes/archive/2026-10-19-p17-mac-permissions/). Spec: `openspec/specs/mac-permissions/`. Merged. A `Permissions/` module: a catalog of every permission Cartouche or the programs it starts can meet (App Management, Accessibility for Steam and for Cartouche, Input Monitoring for games and for Cartouche, Downloads folder, Removable Volumes, Local Network, Notifications, Login Items, Keychain), state readers, an explanation sheet before each macOS prompt, deep links to the System Settings panes, and a relaunch service for Input Monitoring. Reuses NotProton's App Management detection. Grants survive updates because the signing identity is stable (P9). The module and its host screens are merged (Settings P5, onboarding P18, controls P15). User-facing rules: `docs/PRIVACY.md`.
+Spec: `openspec/specs/mac-permissions/`. Merged. A `Permissions/` module: a catalog of every permission Cartouche or the programs it starts can meet (App Management, Accessibility for Steam and for Cartouche, Input Monitoring for games and for Cartouche, Downloads folder, Removable Volumes, Local Network, Notifications, Login Items, Keychain), state readers, an explanation sheet before each macOS prompt, deep links to the System Settings panes, and a relaunch service for Input Monitoring. Reuses NotProton's App Management detection. Grants survive updates because the signing identity is stable (P9). The module and its host screens are merged (Settings P5, onboarding P18, controls P15). User-facing rules: `docs/PRIVACY.md`.
 
 ### P18 Onboarding
-Change [`p18-onboarding`](../openspec/changes/archive/2026-10-19-p18-onboarding/). Spec: `openspec/specs/onboarding/`. Merged. dmg layout and README steps for opening a non-notarized app, Homebrew cask caveats, and the seven-step v2 first launch described above. App Management is requested immediately before the Steam write in Stores. Mockup: `mockup/onboarding.html`.
+Spec: `openspec/specs/onboarding/`. Merged. dmg layout and README steps for opening a non-notarized app, Homebrew cask caveats, and the seven-step v2 first launch described above. App Management is requested immediately before the Steam write in Stores. Mockup: `mockup/onboarding.html`.
 
 ## Open technical questions
 

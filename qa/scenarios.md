@@ -1,17 +1,16 @@
 # Cartouche QA scenario checklist
 
-Every user-visible scenario from `openspec/specs/*/spec.md` and the unarchived
-changes in `openspec/changes/*/specs/`, grouped by screen. QA personas work the
-rows assigned to them in their prompt; any persona may try any row.
+Every user-visible scenario from `openspec/specs/*/spec.md`, grouped by screen,
+for manual QA runs.
 
 Columns:
 
 - **Do / Expect** — what to do, then what should happen. Keep it a real click path.
-- **Spec** — the requirement it comes from (`openspec/specs/<name>/spec.md` or
-  `openspec/changes/<change>/specs/<name>/spec.md`), as `<file>/<requirement>`.
+- **Spec** — the requirement it comes from (`openspec/specs/<name>/spec.md`), as
+  `<file>/<requirement>`.
 - **World & mock** — which `qa/launch.sh <profile>` world to boot and which mock
   scenario to arm through the `__control` endpoint before clicking.
-- **Who** — suggested personas: **B** beginner, **M** medium, **S** senior.
+- **Who** — suggested tester level: **B** beginner, **M** medium, **S** senior.
 
 ## World profiles (`qa/launch.sh <profile>`)
 
@@ -104,7 +103,7 @@ in ~10 s, "once a day" limits can be reset via `POST /__control/reset-fetch`).
 | LIB-08 | Hide a game from its context menu; find it again only through hidden-games affordances. | game-library/Library browsing | `steam` | M S |
 | LIB-09 | Select a single source. Expect no section header repeating the toolbar title; headers only under All Games. | game-library/Built for PC and console games | `full` | S |
 | LIB-10 | Check covers: a Steam game viewed once still shows its cover offline; dropping an image on a cover wins and survives refresh; a game with no art shows a drawn name+icon cover, never a broken image. | game-library/Covers for PC games | `steam`, then `net-down` | M S |
-| LIB-11 | Reach each state: loading skeletons, empty library, error, offline banner, expired session, no-result search. Expect the documented content of `mockup/AUDIT.md`. | game-library/Screen states | `clean`, `offline`, `net-down`, `store-token-expired` | S |
+| LIB-11 | Reach each state: loading skeletons, empty library, error, offline banner, expired session, no-result search. Expect each state's own message and action. | game-library/Screen states | `clean`, `offline`, `net-down`, `store-token-expired` | S |
 | LIB-12 | Use Play ⌘↩, Get Info ⌘I, Favorite ⌘D, Settings ⌘,, Find ⌘F. Expect each to work; every context-menu action also exists in the menu bar. | game-library/Keyboard and menus | `steam` | S |
 | LIB-13 | Turn on Reduce Motion and Reduce Transparency; browse and open sheets. Expect fades or no animation instead of tilt/springs; repeat in light and dark mode. | game-library/Native look on both macOS versions | `steam` | S |
 
@@ -207,8 +206,8 @@ expects a tab that is missing.
 | SET-05 | Privacy: every permission listed with feature and state (Allowed / Not allowed / Not asked yet / Unknown); Open System Settings hits the exact pane; after granting, the state updates without restarting; MacGamingDB toggle. | mac-permissions/Clear state and recovery | `steam` | M S |
 | SET-06 | Agents: access level picker (Read only / Standard / Full, Standard default), HTTP transport off by default with token shown when on, action log with Undo. | agent-control | `steam` | S |
 | SET-07 | Consoles: RetroArch version picker (included / official / own copy) with which features need the included build; cores and BIOS status; RetroAchievements; defaults. | retroarch-runtime/Version choice + console-extras | `retro` | M S |
-| SET-08 | Open every tab and shrink the window. Expect no tab clipped or unreadable (the mockup once cut General/Controllers off). | mockup/AUDIT.md regression | `full` | B S |
-| SET-09 | All copy: no exclamation marks, no "OK"/"Submit", no empty buzzwords. | mockup/AUDIT.md conventions | any | S |
+| SET-08 | Open every tab and shrink the window. Expect no tab clipped or unreadable (the mockup once cut General/Controllers off). | settings layout regression | `full` | B S |
+| SET-09 | All copy: no exclamation marks, no "OK"/"Submit", no empty buzzwords. | copy conventions | any | S |
 
 ## Activity
 

@@ -85,7 +85,7 @@ The panel SHALL use one chrome for a PC game and a console game: artwork, the ti
 - **THEN** the panel omits Setup and Your Play
 
 ### Requirement: Screen states
-Every screen SHALL have its loading, empty, error and offline states as listed in `mockup/AUDIT.md`.
+Every screen SHALL have its loading, empty, error and offline states.
 
 #### Scenario: States are reachable
 - **WHEN** the UI test suite drives each state (loading, empty library, offline, expired session, Steam not installed, no search result)

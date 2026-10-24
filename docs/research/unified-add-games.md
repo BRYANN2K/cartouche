@@ -6,6 +6,6 @@ The toolbar + opens one Add Games sheet. It has a drop zone and Choose… for fi
 
 Remove separate Windows Games… and Console Games… entries and any Windows/Console selector before file selection. Back from identification returns to the common sheet. Add Consoles still configures consoles; it is not a separate way to pick game-file types.
 
-This supersedes the mode-switch advice and old separate-sheet inventory in mockup/AUDIT.md. Do not implement its old “switch from Console Games to Windows Game” navigation. Mockup source edits belong to the frontend owner.
+This supersedes the earlier mode-switch design. Do not implement a “switch from Console Games to Windows Game” navigation.
 
 UI: the phase/liquid-glass-pass branch, merged in 51a8ece. Backend: DropClassifier on phase/archives, behind the existing UI DropClassifying protocol. Shared archive rules are in ADR 0023 and openspec/specs/archive-import/.

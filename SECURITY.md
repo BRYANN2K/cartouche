@@ -16,7 +16,7 @@ Only the latest release gets security fixes. Update through Sparkle or Homebrew.
 
 ## Threat overview
 
-This is a short summary. Agent control (P11) is specified in `openspec/changes/p11-agent-control/` and its section below describes the transport as implemented there.
+This is a short summary. Agent control (P11) is specified in `openspec/specs/agent-control/spec.md`; its section below describes the transport as implemented.
 
 ### Code injected into Steam
 
