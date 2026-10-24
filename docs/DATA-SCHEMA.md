@@ -10,6 +10,10 @@ The shape of the compatibility file, the MacGamingDB cache on the Mac, the other
 | Cached copy of `compat.json.gz` | `~/Library/Application Support/Cartouche/compatibility/compat.json.gz` | The app | The app |
 | `fetch-state.json` | Same folder | The app | The app. It holds the time of the last contact |
 | MacGamingDB cache | `~/Library/Application Support/Cartouche/compatibility/macgamingdb/<appid>.json` | The app | The app |
+| Community app feed | `~/Library/Application Support/Cartouche/community/app-feed.json` and `app-feed-state.json` | The app, from the community site, when Fetch Mac reports is on | The app |
+| Contribution queue | `~/Library/Application Support/Cartouche/community/queue.json` | The app, after the user confirms a preview | The app, until the site accepts each item |
+| Applied shared fixes | `~/Library/Application Support/Cartouche/community/applied-fixes.json` | The app | The app, to undo a fix |
+| Contribution wire format | `docs/schema/contributions/` (fixtures) | The site's API contract | `ContributionContract.swift` and its tests |
 
 The file is gzip JSON, under 25 MB. Every record is keyed by Steam App ID, and every value sits under the source it came from. The build fails if the file does not validate against the schema or is over the size limit.
 

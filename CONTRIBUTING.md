@@ -13,9 +13,9 @@ Cartouche is an independent fork of NotProton, licensed GPL-3.0. It keeps NotPro
 
 ## Branches
 
-- Work on a branch named `phase/<change-id>`, for example `phase/p3-graphics-backends`. Documentation work uses `docs/<topic>`.
-- Never commit to `main`. Merge by pull request.
-- Two phases run at the same time only when they touch different directories.
+- `main` holds stable releases and `beta` holds betas. Open pull requests against `beta`; never commit to `main` or `beta` directly.
+- Name your branch after what it does: `feat/<topic>`, `fix/<topic>`, `docs/<topic>` or `ci/<topic>`.
+- Checks run on Woodpecker (`.woodpecker/`) for every pull request. See `docs/RELEASE.md`.
 - Write commit messages in the imperative, one idea per commit.
 
 ## Tests and evidence
@@ -39,7 +39,7 @@ Cartouche is an independent fork of NotProton, licensed GPL-3.0. It keeps NotPro
 
 - Write the description yourself, in plain words. Translation is fine.
 - Say which scenarios the change covers and link its evidence.
-- Keep the change inside the scope of its tasks. Every changed file should be explained by a task.
+- Keep the change to one purpose. Every changed file should be explained by it.
 - Touching code that runs inside Steam (`dylib/`, `lsteamclient/`, `steam-shim/`) needs extra care. Think about several Steam accounts, libraries, macOS users and file systems. Say how you tested it.
 - Do not add a D3DMetal or Game Porting Toolkit file, a secret, or piracy wording in code, strings or docs. Review will reject them.
 
