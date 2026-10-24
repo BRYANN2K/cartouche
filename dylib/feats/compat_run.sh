@@ -488,13 +488,11 @@ last_wine_build() {
   case "$updated" in '' | *[!0-9]*) return 0 ;; esac
   [ "$updated" = "$(stat -f %m "$CX_ROOT/share/wine/wine.inf" 2>/dev/null)" ] && return 0
   had_build=other
-  had_display="another build"
   for inf in "$np_support"/runners/crossover-*/CrossOver/share/wine/wine.inf \
              "$np_support"/runners/*/share/wine/wine.inf; do
     [ "$(stat -f %m "$inf" 2>/dev/null)" = "$updated" ] || continue
     if [ "$had_build" != other ]; then
       had_build=other
-      had_display="another build"
       break
     fi
     case "$inf" in
@@ -512,19 +510,16 @@ last_wine_build() {
         || found_id=""
       [ -n "$found_id" ] && had_build="$found_id"
     fi
-    had_display=$(awk -F '\t' -v b="$had_build" '$2 == b { print $4; exit }' \
-      "$np_support/tools" 2>/dev/null) || had_display=""
   done
 }
 
 note_runner_change() {
   record="$STEAM_COMPAT_DATA_PATH/cartouche-build"
   had_build=""
-  had_display=""
   if [ -r "$record" ]; then
     {
       read -r had_build || true
-      read -r had_display || true
+      read -r _ || true
     } < "$record"
   else
     last_wine_build
