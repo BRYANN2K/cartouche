@@ -40,9 +40,6 @@
   </picture>
 </p>
 
-> [!IMPORTANT]
-> **Cartouche 0.1.0 is in validation and not released yet.** Install links below start working with the first release. Expect missing features and breaking changes.
-
 ## Why Cartouche
 
 - **One library.** Steam, Epic, GOG and Amazon games sit next to Windows installers and console games.
