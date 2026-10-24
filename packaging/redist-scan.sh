@@ -76,6 +76,10 @@ for target in "$@"; do
         out="$scratch/$n"
         mkdir -p "$out"
         if [ "$kind" = zip ]; then
+            if ! command -v zipinfo >/dev/null 2>&1 || ! command -v unzip >/dev/null 2>&1; then
+                echo "redist-scan: zipinfo and unzip are needed to look inside $target" >&2
+                exit 2
+            fi
             zipinfo -1 "$target" | parts | flag "$target: "
             unzip -qq "$target" -d "$out"
         else

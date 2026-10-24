@@ -46,7 +46,7 @@ steps:
     image: *python
     backend_options: *resources
     commands:
-      - apt-get update -qq && apt-get install -y -qq --no-install-recommends perl zip >/dev/null
+      - apt-get update -qq && apt-get install -y -qq --no-install-recommends perl zip unzip >/dev/null
       - sh packaging/redist-scan.sh .
       - sh packaging/tests/redist-scan-test.sh
       - python3 packaging/tests/workflow_check.py
