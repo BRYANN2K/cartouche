@@ -42,7 +42,8 @@ struct MacKeyboardTests {
         controls.keyboardSet = true
         try fixture.files.apply(controls, to: fixture.game)
         try fixture.launch()
-        #expect(fixture.calls == [#"reg import C:\cartouche-keyboard.reg"#, "game " + fixture.game.executable!.path(percentEncoded: false)])
+        let crash = CrashHandling.registryArguments.map { "game " + $0.joined(separator: " ") }
+        #expect(fixture.calls == crash + [#"reg import C:\cartouche-keyboard.reg"#, "game " + fixture.game.executable!.path(percentEncoded: false)])
         let imported = try String(contentsOf: fixture.out.appending(path: "imported.reg"), encoding: .utf8)
         #expect(imported == controls.keyboard.registryFile)
         #expect(imported.contains(#""LeftCommandIsCtrl"="y""#))

@@ -98,7 +98,11 @@ struct RunnerManifestTests {
         #expect(ours.size == 149_444_708)
         #expect(ours.sha256 == "60400817826a053599193aa290d4e24e97213a743195f4187400bf9c74906887")
         #expect(ours.isPinned && !ours.isPending)
-        #expect(RunnerOffer.recommended(manifest)?.id == ours.id)
+        let latest = try #require(manifest.build(id: "wine-crossover-26.3.0-2"))
+        #expect(latest.origin == .cartouche && latest.isPinned && !latest.isPending)
+        #expect(latest.size == 271_814_416)
+        #expect(latest.sha256 == "59cf07facf9828d504b4c68fa5c02c5e18115835a7d57a0f46874fcc043136c1")
+        #expect(RunnerOffer.recommended(manifest)?.id == latest.id)
     }
 
     @Test("A pending pin decodes and is listed, but install refuses it before any download")
@@ -207,10 +211,12 @@ struct RunnerManifestTests {
         let url = try #require(RunnerManifest.feed(
             fromInfoValue: "https://github.com/BRYANN2K/cartouche-wine/releases/download/manifest/runners.json"))
         let shipped = try RunnerManifest.bundled()
-        let pinned = try #require(shipped.build(id: "wine-crossover-26.3.0-1"))
-        let next = "wine-crossover-26.3.0-2"
+        let pinned = try #require(shipped.build(id: "wine-crossover-26.3.0-2"))
+        let next = "wine-crossover-26.3.0-3"
+        var same = Self.entry(id: pinned.id, url: pinned.url.absoluteString, size: pinned.size, sha256: pinned.sha256, root: pinned.root)
+        same["name"] = pinned.name
         let newer = try Self.manifest([
-            Self.entry(url: pinned.url.absoluteString, size: pinned.size, sha256: pinned.sha256),
+            same,
             Self.entry(id: next,
                        url: "https://github.com/BRYANN2K/cartouche-wine/releases/download/\(next)/\(next)-x86_64.tar.xz",
                        root: next),
@@ -224,10 +230,10 @@ struct RunnerManifestTests {
         #expect(asked.all == [url, RunnerManifest.signatureFile(for: url)])
 
         let merged = RunnerManifest.current(cache: cache, key: key)
-        let installed: Set<String> = ["wine-crossover-26.3.0-1"]
-        #expect(RunnerUpdate.offers(installed: installed, manifest: merged)["wine-crossover-26.3.0-1"]?.id == next)
+        let installed: Set<String> = [pinned.id]
+        #expect(RunnerUpdate.offers(installed: installed, manifest: merged)[pinned.id]?.id == next)
         // Without the remote copy only the bundled builds are known
-        #expect(RunnerUpdate.offers(installed: installed, manifest: shipped)["wine-crossover-26.3.0-1"]?.id != next)
+        #expect(RunnerUpdate.offers(installed: installed, manifest: shipped)[pinned.id]?.id != next)
     }
 
     final class LockedURLs: @unchecked Sendable {

@@ -49,7 +49,8 @@ final class PortingToolkitDMGTests {
     @Test("A dropped image imports the D3DMetal pieces and is always detached")
     func importImage() async throws {
         let point = work.appending(path: "mounted")
-        try PortingToolkitTests.toolkit(at: point.appending(path: "redist/lib"))
+        let lib = try PortingToolkitTests.toolkit(at: point.appending(path: "redist/lib"))
+        try Data("MZ fixture".utf8).write(to: lib.appending(path: "wine/x86_64-windows/kernel32.dll"))
 
         let version = try await PortingToolkitDMG.importImage(dmg, runners: runners, mounter: mounter(at: point))
 
@@ -59,9 +60,13 @@ final class PortingToolkitDMGTests {
         let copy = PortingToolkitSource.folder(version: "4.0b3", runners: runners)
         #expect(FileManager.default.fileExists(
             atPath: copy.appending(path: "lib/external/D3DMetal.framework").path(percentEncoded: false)))
-        // Only external/ was read: the toolkit's own Wine tree stays unread
+        // Only external/ and the graphics DLLs are taken: the rest of the toolkit's own Wine stays unread
+        for name in ["d3d11", "d3d12", "dxgi"] {
+            #expect(FileManager.default.fileExists(
+                atPath: copy.appending(path: "lib/wine/x86_64-windows/\(name).dll").path(percentEncoded: false)))
+        }
         #expect(!FileManager.default.fileExists(
-            atPath: copy.appending(path: "lib/wine").path(percentEncoded: false)))
+            atPath: copy.appending(path: "lib/wine/x86_64-windows/kernel32.dll").path(percentEncoded: false)))
         // And the runner verifies as ready
         #expect(PortingToolkitSource.verify(version: "4.0b3", runners: runners).isEmpty)
         #expect(PortingToolkitSource.copiedVersions(in: runners) == ["4.0b3"])

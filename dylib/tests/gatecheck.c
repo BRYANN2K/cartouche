@@ -162,7 +162,7 @@ static void check_paths(void) {
 
     static const struct { const char *path; int want; } cases[] = {
         { "/tmp/x/steamui/sp.js",                                                  0 },
-        { "/Users/me/Library/Application Support/SteamX/steamui/sp.js",           0 },
+        { ROOT "X/steamui/sp.js",                                                 0 },
         { "/Users/other/Library/Application Support/Steam/steamui/sp.js",         0 },
         { ROOT "/../../evil/steamui/sp.js",                                        0 },
         { ROOT "/steamui/../../../tmp/sp.js",                                      0 },

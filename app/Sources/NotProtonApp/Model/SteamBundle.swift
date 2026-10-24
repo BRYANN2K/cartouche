@@ -9,6 +9,13 @@ enum SteamDeployment: Sendable, Equatable {
     case foreign(insert: String)
     // Every foreign insert is NotProton's dylib, so Steam is NotProton's to hand over
     case notProton(insert: String)
+
+    var hasOtherInsert: Bool {
+        switch self {
+        case .foreign, .notProton: true
+        default: false
+        }
+    }
 }
 
 enum SteamBundle {

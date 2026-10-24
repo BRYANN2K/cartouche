@@ -91,7 +91,7 @@ final class RunnersModel {
         isRunning: @escaping @Sendable (URL) -> Bool = { RunnerInstaller.isRunning(from: $0) },
         scan: @escaping @Sendable () -> FreeRunnerScan = { .standard },
         registry: @escaping @Sendable (URL, FreeRunnerScan) -> RunnerRegistry = {
-            CrossOverSource.pruneOwnBundlesOnce()
+            RunnerRegistry.pruneOwnBundlesOnce()
             return RunnerRegistry.refresh(runners: $0, free: $1)
         },
         manifestFeed: URL? = RunnerManifest.feed,

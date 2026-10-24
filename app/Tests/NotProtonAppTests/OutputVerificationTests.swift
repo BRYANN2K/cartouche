@@ -495,6 +495,7 @@ struct VerificationGateTests {
         let tool = fake.work.appending(path: "innoextract-sizes")
         try Data("""
         #!/bin/sh
+        [ "$1" = --language-only ] && exit 0
         printf '1200000 app\\\\game.exe\\n2000 app\\\\unins000.exe\\n1000 app\\\\_Redist\\\\dxwebsetup.exe\\n1000 app\\\\_Redist\\\\dotNetFx40_Full_setup.exe\\n'
         """.utf8).write(to: tool)
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: tool.path)

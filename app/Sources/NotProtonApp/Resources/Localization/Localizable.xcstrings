@@ -67,6 +67,28 @@
         }
       }
     },
+    "%@ %@ isn’t available to Steam yet. Steam keeps the previous choice." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ %@ n’est pas encore disponible pour Steam. Steam garde le choix précédent."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ %@ non è ancora disponibile per Steam. Steam mantiene la scelta precedente."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ %@ 尚无法供 Steam 使用。Steam 会保留之前的选择。"
+          }
+        }
+      }
+    },
     "%@ (Launcher)" : {
       "localizations" : {
         "fr" : {
@@ -151,6 +173,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "磁盘占用 %@ GB"
+          }
+        }
+      }
+    },
+    "%@ already exists and could not be used." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ existe déjà et n’a pas pu être utilisé."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ esiste già e non è stato possibile usarlo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 已存在，无法使用。"
           }
         }
       }
@@ -745,6 +789,28 @@
         }
       }
     },
+    "%@ has no launch logs yet." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ n’a pas encore de journal de lancement."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ non ha ancora log di avvio."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 还没有启动日志。"
+          }
+        }
+      }
+    },
     "%@ has no log yet." : {
       "localizations" : {
         "fr" : {
@@ -873,28 +939,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已安装 %@"
-          }
-        }
-      }
-    },
-    "%@ is already listed." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ est déjà dans la liste."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ è già nell'elenco."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ 已在列表中。"
           }
         }
       }
@@ -1115,28 +1159,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "不支持构建版本 %@。支持的版本：%@。"
-          }
-        }
-      }
-    },
-    "%@ is not a valid copy of CrossOver." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ n’est pas une copie valide de CrossOver."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ non è una copia valida di CrossOver."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ 不是有效的 CrossOver 应用。"
           }
         }
       }
@@ -1363,28 +1385,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "“%@”的游戏文件保存在其游戏容器中。请改用游戏库中的“卸载”来移除该游戏。"
-          }
-        }
-      }
-    },
-    "%@ license, from %@" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Licence %@, de %@"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Licenza %1$@, da %2$@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ 许可证，来自 %2$@"
           }
         }
       }
@@ -1762,6 +1762,17 @@
           }
         }
       }
+    },
+    "%@ · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@"
+          }
+        }
+      },
+      "shouldTranslate" : false
     },
     "%@, %@" : {
       "localizations" : {
@@ -2210,6 +2221,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@/ntdll.dll 不是已修补的副本"
+          }
+        }
+      }
+    },
+    "%@: %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ : %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@：%@"
           }
         }
       }
@@ -2784,28 +2817,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld/%lld"
-          }
-        }
-      }
-    },
-    "%lld of %lld recent ProtonDB reports say it doesn’t run on Linux." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld avis ProtonDB récents sur %lld indiquent que le jeu ne fonctionne pas sous Linux."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld segnalazioni ProtonDB recenti su %lld dicono che non funziona su Linux."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld/%lld 份近期 ProtonDB 报告称其无法在 Linux 上运行。"
           }
         }
       }
@@ -3828,28 +3839,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "仍有游戏或 Wine 工具正在使用构建版本 %@。请先退出。"
-          }
-        }
-      }
-    },
-    "A game uses these until you pick its own setup. A backend its runner cannot use is replaced by the first one it can." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ces réglages s’appliquent aux jeux sans configuration personnalisée. Si la version de Wine ne prend pas en charge le moteur de rendu choisi, le premier moteur compatible est utilisé."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Un gioco usa queste impostazioni finché non scegli la sua configurazione. Un backend che il suo runner non può usare viene sostituito dal primo che può usare."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在你为游戏单独选择设置之前，游戏使用这些设置。运行器无法使用的后端会被替换为它能使用的第一个后端。"
           }
         }
       }
@@ -5184,6 +5173,28 @@
         }
       }
     },
+    "Also adds %@ to your consoles." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajoute aussi %@ à vos consoles."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiunge anche %@ alle tue console."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同时会将 %@ 添加到你的主机中。"
+          }
+        }
+      }
+    },
     "Amazon did not accept the sign-in. Try again." : {
       "localizations" : {
         "fr" : {
@@ -5338,28 +5349,6 @@
         }
       }
     },
-    "Anti-Cheat on Linux" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Antitriche sous Linux"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Anti-cheat su Linux"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Linux 上的反作弊"
-          }
-        }
-      }
-    },
     "Anti-cheat" : {
       "localizations" : {
         "fr" : {
@@ -5378,28 +5367,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "反作弊"
-          }
-        }
-      }
-    },
-    "Anti-cheat blocks Linux" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "L’antitriche bloque le jeu sous Linux"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "L’anti-cheat blocca Linux"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "反作弊阻止 Linux"
           }
         }
       }
@@ -5454,6 +5421,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Antitriche incompatible"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anti-cheat non supportato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "反作弊不受支持"
           }
         }
       }
@@ -5730,116 +5709,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "确定要继续吗？"
-          }
-        }
-      }
-    },
-    "AreWeAntiCheatYet lists %@ as broken on Linux." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Selon AreWeAntiCheatYet, %@ ne fonctionne pas sous Linux."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stato di %@ su Linux secondo AreWeAntiCheatYet: non funziona."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AreWeAntiCheatYet：%@ 在 Linux 上无法正常工作。"
-          }
-        }
-      }
-    },
-    "AreWeAntiCheatYet lists %@ as denied on Linux by the developer." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Selon AreWeAntiCheatYet, le développeur de %@ bloque le jeu sous Linux."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stato di %@ su Linux secondo AreWeAntiCheatYet: negato dallo sviluppatore."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AreWeAntiCheatYet：开发者不允许 %@ 在 Linux 上运行。"
-          }
-        }
-      }
-    },
-    "AreWeAntiCheatYet lists %@ as running on Linux without official support." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AreWeAntiCheatYet indique que %@ fonctionne sous Linux sans prise en charge officielle."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stato di %@ su Linux secondo AreWeAntiCheatYet: funziona senza supporto ufficiale."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AreWeAntiCheatYet：%@ 可在 Linux 上运行，但没有官方支持。"
-          }
-        }
-      }
-    },
-    "AreWeAntiCheatYet lists %@ as supported on Linux." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AreWeAntiCheatYet indique que %@ est pris en charge sous Linux."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stato di %@ su Linux secondo AreWeAntiCheatYet: supportato."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AreWeAntiCheatYet：%@ 在 Linux 上受支持。"
-          }
-        }
-      }
-    },
-    "AreWeAntiCheatYet lists Linux support for %@ as planned." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AreWeAntiCheatYet indique que la prise en charge de Linux pour %@ est prévue."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stato di %@ su Linux secondo AreWeAntiCheatYet: supporto previsto."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AreWeAntiCheatYet：%@ 计划支持 Linux。"
           }
         }
       }
@@ -6728,28 +6597,6 @@
         }
       }
     },
-    "Built by Cartouche from CodeWeavers’ open-source code. Best for games: D3DMetal and DXMT." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Compilé par Cartouche à partir du code open source de CodeWeavers. Recommandé pour les jeux avec D3DMetal et DXMT."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Compilato da Cartouche dal codice open source di CodeWeavers. Ideale per i giochi: D3DMetal e DXMT."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "由 Cartouche 基于 CodeWeavers 开源代码构建。最适合游戏：D3DMetal 和 DXMT。"
-          }
-        }
-      }
-    },
     "Built in" : {
       "localizations" : {
         "fr" : {
@@ -6856,6 +6703,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "取消"
+          }
+        }
+      }
+    },
+    "Cancel Installation" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annuler l’installation"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annulla installazione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消安装"
           }
         }
       }
@@ -8739,6 +8608,28 @@
         }
       }
     },
+    "Check for app and compatibility updates once a day." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher une fois par jour les mises à jour de l’app et des données de compatibilité."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerca una volta al giorno gli aggiornamenti dell’app e dei dati di compatibilità."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每天检查一次 App 和兼容性数据的更新。"
+          }
+        }
+      }
+    },
     "Check for updates and compatibility data daily" : {
       "localizations" : {
         "fr" : {
@@ -9087,6 +8978,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "选择文件夹…"
+          }
+        }
+      }
+    },
+    "Choose Runner" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisir une version de Wine"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli runner"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择运行器"
           }
         }
       }
@@ -9773,28 +9686,6 @@
         }
       }
     },
-    "CodeWeavers Wine · D3DMetal, DXMT" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wine CodeWeavers · D3DMetal, DXMT"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wine CodeWeavers · D3DMetal, DXMT"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CodeWeavers Wine · D3DMetal、DXMT"
-          }
-        }
-      }
-    },
     "Collect Diagnostics…" : {
       "localizations" : {
         "fr" : {
@@ -9879,6 +9770,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "备注"
+          }
+        }
+      }
+    },
+    "Community multiplayer reports; anti-cheat support in Cartouche is unverified." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avis de la communauté sur le multijoueur ; la prise en charge de l’antitriche dans Cartouche n’est pas vérifiée."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Segnalazioni della community sul multigiocatore; il supporto anti-cheat in Cartouche non è verificato."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "社区多人游戏报告；Cartouche 中的反作弊支持尚未验证。"
           }
         }
       }
@@ -11541,28 +11454,6 @@
         }
       }
     },
-    "D3DMetal is never bundled. It comes from your own Game Porting Toolkit or CrossOver." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "D3DMetal n’est jamais fourni. Il provient de votre propre Game Porting Toolkit ou CrossOver."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "D3DMetal non è mai incluso. Viene dal tuo Game Porting Toolkit o da CrossOver."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "D3DMetal 从不随附。它来自你自己的 Game Porting Toolkit 或 CrossOver。"
-          }
-        }
-      }
-    },
     "D3DMetal needs Apple's Game Porting Toolkit" : {
       "localizations" : {
         "fr" : {
@@ -12571,28 +12462,6 @@
         }
       }
     },
-    "Detected automatically" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Détecté automatiquement"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rilevato automaticamente"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "自动检测"
-          }
-        }
-      }
-    },
     "Detecting" : {
       "localizations" : {
         "fr" : {
@@ -12703,6 +12572,12 @@
         }
       }
     },
+    "Discord" : {
+      "localizations" : {
+
+      },
+      "shouldTranslate" : false
+    },
     "Disk write failure" : {
       "localizations" : {
         "fr" : {
@@ -12765,28 +12640,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "与此设置不匹配"
-          }
-        }
-      }
-    },
-    "Doesn’t run on Linux" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ne fonctionne pas sous Linux"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Non funziona su Linux"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无法在 Linux 上运行"
           }
         }
       }
@@ -12941,6 +12794,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "如有缺失，重新下载 Valve 的 Steam Play 文件。"
+          }
+        }
+      }
+    },
+    "Download a Runner" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Télécharger une version de Wine"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scarica un runner"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载运行器"
           }
         }
       }
@@ -13283,6 +13158,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在下载，%lld%%"
+          }
+        }
+      }
+    },
+    "Downloading…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Téléchargement…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download in corso…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在下载…"
           }
         }
       }
@@ -15575,6 +15472,50 @@
         }
       }
     },
+    "Graphics backend list updated. Your installed backends are up to date." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liste des moteurs de rendu actualisée. Vos moteurs de rendu installés sont à jour."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elenco dei backend grafici aggiornato. I backend installati sono aggiornati."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "图形后端列表已更新。已安装的后端均为最新版本。"
+          }
+        }
+      }
+    },
+    "Graphics backend updates are available. Choose Update beside a backend." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Des mises à jour de moteurs de rendu sont disponibles. Cliquez sur Mettre à jour à côté du moteur."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sono disponibili aggiornamenti dei backend grafici. Scegli Aggiorna accanto a un backend."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "图形后端有可用更新。请点击后端旁的“更新”。"
+          }
+        }
+      }
+    },
     "Graphics: %@" : {
       "localizations" : {
         "fr" : {
@@ -16521,6 +16462,28 @@
         }
       }
     },
+    "Install %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installer %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installa %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装 %@"
+          }
+        }
+      }
+    },
     "Install Cartouche" : {
       "localizations" : {
         "fr" : {
@@ -16917,28 +16880,6 @@
         }
       }
     },
-    "Installed integration: %@. Included: %@. Updates are manual." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Intégration installée : %@. Incluse : %@. Les mises à jour sont manuelles."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Integrazione installata: %@. Inclusa: %@. Gli aggiornamenti sono manuali."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已安装集成：%@。内置版本：%@。请手动更新。"
-          }
-        }
-      }
-    },
     "Installed, not verified" : {
       "localizations" : {
         "fr" : {
@@ -17111,6 +17052,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在安装 %1$@ 运行时，%2$lld/%3$lld"
+          }
+        }
+      }
+    },
+    "Installing %@…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installation de %@…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installazione di %@…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在安装 %@…"
           }
         }
       }
@@ -18179,28 +18142,6 @@
         }
       }
     },
-    "Later" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Plus tard"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Più tardi"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "稍后"
-          }
-        }
-      }
-    },
     "Launch Log" : {
       "localizations" : {
         "fr" : {
@@ -18241,6 +18182,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "发行商的启动器"
+          }
+        }
+      }
+    },
+    "Launching…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lancement…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avvio in corso…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在启动…"
           }
         }
       }
@@ -18861,28 +18824,6 @@
         }
       }
     },
-    "Looks once a day for a new version and new compatibility data. Check for Updates in the Cartouche menu still works." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Recherche chaque jour une nouvelle version et de nouvelles données de compatibilité. Vous pouvez aussi choisir Rechercher des mises à jour dans le menu Cartouche."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Controlla una volta al giorno la presenza di una nuova versione e di nuovi dati di compatibilità. «Controlla aggiornamenti» nel menu Cartouche continua a funzionare."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "每天检查一次新版本和新的兼容性数据。Cartouche 菜单中的“检查更新”仍可使用。"
-          }
-        }
-      }
-    },
     "Low" : {
       "localizations" : {
         "fr" : {
@@ -19077,6 +19018,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "为游戏留点空间。"
+          }
+        }
+      }
+    },
+    "Manage Runners…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gérer les versions de Wine…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gestisci runner…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理运行器…"
           }
         }
       }
@@ -20335,6 +20298,28 @@
         }
       }
     },
+    "No automatic download is available for %@. Choose another emulator in Settings > Consoles." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun téléchargement automatique n’est disponible pour %@. Choisissez un autre émulateur dans Réglages > Consoles."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun download automatico disponibile per %@. Scegli un altro emulatore in Impostazioni > Console."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 没有可用的自动下载。请在“设置 > 主机”中选择其他模拟器。"
+          }
+        }
+      }
+    },
     "No background tasks" : {
       "localizations" : {
         "fr" : {
@@ -20863,6 +20848,28 @@
         }
       }
     },
+    "No multiplayer reports available from ProtonDB." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun avis sur le multijoueur disponible sur ProtonDB."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessuna segnalazione sul multigiocatore disponibile da ProtonDB."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ProtonDB 上暂无多人游戏报告。"
+          }
+        }
+      }
+    },
     "No program in this folder" : {
       "localizations" : {
         "fr" : {
@@ -20903,28 +20910,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "安装文件夹中未找到程序。"
-          }
-        }
-      }
-    },
-    "No recent ProtonDB report tried online play on Linux." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aucun avis ProtonDB récent ne mentionne de test du jeu en ligne sous Linux."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nessuna segnalazione ProtonDB recente ha provato il gioco online su Linux."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "近期没有 ProtonDB 报告在 Linux 上尝试联机游玩。"
           }
         }
       }
@@ -21013,6 +20998,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无会话"
+          }
+        }
+      }
+    },
+    "No sessions yet" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune session pour l’instant"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ancora nessuna sessione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无会话"
           }
         }
       }
@@ -22007,28 +22014,6 @@
         }
       }
     },
-    "Official WineHQ build, less tuned for games" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Version officielle de WineHQ, moins optimisée pour les jeux"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Build ufficiale di WineHQ, meno ottimizzata per i giochi"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "WineHQ 官方版本，对游戏的优化较少"
-          }
-        }
-      }
-    },
     "Offline" : {
       "localizations" : {
         "fr" : {
@@ -22195,28 +22180,6 @@
         }
       }
     },
-    "Online fails on Linux in %lld of %lld reports" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Le jeu en ligne ne fonctionne pas sous Linux selon %lld avis sur %lld"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "L’online non funziona su Linux in %lld segnalazioni su %lld"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Linux 上联机失败：%lld/%lld 份报告"
-          }
-        }
-      }
-    },
     "Online features" : {
       "localizations" : {
         "fr" : {
@@ -22301,50 +22264,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "尚未验证 Cartouche 的在线游戏兼容性。"
-          }
-        }
-      }
-    },
-    "Online untested on Linux" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Jeu en ligne non testé sous Linux"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Online non provato su Linux"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "尚未在 Linux 上测试联机"
-          }
-        }
-      }
-    },
-    "Online works on Linux, %lld of %lld reports" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Le jeu en ligne fonctionne sous Linux selon %lld avis sur %lld"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "L’online funziona su Linux, %lld segnalazioni su %lld"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Linux 上联机可用：%lld/%lld 份报告"
           }
         }
       }
@@ -23713,6 +23632,28 @@
         }
       }
     },
+    "Preparing %@…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Préparation de %@…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparazione di %@…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在准备 %@…"
+          }
+        }
+      }
+    },
     "Preparing Windows environment" : {
       "localizations" : {
         "fr" : {
@@ -23731,6 +23672,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在准备 Windows 环境"
+          }
+        }
+      }
+    },
+    "Preparing console games…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Préparation des jeux de console…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparazione dei giochi per console…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在准备主机游戏…"
           }
         }
       }
@@ -24017,6 +23980,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "受保护的匹配"
+          }
+        }
+      }
+    },
+    "ProtonDB: %lld/%lld successful multiplayer reports (%@)." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ProtonDB : %lld/%lld avis positifs sur le multijoueur (%@)."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ProtonDB: %lld/%lld segnalazioni positive sul multigiocatore (%@)."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ProtonDB：%lld/%lld 份多人游戏报告显示成功（%@）。"
           }
         }
       }
@@ -26079,28 +26064,6 @@
         }
       }
     },
-    "Restart Now" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Redémarrer maintenant"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Riavvia ora"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "立即重启"
-          }
-        }
-      }
-    },
     "Restart Steam" : {
       "localizations" : {
         "fr" : {
@@ -26123,28 +26086,6 @@
         }
       }
     },
-    "Restart Steam to bring your games in." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Redémarrez Steam pour importer vos jeux."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Riavvia Steam per importare i tuoi giochi."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "重启 Steam 以导入你的游戏。"
-          }
-        }
-      }
-    },
     "Restart Steam to update its list of compatibility tools." : {
       "localizations" : {
         "fr" : {
@@ -26163,50 +26104,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请重启 Steam，以更新兼容工具列表。"
-          }
-        }
-      }
-    },
-    "Restarted" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Redémarré"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Riavviato"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已重启"
-          }
-        }
-      }
-    },
-    "Restarting" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Redémarrage"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Riavvio"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "正在重启"
           }
         }
       }
@@ -27091,28 +26988,6 @@
         }
       }
     },
-    "Runs on Linux in %lld of %lld recent ProtonDB reports." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fonctionne sous Linux selon %lld avis ProtonDB récents sur %lld."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Funziona su Linux in %lld segnalazioni ProtonDB recenti su %lld."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld/%lld 份近期 ProtonDB 报告称其可在 Linux 上运行。"
-          }
-        }
-      }
-    },
     "Save Draft" : {
       "localizations" : {
         "fr" : {
@@ -27373,28 +27248,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "搜索 Steam…"
-          }
-        }
-      }
-    },
-    "Select a copy of CrossOver." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sélectionnez une copie de CrossOver."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Seleziona una copia di CrossOver."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "请选择一份 CrossOver 应用。"
           }
         }
       }
@@ -28077,6 +27930,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "显示安装程序窗口"
+          }
+        }
+      }
+    },
+    "Show Launch Logs…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les journaux de lancement…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra log di avvio…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示启动日志…"
           }
         }
       }
@@ -29297,6 +29172,28 @@
         }
       }
     },
+    "Steam Integration" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Intégration à Steam"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Integrazione con Steam"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 集成"
+          }
+        }
+      }
+    },
     "Steam Play, the free runner, consoles, game folders and privacy, as on the first launch." : {
       "localizations" : {
         "fr" : {
@@ -30507,6 +30404,28 @@
         }
       }
     },
+    "Stop the game to change its setup." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrêtez le jeu pour modifier sa configuration."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interrompi il gioco per cambiarne la configurazione."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止游戏后才能更改其设置。"
+          }
+        }
+      }
+    },
     "Stopped" : {
       "localizations" : {
         "fr" : {
@@ -31405,6 +31324,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "压缩包数据或文件头已损坏。"
+          }
+        }
+      }
+    },
+    "The archive does not contain a working %@ application." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’archive ne contient pas d’application %@ fonctionnelle."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’archivio non contiene un’applicazione %@ funzionante."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "压缩包中没有可用的 %@ 应用程序。"
           }
         }
       }
@@ -32425,6 +32366,28 @@
         }
       }
     },
+    "The game's prefix is not an owned directory in its Steam library." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le préfixe du jeu n’est pas un dossier propre à sa bibliothèque Steam."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il prefisso del gioco non è una cartella propria della sua libreria Steam."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "该游戏的游戏容器不是其 Steam 游戏库中自有的目录。"
+          }
+        }
+      }
+    },
     "The game’s files stay where they are. Its Wine prefix and Cartouche’s record of it move to the Trash, freeing %@." : {
       "localizations" : {
         "fr" : {
@@ -32513,6 +32476,50 @@
         }
       }
     },
+    "The graphics backend update feed is unavailable. Your installed backends are unchanged." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La liste des mises à jour des moteurs de rendu est indisponible. Vos moteurs de rendu installés n’ont pas changé."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il feed degli aggiornamenti dei backend grafici non è disponibile. I backend installati non sono cambiati."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "图形后端更新源不可用。已安装的后端未更改。"
+          }
+        }
+      }
+    },
+    "The graphics backend update signature could not be verified. Your installed backends are unchanged." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La signature de la mise à jour des moteurs de rendu n’a pas pu être vérifiée. Vos moteurs de rendu installés n’ont pas changé."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non è stato possibile verificare la firma dell’aggiornamento dei backend grafici. I backend installati non sono cambiati."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法验证图形后端更新的签名。已安装的后端未更改。"
+          }
+        }
+      }
+    },
     "The hook site" : {
       "localizations" : {
         "fr" : {
@@ -32597,6 +32604,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已安装版本的记录无效。"
+          }
+        }
+      }
+    },
+    "The installed emulator could not be found in Applications." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’émulateur installé est introuvable dans Applications."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’emulatore installato non è stato trovato in Applicazioni."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在“应用程序”中找不到已安装的模拟器。"
+          }
+        }
+      }
+    },
+    "The installed emulator could not be opened." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d’ouvrir l’émulateur installé."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile aprire l’emulatore installato."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法打开已安装的模拟器。"
           }
         }
       }
@@ -32843,28 +32894,6 @@
         }
       }
     },
-    "The new compatibility tools load when Steam restarts." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Les nouveaux outils de compatibilité se chargent au redémarrage de Steam."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "I nuovi strumenti di compatibilità vengono caricati al riavvio di Steam."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "重启 Steam 后将加载新的兼容工具。"
-          }
-        }
-      }
-    },
     "The patched %@ ntdll has not been copied into place." : {
       "localizations" : {
         "fr" : {
@@ -32993,6 +33022,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "该运行器无法运行此安装程序"
+          }
+        }
+      }
+    },
+    "The runner could not be installed." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La version de Wine n’a pas pu être installée."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non è stato possibile installare il runner."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法安装运行器。"
           }
         }
       }
@@ -34637,6 +34688,28 @@
         }
       }
     },
+    "Update the Steam integration in Settings > Steam to install games in the background." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mettez à jour l’intégration à Steam dans Réglages > Steam pour installer les jeux en arrière-plan."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiorna l’integrazione con Steam in Impostazioni > Steam per installare i giochi in background."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请在“设置 > Steam”中更新 Steam 集成，以便在后台安装游戏。"
+          }
+        }
+      }
+    },
     "Update to %@" : {
       "localizations" : {
         "fr" : {
@@ -34919,28 +34992,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "将此图片用作 %@ 的封面？"
-          }
-        }
-      }
-    },
-    "Used for performance estimates" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Utilisé pour les estimations de performances"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Usato per le stime delle prestazioni"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "用于性能预估"
           }
         }
       }
@@ -35297,6 +35348,28 @@
         }
       }
     },
+    "Version %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versione %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "版本 %@"
+          }
+        }
+      }
+    },
     "Version %@ not supported (supported: %@)" : {
       "localizations" : {
         "fr" : {
@@ -35359,6 +35432,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在 MacGamingDB 查看报告"
+          }
+        }
+      }
+    },
+    "View Reports on ProtonDB" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voir les avis sur ProtonDB"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vedi le segnalazioni su ProtonDB"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 ProtonDB 上查看报告"
           }
         }
       }
@@ -36255,28 +36350,6 @@
         }
       }
     },
-    "Wine builds use these. CrossOver comes with its own. Each download is checked against its SHA-256 before use." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Les versions de Wine utilisent ces composants. CrossOver fournit les siens. La somme de contrôle SHA-256 de chaque téléchargement est vérifiée avant utilisation."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Le build di Wine usano questi backend. CrossOver ha i propri. Ogni download viene verificato con il suo SHA-256 prima dell’uso."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wine 版本使用这些后端，CrossOver 自带其版本。每个下载在使用前都会核对其 SHA-256。"
-          }
-        }
-      }
-    },
     "Wine could not start." : {
       "localizations" : {
         "fr" : {
@@ -36927,28 +37000,6 @@
         }
       }
     },
-    "Your full library appears after Steam has run once while signed in." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pour afficher toute votre bibliothèque, ouvrez Steam et connectez-vous à votre compte."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La libreria completa compare dopo che Steam è stato avviato una volta con l'accesso effettuato."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在登录状态下运行一次 Steam 后，即可显示完整游戏库。"
-          }
-        }
-      }
-    },
     "Your game and settings stay as they are." : {
       "localizations" : {
         "fr" : {
@@ -37011,6 +37062,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你的游戏，你的 Mac。"
+          }
+        }
+      }
+    },
+    "Your installed graphics backends are up to date." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vos moteurs de rendu installés sont à jour."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I backend grafici installati sono aggiornati."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已安装的图形后端均为最新版本。"
           }
         }
       }

@@ -64,6 +64,8 @@ extension RunnerRegistry {
     // The compatibility tools Steam was offered, as the tool list records them.
     static func compatibilityTools() -> [InstalledTool] { CompatToolList.installed() }
 
+    static func pruneOwnBundlesOnce() { CrossOverSource.pruneOwnBundlesOnce() }
+
     static func installedBuilds(in runners: URL = SupportPaths.runners) -> [RunnerBuild] {
         RunnerStore.installedBuilds(in: runners)
     }

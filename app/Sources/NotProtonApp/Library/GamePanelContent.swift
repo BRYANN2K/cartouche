@@ -207,7 +207,9 @@ struct GamePanelContent {
         case .noReports: return (nil, String(localized: "No reports yet for this version"))
         case .unknownMac: return (nil, String(localized: "No estimate for this Mac yet"))
         case .estimate(let e):
-            let note = e.reportCount == 1
+            let note = e.closestMatch
+                ? String(localized: "Based on the closest available Mac reports")
+                : e.reportCount == 1
                 ? String(localized: "1 report from Macs like yours")
                 : String(localized: "\(e.reportCount) reports from Macs like yours")
             return (Estimate(

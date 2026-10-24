@@ -34,10 +34,7 @@ enum SteamUpkeep {
 
     // Cartouche's files in Steam are missing or are not this app's build
     static func needsInstall(_ snapshot: StatusSnapshot) -> Bool {
-        switch snapshot.steam {
-        case .notInstalled, .installed, .outdated: break
-        case .steamMissing, .foreign, .notProton: return false
-        }
+        if snapshot.steam == .steamMissing || snapshot.steam.hasOtherInsert { return false }
         switch snapshot.installContent {
         case .newerInstalled, .unavailable: return false
         case .update, .repair, .unrecorded, .mismatchedDylib: return true

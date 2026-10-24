@@ -57,8 +57,7 @@ struct GameExecutableTests {
         try write(4000, to: dir.appending(path: "Sample Launcher.exe"))
         let record = try #require(InstalledGames.record(in: folder))
         let options = GameExecutable.options(for: record)
-        #expect(options.folder.standardizedFileURL.path(percentEncoded: false)
-                == dir.standardizedFileURL.path(percentEncoded: false))
+        #expect(options.folder.standardizedFileURL.pathComponents == dir.standardizedFileURL.pathComponents)
         #expect(Set(options.choices.map(\.name)) == ["game.exe", "Sample Launcher.exe"])
         #expect(options.choices.first { $0.name == "Sample Launcher.exe" }?.isLauncher == true)
     }

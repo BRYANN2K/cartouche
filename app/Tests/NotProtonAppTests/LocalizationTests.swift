@@ -36,8 +36,8 @@ struct LocalizationTests {
     func pendingTranslationFallsBack() throws {
         let zh = try #require(chinese)
         let it = try #require(italian)
-        #expect(String(localized: "The trial version is not supported.", bundle: zh)
-            == "The trial version is not supported.")
+        #expect(String(localized: "The trial version is not supported.", bundle: zh) == "不支持试用版。")
+        #expect(zh.localizedString(forKey: "Not in any table yet", value: nil, table: nil) == "Not in any table yet")
         #expect(String(localized: "The trial version is not supported.", bundle: it)
             == "La versione di prova non è supportata.")
     }
