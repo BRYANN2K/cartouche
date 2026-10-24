@@ -1,6 +1,6 @@
 cask "cartouche" do
   version "0.1.0"
-  sha256 "88d1fe9fdfb6b9963e3b6f93c7bd106139e9328ffdcf0f1da39c321b2effe2cb"
+  sha256 "589d04dbef52ef1b47cb269e8b9886affe1438fe6db3eecdd4f9ea9acd5e4243"
 
   url "https://github.com/BRYANN2K/cartouche/releases/download/v#{version}/Cartouche-#{version}.zip"
   name "Cartouche"
