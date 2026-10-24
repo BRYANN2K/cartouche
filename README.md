@@ -86,6 +86,9 @@
 - **Steam Play inside Mac Steam.** Cartouche enables the Steam Play support already present in macOS Steam and adds its runners as Steam compatibility tools.
 - **Advanced options** only where the setup supports them: MetalFX upscaling, AVX advertisement, MSync, high resolution and the Metal HUD.
 - **Starts With** changes the program an installed game launches. **Wine Prefixes** in Settings back up and restore each game's prefix.
+- **Wine Tools** in the game menu run Winetricks or a program in the game's prefix, open its C: drive and show its log.
+- **Games location** in Settings > Library sets where new Windows and store games install. Games already installed keep working where they are.
+- **A problem banner** reports failed store jobs, missing runners and games that exit early with an error, with Show Log and Copy Summary.
 
 ### For AI agents
 
