@@ -1,26 +1,124 @@
-# Cartouche
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/readme/icon-dark.svg">
+    <img src="docs/readme/icon-light.svg" alt="Cartouche icon: a slate game cartridge with a red play label" width="128" height="128">
+  </picture>
+</p>
 
-Cartouche is a free macOS game launcher for Apple silicon Macs. It runs Windows games through Steam Play inside the Mac Steam client, through Epic, GOG and Amazon, or from a Windows installer. It also plays console games through its own bundled RetroArch.
+<h1 align="center">Cartouche</h1>
 
-Cartouche started as a fork of [NotProton](https://github.com/NotProtonNot/NotProton) and is now its own project; it is not built on NotProton. Agent control through MCP is merged (P11). The app repository stays private until v0.1.0; Cartouche Wine, our Wine build from CodeWeavers' CrossOver sources (LGPL), has its recipes and assets public in [cartouche-wine](https://github.com/BRYANN2K/cartouche-wine). The website is [cartouche.bryann2k.dev](https://cartouche.bryann2k.dev).
+<p align="center">
+  <b>A free game launcher for Apple silicon Macs.</b><br>
+  Windows games from Steam, Epic, GOG, Amazon or an installer, and your console games, in one library.
+</p>
 
-**Status: early development.** There is no release yet. Expect missing features and breaking changes.
+<p align="center">
+  <a href="https://cartouche.bryann2k.dev">Website</a>
+  ·
+  <a href="https://cartouche.bryann2k.dev/games">Games guide</a>
+  ·
+  <a href="#install">Install</a>
+  ·
+  <a href="docs/ROADMAP.md">Roadmap</a>
+  ·
+  <a href="CONTRIBUTING.md">Contributing</a>
+  ·
+  <a href="https://ko-fi.com/bryann2k">Support</a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/status-0.1.0%20in%20validation-E8B44A?style=flat-square" alt="Status: 0.1.0 in validation">
+  <img src="https://img.shields.io/badge/macOS-15%2B%20%C2%B7%20Apple%20silicon-1D1E25?style=flat-square&logo=apple&logoColor=white" alt="macOS 15 or later, Apple silicon">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-4B4F5E?style=flat-square" alt="License: GPL-3.0"></a>
+  <a href="https://ko-fi.com/bryann2k"><img src="https://img.shields.io/badge/Ko--fi-support-FF4D5E?style=flat-square&logo=ko-fi&logoColor=white" alt="Support on Ko-fi"></a>
+</p>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/readme/library-dark.jpg">
+    <img src="docs/readme/library-light.jpg" alt="The Cartouche library: Steam, Epic, GOG, Amazon and console games in a sidebar, covers in a grid, and a game panel with Play, measured FPS and the expected result on this Mac" width="880">
+  </picture>
+</p>
+
+> [!IMPORTANT]
+> **Cartouche 0.1.0 is in validation and not released yet.** This repository stays private until 0.1.0. Install links below start working with the first release. Expect missing features and breaking changes.
+
+## Why Cartouche
+
+- **One library.** Steam, Epic, GOG and Amazon games sit next to Windows installers and console games.
+- **No account, no ads.** Cartouche is free and open source. Store sign-ins happen on each store's own page and the tokens stay in your Keychain.
+- **Made for the Mac.** A native SwiftUI app with Liquid Glass, English, French, Italian and Simplified Chinese.
+- **Honest about compatibility.** Each game shows its measured FPS, an estimate for your Mac and known anti-cheat problems.
+
+## Features
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/readme/install-drop.jpg" alt="The Add Games sheet with a drop zone for a Windows installer folder">
+      <h3>Add any game by dropping it</h3>
+      Drop an installer, an installed game folder, a console ROM or an archive. Cartouche detects what it is. Bundled libarchive opens zip, 7z, tar and supported RAR files. Installs are verified by checksum or size, and you can check them again later.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/readme/details.jpg" alt="A game's setups compared by average FPS, with the expected rating on this Mac and reports from other Macs">
+      <h3>Know before you play</h3>
+      FPS is measured per session and per setup. Compare Setups shows which runner and graphics backend work best. The panel adds a MacGamingDB estimate for your Mac and community reports.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/readme/consoles.jpg" alt="A Super Nintendo library with save states, play time, achievements and a CRT look option">
+      <h3>Consoles, built in</h3>
+      A bundled RetroArch runs your console games. Cores download per console. Standalone emulators like Dolphin are used when installed. Netplay, RetroAchievements, save states and iCloud Drive saves are included.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/readme/controls.jpg" alt="The Controls sheet with a live controller diagram and per-game button mapping">
+      <h3>Controller first</h3>
+      A live controller diagram, per-game remapping, Steam Input and couch mode. Keyboard-only games can be played with a controller.
+    </td>
+  </tr>
+</table>
+
+### Windows games
+
+- **Cartouche Wine**, built from CodeWeavers' CrossOver 26.3 sources, is the recommended runner. CrossOver.app is optional.
+- **Graphics backends** per game: D3DMetal, DXMT and DXVK. D3DMetal comes only from your own copy of Apple's Game Porting Toolkit; Cartouche never ships it.
+- **Steam Play inside Mac Steam.** Cartouche enables the Steam Play support already present in macOS Steam and adds its runners as Steam compatibility tools.
+- **Advanced options** only where the setup supports them: MetalFX upscaling, AVX advertisement, MSync, high resolution and the Metal HUD.
+- **Starts With** changes the program an installed game launches. **Wine Prefixes** in Settings back up and restore each game's prefix.
+
+### For AI agents
+
+Cartouche includes a local MCP server, `cartouche-mcp`. An agent can read your library, logs and crash reports, then propose or apply a fix.
+
+```sh
+claude mcp add cartouche -- cartouche-mcp
+```
+
+- **You set the level:** Read only, Standard or Full.
+- **You approve** anything that installs, deletes or runs an exe.
+- **You see every action** in Settings > Agents and can undo configuration changes.
 
 ## Install
 
-Cartouche needs a Mac with Apple silicon and macOS 15 or later.
+Cartouche needs a **Mac with Apple silicon** and **macOS 15 or later**.
 
 ### Disk image
 
-Download `Cartouche-<version>.dmg` from the [latest release](https://github.com/BRYANN2K/cartouche/releases/latest) and drag Cartouche to Applications. The first time you open it, macOS 15 and 26 block it once:
+Download `Cartouche-<version>.dmg` from the [latest release](https://github.com/BRYANN2K/cartouche/releases/latest). Drag Cartouche to Applications. A `.zip` of the same app is published too.
+
+<details>
+<summary>First open: macOS asks once</summary>
 
 1. macOS says it can't check Cartouche. Click Done.
 2. Open System Settings > Privacy & Security, scroll down, click Open Anyway.
 3. Confirm with your password. Updates won't ask again.
 
-![The disk image window: Cartouche, an arrow to Applications, and the three steps above](docs/images/install/dmg-window.png)
+Cartouche is signed with its own certificate but not notarized, because notarization needs a paid Apple developer membership. The certificate keeps the app's identity stable, so updates install without a prompt and your permissions do not reset.
 
-If you open Cartouche straight from the disk image or from Downloads, it offers to move itself to Applications first. Permissions and updates are tied to that location.
+If you open Cartouche from the disk image or from Downloads, it offers to move itself to Applications first.
+
+</details>
 
 ### Homebrew
 
@@ -28,69 +126,101 @@ If you open Cartouche straight from the disk image or from Downloads, it offers 
 brew install --cask bryann2k/cartouche/cartouche
 ```
 
-The tap installs the same signed app. The first open goes through the same three steps.
+### Install script
 
-### Why macOS asks
+```sh
+curl -fsSL https://raw.githubusercontent.com/BRYANN2K/cartouche/main/install.sh | sh
+```
 
-Cartouche is free and signed with its own certificate. It is not notarized by Apple, because notarization needs a paid Apple developer membership. The certificate does not remove the first-open warning. It keeps Cartouche's identity the same across releases, so updates install without a prompt and the permissions you grant do not reset. The install script avoids the warning because curl does not mark the download as quarantined.
+The script checks the archive against the release's `SHA256SUMS` and refuses an app signed with another certificate. It skips the first-open warning because curl does not quarantine the download.
 
-## Local Windows games
+### Updates and betas
 
-Drop an already-installed Windows game folder to use it in place (the default) or copy it. An in-place import never gives Cartouche ownership of the source files. Removing it from the library must not delete them.
+- **Sparkle** checks for signed updates in the app.
+- **Betas:** turn on Settings > Receive beta updates.
+- **Branches:** `main` holds releases, `beta` holds betas.
 
-Add Games accepts installers, installed-game folders, console ROMs and archives through one sheet or a window drop. Bundled libarchive handles zip/zip64, 7z, tar and supported RAR variants; encrypted archives are refused. Games extracted from a dropped archive move to the games location; Cartouche never keeps them in `~/Library/Caches`. Supported installers that unpack their data with their own helper programs can be extracted directly. If a direct unpack fails, Try Again runs the original setup under Wine. Output checks distinguish checksum/CRC verification, size-only checks and installed-but-not-verified games. Verify Files can check again later; mismatches offer a standard-method retry, Keep Anyway or Cancel.
+## Compatibility notes
 
-Ranked identification, privacy-gated Steam cover search, PE-based runtime setup and managed-game uninstall are merged. Starts With changes the program an installed game launches. Cartouche Wine is recommended for new setups, without replacing explicit existing choices. Fresh initialization can take several minutes; games wait until it finishes. Real-game and clean-machine validation remains before release. See [the roadmap](docs/ROADMAP.md).
+- **Anti-cheat varies by game.** Cartouche shows known incompatibilities. Reports of online play on Linux do not prove a game works on a Mac.
+- **NTFS drives are not supported** for games.
+- **Native Mac versions win in Steam.** To get the Windows version, force a compatibility tool in the game's Steam Properties > Compatibility.
+- **Data stays separate.** Files live in `~/Library/Application Support/Cartouche` and logs in `~/Library/Logs/Cartouche`.
+- **Crash reports stay local.** Nothing is sent unless you share it. See [PRIVACY.md](docs/PRIVACY.md).
 
-## What it does today
+## Website and games guide
 
-- Seven-step setup scans this Mac, recommends Cartouche Wine, imports your own Game Porting Toolkit disk image, connects stores and sets up consoles, controllers and permissions. Downloads continue in Activity while you move on; saved choices and pending work resume after relaunch.
-- Settings gathers Steam integration, Wine versions, prefix backups and restoration, accounts, controllers and privacy. CrossOver.app is optional: Cartouche Wine builds also work as Steam compatibility tools. When Cartouche's install in Steam does not match the app, one Repair action fixes it (Quit Steam and Repair while Steam runs).
-- Cartouche never ships D3DMetal. With Cartouche Wine, D3DMetal comes only from your own Game Porting Toolkit; Get D3DMetal… opens Settings > Runners, where the toolkit is imported.
-- Windows games have per-game Advanced options only where supported: MetalFX upscaling, AVX advertisement, MSync, high resolution and Metal HUD. DLSS needs the supported DXMT extensions; there is no frame-generation switch.
-- Steam downloads show progress with pause/resume and cancellation. Console removal distinguishes hiding library entries from moving owned game/emulator files to the Trash.
-- English, French, Italian and Simplified Chinese UI; French copy follows the reviewed product glossary. Crash reports and diagnostic zips stay local.
+<a href="https://cartouche.bryann2k.dev"><img src="docs/readme/banner.jpg" alt="Cartouche, gaming on a Mac has never been this easy: free, open source, no account, no ads, at cartouche.bryann2k.dev" width="880"></a>
 
-The library lists your Steam, Epic, GOG and Amazon games next to your console games. Each Windows game keeps one installation when you change runners. Store sign-in happens on each store's own page; the tokens stay in the Keychain. Consoles run on a bundled RetroArch build (cores download per console) or on standalone emulators. Adding a console game installs its missing runtime automatically; existing emulators are reused. Netplay, RetroAchievements, per-game controls and couch mode are in. FPS is measured per session and per setup; a MacGamingDB estimate and community compatibility data sit on the game panel.
+[cartouche.bryann2k.dev](https://cartouche.bryann2k.dev) presents the app. Its [games guide](https://cartouche.bryann2k.dev/games) reads like a game's instruction booklet: performance by Mac model, setup, reports, fixes and anti-cheat status.
 
-Underneath, Cartouche forcibly enables the Steam Play functionality in macOS Steam (which is present and inert) and ports some components of Valve's Proton to macOS. This builds on NotProton's original design, with Cartouche's runner registry and Steam export integration.
+## FAQ
 
-It is intended to be used with the stable Steam Client (version 1791918634) as well as the beta Steam Client (version 1792192922) paired with **CrossOver 26.3 or CrossOver [Preview](https://www.codeweavers.com/preview) 20261006 / 20260821 / 20261015**.
+<details>
+<summary>Is Cartouche free?</summary>
 
-**NTFS file systems/drivers are not currently supported.**
+Yes. Cartouche is GPL-3.0 software with no account, no ads and no paid tier. Donations on Ko-fi are optional.
 
-Both the FEX and the Rosetta versions of CrossOver are supported. The FEX version of Preview 20261006 includes both the FEX and the Rosetta versions.
+</details>
 
-A good default is to go into Steam Settings - Compatibility and select the Rosetta version as your default compatibility tool. You can select FEX on a per game basis by right clicking a game in Steam, going into Properties - Compatibility and selecting FEX there.
+<details>
+<summary>Do I need CrossOver?</summary>
 
-If a game has a native macOS version as well as a Windows one, Steam will download the macOS version. To override this behavior, right click on the game, select Properties, select Compatibility. Enable 'Force the use of a specific Steam Play compatibility tool'. Select whichever version of CrossOver you want to use. That will make Steam download the Windows version. Unchecking the 'Force the use...' box or selecting 'No Compatibility Tool' in the drop down list will revert to the macOS version of the game, with the specifics there varying based on your Steam version.
+No. Cartouche Wine is free and recommended. An installed CrossOver.app also works.
 
-**Anti-cheat support varies by game.** Cartouche shows known incompatibilities and links to ProtonDB multiplayer reports. Reports of successful online play do not establish anti-cheat support in Cartouche; unverified games remain marked as unverified.
+</details>
 
-Cartouche keeps its files in `~/Library/Application Support/Cartouche` and its logs in `~/Library/Logs/Cartouche`, so it does not share them with a NotProton install on the same Mac.
+<details>
+<summary>Where do I check if a game runs?</summary>
 
-## Developer notes
+The [games guide](https://cartouche.bryann2k.dev/games) lists results by Mac model. In the app, the game panel shows the estimate for your Mac.
 
-The macOS app is located in the `app` folder. The core logic is in `dylib`.
-`lsteamclient` is a macOS port of Valve's lsteamclient. `steam-shim` is a port of Valve's
-steam-helper from Proton 9.0. `ntdll-patch` patches the copy of CrossOver that the app
-makes/places in the `~/Library/Application Support/Cartouche/runners/` folder so that
-lsteamclient is loaded. `tools/make-icon.swift` builds the app icon from `mockup/brand`.
+</details>
+
+<details>
+<summary>Does Cartouche ship emulators or games?</summary>
+
+No games. RetroArch is bundled; other emulators are detected and launched with your own game files.
+
+</details>
+
+## Build from source
+
+The app is a Swift package in `app/`. The Steam-side code is in `dylib/`, `lsteamclient/`, `steam-shim/` and `ntdll-patch/`.
+
+```sh
+git clone --recurse-submodules https://github.com/BRYANN2K/cartouche.git
+cd cartouche
+make app
+```
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before a pull request. Design and decisions are in [PRD](docs/PRD.md), [TRD](docs/TRD.md) and [the ADRs](docs/adr/). Report a vulnerability privately, as described in [SECURITY.md](SECURITY.md).
+
+## Support
+
+Cartouche is built and maintained by one developer. If it helps you play on your Mac, you can support its work on Ko-fi.
+
+<a href="https://ko-fi.com/bryann2k"><img src="https://storage.ko-fi.com/cdn/kofi2.png?v=3" alt="Buy me a coffee on Ko-fi" height="40"></a>
+
+Questions and game reports are welcome on [Discord](https://discord.gg/fKxanZyFea) and in [issues](https://github.com/BRYANN2K/cartouche/issues).
 
 ## Credits
 
-Cartouche started as a fork of [NotProton](https://github.com/NotProtonNot/NotProton), created by NotProtonNot with the NotProton contributors. Most of the code in this repository is theirs.
+Cartouche started as a fork of [NotProton](https://github.com/NotProtonNot/NotProton) 1.2.0, created by NotProtonNot with the NotProton contributors. Its Steam Play design and much of the Steam-side code are theirs, and the first commit of this history imports that work as is.
 
-The NotProton author also thanks the people who worked on similar ideas before it:
+Cartouche also stands on:
 
-- [Nat Brown](https://github.com/natbro) made [Kaon](https://github.com/natbro/kaon), which is similar in goals to NotProton.
-- mont127's [Neutron](https://github.com/mont127/Neutron) is also a similar idea, but implemented differently.
-- [Gio](https://github.com/giodotblue) was working on enabling Steam Play inside of Steam on macOS prior to the release of NotProton itself.
+- [Wine](https://www.winehq.org) and [CodeWeavers](https://www.codeweavers.com)' CrossOver sources (LGPL), for Cartouche Wine. Build recipes are public in [cartouche-wine](https://github.com/BRYANN2K/cartouche-wine).
+- Valve's [Proton](https://github.com/ValveSoftware/Proton) components: lsteamclient, steam_helper and fonts.
+- [DXMT](https://github.com/3Shain/dxmt), [DXVK](https://github.com/doitsujin/dxvk) and [Gcenx](https://github.com/Gcenx)'s macOS builds, plus Apple's Game Porting Toolkit and D3DMetal, which you supply.
+- [RetroArch](https://www.retroarch.com) and libretro cores, [Sparkle](https://sparkle-project.org), libarchive, innoextract, legendary, gogdl, comet and nile.
+- [MacGamingDB](https://macgamingdb.app) for per-Mac estimates.
+- The NotProton author's thanks go on to [Kaon](https://github.com/natbro/kaon), [Neutron](https://github.com/mont127/Neutron) and [Gio](https://github.com/giodotblue).
 
-And everyone who has positively contributed to macOS gaming.
+The full list with licenses is in [NOTICE](NOTICE) and [THIRD-PARTY-LICENSES](THIRD-PARTY-LICENSES).
 
 ## License
 
-Cartouche is free software, licensed under the GNU General Public License version 3 (GPL-3.0), like NotProton. See LICENSE. Some parts carry the licenses of their original authors (Valve, the Steamworks SDK, Sparkle, fonts and others); NOTICE and THIRD-PARTY-LICENSES list them. What Cartouche asks macOS for and what it sends over the network is in docs/PRIVACY.md.
+Cartouche is free software under the [GNU General Public License v3.0](LICENSE), like NotProton. Some parts keep their original authors' licenses, listed in NOTICE and THIRD-PARTY-LICENSES.
 
-Cartouche is now its own project, not built on NotProton. It is not affiliated with NotProton, Valve, Apple or CodeWeavers. Platform names and logos shown in the app belong to their owners and are only used to identify the platforms.
+Cartouche is not affiliated with NotProton, Valve, Apple or CodeWeavers. Platform and game names and artwork belong to their owners and are shown only to identify them.
