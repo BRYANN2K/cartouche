@@ -513,7 +513,8 @@ private struct StoresStep: View {
                 if model.findings?.steam != nil {
                     SteamStepRow(step: model.steamStep)
                         .padding(.vertical, 6)
-                        .padding(.horizontal, 6)
+                        .padding(.leading, -StatusMetrics.textInset)
+                        .padding(.trailing, 6)
                     FoundRow(title: Text("Steam library"),
                              detail: Text(model.steamLibraryDetail)) {
                         if model.steamLibraryGames > 0 {
