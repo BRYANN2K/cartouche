@@ -2,7 +2,7 @@
 
 ## Repository and runner release boundaries
 
-The app repository is `BRYANN2K/cartouche`. It remains private until v0.1.0. Before that release, public app installation links may not work for readers without access. The public `BRYANN2K/cartouche-wine` repository holds Wine build recipes and publishes our LGPL CrossOver 26.3 Wine assets and source offer. Do not publish app sources there. Keep Wine URLs, checksums and ntdll pins aligned with the tested build (ADR 0015).
+The app repository is `BRYANN2K/cartouche` (public). Installation links work from the first published release. The public `BRYANN2K/cartouche-wine` repository holds Wine build recipes and publishes our LGPL CrossOver 26.3 Wine assets and source offer. Do not publish app sources there. Keep Wine URLs, checksums and ntdll pins aligned with the tested build (ADR 0015).
 
 Before v0.1.0, validate serialized prefix initialization on a clean Mac: no game or installer may start before first boot succeeds. Keep logs and test cancellation, interrupted-prefix recovery and retry. A local prefix repair took 670.94 seconds. Wine CI now separates initialization from window validation: `wineboot -i` with `WINEDLLOVERRIDES=mscoree,mshtml=` (CI only), then `wineserver -w`, share a 20-minute initialization limit (`BOOT_INIT_LIMIT`). CI logs initialization time and only then applies the 60-second winecfg window check. This CI limit is not an app first-boot timeout. Confirm the app’s About link opens https://cartouche.bryann2k.dev.
 

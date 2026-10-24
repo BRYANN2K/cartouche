@@ -41,7 +41,7 @@
 </p>
 
 > [!IMPORTANT]
-> **Cartouche 0.1.0 is in validation and not released yet.** This repository stays private until 0.1.0. Install links below start working with the first release. Expect missing features and breaking changes.
+> **Cartouche 0.1.0 is in validation and not released yet.** Install links below start working with the first release. Expect missing features and breaking changes.
 
 ## Why Cartouche
 

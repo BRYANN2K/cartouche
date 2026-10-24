@@ -205,7 +205,7 @@ The rules every screen follows.
 
 ## Release details and open questions
 
-- App repository: BRYANN2K/cartouche, private until v0.1.0. Public Wine build recipes and releases: BRYANN2K/cartouche-wine (ADR 0015). Landing page: https://cartouche.bryann2k.dev, linked from About.
+- App repository: BRYANN2K/cartouche (public, GPL-3.0). Public Wine build recipes and releases: BRYANN2K/cartouche-wine (ADR 0015). Landing page: https://cartouche.bryann2k.dev, linked from About.
 - Personal Homebrew tap: BRYANN2K/homebrew-cartouche; complete the release guide’s setup and validation.
 - Default core per console, and whether RetroArch playlists are only imported or also written back.
 - Validate the merged controller mapping screens on physical devices (P15 evidence).
