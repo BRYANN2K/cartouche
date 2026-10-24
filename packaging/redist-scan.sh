@@ -46,6 +46,7 @@ size_test=${size_test# -o }
 # $1 folder, $2 label, $3 prefix stripped from reported paths
 hash_scan() {
     [ -n "$size_test" ] || return 0
+    command -v shasum >/dev/null 2>&1 || { echo "redist-scan: shasum is missing, so no file can be checked by hash" >&2; exit 2; }
     # shellcheck disable=SC2086
     find "$1" -name .git -prune -o -type f \( $size_test \) -print | while IFS= read -r f; do
         sum=$(shasum -a 256 "$f" | cut -d' ' -f1)
