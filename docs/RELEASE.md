@@ -115,18 +115,18 @@ A manifest whose signature is missing or wrong, whose revision is not higher, or
 
 ## Homebrew tap
 
-The cask lives in this repository, at `Casks/cartouche.rb` on `main` (the default branch, which `brew tap` follows). Users run:
+The cask lives in its own tap repository, BRYANN2K/homebrew-cartouche, at `Casks/cartouche.rb` on `main`. Users run:
 
 ```sh
-brew tap bryann2k/cartouche https://github.com/BRYANN2K/cartouche
+brew tap bryann2k/cartouche
 brew install --cask bryann2k/cartouche/cartouche
 ```
 
-Tapping clones this repository, so the first `brew tap` downloads the whole app repository.
+Homebrew asks for the explicit `brew tap` before a third-party cask installs.
 
 ### What a release does
 
-After the GitHub release is published, the `tap` step fills `packaging/homebrew/cartouche.rb.in` with the version and the SHA-256 from `SHA256SUMS`, writes it as `Casks/cartouche.rb` and pushes it to `main` with `github_release_token`; `dev` picks it up at the next promotion. Betas and test releases do not touch the cask.
+After the GitHub release is published, the `tap` step fills `packaging/homebrew/cartouche.rb.in` with the version and the SHA-256 from `SHA256SUMS`, writes it as `Casks/cartouche.rb` and pushes it to `main` of BRYANN2K/homebrew-cartouche with `github_release_token`, which needs write access to that repository. Betas and test releases do not touch the cask.
 
 ### Check it
 
