@@ -48,7 +48,7 @@ final class SteamInstallCenter {
             return
         }
         guard let version = integrationVersion(),
-              CartoucheVersion.compare(version, "0.1.0-4") != .orderedAscending else {
+              CartoucheVersion.compare(version, "0.1.2-1") != .orderedAscending else {
             status = Status(game: game, state: "failed", message: String(localized: "Update the Steam integration in Settings > Steam to install games in the background."), licenses: [])
             return
         }

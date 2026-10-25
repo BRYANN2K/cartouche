@@ -37,7 +37,7 @@
 #define CARTOUCHE_AGENT_SOCKET "agent/mcp.sock"
 
 // Version of the integration installed into Steam, independent of the app release.
-#define CARTOUCHE_STEAM_INTEGRATION_VERSION "0.1.0-5"
+#define CARTOUCHE_STEAM_INTEGRATION_VERSION "0.1.2-1"
 
 // The dylib injected into Steam.app
 #define CARTOUCHE_DYLIB_NAME "cartouche.dylib"

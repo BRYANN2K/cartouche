@@ -6,6 +6,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-25
+
+- Installing a Steam game from Cartouche: Accept and Install now goes through when Steam no longer serves the license it just showed ("No eula for app").
+- A failed install no longer leaves Steam's install window open, which made every retry fail with "another-install". An install window still open for the same game is picked up again.
+- Download progress follows Steam live. Cartouche read the byte count Steam writes to disk only every few minutes, so it could show 0% while Steam was at 5%.
+- A download Steam sets aside to start another one shows as queued, not "Steam reported error 4".
+- Install errors are explained in plain words, in French, Italian and Chinese too.
+- Steam integration 0.1.2-1: Cartouche updates it in Steam on its own when Steam quits. Installing in the background needs it.
+
 ## [0.1.1] - 2026-10-25
 
 - D3DMetal: onboarding and Settings > Runners name Apple's "Evaluation environment for Windows games", the download that holds D3DMetal, instead of "Game Porting Toolkit", the developer kit next to it. The link opens that search on Apple's site, and a dropped image without D3DMetal says which one to use.
