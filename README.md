@@ -79,7 +79,7 @@
 ### Windows games
 
 - **Cartouche Wine**, built from CodeWeavers' CrossOver 26.3 sources, is the recommended runner. CrossOver.app is optional.
-- **Graphics backends** per game: D3DMetal, DXMT and DXVK. D3DMetal comes only from your own copy of Apple's Game Porting Toolkit; Cartouche never ships it.
+- **Graphics backends** per game: D3DMetal, DXMT and DXVK. DXMT and DXVK download with Cartouche Wine. D3DMetal comes only from your own copy of Apple's image; Cartouche never ships it.
 - **Steam Play inside Mac Steam.** Cartouche enables the Steam Play support already present in macOS Steam and adds its runners as Steam compatibility tools.
 - **Advanced options** only where the setup supports them: MetalFX upscaling, AVX advertisement, MSync, high resolution and the Metal HUD.
 - **Starts With** changes the program an installed game launches. **Wine Prefixes** in Settings back up and restore each game's prefix.
@@ -141,6 +141,18 @@ The script checks the archive against the release's `SHA256SUMS` and refuses an 
 - **Betas:** turn on Settings > Receive beta updates.
 - **Branches:** `main` holds releases, `beta` holds betas.
 
+### Uninstall
+
+Run:
+
+```sh
+osascript -e 'quit app "Cartouche"' -e 'quit app "Steam"'; sleep 3; /Applications/Cartouche.app/Contents/MacOS/Cartouche --remove-everything && rm -rf /Applications/Cartouche.app
+```
+
+- **Steam is restored** to Valve's own client, unless another tool also uses it.
+- **Your games stay**, with their prefixes and console saves.
+- **With Homebrew,** replace `rm -rf /Applications/Cartouche.app` with `brew uninstall --cask cartouche`. Do not add `--zap`: it deletes your games and saves and leaves Steam as it is.
+
 ## Compatibility notes
 
 - **Anti-cheat varies by game.** Cartouche shows known incompatibilities. Reports of online play on Linux do not prove a game works on a Mac.
@@ -168,6 +180,13 @@ Yes. Cartouche is GPL-3.0 software with no account, no ads and no paid tier. Don
 <summary>Do I need CrossOver?</summary>
 
 No. Cartouche Wine is free and recommended. An installed CrossOver.app also works.
+
+</details>
+
+<details>
+<summary>Which Apple download gives D3DMetal?</summary>
+
+"Evaluation environment for Windows games", in [Apple's developer downloads](https://developer.apple.com/download/all/?q=Evaluation%20environment%20for%20Windows%20games). The "Game Porting Toolkit" next to it is the developer kit and has no D3DMetal for games. Drop the .dmg on Cartouche, open or not in Finder. Without it, games use DXMT or DXVK.
 
 </details>
 

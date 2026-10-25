@@ -6,6 +6,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-25
+
+- D3DMetal: onboarding and Settings > Runners name Apple's "Evaluation environment for Windows games", the download that holds D3DMetal, instead of "Game Porting Toolkit", the developer kit next to it. The link opens that search on Apple's site, and a dropped image without D3DMetal says which one to use.
+- Cartouche says when Apple publishes a newer D3DMetal than the one on this Mac.
+- DXMT and DXVK now download as soon as Cartouche Wine is installed. A game without D3DMetal uses DXMT instead of wined3d, which DirectX 11 games such as Raft refuse with "Failed to initialize graphics".
+- A D3DMetal image already open in Finder is imported instead of failing with "Resource busy", and stays open.
+- Homebrew: the cask moved to its own tap. Install with `brew tap bryann2k/cartouche && brew install --cask bryann2k/cartouche/cartouche`.
+- README: how to uninstall Cartouche and give Steam back its own client.
+
 ## [0.1.0] - 2026-10-24
 
 First public release.
