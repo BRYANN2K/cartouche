@@ -360,13 +360,17 @@ final class OnboardingModel {
     var toolkitStatus: String {
         if setup.toolkit.working { return setup.toolkit.detail ?? String(localized: "Working") }
         if let problem = setup.toolkit.problem { return problem }
+        let versions = (setup.toolkitVersion.map { [$0] } ?? []) + (findings?.portingToolkit.filter(\.ready).compactMap(\.version) ?? [])
+        if let newer = PortingToolkitSource.newer(than: versions) {
+            return String(localized: "D3DMetal \(newer) is out — get “\(PortingToolkitSource.imageName)” from Apple")
+        }
         if let version = setup.toolkitVersion {
             return String(localized: "D3DMetal ready — Game Porting Toolkit \(version)")
         }
         if let found = findings?.portingToolkit.first {
             return found.ready ? String(localized: "D3DMetal ready — \(found.name)") : found.name
         }
-        return String(localized: "D3DMetal needs Apple's Game Porting Toolkit")
+        return String(localized: "D3DMetal needs Apple’s “\(PortingToolkitSource.imageName)”")
     }
 
     func importToolkitImage(_ url: URL) {

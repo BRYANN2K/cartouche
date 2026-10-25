@@ -151,5 +151,8 @@ extension CartoucheApp {
             }
             return availability
         }.value
+        BackendAutoInstall.ensure(
+            hasCartoucheWine: !library.backendAvailability.crossOverWine.isEmpty,
+            installed: library.backendAvailability.installed, reload: library.reloadRunners)
     }
 }

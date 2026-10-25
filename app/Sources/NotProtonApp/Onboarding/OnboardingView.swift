@@ -400,7 +400,7 @@ private struct WindowsGamesStep: View {
             }
             if !model.toolkitReady {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("D3DMetal needs Apple’s Game Porting Toolkit. Use your own disk image from Apple.")
+                    Text("D3DMetal comes from Apple. On Apple’s download page, get “\(PortingToolkitSource.imageName)”, not “Game Porting Toolkit”.")
                         .font(.system(size: 12))
                         .foregroundStyle(Glass.label2)
                         .fixedSize(horizontal: false, vertical: true)
@@ -413,7 +413,7 @@ private struct WindowsGamesStep: View {
             if case .failed(let message) = model.runnerPhase {
                 Text(message).foregroundStyle(.red).fixedSize(horizontal: false, vertical: true)
             }
-            Text("DXMT and DXVK come with the runner — nothing to pick.")
+            Text("DXMT and DXVK download with the runner — nothing to pick.")
                 .font(.system(size: 11))
                 .foregroundStyle(Glass.label2)
             Text("You can skip this and play console games only.")
@@ -452,7 +452,7 @@ private struct WindowsGamesStep: View {
     private var dropZone: some View {
         VStack(spacing: 6) {
             Image(systemName: "shippingbox").font(.system(size: 20)).foregroundStyle(Glass.label2)
-            Text("Drop the Game Porting Toolkit .dmg here")
+            Text("Drop the “\(PortingToolkitSource.imageName)” .dmg here")
                 .font(.system(size: 12, weight: .medium))
             HStack {
                 Button("Choose a disk image…") {

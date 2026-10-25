@@ -24,9 +24,15 @@ struct BackendManifest: PinnedManifest {
         var archiveName: String { url.lastPathComponent }
     }
 
+    // Apple's latest D3DMetal, never downloaded: only compared with the user's copy to say a newer one is out
+    struct Toolkit: Sendable, Equatable, Codable {
+        let version: String
+    }
+
     let format: Int
     let revision: Int
     let backends: [Pin]
+    var d3dmetal: Toolkit? = nil
 
     func pin(_ backend: GraphicsBackend) -> Pin? { backends.first { $0.backend == backend } }
 

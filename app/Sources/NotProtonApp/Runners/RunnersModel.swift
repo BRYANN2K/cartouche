@@ -498,6 +498,13 @@ final class RunnersModel {
         }
         let updating = self.updating.contains(runner.id)
         if updating { status = String(localized: "Updating") }
+        var link: Row.Link?
+        if runner.kind == .portingToolkit, runner.state == .ready,
+           let newer = PortingToolkitSource.newer(
+               than: registry.runners.filter { $0.kind == .portingToolkit && $0.state == .ready }.map(\.displayVersion)) {
+            status = String(localized: "D3DMetal \(newer) is out")
+            link = Row.Link(title: String(localized: "Get It from Apple"), url: PortingToolkitSource.howToGetIt)
+        }
         if update != nil {
             switch runner.state {
             case .ready, .damaged, .unsupported: action = .update
@@ -506,7 +513,7 @@ final class RunnersModel {
         }
         return Row(
             id: runner.id, kind: runner.kind, title: title, detail: shown, status: status, state: runner.state,
-            action: busy ? .none : action, removable: removable && !busy,
+            action: busy ? .none : action, removable: removable && !busy, link: link,
             update: update.map { RunnerUpdate.Series(id: $0.id)?.version ?? $0.displayVersion },
             updating: updating
         )

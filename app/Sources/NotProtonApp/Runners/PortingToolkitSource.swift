@@ -16,7 +16,9 @@ struct PortingToolkitInstall: Sendable, Equatable, Identifiable {
 
 enum PortingToolkitSource {
 
-    static let howToGetIt = URL(string: "https://developer.apple.com/games/game-porting-toolkit/")!
+    // The name on Apple's download page. The "Game Porting Toolkit" next to it is the developer kit, not the one games need.
+    static let imageName = "Evaluation environment for Windows games"
+    static let howToGetIt = URL(string: "https://developer.apple.com/download/all/?q=Evaluation%20environment%20for%20Windows%20games")!
     static let step = String(localized: "Copy Game Porting Toolkit")
 
     struct Search: Sendable {
@@ -167,6 +169,27 @@ enum PortingToolkitSource {
             .compactMap { (try? Data(contentsOf: $0.appending(path: receiptName))).flatMap { try? JSONDecoder().decode(Receipt.self, from: $0) } }
             .map(\.version)
             .sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+    }
+
+    // A beta sorts before its release: 4.0b3 < 4.0 < 4.1b1
+    static func isOlder(_ version: String, than other: String) -> Bool {
+        func split(_ v: String) -> (String, Bool) {
+            let parts = v.split(separator: "b", maxSplits: 1)
+            return (String(parts.first ?? ""), parts.count > 1)
+        }
+        let (number, beta) = split(version), (otherNumber, otherBeta) = split(other)
+        switch number.compare(otherNumber, options: .numeric) {
+        case .orderedAscending: return true
+        case .orderedDescending: return false
+        case .orderedSame: return beta && (!otherBeta || version.compare(other, options: .numeric) == .orderedAscending)
+        }
+    }
+
+    // Apple's newer D3DMetal, or nil when the newest copy on this Mac is already that one
+    static func newer(than installed: [String], latest: String? = BackendManifest.current().d3dmetal?.version) -> String? {
+        guard let latest, let newest = installed.max(by: { isOlder($0, than: $1) }), isOlder(newest, than: latest)
+        else { return nil }
+        return latest
     }
 
     static let graphicsDLLs = ["d3d10", "d3d11", "d3d12", "d3d12core", "dxgi", "nvapi64", "nvngx-on-metalfx"]

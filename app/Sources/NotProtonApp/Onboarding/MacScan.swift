@@ -13,6 +13,7 @@ struct FoundSteam: Equatable, Sendable {
 struct FoundRunner: Equatable, Sendable {
     var name: String
     var ready = true
+    var version: String? = nil
 }
 
 struct FoundController: Equatable, Sendable {
@@ -144,7 +145,8 @@ extension MacScan {
         var seen: Set<String> = []
         return found.compactMap { runner in
             seen.insert(runner.displayVersion).inserted
-                ? FoundRunner(name: "\(Runner.Kind.portingToolkit.name) \(runner.displayVersion)", ready: runner.state == .ready) : nil
+                ? FoundRunner(name: "\(Runner.Kind.portingToolkit.name) \(runner.displayVersion)", ready: runner.state == .ready,
+                              version: runner.displayVersion) : nil
         }
     }
 

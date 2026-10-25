@@ -128,7 +128,7 @@ final class PortingToolkitTests {
         let none = registry(found)
         #expect(none.runners.filter { $0.kind == .portingToolkit }.isEmpty)
         #expect(availability(none).d3dMetalRunners.isEmpty)
-        #expect(PortingToolkitSource.howToGetIt.absoluteString == "https://developer.apple.com/games/game-porting-toolkit/")
+        #expect(PortingToolkitSource.howToGetIt.absoluteString == "https://developer.apple.com/download/all/?q=Evaluation%20environment%20for%20Windows%20games")
 
         // A set-up CrossOver clone that carries D3DMetal provides it
         let build = try #require(RunnerRegistry.build(id: "26.3.0.39832"))

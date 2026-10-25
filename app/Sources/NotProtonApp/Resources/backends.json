@@ -30,5 +30,8 @@
         "x86_64-windows/d3d11.dll"
       ]
     }
-  ]
+  ],
+  "d3dmetal": {
+    "version": "4.0b3"
+  }
 }

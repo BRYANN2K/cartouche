@@ -6752,9 +6752,7 @@
       }
     },
     "Cartouche" : {
-      "localizations" : {
-
-      },
+      "localizations" : {},
       "shouldTranslate" : false
     },
     "Cartouche Community" : {
@@ -11273,9 +11271,7 @@
       }
     },
     "CrossOver" : {
-      "localizations" : {
-
-      },
+      "localizations" : {},
       "shouldTranslate" : false
     },
     "CrossOver does not appear to be activated." : {
@@ -11454,46 +11450,90 @@
         }
       }
     },
-    "D3DMetal needs Apple's Game Porting Toolkit" : {
+    "D3DMetal %@ is out" : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "D3DMetal nécessite le Game Porting Toolkit d’Apple"
+            "value" : "D3DMetal %@ est disponible"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "D3DMetal richiede il Game Porting Toolkit di Apple"
+            "value" : "D3DMetal %@ è disponibile"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "D3DMetal 需要 Apple 的 Game Porting Toolkit"
+            "value" : "D3DMetal %@ 已发布"
           }
         }
       }
     },
-    "D3DMetal needs Apple’s Game Porting Toolkit. Use your own disk image from Apple." : {
+    "D3DMetal %@ is out — get “%@” from Apple" : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "D3DMetal nécessite le Game Porting Toolkit d’Apple. Utilisez l’image disque téléchargée sur le site d’Apple."
+            "value" : "D3DMetal %1$@ est disponible — téléchargez « %2$@ » sur le site d’Apple"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "D3DMetal richiede il Game Porting Toolkit di Apple. Usa la tua immagine disco scaricata da Apple."
+            "value" : "D3DMetal %1$@ è disponibile — scarica “%2$@” da Apple"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "D3DMetal 需要 Apple 的 Game Porting Toolkit。请使用你从 Apple 获取的磁盘映像。"
+            "value" : "D3DMetal %1$@ 已发布 — 请从 Apple 获取“%2$@”"
+          }
+        }
+      }
+    },
+    "D3DMetal comes from Apple. On Apple’s download page, get “%@”, not “Game Porting Toolkit”." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "D3DMetal vient d’Apple. Sur la page de téléchargement d’Apple, prenez « %@ », pas « Game Porting Toolkit »."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "D3DMetal viene da Apple. Nella pagina di download di Apple, scarica “%@”, non “Game Porting Toolkit”."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "D3DMetal 来自 Apple。请在 Apple 的下载页面获取“%@”，而不是“Game Porting Toolkit”。"
+          }
+        }
+      }
+    },
+    "D3DMetal needs Apple’s “%@”" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "D3DMetal nécessite « %@ » d’Apple"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "D3DMetal richiede “%@” di Apple"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "D3DMetal 需要 Apple 的“%@”"
           }
         }
       }
@@ -11564,24 +11604,24 @@
         }
       }
     },
-    "DXMT and DXVK come with the runner — nothing to pick." : {
+    "DXMT and DXVK download with the runner — nothing to pick." : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "DXMT et DXVK sont inclus avec cette version de Wine. Rien à choisir."
+            "value" : "DXMT et DXVK se téléchargent avec cette version de Wine. Rien à choisir."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "DXMT e DXVK sono inclusi nel runner: non devi scegliere nulla."
+            "value" : "DXMT e DXVK si scaricano con il runner. Niente da scegliere."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "DXMT 和 DXVK 随运行器提供，无需选择。"
+            "value" : "DXMT 和 DXVK 会随运行器一起下载，无需选择。"
           }
         }
       }
@@ -12573,9 +12613,7 @@
       }
     },
     "Discord" : {
-      "localizations" : {
-
-      },
+      "localizations" : {},
       "shouldTranslate" : false
     },
     "Disk write failure" : {
@@ -13426,24 +13464,24 @@
         }
       }
     },
-    "Drop the Game Porting Toolkit .dmg here" : {
+    "Drop the “%@” .dmg here" : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Déposez le fichier .dmg du Game Porting Toolkit ici"
+            "value" : "Déposez ici le fichier .dmg « %@ »"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trascina qui il .dmg del Game Porting Toolkit"
+            "value" : "Trascina qui il file .dmg “%@”"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "将 Game Porting Toolkit 的 .dmg 拖到这里"
+            "value" : "将“%@”.dmg 拖到这里"
           }
         }
       }
@@ -15226,6 +15264,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "显示简介"
+          }
+        }
+      }
+    },
+    "Get It from Apple" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Télécharger sur le site d’Apple"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scarica da Apple"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从 Apple 获取"
           }
         }
       }
@@ -29189,9 +29249,7 @@
       }
     },
     "Steam" : {
-      "localizations" : {
-
-      },
+      "localizations" : {},
       "shouldTranslate" : false
     },
     "Steam Input handles this game" : {
@@ -32586,28 +32644,6 @@
         }
       }
     },
-    "The image holds no Game Porting Toolkit." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "L’image disque ne contient pas de Game Porting Toolkit."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "L’immagine non contiene il Game Porting Toolkit."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "映像中没有 Game Porting Toolkit。"
-          }
-        }
-      }
-    },
     "The installation failed" : {
       "localizations" : {
         "fr" : {
@@ -33660,6 +33696,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此游戏没有 Mac 版本。"
+          }
+        }
+      }
+    },
+    "This image holds no D3DMetal. Use Apple’s “%@” image, not “Game Porting Toolkit”." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette image ne contient pas D3DMetal. Utilisez l’image « %@ » d’Apple, pas « Game Porting Toolkit »."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questa immagine non contiene D3DMetal. Usa l’immagine “%@” di Apple, non “Game Porting Toolkit”."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此映像不包含 D3DMetal。请使用 Apple 的“%@”映像，而不是“Game Porting Toolkit”。"
           }
         }
       }
@@ -36483,9 +36541,7 @@
       }
     },
     "Winetricks" : {
-      "localizations" : {
-
-      },
+      "localizations" : {},
       "shouldTranslate" : false
     },
     "Winetricks ran %@ in %@." : {
@@ -36533,9 +36589,7 @@
       }
     },
     "Winetricks…" : {
-      "localizations" : {
-
-      },
+      "localizations" : {},
       "shouldTranslate" : false
     },
     "With %@" : {
@@ -38233,9 +38287,7 @@
       }
     },
     "vcrun2022 corefonts" : {
-      "localizations" : {
-
-      },
+      "localizations" : {},
       "shouldTranslate" : false
     },
     "wineboot -u ended with status %d." : {

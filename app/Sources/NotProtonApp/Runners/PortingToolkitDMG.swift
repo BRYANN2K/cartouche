@@ -13,8 +13,13 @@ struct DiskImageMounter: Sendable {
         DiskImageMounter(
             mount: { dmg in
                 try await Task.detached {
+                    // An image the user already opened in Finder cannot be attached a second time: "Resource busy"
+                    if let info = try? Shell.run("/usr/bin/hdiutil", ["info", "-plist"]), info.succeeded,
+                       let mounted = mountPoint(of: dmg, info: Data(info.stdout.utf8)) {
+                        return mounted
+                    }
                     let point = URL.temporaryDirectory
-                        .appending(path: "cartouche-gptk-\(UUID().uuidString)", directoryHint: .isDirectory)
+                        .appending(path: "\(ownPrefix)\(UUID().uuidString)", directoryHint: .isDirectory)
                     try FileManager.default.createDirectory(at: point, withIntermediateDirectories: true)
                     do {
                         _ = try Shell.check("/usr/bin/hdiutil", [
@@ -30,12 +35,34 @@ struct DiskImageMounter: Sendable {
             },
             unmount: { point in
                 await Task.detached {
+                    // A volume Cartouche did not mount stays as the user left it
+                    guard point.lastPathComponent.hasPrefix(ownPrefix) else { return }
                     if let result = try? Shell.run("/usr/bin/hdiutil",
                                        ["detach", point.path(percentEncoded: false), "-quiet"]), result.succeeded {
                         try? FileManager.default.removeItem(at: point)
                     }
                 }.value
             })
+    }
+
+    static let ownPrefix = "cartouche-gptk-"
+
+    // The mount point of the image when hdiutil already has it attached
+    static func mountPoint(of dmg: URL, info: Data) -> URL? {
+        guard let plist = try? PropertyListSerialization.propertyList(from: info, format: nil) as? [String: Any],
+              let images = plist["images"] as? [[String: Any]]
+        else { return nil }
+        let wanted = dmg.resolvingSymlinksInPath().standardizedFileURL.path(percentEncoded: false)
+        for image in images {
+            guard let path = image["image-path"] as? String,
+                  URL(filePath: path).resolvingSymlinksInPath().standardizedFileURL.path(percentEncoded: false) == wanted
+            else { continue }
+            let entities = image["system-entities"] as? [[String: Any]] ?? []
+            if let point = entities.compactMap({ $0["mount-point"] as? String }).first {
+                return URL(filePath: point, directoryHint: .isDirectory)
+            }
+        }
+        return nil
     }
 }
 
@@ -59,7 +86,7 @@ enum PortingToolkitDMG {
             else {
                 throw StepFailure(
                     step: step,
-                    detail: String(localized: "The image holds no Game Porting Toolkit."))
+                    detail: String(localized: "This image holds no D3DMetal. Use Apple’s “\(PortingToolkitSource.imageName)” image, not “Game Porting Toolkit”."))
             }
             let install = PortingToolkitInstall(lib: lib, version: found, origin: dmg, mountedImage: true)
             try PortingToolkitSource.copy(install, runners: runners)
