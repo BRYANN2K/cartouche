@@ -6,7 +6,8 @@ const source = fs.readFileSync('dylib/feats/steaminstall.js', 'utf8');
 const command = {id:'11111111-1111-4111-8111-111111111111', appid:42, steamid:'76561198123456789', tool:'', operation:'install'};
 async function scenario(options = {}) {
     const statuses = [], calls = [];
-    let state = 0, licenses = options.licenses || [];
+    let state = options.state || 0, licenses = options.licenses || [];
+    const busyApp = options.busyApp || 42;
     const ctx = vm.createContext({
         Uint8Array, TextDecoder, TextEncoder, JSON, Error, Date,
         window:{__cartoucheInstallUI:options.unpatched ? 0 : 1},
@@ -25,10 +26,10 @@ async function scenario(options = {}) {
             return {er:1};
         },
         SteamClient:{
-            Apps:{SpecifyCompatTool:async() => calls.push('tool'), LoadEula:async() => licenses,
+            Apps:{SpecifyCompatTool:async() => calls.push('tool'), LoadEula:async() => { if (options.eulaGone) throw Error('No eula for app'); return licenses; },
                 MarkEulaAccepted:async() => calls.push('accepted'), PauseAppUpdate:async() => calls.push('paused')},
             Installs:{
-                GetInstallManagerInfo:async() => options.timeout ? new Promise(() => {}) : ({eInstallState:state,rgApps:state ? [{nAppID:42}] : []}),
+                GetInstallManagerInfo:async() => options.timeout ? new Promise(() => {}) : ({eInstallState:state,rgApps:state ? [{nAppID:busyApp}] : [],eAppError:options.appError && state ? options.appError : 0}),
                 OpenInstallWizard:async() => {
                     calls.push('install');state=1;
                     assert.equal(ctx.window.__cartoucheInstallOwns({rgApps:[{nAppID:42}]}),true);
@@ -75,5 +76,17 @@ if (process.argv[2]) {
     assert.equal(r.statuses.at(-1).state,'license');assert(!r.calls.includes('accepted'));
     r=await scenario({command:{operation:'cancel'}});assert(r.calls.includes('paused'));
     r=await scenario({timeout:true});assert.equal(r.statuses.at(-1).state,'failed');assert.equal(r.statuses.at(-1).message,'steam-timeout');
+    const shown=[{id:1,version:2,url:'https://store.steampowered.com/eula/42'}];
+    r=await scenario({state:8,licenses:shown,eulaGone:true,command:{operation:'accept',licenses:shown}});
+    assert(r.calls.includes('accepted'));assert.equal(r.statuses.at(-1).state,'queued');
+    r=await scenario({state:8,eulaGone:true,command:{operation:'accept',licenses:[]}});
+    assert.equal(r.statuses.at(-1).message,'No eula for app');assert(r.calls.includes('cancel'));
+    r=await scenario({state:8,licenses:shown});
+    assert(!r.calls.includes('install'));assert.equal(r.statuses.at(-1).state,'license');assert(!r.calls.includes('cancel'));
+    r=await scenario({state:1,busyApp:43});
+    assert.equal(r.statuses.at(-1).message,'another-install');assert(!r.calls.includes('cancel'));assert(!r.calls.includes('install'));
+    r=await scenario({appError:5});
+    assert.equal(r.statuses.at(-1).message,'steam-5');assert(r.calls.includes('cancel'));
+    console.log('Steam install: EULA Steam no longer serves accepted as shown, own wizard resumed, failed wizard closed, other installs untouched');
     console.log('Steam install: queued once, owned-account gate, restart deduplication, explicit EULA, cancel passed');
 })().catch(error=>{console.error(error);process.exit(1);});

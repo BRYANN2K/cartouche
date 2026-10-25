@@ -66,9 +66,12 @@ static int export_install_status(uintptr_t request, uintptr_t response) {
     const cJSON *fraction = cJSON_GetObjectItemCaseSensitive(j,"fraction");
     int valid = install_identity(j) && cJSON_IsString(state) && strlen(state->valuestring) <= 24 &&
         cJSON_IsNumber(fraction) && isfinite(fraction->valuedouble) && fraction->valuedouble >= 0 && fraction->valuedouble <= 1;
+    // Live download bytes go to their own file, so they never overwrite an install's license or queue status
+    const char *file = cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(j,"progress"))
+        ? "steam-download-progress.json" : "steam-install-status.json";
     const char *home = np_home_dir();
     char *json = valid ? cJSON_PrintUnformatted(j) : NULL;
-    int ok = home && json && write_support_file(home,"steam-install-status.json",json,strlen(json)) == 0;
+    int ok = home && json && write_support_file(home,file,json,strlen(json)) == 0;
     cJSON_free(json); cJSON_Delete(j);
     const uint8_t reply[] = {8,1};
     if (ok) np_webui_parse_into(response,reply,sizeof reply);

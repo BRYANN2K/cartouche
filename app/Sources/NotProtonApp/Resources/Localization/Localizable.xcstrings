@@ -29934,6 +29934,28 @@
         }
       }
     },
+    "Steam is installing another game. Wait for it to finish, or cancel it in Steam’s Downloads, then try again." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam installe déjà un autre jeu. Attendez la fin, ou annulez-le dans les Téléchargements de Steam, puis réessayez."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam sta già installando un altro gioco. Attendi che finisca o annullalo nei Download di Steam, poi riprova."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 正在安装另一款游戏。请等待完成，或在 Steam 的下载中取消，然后重试。"
+          }
+        }
+      }
+    },
     "Steam is not on this Mac. The Steam page of the library installs it." : {
       "localizations" : {
         "fr" : {
@@ -30414,6 +30436,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Steam 中的 Cartouche 集成需要更新。"
+          }
+        }
+      }
+    },
+    "Steam’s license step changed. Try again to see the current license." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’étape de licence de Steam a changé. Réessayez pour voir la licence actuelle."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il passaggio della licenza di Steam è cambiato. Riprova per vedere la licenza attuale."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam 的许可步骤已变化。请重试以查看当前许可。"
           }
         }
       }

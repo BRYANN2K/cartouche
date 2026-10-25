@@ -28,6 +28,12 @@ struct SteamActivityReader: Sendable {
     }
 
     var files = SteamLocalFiles()
+    // Written by Cartouche's worker inside Steam from the live download overview; appmanifest's bytes lag by minutes
+    // Cartouche's support folder sits beside Steam's, so a scratch Steam folder in tests never reads the real file
+    var liveProgress: URL {
+        files.userData.deletingLastPathComponent().appending(path: "\(SupportPaths.supportDirName)/steam-download-progress.json")
+    }
+    var now: @Sendable () -> Date = { Date() }
     var steamStartedAt: @Sendable () -> Date? = GameProcesses.steamStartedAt
 
     var contentLog: URL { files.userData.appending(path: "logs/content_log.txt") }
@@ -52,6 +58,12 @@ struct SteamActivityReader: Sendable {
             }
         }
         snapshot.downloads.sort { $0.appID < $1.appID }
+        if let live = Self.live(at: liveProgress, now: now()),
+           let index = snapshot.downloads.firstIndex(where: { $0.appID == live.appID }) {
+            snapshot.downloads[index].bytesDone = live.done
+            snapshot.downloads[index].bytesTotal = live.total
+            snapshot.downloads[index].state = live.paused ? .paused : .downloading
+        }
         // Steam's own process tracking first, then what registry.vdf says, then the manifest bit
         var tracked: [Int: [pid_t: Date]] = [:]
         for (appID, pids) in GameProcesses.tracked(inLog: Self.tail(of: processLog)) {
@@ -116,13 +128,47 @@ struct SteamActivityReader: Sendable {
         if let log {
             switch log {
             case .paused: item.state = .paused
+            case .queued: item.state = .queued
             case .failed(let reason): item.state = .failed(reason)
             case .running: if item.state == .paused || item.state == .queued { item.state = .downloading }
             }
+        } else if result == Self.suspendedResult {
+            // Steam set it aside for another download, as its Up Next shows
+            item.state = .queued
         } else if result != 0, let reason = updateError(result) {
             item.state = .failed(reason)
         }
         return item
+    }
+
+    static let suspendedResult = 4
+
+    struct Live: Equatable, Sendable {
+        let appID: Int
+        let done: Int64
+        let total: Int64
+        let paused: Bool
+    }
+
+    // Steam stops pushing once a download ends, so only a reading from the last seconds counts
+    static let liveFreshness: TimeInterval = 5
+
+    static func live(at file: URL, now: Date) -> Live? {
+        guard let values = try? file.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey]),
+              let modified = values.contentModificationDate, abs(now.timeIntervalSince(modified)) <= liveFreshness,
+              (values.fileSize ?? .max) <= 16384,
+              let data = try? Data(contentsOf: file) else { return nil }
+        return live(data)
+    }
+
+    static func live(_ data: Data) -> Live? {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              json["progress"] as? Bool == true,
+              let appID = json["appid"] as? Int, appID > 0,
+              let done = (json["done"] as? NSNumber)?.int64Value, let total = (json["total"] as? NSNumber)?.int64Value,
+              total > 0, done >= 0, done <= total
+        else { return nil }
+        return Live(appID: appID, done: done, total: total, paused: json["state"] as? String == "paused")
     }
 
     static func updateError(_ code: Int) -> String? {
@@ -141,6 +187,7 @@ struct SteamActivityReader: Sendable {
     enum LogState: Equatable, Sendable {
         case running
         case paused
+        case queued
         case failed(String)
     }
 
@@ -155,7 +202,9 @@ struct SteamActivityReader: Sendable {
             let event = rest.dropFirst(digits.count).trimmingCharacters(in: .whitespaces)
             if event.hasPrefix("update canceled :") {
                 let reason = event.dropFirst("update canceled :".count).trimmingCharacters(in: .whitespaces)
-                out[appID] = isPause(reason) ? .paused : .failed(reason.isEmpty ? String(localized: "Steam stopped the download") : reason)
+                // "Priority (Suspended)": another download went first, this one waits in Up Next
+                out[appID] = reason.lowercased().hasPrefix("priority") ? .queued
+                    : isPause(reason) ? .paused : .failed(reason.isEmpty ? String(localized: "Steam stopped the download") : reason)
             } else if event.hasPrefix("update started") || event.hasPrefix("update changed : Running")
                         || (event.hasPrefix("state changed :") && event.contains("Update Running")) {
                 out[appID] = .running
@@ -165,7 +214,7 @@ struct SteamActivityReader: Sendable {
                         || (event.hasPrefix("scheduler finished") && !event.contains("Suspended")) {
                 out[appID] = nil
             } else if event.hasPrefix("scheduler finished") && event.contains("Suspended") {
-                out[appID] = .paused
+                if out[appID] != .queued { out[appID] = .paused }
             }
         }
         return out
@@ -173,7 +222,7 @@ struct SteamActivityReader: Sendable {
 
     static func isPause(_ reason: String) -> Bool {
         let lower = reason.lowercased()
-        return lower.hasPrefix("suspended") || lower.contains("paused") || lower.contains("user request")
+        return lower.contains("suspended") || lower.contains("paused") || lower.contains("user request")
     }
 
     // The end of a log that Steam appends to for months

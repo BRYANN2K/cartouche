@@ -53,23 +53,31 @@
     "            installLease(command);" \
     "            const manager = await info();" \
     "            if (!ours(manager) || manager.eInstallState !== 8) throw Error('license-expired');" \
-    "            const licenses = await installWait(SteamClient.Apps.LoadEula(command.appid));" \
     "            const expected = command.licenses || [];" \
+    "            let licenses;" \
+    "            // Steam can answer \"No eula for app\" once its wizard showed them: accept exactly what the player saw" \
+    "            try { licenses = await installWait(SteamClient.Apps.LoadEula(command.appid)); }" \
+    "            catch (error) { if (!/eula/i.test(String(error?.message || error)) || !expected.length) throw error; licenses = expected; }" \
     "            if (JSON.stringify(licenses.map(e => [e.id,e.version,e.url])) !== JSON.stringify(expected.map(e => [e.id,e.version,e.url]))) throw Error('license-changed');" \
     "            for (const e of licenses) await installWait(SteamClient.Apps.MarkEulaAccepted(command.appid, e.id, e.version));" \
+    "            // Past the license page, or the loop below would ask Steam for the license again" \
+    "            await installWait(SteamClient.Installs.ContinueInstall());" \
+    "            await pause(500);" \
     "        } else {" \
     "            const current = await info();" \
-    "            if (current.eInstallState !== 0) throw Error('another-install');" \
+    "            // The wizard a failed try left open for this game is resumed, not reported as another install" \
+    "            const resumed = current.eInstallState !== 0;" \
+    "            if (resumed && !ours(current)) throw Error('another-install');" \
     "            await installWait(SteamClient.Apps.SpecifyCompatTool(command.appid, command.tool || '', 0));" \
     "            installLease(command);" \
-    "            await installWait(SteamClient.Installs.OpenInstallWizard([command.appid], '0'));" \
-    "            let manager;" \
-    "            for (let i = 0; i < 20; i++) {" \
+    "            if (!resumed) await installWait(SteamClient.Installs.OpenInstallWizard([command.appid], '0'));" \
+    "            let manager = current;" \
+    "            for (let i = 0; i < 20 && !resumed; i++) {" \
     "                await pause(250); manager = await info();" \
     "                if (ours(manager)) break;" \
     "            }" \
     "            if (!ours(manager)) throw Error('install-unavailable');" \
-    "            if (command.destination) {" \
+    "            if (command.destination && !resumed) {" \
     "                let folders = await installWait(SteamClient.InstallFolder.GetInstallFolders());" \
     "                let folder = folders.find(f => f.strFolderPath === command.destination);" \
     "                if (!folder) {" \
@@ -102,9 +110,34 @@
     "        throw Error('install-timeout');" \
     "    } catch (error) {" \
     "        installOwner = undefined;" \
+    "        // A wizard left open for this game would turn every later try into another-install" \
+    "        if (command?.id && command.operation !== 'cancel') {" \
+    "            try {" \
+    "                const manager = await installWait(SteamClient.Installs.GetInstallManagerInfo());" \
+    "                if (manager.eInstallState !== 0 && manager.rgApps?.some(a => a.nAppID === command.appid))" \
+    "                    await installWait(SteamClient.Installs.CancelInstall());" \
+    "            } catch {}" \
+    "        }" \
     "        if (!installWarned) { console.warn('Cartouche: install worker ' + String(error.message || error)); installWarned = true; }" \
     "        if (command?.id) await installStatus(command, 'failed', {message:String(error.message || error).slice(0,160)}).catch(() => {});" \
     "    } finally { installBusy = false; }" \
     "};" \
+    "// Steam rewrites appmanifest's byte counts only now and then; its download overview pushes them live" \
+    "const progressId = '00000000-0000-4000-8000-000000000000';" \
+    "let progressSent = 0, progressBusy = false;" \
+    "const installProgress = async overview => {" \
+    "    const appid = Number(overview?.update_appid) || 0;" \
+    "    if (!appid || progressBusy || Date.now() - progressSent < 1000) return;" \
+    "    progressBusy = true; progressSent = Date.now();" \
+    "    try {" \
+    "        const total = Number(overview.update_bytes_to_download) || 0, done = Number(overview.update_bytes_downloaded) || 0;" \
+    "        await installStatus({id:progressId, appid}, overview.paused ? 'paused' : 'downloading', {" \
+    "            progress:true, fraction:total ? Math.min(1, done / total) : 0, done, total," \
+    "            staged:Number(overview.update_bytes_staged) || 0, toStage:Number(overview.update_bytes_to_stage) || 0," \
+    "            rate:Number(overview.update_network_bytes_per_second) || 0});" \
+    "    } finally { progressBusy = false; }" \
+    "};" \
+    "try { SteamClient.Downloads.RegisterForDownloadOverview(o => { installProgress(o).catch(() => {}); }); }" \
+    "catch (error) { console.warn('Cartouche: download overview ' + String(error?.message || error)); }" \
     "setInterval(() => { installTick().catch(() => {}); }, 2000);" \
     ""

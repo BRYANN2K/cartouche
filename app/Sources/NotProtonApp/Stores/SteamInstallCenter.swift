@@ -126,8 +126,22 @@ final class SteamInstallCenter {
             guard let string = row["url"] as? String, let url = URL(string: string), url.scheme == "https" else { return nil }
             return License(id: String(describing: row["id"] ?? string), url: url)
         }
-        let message = json["message"] as? String
-        return Status(game: game, state: state, message: message == "integration-update-required"
-            ? String(localized: "Update the Steam integration in Settings > Steam to install games in the background.") : message, licenses: licenses)
+        return Status(game: game, state: state, message: (json["message"] as? String).map(Self.explain), licenses: licenses)
+    }
+
+    // The Steam worker reports short codes; the panel shows what the player can do about them
+    static func explain(_ code: String) -> String {
+        switch code {
+        case "integration-update-required":
+            String(localized: "Update the Steam integration in Settings > Steam to install games in the background.")
+        case "another-install":
+            String(localized: "Steam is installing another game. Wait for it to finish, or cancel it in Steam’s Downloads, then try again.")
+        case "steam-timeout", "transport", "status":
+            String(localized: "Steam did not answer. Check that it is signed in and update the Steam integration in Settings.")
+        case "license-expired", "license-changed":
+            String(localized: "Steam’s license step changed. Try again to see the current license.")
+        default:
+            code
+        }
     }
 }
