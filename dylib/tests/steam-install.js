@@ -3,6 +3,8 @@ const vm = require('node:vm');
 const fs = require('node:fs');
 const assert = require('node:assert/strict');
 const source = fs.readFileSync('dylib/feats/steaminstall.js', 'utf8');
+const embedded = [...fs.readFileSync('dylib/feats/steaminstall.h', 'utf8').matchAll(/^    (".*") \\$/gm)].map(m => JSON.parse(m[1]));
+new Function(embedded.join(''));
 const command = {id:'11111111-1111-4111-8111-111111111111', appid:42, steamid:'76561198123456789', tool:'', operation:'install'};
 async function scenario(options = {}) {
     const statuses = [], calls = [];

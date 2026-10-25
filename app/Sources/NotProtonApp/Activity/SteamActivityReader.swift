@@ -60,8 +60,13 @@ struct SteamActivityReader: Sendable {
         snapshot.downloads.sort { $0.appID < $1.appID }
         if let live = Self.live(at: liveProgress, now: now()),
            let index = snapshot.downloads.firstIndex(where: { $0.appID == live.appID }) {
-            snapshot.downloads[index].bytesDone = live.done
-            snapshot.downloads[index].bytesTotal = live.total
+            if let total = live.total, let done = live.done {
+                snapshot.downloads[index].bytesDone = done
+                snapshot.downloads[index].bytesTotal = total
+            } else if let percent = live.percent, snapshot.downloads[index].bytesTotal > 0 {
+                // Clients without byte counts in the overview still give the overall percentage
+                snapshot.downloads[index].bytesDone = Int64(Double(snapshot.downloads[index].bytesTotal) * percent / 100)
+            }
             snapshot.downloads[index].state = live.paused ? .paused : .downloading
         }
         // Steam's own process tracking first, then what registry.vdf says, then the manifest bit
@@ -145,8 +150,9 @@ struct SteamActivityReader: Sendable {
 
     struct Live: Equatable, Sendable {
         let appID: Int
-        let done: Int64
-        let total: Int64
+        let done: Int64?
+        let total: Int64?
+        let percent: Double?
         let paused: Bool
     }
 
@@ -164,11 +170,14 @@ struct SteamActivityReader: Sendable {
     static func live(_ data: Data) -> Live? {
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               json["progress"] as? Bool == true,
-              let appID = json["appid"] as? Int, appID > 0,
-              let done = (json["done"] as? NSNumber)?.int64Value, let total = (json["total"] as? NSNumber)?.int64Value,
-              total > 0, done >= 0, done <= total
+              let appID = json["appid"] as? Int, appID > 0
         else { return nil }
-        return Live(appID: appID, done: done, total: total, paused: json["state"] as? String == "paused")
+        let done = (json["done"] as? NSNumber)?.int64Value ?? 0, total = (json["total"] as? NSNumber)?.int64Value ?? 0
+        let bytes = total > 0 && done >= 0 && done <= total
+        let percent = (json["percent"] as? NSNumber).map { min(100, max(0, $0.doubleValue)) }
+        guard bytes || (percent ?? 0) > 0 else { return nil }
+        return Live(appID: appID, done: bytes ? done : nil, total: bytes ? total : nil, percent: bytes ? nil : percent,
+                    paused: json["state"] as? String == "paused")
     }
 
     static func updateError(_ code: Int) -> String? {

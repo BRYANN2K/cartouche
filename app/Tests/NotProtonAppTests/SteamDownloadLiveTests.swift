@@ -22,6 +22,15 @@ struct SteamDownloadLiveTests {
         #expect(download.state == .downloading)
     }
 
+    @Test("Without byte counts, Steam's overall percentage is applied to the manifest's size")
+    func percent() throws {
+        let fixture = try DownloadFixture("percent"); defer { fixture.remove() }
+        try fixture.manifest(2_556_990, "Beyond Good and Evil", flags: 1026, done: 123_069_936, total: 10_000_000_000)
+        let json = #"{"appid":2556990,"state":"downloading","fraction":0.81,"progress":true,"done":0,"total":0,"percent":81}"#
+        try Data(json.utf8).write(to: fixture.support.appending(path: "steam-download-progress.json"))
+        #expect(fixture.reader.read().downloads.first?.bytesDone == 8_100_000_000)
+    }
+
     @Test("A stale or foreign reading leaves the manifest's count")
     func staleOrForeign() throws {
         let fixture = try DownloadFixture("stale"); defer { fixture.remove() }

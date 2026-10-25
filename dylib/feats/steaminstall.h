@@ -55,17 +55,14 @@
     "            if (!ours(manager) || manager.eInstallState !== 8) throw Error('license-expired');" \
     "            const expected = command.licenses || [];" \
     "            let licenses;" \
-    "            // Steam can answer \"No eula for app\" once its wizard showed them: accept exactly what the player saw" \
     "            try { licenses = await installWait(SteamClient.Apps.LoadEula(command.appid)); }" \
     "            catch (error) { if (!/eula/i.test(String(error?.message || error)) || !expected.length) throw error; licenses = expected; }" \
     "            if (JSON.stringify(licenses.map(e => [e.id,e.version,e.url])) !== JSON.stringify(expected.map(e => [e.id,e.version,e.url]))) throw Error('license-changed');" \
     "            for (const e of licenses) await installWait(SteamClient.Apps.MarkEulaAccepted(command.appid, e.id, e.version));" \
-    "            // Past the license page, or the loop below would ask Steam for the license again" \
     "            await installWait(SteamClient.Installs.ContinueInstall());" \
     "            await pause(500);" \
     "        } else {" \
     "            const current = await info();" \
-    "            // The wizard a failed try left open for this game is resumed, not reported as another install" \
     "            const resumed = current.eInstallState !== 0;" \
     "            if (resumed && !ours(current)) throw Error('another-install');" \
     "            await installWait(SteamClient.Apps.SpecifyCompatTool(command.appid, command.tool || '', 0));" \
@@ -110,7 +107,6 @@
     "        throw Error('install-timeout');" \
     "    } catch (error) {" \
     "        installOwner = undefined;" \
-    "        // A wizard left open for this game would turn every later try into another-install" \
     "        if (command?.id && command.operation !== 'cancel') {" \
     "            try {" \
     "                const manager = await installWait(SteamClient.Installs.GetInstallManagerInfo());" \
@@ -122,21 +118,28 @@
     "        if (command?.id) await installStatus(command, 'failed', {message:String(error.message || error).slice(0,160)}).catch(() => {});" \
     "    } finally { installBusy = false; }" \
     "};" \
-    "// Steam rewrites appmanifest's byte counts only now and then; its download overview pushes them live" \
     "const progressId = '00000000-0000-4000-8000-000000000000';" \
-    "let progressSent = 0, progressBusy = false;" \
+    "let progressSent = 0, progressBusy = false, progressLogged = false;" \
+    "const bytesOf = v => typeof v === 'number' ? v : typeof v === 'bigint' || typeof v === 'string' ? Number(v) || 0 :" \
+    "    v && typeof v.toNumber === 'function' ? v.toNumber() : v && 'low' in v ? (v.high >>> 0) * 4294967296 + (v.low >>> 0) : 0;" \
     "const installProgress = async overview => {" \
     "    const appid = Number(overview?.update_appid) || 0;" \
     "    if (!appid || progressBusy || Date.now() - progressSent < 1000) return;" \
     "    progressBusy = true; progressSent = Date.now();" \
     "    try {" \
-    "        const total = Number(overview.update_bytes_to_download) || 0, done = Number(overview.update_bytes_downloaded) || 0;" \
+    "        const item = progressItems[appid];" \
+    "        const total = bytesOf(item?.total_bytes ?? overview.update_bytes_to_download), done = bytesOf(item?.downloaded_bytes ?? overview.update_bytes_downloaded);" \
+    "        const percent = Math.max(0, Math.min(100, Number(overview.overall_percent_complete) || 0));" \
+    "        if (!progressLogged) { progressLogged = true; console.info('Cartouche: download overview ' + JSON.stringify({percent, progress:overview.progress, item}, (k, v) => typeof v === 'bigint' ? Number(v) : v).slice(0, 600)); }" \
     "        await installStatus({id:progressId, appid}, overview.paused ? 'paused' : 'downloading', {" \
-    "            progress:true, fraction:total ? Math.min(1, done / total) : 0, done, total," \
-    "            staged:Number(overview.update_bytes_staged) || 0, toStage:Number(overview.update_bytes_to_stage) || 0," \
-    "            rate:Number(overview.update_network_bytes_per_second) || 0});" \
+    "            progress:true, fraction:total ? Math.min(1, done / total) : percent / 100, done, total, percent," \
+    "            staged:bytesOf(overview.update_bytes_staged), toStage:bytesOf(overview.update_bytes_to_stage)," \
+    "            rate:bytesOf(overview.update_network_bytes_per_second)});" \
     "    } finally { progressBusy = false; }" \
     "};" \
+    "const progressItems = {};" \
+    "try { SteamClient.Downloads.RegisterForDownloadItems((ready, items) => { for (const i of items || []) progressItems[i.appid] = i; }); }" \
+    "catch (error) { console.warn('Cartouche: download items ' + String(error?.message || error)); }" \
     "try { SteamClient.Downloads.RegisterForDownloadOverview(o => { installProgress(o).catch(() => {}); }); }" \
     "catch (error) { console.warn('Cartouche: download overview ' + String(error?.message || error)); }" \
     "setInterval(() => { installTick().catch(() => {}); }, 2000);" \
