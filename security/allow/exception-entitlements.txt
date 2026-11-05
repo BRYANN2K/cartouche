@@ -1,0 +1,3 @@
+# Binary: entitlement. Anything else fails 60-artifact. Reviewed 2026-11-05.
+# The app loads its own Sparkle.framework and libarchive; a local certificate has no Team ID, so library validation would refuse them.
+Contents/MacOS/Cartouche: com.apple.security.cs.disable-library-validation

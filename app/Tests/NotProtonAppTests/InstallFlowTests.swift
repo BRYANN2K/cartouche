@@ -134,7 +134,8 @@ final class RecordingNotifier: InstallNotifying {
 }
 
 @MainActor
-func waitFor(_ timeout: TimeInterval = 20, _ condition: () -> Bool) async -> Bool {
+// The fake installer runs real x86_64 processes under Rosetta: a loaded Mac needs more than 20 s
+func waitFor(_ timeout: TimeInterval = 60, _ condition: () -> Bool) async -> Bool {
     let end = Date().addingTimeInterval(timeout)
     while !condition() && Date() < end { try? await Task.sleep(for: .milliseconds(50)) }
     return condition()

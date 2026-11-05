@@ -133,7 +133,7 @@ brew install --cask bryann2k/cartouche/cartouche
 curl -fsSL https://raw.githubusercontent.com/BRYANN2K/cartouche/main/install.sh | sh
 ```
 
-The script checks the archive against the release's `SHA256SUMS` and refuses an app signed with another certificate. It skips the first-open warning because curl does not quarantine the download.
+The install script checks the archive against the release's `SHA256SUMS` and refuses an app signed with another certificate. It skips the first-open warning because curl does not quarantine the download.
 
 ### Updates and betas
 

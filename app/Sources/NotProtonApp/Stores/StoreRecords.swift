@@ -30,6 +30,8 @@ struct StoreFolders: Sendable {
     func library(_ source: GameSource) -> URL { store(source).appending(path: "library.json") }
     func artMisses(_ source: GameSource) -> URL { store(source).appending(path: "art-misses.json") }
     func records(_ source: GameSource) -> URL { store(source).appending(path: "games", directoryHint: .isDirectory) }
+    // A launcher-backed store's one launcher prefix (EA app, Ubisoft Connect)
+    func launcher(_ source: GameSource) -> URL { store(source).appending(path: "launcher", directoryHint: .isDirectory) }
     func record(_ source: GameSource, id: String) -> URL { records(source).appending(path: "\(Self.safe(id)).json") }
     func gameFolder(_ source: GameSource, title: String, id: String) -> URL {
         store(source).appending(path: "\(GameFolder.slug(title))-\(Self.safe(id))", directoryHint: .isDirectory)

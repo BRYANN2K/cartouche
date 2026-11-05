@@ -1,0 +1,26 @@
+# 0.2.0-beta1
+
+## menu image=menu
+title: In-Game Menu
+line: ⌥C while playing.
+alt: The in-game menu shows performance over the game.
+
+## upscaling image=upscaling
+title: Upscaling
+line: DLSS now runs on MetalFX.
+alt: Upscaling settings: DLSS mode, 67% render scale.
+
+## hud image=hud
+title: HUD
+line: ⌥⇧C to show it.
+alt: The HUD in a corner: 59 FPS, 1% low, frame time.
+
+## resources image=resources
+title: Background Apps
+line: Pause the apps that slow your game.
+alt: App list with CPU, GPU and memory, with Pause and Quit buttons.
+
+## framegen image=framegen soon
+title: Frame Generation
+line: Up to twice the frames on screen.
+alt: Frame Generation tab, marked Soon.

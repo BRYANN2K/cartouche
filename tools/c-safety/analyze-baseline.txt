@@ -1,0 +1,9 @@
+# Static analysis findings accepted by c-analyze, one per line, tab separated:
+#   tool  file  check  message  reason
+# The line number is left out so moving code keeps an entry. Each entry needs a reason a
+# reviewer can check; prefer fixing the code, or an inline cppcheck-suppress with a reason.
+clang	dylib/feats/compat.c	unix.BlockInCriticalSection	Call to blocking function 'fgets' inside of critical section	The tool lists are read under g_tools_lock on purpose: a few hundred bytes from the support folder, so no reader sees a half-built list
+clang	dylib/feats/compat.c	unix.Stream	File position of the stream might be 'indeterminate' after a failed operation. Can cause undefined behavior	same_content calls fread once more after a failed or short read; fread then returns 0 and the loop ends, nothing reads the position
+clang	dylib/feats/compat.c	unix.Stream	Read function called when stream is in EOF state. Function has no effect	Same loop: the extra fread at EOF returns 0 and ends it
+clang	overlay-shim/overlay_shim.m	osx.cocoa.RetainCount	Potential leak of an object of type 'id<MTLDevice> _Nullable'	np_overlay_shim_install creates the default device once per process to read its class; one device, which Metal keeps alive anyway
+cppcheck	steam-shim/steam.cpp	dangerousTypeCast	Potentially invalid type conversion in old-style C cast, clarify/fix with C++ cast	Valve's shim casts buffers to BYTE * and handles in C style for the Win32 API; a style of cast, the types are what the API takes

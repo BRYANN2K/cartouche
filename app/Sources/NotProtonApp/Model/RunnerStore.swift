@@ -229,14 +229,15 @@ enum CompatToolList {
         file: URL = SupportPaths.toolList,
         compatTools: URL = SupportPaths.Steam.compatTools,
         fexAvailable: Bool = CompatTool.Flavor.fexAvailable,
-        manifest: RunnerManifest = .current()
+        manifest: RunnerManifest = .current(),
+        backends: URL = BackendInstaller.folder
     ) throws -> Bool {
         let (builds, listed, tools) = resolved(
             runners: runners, file: file, fexAvailable: fexAvailable, manifest: manifest)
         var changed = try write(contents(tools), to: file, had: listed)
         let pairs = backendFile(beside: file)
         changed = try write(
-            backendContents(backendTools(for: tools, runners: runners, manifest: manifest)),
+            backendContents(backendTools(for: tools, runners: runners, backends: backends, manifest: manifest)),
             to: pairs, had: try? String(contentsOf: pairs, encoding: .utf8)) || changed
         NtdllPatcher.pruneBuilds(keeping: Set(builds.map(\.id)), in: bridge)
         return changed

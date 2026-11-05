@@ -12,6 +12,9 @@ final class CompatibilityModel {
     private(set) var community: CommunityFeed?
     // A source answered 429 or 503: its last copy stays in use and the panel says why it is not refreshed
     private(set) var serverBusy = false
+    // The last check that reached for the file failed; until one succeeds, stale data gets a notice with Retry
+    private(set) var refreshFailed = false
+    private(set) var isRefreshing = false
 
     @ObservationIgnored let client: CompatibilityClient
     @ObservationIgnored let schema: CompatSchema?
@@ -50,29 +53,56 @@ final class CompatibilityModel {
     }
 
     @discardableResult
-    func refresh() async -> CompatibilityClient.Outcome? {
+    func refresh(force: Bool = false) async -> CompatibilityClient.Outcome? {
         guard let schema else {
             AppLog.note("compatibility schema missing from the app bundle")
             return nil
         }
         if data == nil { await load() }
-        guard dailyChecks() else { return .skipped }
+        guard force || dailyChecks() else { return .skipped }
+        isRefreshing = true
+        defer { isRefreshing = false }
         await refreshCommunity()
-        let outcome = await client.refresh(now: now(), schema: schema)
+        let outcome = await client.refresh(now: now(), schema: schema, force: force)
         switch outcome {
         case .updated(let fresh):
             data = fresh
             isOffline = false
             serverBusy = false
+            refreshFailed = false
         case .offline:
             isOffline = true
+            refreshFailed = true
         case .unavailable(let status) where HTTPBackoff.throttles(status):
             isOffline = false
             serverBusy = true
-        case .skipped, .unavailable, .rejected:
+            refreshFailed = true
+        case .unavailable, .rejected:
             isOffline = false
+            refreshFailed = true
+        case .skipped:
+            break
         }
         return outcome
+    }
+
+    func retry() async {
+        guard !isRefreshing else { return }
+        await refresh(force: true)
+    }
+
+    static let checkInterval: TimeInterval = 6 * 3600
+
+    // While the app stays open: a check every few hours, which the client turns into one download a day, and
+    // after a failure a sooner retry that doubles up to the normal interval
+    func keepFresh(sleep: @escaping (TimeInterval) async throws -> Void = { try await Task.sleep(for: .seconds($0)) }) async {
+        let backoff = HTTPBackoff(base: 15 * 60, cap: Self.checkInterval)
+        var failures = refreshFailed ? 1 : 0
+        while !Task.isCancelled {
+            do { try await sleep(failures == 0 ? Self.checkInterval : backoff.delay(attempt: failures)) } catch { return }
+            await refresh()
+            failures = refreshFailed ? failures + 1 : 0
+        }
     }
 
     var gpuStrength: [String: Double] { MacGPUProfiles.current(data?.gpuStrength) }
@@ -100,9 +130,12 @@ final class CompatibilityModel {
         serverBusy ? String(localized: "The compatibility server is busy. Cartouche shows its last copy and will try again later.") : nil
     }
 
+    // Old data alone says nothing: the file is rebuilt upstream and may simply not have changed
     var ageNotice: String? {
-        guard let generated = data?.generated else { return nil }
-        return CompatibilityAge.notice(generated: generated, now: now(), offline: isOffline)
+        guard refreshFailed, let generated = data?.generated,
+              let notice = CompatibilityAge.notice(generated: generated, now: now(), offline: isOffline)
+        else { return nil }
+        return busyNotice ?? notice
     }
 }
 
@@ -119,6 +152,6 @@ enum CompatibilityAge {
         guard n > shownAfterDays else { return nil }
         return offline
             ? String(localized: "Offline. Compatibility data from \(n) days ago.")
-            : String(localized: "Compatibility data from \(n) days ago.")
+            : String(localized: "Couldn't refresh. Compatibility data from \(n) days ago.")
     }
 }

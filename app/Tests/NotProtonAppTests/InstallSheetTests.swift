@@ -175,15 +175,15 @@ struct InstallSheetTests {
         #expect(!center.sheet.canInstall)
     }
 
-    @Test("The compatibility data has no CarX Street: the Steam store search supplies the app ID and says so")
+    @Test("The compatibility data has no Cobalt Street: the Steam store search supplies the app ID and says so")
     func steamFallback() async throws {
-        let (center, folder) = try sheetFixture("sheet-steam", title: "CarX Street")
+        let (center, folder) = try sheetFixture("sheet-steam", title: "Cobalt Street")
         let asked = Box<[URL]>([])
         var lookup = SteamLookup(directory: folder.deletingLastPathComponent().appending(path: "lookup"))
         lookup.fetch = { url in
             asked.value.append(url)
             let body = try JSONSerialization.data(withJSONObject: [
-                "total": 1, "items": [["id": 1_118_860, "type": "app", "name": "CarX Street"]],
+                "total": 1, "items": [["id": 2_100_001, "type": "app", "name": "Cobalt Street"]],
             ])
             return (body, 200)
         }
@@ -191,23 +191,23 @@ struct InstallSheetTests {
         center.lookupsAllowed = { true }
         center.open([folder])
         try #require(await waitFor { !center.sheet.isAnalyzing })
-        #expect(center.sheet.appID == 1_118_860)
+        #expect(center.sheet.appID == 2_100_001)
         #expect(center.sheet.identificationViaSteam)
         let item = try #require(center.sheet.items.first { $0.id == "game" })
-        #expect(item.title == "Identified as CarX Street")
+        #expect(item.title == "Identified as Cobalt Street")
         #expect(item.detail == "Identified via Steam")
-        #expect(item.cover == 1_118_860)
+        #expect(item.cover == 2_100_001)
         #expect(asked.value.count == 1)
     }
 
     @Test("The same fallback fires when the compatibility data could not be fetched at all")
     func steamFallbackNoData() async throws {
-        let (center, folder) = try sheetFixture("sheet-steam-nodata", title: "CarX Street")
+        let (center, folder) = try sheetFixture("sheet-steam-nodata", title: "Cobalt Street")
         center.compat = { nil }
         var lookup = SteamLookup(directory: folder.deletingLastPathComponent().appending(path: "lookup"))
         lookup.fetch = { _ in
             let body = try JSONSerialization.data(withJSONObject: [
-                "total": 1, "items": [["id": 1_118_860, "type": "app", "name": "CarX Street"]],
+                "total": 1, "items": [["id": 2_100_001, "type": "app", "name": "Cobalt Street"]],
             ])
             return (body, 200)
         }
@@ -215,38 +215,38 @@ struct InstallSheetTests {
         center.lookupsAllowed = { true }
         center.open([folder])
         try #require(await waitFor { !center.sheet.isAnalyzing })
-        #expect(center.sheet.appID == 1_118_860)
+        #expect(center.sheet.appID == 2_100_001)
         #expect(center.sheet.identificationViaSteam)
     }
 
     @Test("A name Steam already answered comes from the cache: no second request")
     func steamFallbackCacheHit() async throws {
-        let (center, folder) = try sheetFixture("sheet-steam-cache", title: "CarX Street")
+        let (center, folder) = try sheetFixture("sheet-steam-cache", title: "Cobalt Street")
         let asked = Box<[URL]>([])
         var lookup = SteamLookup(directory: folder.deletingLastPathComponent().appending(path: "lookup"))
         lookup.fetch = { url in
             asked.value.append(url)
             let body = try JSONSerialization.data(withJSONObject: [
-                "total": 1, "items": [["id": 1_118_860, "type": "app", "name": "CarX Street"]],
+                "total": 1, "items": [["id": 2_100_001, "type": "app", "name": "Cobalt Street"]],
             ])
             return (body, 200)
         }
         // An earlier lookup asked Steam once; the sheet must not ask again
-        #expect(await lookup.match(for: "CarX Street")?.appID == 1_118_860)
+        #expect(await lookup.match(for: "Cobalt Street")?.appID == 2_100_001)
         #expect(asked.value.count == 1)
         lookup.fetch = { url in asked.value.append(url); return (Data(), 500) }
         center.lookup = lookup
         center.lookupsAllowed = { true }
         center.open([folder])
         try #require(await waitFor { !center.sheet.isAnalyzing })
-        #expect(center.sheet.appID == 1_118_860)
+        #expect(center.sheet.appID == 2_100_001)
         #expect(center.sheet.identificationViaSteam)
         #expect(asked.value.count == 1)
     }
 
     @Test("Index and Steam both miss: the warning does not blame missing data")
     func steamBothFail() async throws {
-        let (center, folder) = try sheetFixture("sheet-steam-miss", title: "CarX Street")
+        let (center, folder) = try sheetFixture("sheet-steam-miss", title: "Cobalt Street")
         center.compat = { nil }
         var lookup = SteamLookup(directory: folder.deletingLastPathComponent().appending(path: "lookup"))
         lookup.fetch = { _ in
@@ -259,13 +259,13 @@ struct InstallSheetTests {
         #expect(center.sheet.appID == nil)
         #expect(!center.sheet.identificationViaSteam)
         let item = try #require(center.sheet.items.first { $0.id == "game" })
-        #expect(item.title == "CarX Street wasn't recognized automatically. You can pick the game in the next step.")
+        #expect(item.title == "Cobalt Street wasn't recognized automatically. You can pick the game in the next step.")
         #expect(item.check == .warning)
     }
 
     @Test("With online lookups off, no name goes to Steam and the game stays unmatched")
     func steamFallbackOff() async throws {
-        let (center, folder) = try sheetFixture("sheet-steam-off", title: "CarX Street")
+        let (center, folder) = try sheetFixture("sheet-steam-off", title: "Cobalt Street")
         let asked = Box<[URL]>([])
         var lookup = SteamLookup(directory: folder.deletingLastPathComponent().appending(path: "lookup"))
         lookup.fetch = { url in asked.value.append(url); return (Data(), 200) }
@@ -298,8 +298,7 @@ struct InstallSheetTests {
                 window.appearance = host.appearance
                 window.contentView = host
                 host.layoutSubtreeIfNeeded()
-                let rep = try #require(host.bitmapImageRepForCachingDisplay(in: host.bounds))
-                host.cacheDisplay(in: host.bounds, to: rep)
+                let rep = try #require(renderedBitmap(host))
                 let png = try #require(rep.representation(using: .png, properties: [:]))
                 try png.write(to: out.appending(path: "installer-\(name)-\(label).png"))
                 #expect(host.bounds.width > 400)

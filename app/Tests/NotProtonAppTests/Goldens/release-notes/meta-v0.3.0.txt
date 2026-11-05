@@ -1,0 +1,8 @@
+version=0.3.0
+bundle_version=0.3.0
+kind=release
+channel=
+prerelease=false
+critical=true
+archive=Cartouche-0.3.0.zip
+bump_tap=true

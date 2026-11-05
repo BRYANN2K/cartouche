@@ -41,15 +41,18 @@ enum AdvancedSupport {
                 if availability.dxmtNVExtensionRunners.contains(runner.id) { options.insert(.dlss) }
             }
         }
+        if backend == .d3dmetal && translation == .rosetta { options.insert(.dlss) }
         if backend == .d3dmetal || backend == .dxmt { options.insert(.metalHUD) }
         return options
     }
 
-    static func environment(_ options: AdvancedGameOptions?, supported: Set<AdvancedOption>,
+    static func environment(_ options: AdvancedGameOptions?, supported: Set<AdvancedOption>, backend: GraphicsBackend?,
                             existing: [String: String]) -> [String: String] {
         guard let options else { return existing }
         var env = existing
-        if supported.contains(.dlss) { env["DXMT_ENABLE_NVEXT"] = options.dlss ? "1" : "0" }
+        if supported.contains(.dlss) {
+            env[backend == .d3dmetal ? "D3DM_ENABLE_METALFX" : "DXMT_ENABLE_NVEXT"] = options.dlss ? "1" : "0"
+        }
         if supported.contains(.spatial) {
             env["DXMT_METALFX_SPATIAL_SWAPCHAIN"] = options.spatial ? "1" : "0"
             if options.spatial {

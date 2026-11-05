@@ -53,7 +53,8 @@ public enum JSONValue: Sendable, Equatable, Codable {
     }
 
     public var int: Int? {
-        if case .number(let n) = self, n == n.rounded() { return Int(n) }
+        // Int(exactly:) is nil past Int's range, where Int(n) would trap on an agent's argument.
+        if case .number(let n) = self { return Int(exactly: n) }
         return nil
     }
 

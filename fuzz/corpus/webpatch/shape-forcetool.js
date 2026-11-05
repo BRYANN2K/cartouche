@@ -1,0 +1,10 @@
+"#AppProperties_CompatilibityForceTool";
+function qa(qb){return(0,qc.CI)()?;
+(0,qa.CI)()&&qb.push({title:(0,qc.we)("#AppProperties_CompatibilityPage");
+(0,qa.CI)()&&qb.push({title:(0,qc.we)("#AppProperties_CompatibilityPage");
+Compatibility:{visible:qa&&(0,qb.CI)()&&!(0,qb.rf)();
+return(0,qa.jsxs)(qa.Fragment,{children:[0!=qb.length&&(0,qa.jsx)(qc,{label:(0,qd.we)("#AppProperties_CompatilibityForceTool"),checked:qe,onChange:qf,disabled:!qg||0===qb.length}),qe&&qb.length>0&&(0,qa.jsx)(qh.m,{strClassName:qi().TopGap,rgOptions:qj,selectedOption:qk.strCompatToolName,onChange:ql=>SteamClient.Apps.SpecifyCompatTool(qk.unAppID,ql.data)})]});
+qa=(0,qb.PA)(qc=>(0,qd.jsxs)(qe.nB,{children:[(0,qd.jsx)("div",{className:qf().HiddenIfNotLast,children:(0,qg.we)("#AppProperties_CompatibilityNoOptions")}),(0,qd.jsx)(qh,{...qc}),(0,qd.jsx)(qi,{...qc})]}));;
+get is_invalid_os_type(){return this.most_available_per_client_data.is_invalid_os_type};
+qa.is_invalid_os_type&&(0,qb.jsx)(qc,{});
+(0,qa.we)("#GameList_Entry_Invalid_OSType2");

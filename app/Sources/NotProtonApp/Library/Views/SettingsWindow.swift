@@ -22,7 +22,7 @@ enum GeneralSettings {
 }
 
 enum SettingsTab: String, CaseIterable, Identifiable {
-    case general, library, accounts, steam, prefixes, compatibility, privacy, consoles, controllers, agents, advanced
+    case general, library, accounts, steam, prefixes, compatibility, privacy, consoles, controllers, agents, resources, inGameMenu, advanced
 
     var id: String { rawValue }
 
@@ -38,6 +38,8 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .consoles: String(localized: "Consoles")
         case .controllers: String(localized: "Controllers")
         case .agents: String(localized: "Agents")
+        case .resources: String(localized: "Resources")
+        case .inGameMenu: String(localized: "In-Game Menu")
         case .advanced: String(localized: "Advanced")
         }
     }
@@ -54,6 +56,8 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .consoles: "gamecontroller"
         case .controllers: "gamecontroller.fill"
         case .agents: "brain.head.profile"
+        case .resources: "gauge.with.dots.needle.33percent"
+        case .inGameMenu: "rectangle.on.rectangle"
         case .advanced: "wrench.and.screwdriver"
         }
     }
@@ -73,6 +77,7 @@ struct SettingsWindow: View {
     @Environment(ControlsCenter.self) private var controls: ControlsCenter?
     @Environment(ConsoleCenter.self) private var consoleCenter: ConsoleCenter?
     @Environment(AgentControlModel.self) private var agents: AgentControlModel?
+    @Environment(ResourceMonitor.self) private var resources: ResourceMonitor?
 
     var body: some View {
         HStack(spacing: 0) {
@@ -143,6 +148,8 @@ struct SettingsWindow: View {
         case .consoles: ConsolesSettingsView(model: consoles, extras: consoleCenter?.extras, emulators: consoleCenter?.emulators)
         case .controllers: if let controls { ControllersSettingsView(center: controls) }
         case .agents: if let agents { AgentsSettingsView(model: agents) }
+        case .resources: if let resources { ResourcesSettingsView(monitor: resources) }
+        case .inGameMenu: InGameMenuSettingsView()
         case .advanced: AdvancedSettingsView()
         }
     }
@@ -299,7 +306,7 @@ struct AccountsSettingsView: View {
                     Text(verbatim: "Steam")
                     Text(steamLine).foregroundStyle(.secondary)
                 }
-                ForEach([GameSource.epic, .gog, .amazon]) { store in
+                ForEach(StoreCenter.offered) { store in
                     StoreAccountRow(source: store, center: stores)
                 }
             } footer: {

@@ -295,9 +295,9 @@ struct OnboardingFlowTests {
     @Test("Only the manifest-pinned Cartouche Wine is recommended, never WineHQ")
     func crossOverDefault() throws {
         let manifest = try RunnerManifest.bundled()
-        #expect(RunnerOffer.recommended(manifest)?.id == "wine-crossover-26.3.0-2")
+        #expect(RunnerOffer.recommended(manifest)?.id == "wine-crossover-26.3.1")
         let reversed = RunnerManifest(format: manifest.format, revision: manifest.revision, builds: manifest.builds.reversed())
-        #expect(RunnerOffer.recommended(reversed)?.id == "wine-crossover-26.3.0-2")
+        #expect(RunnerOffer.recommended(reversed)?.id == "wine-crossover-26.3.1")
         let wineHQOnly = RunnerManifest(format: manifest.format, revision: manifest.revision,
                                       builds: manifest.builds.filter { $0.origin == .winehq })
         #expect(RunnerOffer.recommended(wineHQOnly) == nil)

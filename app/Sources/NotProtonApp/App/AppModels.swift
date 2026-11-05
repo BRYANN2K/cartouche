@@ -8,16 +8,25 @@ extension CartoucheApp {
             model: library,
             searchCover: { [library] game in library.coverSearch = game },
             showInfo: { [library] in library.showPanel = true },
-            afterLaunch: { [afterLaunch] in
+            afterLaunch: { [afterLaunch, resources] in
+                resources.gameLaunched()
                 switch afterLaunch {
                 case .hide: NSApp.hide(nil)
                 case .keepOpen: break
                 case .quit: NSApp.terminate(nil)
                 }
             },
-            playConsole: { [consoleCenter] game in Task { await consoleCenter.play(game.id, resume: true) } },
+            playConsole: { [consoleCenter, resources] game in
+                resources.gameLaunched()
+                Task { await consoleCenter.play(game.id, resume: true) }
+            },
             removeConsole: { [consoleCenter] game in Task { await consoleCenter.removeGame(game.id) } },
-            stores: stores)
+            stores: stores,
+            beforePlay: { [resources] _, go in
+                let presenter = BackgroundAppsPresenter.shared
+                guard !presenter.rules.muted, !OverlayController.shared.gameRunning else { return go() }
+                Task { presenter.beforePlay(overloaded: await resources.quickCheck(), go) }
+            })
     }
 
     func makeOnboarding() -> OnboardingModel {
@@ -129,6 +138,8 @@ extension CartoucheApp {
         library.steamSizes = platforms?.sizes ?? [:]
         library.macBuilds = platforms?.both ?? []
         library.adoptSteamChoices(mappings.0, written: mappings.1)
+        // Each game's folder answers DLSS and the anti-cheat before its Steam variables are written
+        await library.refreshSteamEnvironments()
     }
 
     func syncRunnerList() async {

@@ -68,6 +68,11 @@ enum AdvancedPrefixSettings {
                       #"  for dll in nvapi64.dll nvngx.dll; do"#,
                       #"    [ ! -f "$dir/$dll" ] || cp -f "$dir/$dll" "$WINEPREFIX/drive_c/windows/system32/$dll" || exit $?"#,
                       "  done", "done", "IFS=$old_ifs"]
+        } else {
+            let source = BackendInstaller.folder(for: .dxmt, in: BackendInstaller.folder).appending(path: "x86_64-windows")
+            lines += ["for dll in nvapi64.dll nvngx.dll; do",
+                      "  ! cmp -s " + GameLauncher.quote(source.path(percentEncoded: false)) + #"/"$dll" "$WINEPREFIX/drive_c/windows/system32/$dll" \"#,
+                      #"    || rm -f "$WINEPREFIX/drive_c/windows/system32/$dll""#, "done"]
         }
         return lines
     }

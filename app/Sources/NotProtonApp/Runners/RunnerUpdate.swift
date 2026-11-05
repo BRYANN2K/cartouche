@@ -24,6 +24,12 @@ enum RunnerUpdate {
         }
     }
 
+    // Moving a game from `current` to `mapped` would go back to an older build of the same series
+    static func isDowngrade(from current: String?, to mapped: String?) -> Bool {
+        guard let current = current.flatMap(Series.init(id:)), let mapped = mapped.flatMap(Series.init(id:)) else { return false }
+        return mapped.isOlder(than: current)
+    }
+
     // "Cartouche Wine 26.3.0-1": the revision tells two builds of one version apart
     static func cartoucheTitle(id: String) -> String? {
         guard let series = Series(id: id), series.family == cartoucheFamily else { return nil }

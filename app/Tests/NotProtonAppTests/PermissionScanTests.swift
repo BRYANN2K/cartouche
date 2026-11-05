@@ -57,18 +57,26 @@ struct PermissionScanTests {
         return found
     }
 
-    @Test("No camera, microphone, screen recording, Bluetooth or Full Disk Access API in the app")
+    @Test("No camera, microphone, Bluetooth or Full Disk Access API in the app; Screen Recording only in the in-game menu's reader")
     func noUnusedPermissionAPIs() throws {
         let forbidden = ["AVCaptureDevice", "import AVFoundation", "CoreBluetooth", "CBCentralManager",
-                         "CBPeripheralManager", "ScreenCaptureKit", "SCShareableContent",
-                         "CGRequestScreenCaptureAccess", "CGPreflightScreenCaptureAccess",
-                         "CGWindowListCreateImage", "Privacy_AllFiles", "Privacy_ScreenCapture",
-                         "Privacy_Camera", "Privacy_Microphone", "Privacy_Bluetooth"]
+                         "CBPeripheralManager", "CGWindowListCreateImage", "Privacy_AllFiles", "Privacy_ScreenCapture",
+                         "Privacy_Camera", "Privacy_Microphone", "Privacy_Bluetooth", "SCScreenshotManager", "SCRecordingOutput"]
+        // Anti-cheat FPS, measured from outside the game, asked from « Autoriser… » only
+        let screenRecording = ["ScreenCaptureKit", "SCShareableContent", "CGRequestScreenCaptureAccess",
+                               "CGPreflightScreenCaptureAccess"]
+        let reader = "Overlay/OverlayReaders.swift"
+        var requests = 0
         for (file, text) in try swiftSources() {
             for name in forbidden {
                 #expect(!text.contains(name), "\(name) in \(file)")
             }
+            for name in screenRecording where !file.hasSuffix(reader) {
+                #expect(!text.contains(name), "\(name) in \(file)")
+            }
+            requests += text.components(separatedBy: "CGRequestScreenCaptureAccess(").count - 1
         }
+        #expect(requests == 1)
     }
 
     @Test("Only the permissions module reaches a macOS prompt")

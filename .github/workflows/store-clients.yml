@@ -6,7 +6,7 @@ name: store-clients
 # whenever the pins change and once a week, in case a release asset is replaced.
 on:
   push:
-    branches: [main]
+    branches: [main, dev, beta]
     paths: [app/Sources/NotProtonApp/Resources/store-clients.json, packaging/store_clients.py]
   pull_request:
     paths: [app/Sources/NotProtonApp/Resources/store-clients.json, packaging/store_clients.py]
@@ -17,11 +17,19 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: store-clients-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   verify:
+    name: verify the store client pins
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - name: Check the pins
         run: python3 packaging/store_clients.py check app/Sources/NotProtonApp/Resources/store-clients.json

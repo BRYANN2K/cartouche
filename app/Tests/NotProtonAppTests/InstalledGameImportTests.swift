@@ -243,8 +243,7 @@ struct InstalledGameImportTests {
                 window.appearance = host.appearance
                 window.contentView = host
                 host.layoutSubtreeIfNeeded()
-                let rep = try #require(host.bitmapImageRepForCachingDisplay(in: host.bounds))
-                host.cacheDisplay(in: host.bounds, to: rep)
+                let rep = try #require(renderedBitmap(host))
                 try #require(rep.representation(using: .png, properties: [:])).write(to: out.appending(path: "installer-\(name)-\(label).png"))
                 #expect(host.bounds.width > 400)
             }

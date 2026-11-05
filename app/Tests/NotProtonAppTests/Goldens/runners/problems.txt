@@ -1,0 +1,13 @@
+format 2 is not 1
+build ../escape: the id can only hold letters, digits, dot, dash and underscore
+build ../escape: kind crossOver is not downloadable
+build ../escape: http://example.com/a.tar.xz is not an https URL on github.com
+build ../escape: size -1
+build ../escape: ABC is not a SHA-256
+build ../escape: root ../../etc leaves the runner folder
+build ../escape: loader /bin/sh leaves the runner folder
+build ../escape: flavors ["arm"]
+build ../escape is listed twice
+build ../escape: the id can only hold letters, digits, dot, dash and underscore
+build ../escape: a pending pin keeps size 0
+build ../escape: flavors []

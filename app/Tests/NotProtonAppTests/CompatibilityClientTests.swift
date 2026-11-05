@@ -110,7 +110,107 @@ struct CompatibilityClientTests {
         #expect(CompatibilityAge.notice(generated: start, now: start.addingTimeInterval(4 * 86400), offline: true)
             == "Offline. Compatibility data from 4 days ago.")
         #expect(CompatibilityAge.notice(generated: start, now: start.addingTimeInterval(9 * 86400), offline: false)
-            == "Compatibility data from 9 days ago.")
+            == "Couldn't refresh. Compatibility data from 9 days ago.")
+    }
+
+    // The reported case: the published file was 4 days old and the app had fetched it the day before
+    @Test("Old data that refreshed fine shows no notice")
+    @MainActor
+    func oldButRefreshed() async throws {
+        let work = try scratchDirectory("compat-old-ok")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let client = client(work, Server([.success((try CompatFixture.packed(), 200))]))
+        let model = CompatibilityModel(client: client)
+        model.now = { CompatFixture.generated.addingTimeInterval(4 * 86400) }
+
+        guard case .updated = await model.refresh() else { Issue.record("expected updated"); return }
+        #expect(!model.refreshFailed)
+        #expect(model.ageNotice == nil)
+        #expect(model.panel(appID: 1245620, method: .wine).ageNotice == nil)
+    }
+
+    @Test("A failed refresh on fresh data shows no notice")
+    @MainActor
+    func freshButFailed() async throws {
+        let work = try scratchDirectory("compat-fresh-failed")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let client = client(work, Server([.success((Data(), 500))]))
+        try seedCache(client)
+        let model = CompatibilityModel(client: client)
+        model.now = { CompatFixture.generated.addingTimeInterval(86400) }
+
+        await model.refresh()
+        #expect(model.refreshFailed)
+        #expect(model.ageNotice == nil)
+    }
+
+    @Test("Stale data after a failed refresh says so, and Retry asks again at once")
+    @MainActor
+    func staleFailedThenRetry() async throws {
+        let work = try scratchDirectory("compat-retry")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let newer = Data(try CompatFixture.json()
+            .replacingOccurrences(of: "2026-10-19T03:17:00Z", with: "2026-10-27T03:17:00Z").utf8)
+        let server = Server([.success((Data(), 404)), .success((newer, 200))])
+        let client = client(work, server)
+        try seedCache(client)
+        let model = CompatibilityModel(client: client)
+        model.now = { CompatFixture.generated.addingTimeInterval(9 * 86400) }
+
+        guard case .unavailable(404) = await model.refresh() else { Issue.record("expected 404"); return }
+        #expect(model.ageNotice == "Couldn't refresh. Compatibility data from 9 days ago.")
+        #expect(model.panel(appID: 1245620, method: .wine).ageNotice == model.ageNotice)
+
+        // Within the day an automatic check stays quiet; Retry goes through
+        guard case .skipped = await model.refresh() else { Issue.record("expected skipped"); return }
+        #expect(server.asked == 1)
+        #expect(model.ageNotice != nil)
+        await model.retry()
+        #expect(server.asked == 2)
+        #expect(!model.refreshFailed)
+        #expect(model.ageNotice == nil)
+    }
+
+    @Test("Retry works with the daily switch off")
+    @MainActor
+    func retryWithDailyOff() async throws {
+        let work = try scratchDirectory("compat-retry-off")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let server = Server([.success((try CompatFixture.packed(), 200))])
+        let model = CompatibilityModel(client: client(work, server))
+        model.dailyChecks = { false }
+        await model.retry()
+        #expect(server.asked == 1)
+        #expect(model.data?.generated == CompatFixture.generated)
+    }
+
+    @Test("While the app stays open it checks again, sooner after a failure")
+    @MainActor
+    func keepsFresh() async throws {
+        let work = try scratchDirectory("compat-keep-fresh")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let packed = try CompatFixture.packed()
+        let server = Server([Self.offline, Self.offline, Self.offline, .success((packed, 200))])
+        let client = client(work, server)
+        try seedCache(client)
+        let model = CompatibilityModel(client: client)
+        model.now = { CompatFixture.generated.addingTimeInterval(5 * 86400) }
+
+        await model.refresh()
+        #expect(model.ageNotice == "Offline. Compatibility data from 5 days ago.")
+        var delays: [TimeInterval] = []
+        await model.keepFresh { delay in
+            delays.append(delay)
+            if delays.count == 5 { throw CancellationError() }
+        }
+
+        #expect(delays.count == 5)
+        #expect((450...900).contains(delays[0]))
+        #expect((900...1800).contains(delays[1]))
+        #expect((1800...3600).contains(delays[2]))
+        #expect(delays[3] == CompatibilityModel.checkInterval)
+        #expect(server.asked == 4)
+        #expect(model.ageNotice == nil)
     }
 
     @Test("Offline with no cache: no data and no age")

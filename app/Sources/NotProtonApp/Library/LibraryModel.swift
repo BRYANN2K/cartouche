@@ -22,6 +22,32 @@ struct LibrarySection: Identifiable, Equatable {
     let games: [Game]
 }
 
+enum LibrarySort: String, CaseIterable, Sendable {
+    case name, lastPlayed, playTime
+
+    var title: String {
+        switch self {
+        case .name: String(localized: "Name")
+        case .lastPlayed: String(localized: "Last Played")
+        case .playTime: String(localized: "Play Time")
+        }
+    }
+
+    func ordered(_ games: [Game]) -> [Game] { games.sorted(by: precedes) }
+
+    private func precedes(_ a: Game, _ b: Game) -> Bool {
+        switch self {
+        case .name: break
+        case .lastPlayed:
+            if a.lastPlayed != b.lastPlayed { return (a.lastPlayed ?? .distantPast) > (b.lastPlayed ?? .distantPast) }
+        case .playTime:
+            if a.playtimeMinutes != b.playtimeMinutes { return a.playtimeMinutes > b.playtimeMinutes }
+        }
+        let names = a.name.localizedStandardCompare(b.name)
+        return names == .orderedSame ? a.id < b.id : names == .orderedAscending
+    }
+}
+
 enum LibraryScreen: Equatable {
     case loading
     case welcome
@@ -31,6 +57,21 @@ enum LibraryScreen: Equatable {
     case noResults(String)
     case emptyFavorites
     case emptySource(GameSource)
+    case noInstalledGames
+
+    var showsLibraryControls: Bool {
+        switch self {
+        case .grid, .noResults, .noInstalledGames: true
+        default: false
+        }
+    }
+
+    var showsStoreLink: Bool {
+        switch self {
+        case .emptySource: true
+        default: showsLibraryControls
+        }
+    }
 
     var showsPanel: Bool {
         switch self {
@@ -51,7 +92,15 @@ final class LibraryModel {
     var otherGames: [Game] = [] { didSet { rebuildGames() } }
     var consoles: [String] = []
     var consoleGames: [Game] = [] { didSet { rebuildGames() } }
-    var stores: [GameSource: StoreConnection] = [:]
+    var stores: [GameSource: StoreConnection] = [:] { didSet { keepSourceInSidebar() } }
+    // True: added with the +. False: removed by right-click. Absent: its games decide.
+    private var sidebarStores: [GameSource: Bool] {
+        didSet {
+            let saved = Dictionary(uniqueKeysWithValues: sidebarStores.map { ($0.key.id, $0.value) })
+            defaults.set(saved, forKey: Self.sidebarStoresKey)
+            keepSourceInSidebar()
+        }
+    }
     var runners: [Runner] = []
     // Loaded off the main actor with runners; empty until then
     var runnerManifest = RunnerManifest(format: RunnerManifest.format, revision: 0, builds: [])
@@ -61,6 +110,8 @@ final class LibraryModel {
     var macBuilds: Set<Int> = [] { didSet { rebuildGames() } }
 
     private(set) var allGames: [Game] = []
+    // allGames in the chosen order, sorted once: every list reads this many times per frame
+    private var sortedGames: [Game] = []
     @ObservationIgnored private var gamesByID: [String: Game] = [:]
 
     var selection: SidebarItem = .all {
@@ -75,13 +126,27 @@ final class LibraryModel {
     var verificationRequest: Game?
     var installRequest: Game?
     var showAddConsoles = false
+    var showAddStores = false
     // The game whose Change Cover sheet searches Steam; nil keeps the sheet closed
     var coverSearch: Game?
     var searchFocusRequests = 0
     var searchText = ""
     var isOffline = false
     var showNotInstalled: Bool {
-        didSet { defaults.set(showNotInstalled, forKey: Self.showNotInstalledKey) }
+        didSet {
+            defaults.set(showNotInstalled, forKey: Self.showNotInstalledKey)
+            keepSelectionVisible()
+        }
+    }
+    var sort: LibrarySort {
+        didSet {
+            defaults.set(sort.rawValue, forKey: Self.sortKey)
+            sortedGames = sort.ordered(allGames)
+        }
+    }
+    var installedOnly: Bool {
+        get { !showNotInstalled }
+        set { showNotInstalled = !newValue }
     }
 
     private(set) var choices: LibraryChoices {
@@ -111,12 +176,30 @@ final class LibraryModel {
     @ObservationIgnored var onSteamQuit: (@MainActor () async -> Void)?
 
     @ObservationIgnored let store: LibraryStore
+    // The per-game profiles the in-game menu shares, next to library.json
+    @ObservationIgnored let profiles: OverlayProfileStore
+    @ObservationIgnored var profileCache: [String: OverlaySettings] = [:]
+    // One walk per installed game answers DLSS and the anti-cheat; launches await it before writing variables
+    var folderScans: [String: GameDiskScan] = [:]
+    @ObservationIgnored var scanning: [String: Task<GameDiskScan, Never>] = [:]
+    @ObservationIgnored var scanRequests: Set<String> = []
+    @ObservationIgnored var scanTargets: [String: URL] = [:]
+    @ObservationIgnored var folderScanner: @Sendable (URL) -> GameDiskScan = { GameDiskScan.scan(in: $0) }
+    // Plays waiting on the walk, by game: a second Play joins the wait instead of launching twice
+    @ObservationIgnored var pendingPlays: [String: Task<Void, Never>] = [:]
+    // Per game: the last launch really wrote CARTOUCHE_FRAMEGEN=1, so the library is in the game
+    @ObservationIgnored var framegenLaunched: [String: Bool] = [:]
+    var profileRevision = 0
+    // Set by the app: the anti-cheat a game ships with, from the compatibility data
+    @ObservationIgnored var antiCheat: @MainActor (Game) -> String? = { _ in nil }
     @ObservationIgnored let importer: SteamLibraryImporter
     @ObservationIgnored let defaults: UserDefaults
     @ObservationIgnored var now: () -> Date = { Date() }
     @ObservationIgnored private var watcher: Task<Void, Never>?
 
     static let showNotInstalledKey = "library.showNotInstalled"
+    static let sortKey = "library.sort"
+    static let sidebarStoresKey = "library.sidebarStores"
 
     init(store: LibraryStore = LibraryStore(), importer: SteamLibraryImporter = SteamLibraryImporter(),
          defaults: UserDefaults = .standard) {
@@ -126,7 +209,14 @@ final class LibraryModel {
         installsFolder = GameFolder.current(defaults)
         previousInstalls = GameFolder.previous(defaults)
         choices = store.load()
+        profiles = OverlayProfileStore(folder: store.folder.appending(path: "Overlay", directoryHint: .isDirectory))
         showNotInstalled = defaults.object(forKey: Self.showNotInstalledKey) as? Bool ?? true
+        sort = defaults.string(forKey: Self.sortKey).flatMap(LibrarySort.init(rawValue:)) ?? .name
+        let saved = defaults.dictionary(forKey: Self.sidebarStoresKey) as? [String: Bool] ?? [:]
+        sidebarStores = Dictionary(uniqueKeysWithValues: saved.compactMap { id, shown in
+            GameSource(id: id).flatMap { $0.isStore ? ($0, shown) : nil }
+        })
+        migrateProfiles()
     }
 
     // MARK: Loading
@@ -204,8 +294,12 @@ final class LibraryModel {
             }
             return game
         } + consoleGames
+        sortedGames = sort.ordered(allGames)
         gamesByID = Dictionary(allGames.map { ($0.id, $0) }, uniquingKeysWith: { _, last in last })
-        if let id = selectedGameID, gamesByID[id] == nil { keepSelectionVisible() }
+        if let id = selectedGameID, gamesByID[id].map({ showNotInstalled || $0.installed }) != true {
+            keepSelectionVisible()
+        }
+        keepSourceInSidebar()
     }
 
     func game(_ id: String?) -> Game? {
@@ -228,7 +322,7 @@ final class LibraryModel {
         switch source {
         case .steam: steam.presence != .notInstalled
         case .installer, .console: true
-        case .epic, .gog, .amazon:
+        case .epic, .gog, .amazon, .ea, .ubisoft:
             switch stores[source] ?? .notConnected {
             case .connected, .expired: true
             case .notConnected, .waiting: false
@@ -236,17 +330,24 @@ final class LibraryModel {
         }
     }
 
-    func isVisible(_ game: Game) -> Bool {
-        isConnected(game.source) && !isHidden(game.id) && (showNotInstalled || game.installed)
+    private func isListed(_ game: Game) -> Bool { isConnected(game.source) && !isHidden(game.id) }
+
+    func isVisible(_ game: Game) -> Bool { isListed(game) && (showNotInstalled || game.installed) }
+
+    private func belongs(_ game: Game, to item: SidebarItem) -> Bool {
+        switch item {
+        case .all: true
+        case .favorites: isFavorite(game.id)
+        case .source(let source): game.source == source
+        }
     }
 
     func games(in item: SidebarItem) -> [Game] {
-        let visible = allGames.filter(isVisible)
-        switch item {
-        case .all: return visible
-        case .favorites: return visible.filter { isFavorite($0.id) }
-        case .source(let source): return visible.filter { $0.source == source }
-        }
+        sortedGames.filter { isVisible($0) && belongs($0, to: item) }
+    }
+
+    private func filterHidesEverything(in item: SidebarItem) -> Bool {
+        !showNotInstalled && games(in: item).isEmpty && sortedGames.contains { isListed($0) && belongs($0, to: item) }
     }
 
     var hiddenGames: [Game] { allGames.filter { isHidden($0.id) } }
@@ -254,7 +355,7 @@ final class LibraryModel {
     var searchResults: [Game] {
         let query = searchText.trimmingCharacters(in: .whitespaces)
         guard !query.isEmpty else { return [] }
-        return allGames.filter(isVisible).filter {
+        return sortedGames.filter(isVisible).filter {
             $0.name.range(of: query, options: [.caseInsensitive, .diacriticInsensitive]) != nil
         }
     }
@@ -282,6 +383,8 @@ final class LibraryModel {
             return .steamInstall
         case .source(let source) where source.isStore && !isConnected(source):
             return .signIn(source)
+        case _ where filterHidesEverything(in: selection):
+            return .noInstalledGames
         case .favorites:
             let list = games(in: .favorites)
             return list.isEmpty ? .emptyFavorites : .grid([section(id: "favorites", games: list, titled: false)])
@@ -360,9 +463,11 @@ final class LibraryModel {
     func account(for source: GameSource) -> String? {
         switch source {
         case .steam: return steam.account?.accountName
-        case .epic, .gog, .amazon:
+        case .epic, .gog, .amazon, .ea, .ubisoft:
             switch stores[source] ?? .notConnected {
-            case .connected(let account), .expired(let account): return account
+            case .connected(let account), .expired(let account):
+                let shown = StoreConnection.shownAccount(account)
+                return shown.isEmpty && !account.isEmpty ? nil : shown
             case .notConnected, .waiting: return nil
             }
         case .installer, .console: return nil
@@ -378,7 +483,7 @@ final class LibraryModel {
             if source == .steam && steam.presence == .notInstalled { return String(localized: "Get") }
             if source.isStore {
                 switch stores[source] ?? .notConnected {
-                case .notConnected, .waiting: return String(localized: "Sign In")
+                case .notConnected, .waiting: return String(localized: "library.badge.signin", defaultValue: "Sign In")
                 case .expired: return "!"
                 case .connected: break
                 }
@@ -386,6 +491,67 @@ final class LibraryModel {
             let n = games(in: item).count
             return n > 0 ? String(n) : nil
         }
+    }
+
+    // MARK: Sidebar
+
+    private func hasGames(_ source: GameSource) -> Bool { allGames.contains { $0.source == source } }
+
+    private func isInSidebar(_ source: GameSource) -> Bool {
+        if source == .installer { return hasGames(source) }
+        guard source.isStore else { return true }
+        return stores[source, default: .notConnected] != .notConnected || sidebarStores[source] ?? hasGames(source)
+    }
+
+    var sidebarSources: [GameSource] { GameSource.offered.filter(isInSidebar) }
+
+    var addableStores: [GameSource] {
+        let stores = GameSource.offered.filter { $0.isStore && !isInSidebar($0) }
+        return stores.filter { !$0.isExperimental } + stores.filter(\.isExperimental)
+    }
+
+    func addStore(_ store: GameSource) {
+        if store.isStore { sidebarStores[store] = true }
+        selection = .source(store)
+    }
+
+    func canRemoveStore(_ source: GameSource) -> Bool {
+        source.isStore && stores[source, default: .notConnected] == .notConnected
+    }
+
+    func removeStore(_ store: GameSource) {
+        if canRemoveStore(store) { sidebarStores[store] = false }
+    }
+
+    // Stricter than Remove: the + only takes back what holds nothing yet
+    func canUnaddStore(_ store: GameSource) -> Bool { canRemoveStore(store) && !hasGames(store) }
+
+    func unaddStore(_ store: GameSource) {
+        if canUnaddStore(store) { removeStore(store) }
+    }
+
+    func storeMenu(added: Set<String>) -> [AddMenuItem] {
+        let stores = GameSource.offered.filter { $0 != .installer }
+        return (stores.filter { !$0.isExperimental } + stores.filter(\.isExperimental)).compactMap { store in
+            guard let badge = PlatformBadge.source(store) else { return nil }
+            let state: AddMenuItem.State
+            if !isInSidebar(store) {
+                state = .available
+            } else {
+                state = added.contains(store.id) && canUnaddStore(store) ? .added : .locked
+            }
+            return AddMenuItem(id: store.id, name: store.name, badge: badge,
+                               note: store.isExperimental ? String(localized: "Experimental") : nil, state: state)
+        }
+    }
+
+    private func keepSourceInSidebar() {
+        if case .source(let source) = selection, !isInSidebar(source) { selection = .all }
+    }
+
+    func isSignedIn(_ item: SidebarItem) -> Bool {
+        guard case .source(let source) = item else { return false }
+        return (stores[source] ?? .notConnected).isSignedIn
     }
 
     func isExpired(_ item: SidebarItem) -> Bool {
@@ -449,7 +615,8 @@ final class LibraryModel {
         for var record in records where record.appID == nil {
             guard let found = await lookup.match(for: record.name) else { continue }
             record.appID = found.appID
-            let folder = GameFolder.of(slug: record.id, in: installs), saving = record
+            guard let folder = GameFolder.of(slug: record.id, in: installs) else { continue }
+            let saving = record
             do {
                 try await Task.detached { try InstalledGames.save(saving, in: folder) }.value
                 changed = true
@@ -525,6 +692,7 @@ final class LibraryModel {
     func setup(for id: String) -> GameSetupChoice { choices.setups[id] ?? GameSetupChoice() }
 
     func setSetup(_ setup: GameSetupChoice, for id: String, tellSteam: Bool = true) {
+        let setup = absorbLegacy(setup, for: id)
         choices.setups[id] = setup
         persist()
         if let game = game(id), game.source == .installer {
@@ -536,6 +704,7 @@ final class LibraryModel {
 
     func adoptSetups(_ updates: [String: GameSetupChoice]) {
         guard !updates.isEmpty else { return }
+        let updates = updates.reduce(into: [String: GameSetupChoice]()) { $0[$1.key] = absorbLegacy($1.value, for: $1.key) }
         choices.setups.merge(updates) { _, new in new }
         persist()
         for (id, setup) in updates where game(id)?.source == .installer {
@@ -550,6 +719,12 @@ final class LibraryModel {
         try store.save(updated)
         choices = updated
         return moved
+    }
+
+    // A setup rewritten in place, with nothing passed on to Steam
+    func replaceChoice(_ setup: GameSetupChoice, for id: String) {
+        choices.setups[id] = setup
+        persist()
     }
 
     private func persist() {

@@ -80,8 +80,15 @@ enum InstalledGames {
         return found.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }
 
+    // The id is written as the folder's name; a record that says otherwise is not trusted, since uninstall joins it to a path.
     static func record(in folder: GameFolder) -> InstalledGame? {
-        (try? Data(contentsOf: folder.record)).flatMap { try? RecordCoding.decoder.decode(InstalledGame.self, from: $0) }
+        guard let data = try? Data(contentsOf: folder.record),
+              let game = try? RecordCoding.decoder.decode(InstalledGame.self, from: data) else { return nil }
+        guard GameFolder.isSafeSlug(game.id), game.id == folder.root.lastPathComponent else {
+            AppLog.note("installs: \(folder.record.path(percentEncoded: false)) names the id \"\(game.id)\", not its folder; left out")
+            return nil
+        }
+        return game
     }
 
     static func save(_ game: InstalledGame, in folder: GameFolder) throws {
@@ -110,6 +117,7 @@ enum GameLauncher {
         lines += AdvancedPrefixSettings.launcherLines(environment: env, wine: wine)
         lines += CrashHandling.launcherLines
         lines += controlsBlock(folder: GameFolder(root: prefix.deletingLastPathComponent()))
+        lines += FrameGeneration.launcherLines(stats: prefix.deletingLastPathComponent())
         lines += fpsLines
         lines.append("cd \(quote(exe.deletingLastPathComponent().path(percentEncoded: false))) || exit 1")
         lines.append("exec \(quote(wine.loader.path(percentEncoded: false))) \(quote(exe.path(percentEncoded: false))) \"$@\"")

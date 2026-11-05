@@ -121,6 +121,26 @@ struct StoreClientTests {
         #expect(lines.all.compactMap(ClientProgress.fraction) == [0.42])
     }
 
+    @Test("run() settles on the process's exit, not on the EOF of pipes a child keeps open")
+    func exitNotPipeEOF() async throws {
+        // The child inherits the pipes and outlives its parent: the EOF the run used to
+        // wait on comes only when that descendant dies (B-E1 — EA's installer leaves the
+        // client and the background service running, so "Installing" never ended).
+        let command = ClientCommand(executable: URL(filePath: "/bin/sh"),
+                                    arguments: ["-c", "sleep 30 & echo out; echo err >&2"],
+                                    environment: [:])
+        let output = await withTaskGroup(of: ClientOutput?.self) { group in
+            group.addTask { try? await ClientProcess.run(command) }
+            group.addTask { try? await Task.sleep(for: .seconds(10)); return nil }
+            defer { group.cancelAll() }
+            return await group.next() ?? nil
+        }
+        let run = try #require(output, "run() still waits for the descendants' EOF")
+        #expect(run.succeeded)
+        #expect(run.stdout.contains("out"))
+        #expect(run.stderr.contains("err"))
+    }
+
     @Test("Progress lines of all three clients are read")
     func progress() {
         #expect(ClientProgress.fraction("[DLManager] INFO: = Progress: 12.50% (1/8), Running for 00:00:01, ETA: 00:00:07") == 0.125)

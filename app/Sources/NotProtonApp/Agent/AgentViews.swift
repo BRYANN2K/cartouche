@@ -31,7 +31,7 @@ struct AgentsSettingsView: View {
                         HStack {
                             Button("Deny") { model.answer(approval, allow: false) }
                             Button("Allow") { model.answer(approval, allow: true) }
-                                .buttonStyle(.borderedProminent)
+                                .buttonStyle(.borderedProminent).tint(Glass.accentFill)
                         }
                     } label: {
                         Text("\(approval.client) wants to \(approval.text).")
@@ -147,7 +147,7 @@ struct AgentApprovalSheet: View {
                     .keyboardShortcut(.cancelAction)
                 Button("Allow") { model.answer(approval, allow: true) }
                     .keyboardShortcut(.defaultAction)
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.borderedProminent).tint(Glass.accentFill)
             }
         }
         .padding(24)

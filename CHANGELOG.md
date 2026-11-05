@@ -6,6 +6,42 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 
 ## [Unreleased]
 
+## [0.2.0-beta1] - 2026-10-31
+
+- In-game menu, ⌥C: the game's settings over the game (performance, upscaling, background apps) without leaving it.
+- HUD, ⌥⇧C: FPS, 1% low and frame time in a corner of the screen. Off until you turn it on for a game.
+- Upscaling: when a game ships DLSS and turns it on, D3DMetal and DXMT run it on MetalFX, and Cartouche Engine tunes the result. The game's own FSR keeps working as before.
+- Cartouche loads nothing into a game unless that game's settings ask for it.
+- Game page, Advanced: the same per-game settings as the in-game menu, one profile per game.
+- Anti-cheat: on a protected game, found in the compatibility data or in the game's folder, Cartouche Engine and the HUD only run with your consent.
+- Background Apps, ⌥⌘R: pause the apps that slow the game down, a warning when the Mac is overloaded, resume after the game.
+- Library: a bar under the toolbar sorts by name, last played or play time, and an Installed filter hides the rest. Cartouche remembers both.
+- Frame generation: shown as "Soon" in the in-game menu.
+- What's New: a short tour of these additions on first launch.
+- Steam: the compatibility hint names the Cartouche tool.
+- Steam integration 0.2.0-beta1-1: Cartouche updates it in Steam when Steam quits.
+- Release builds sign with one stable local certificate instead of a new ad-hoc signature each time: the Keychain asks one last time for each existing item (choose Always Allow), then never again on updates.
+- The update window shows the release notes from cartouche.bryann2k.dev/changelog, with images, signed like the update. The notes stay embedded in the feed as a fallback.
+- Background Apps: the window no longer opens by itself when Cartouche comes back to the front. It only offers itself before Play, or by hand (⌥⌘R, the menus, the notification).
+- Background Apps: the load alert threshold defaults to 60% CPU and GPU; a threshold you set is still respected.
+- Background Apps: nothing is protected by default anymore. The beta's built-in protected list resets to empty on update; a list you chose yourself is kept.
+- Background Apps: Steam is a launcher, never the "Current game", and its many processes read as one protected "Steam" line. Its load counts as the game's only while a game actually runs.
+- Background Apps: the "All" tab ends with a "System and Others" line, so the rows and it add up to the Mac's CPU.
+- Background Apps: the "Apps" tab lists only what Pause and Quit can act on. CPU, GPU and RAM headers sort the list; the window refreshes every second while it is open.
+- Ubisoft Connect: install the official launcher from Cartouche, sign in, and see the games you own in your library. Open Launcher and Open Store are one click away.
+- Sidebar: Steam alone by default. The + next to PC adds the other stores, and a right-click removes one you are not signed in to. Connected stores stay.
+- Keychain: no prompt at launch, and one prompt on update instead of one per store.
+- In-game FPS on anti-cheat games: the outside counter restarts after a failure, and a refused Screen Recording request says so.
+- Steam: signatures for client 1792618285.
+- Security: fixes from an independent audit. Agent approvals show a program's full command line and name the agent in the notification, shells and launchers such as cmd.exe are refused, a retried install asks again, at most 5 approvals wait at once, Winetricks takes verb names only, errors are scrubbed like replies, the action log keeps every argument, and file checks no longer reveal which files exist elsewhere. Uninstall and staging cleanup check the folder they remove, and very large numbers in JSON no longer crash the app. SECURITY.md now says what Full access allows.
+- Uninstalling an Epic, GOG or Amazon game moves only its files, prefix and logs to the Trash. A folder picked in the install sheet now gets the game in its own subfolder, and your other files in it are never touched (#8).
+- Sidebar: the + opens a small menu of stores or consoles. One click adds, the menu stays open, and a second click takes it back while nothing depends on it yet.
+- Sidebar: stores and consoles show their mark in the text colour, or a short text mark.
+- The app and the in-game menu follow the accent colour chosen in System Settings. Red is kept for failures and destructive actions. In dark mode, the Play button is white.
+- In-game menu: the library no longer shows behind the menu when Cartouche hid itself at game launch. A windowed game gets the menu and the HUD over its window only. Over a fullscreen game, the menu opens on the game's Space, and the game keeps the focus when it closes instead of minimizing.
+- In-game menu: a game that already has Cartouche's HUD no longer shows the FPS twice.
+- Cartouche Wine 26.3.1, the first with its own version number: the macOS menu bar reads Cartouche Wine instead of CrossOver-Hosted Application, and a fullscreen game no longer minimizes when the in-game menu opens or closes. Cartouche copies the Metal shader cache to the new name, so games do not rebuild their shaders.
+
 ## [0.1.2] - 2026-10-25
 
 - Installing a Steam game from Cartouche: Accept and Install now goes through when Steam no longer serves the license it just showed ("No eula for app").

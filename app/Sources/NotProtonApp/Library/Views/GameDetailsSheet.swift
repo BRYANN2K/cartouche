@@ -90,7 +90,7 @@ struct GameDetailsSheet: View {
             }
         case .advanced:
             Section(section.title) {
-                AdvancedGameRows(game: content.game, model: model)
+                AdvancedGameRows(game: content.game, model: model, antiCheat: model.antiCheatName(for: content.game))
             }
         case .sources:
             Section {

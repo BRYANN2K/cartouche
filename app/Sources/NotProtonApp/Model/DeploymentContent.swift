@@ -166,7 +166,7 @@ enum DeploymentContent {
     static func files(
         payload: InstallPayload.Located, bridgePayload: BridgePayload.Located,
         app: URL, bridge: URL, signatures: URL, fonts: URL, overlayShim: URL, iconmaker: URL, appinfo: URL,
-        compatTools: URL, tools: [InstalledTool], runners: URL, fpsCounter: URL? = nil
+        compatTools: URL, tools: [InstalledTool], runners: URL, fpsCounter: URL? = nil, framegen: URL? = nil
     ) -> [File] {
         var files = [
             File(source: payload.dylib, destination: SupportPaths.Steam.deployedDylib(inBundle: app),
@@ -178,6 +178,10 @@ enum DeploymentContent {
         // Games load it, not Steam, so it can be replaced while Steam runs
         if let source = payload.fpsCounter, let fpsCounter {
             files.append(File(source: source, destination: fpsCounter, name: SupportPaths.fpsCounterName,
+                              needsClientStopped: false))
+        }
+        if let source = payload.framegen, let framegen {
+            files.append(File(source: source, destination: framegen, name: SupportPaths.framegenName,
                               needsClientStopped: false))
         }
         files += payload.signatures.map {
@@ -224,7 +228,7 @@ enum DeploymentContent {
                               overlayShim: SupportPaths.overlayShim, iconmaker: SupportPaths.iconmaker,
                               appinfo: SupportPaths.appinfo, compatTools: SupportPaths.Steam.compatTools,
                               tools: RunnerRegistry.tools(), runners: SupportPaths.runners,
-                              fpsCounter: SupportPaths.fpsCounter)
+                              fpsCounter: SupportPaths.fpsCounter, framegen: SupportPaths.framegen)
             return try inspect(files: files, bundled: Build(version: version, builtAt: payload.builtAt,
                                                                         integrationVersion: CARTOUCHE_STEAM_INTEGRATION_VERSION),
                                installed: build ?? readBuild(at: record(beside: SupportPaths.deployedVersion)),

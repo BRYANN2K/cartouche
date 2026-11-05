@@ -38,6 +38,8 @@ comme sur macOS. Les noms de produits et les identifiants techniques restent inc
 | Accessibility / Local Network | Accessibilité / Réseau local | Libellés des autorisations macOS. |
 | Login Items | Ouverture | Nom de la rubrique macOS ; « ouvrir à la connexion » décrit l’action. |
 | controllers (matériel) | manettes | Le panneau Apple peut s’appeler « Contrôleurs de jeu » ; ne pas appliquer ce nom aux boutons de Cartouche. |
+| upscaling mode Spatial / Temporal | Cartouche / DLSS | Décision du 2026-11-01 : noms visibles des segments « Off · Cartouche · DLSS ». Marques, jamais traduites ; l’enum `UpscaleMode` (`spatial`, `temporal`) garde ses noms internes. « DLSS » désigne le DLSS embarqué par le jeu, rendu via MetalFX — pas une implémentation NVIDIA. |
+| Cartouche Sharpening | Cartouche Engine / moteur Cartouche | Décision du 2026-11-01 : l’ensemble qui charge notre code dans le jeu (upscaling Cartouche, HUD). EN « Cartouche Engine », FR « Moteur Cartouche » (en minuscule dans une phrase : « le moteur Cartouche »), it « Motore Cartouche », zh-Hans « Cartouche 引擎 ». Clés et consentement (`sharpening`, `access.sharpening`) inchangés ; le curseur reste « Sharpness » / « Netteté ». |
 
 ## Typographie et limites
 

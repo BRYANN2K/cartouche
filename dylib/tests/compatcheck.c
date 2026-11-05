@@ -1323,6 +1323,75 @@ static void reload_cases(void) {
     np_compat_set_register_fn(0);
 }
 
+// The files Steam reads for each tool, from the lists the app writes (the app's own goldens),
+// compared byte for byte with app/Tests/NotProtonAppTests/Goldens/steam-tools/vdf.txt.
+// CARTOUCHE_UPDATE_GOLDENS=1 rewrites it.
+#define GOLDENS "app/Tests/NotProtonAppTests/Goldens/steam-tools/"
+
+static void append_file(char **out, size_t *len, const char *label, const char *path) {
+    FILE *f = fopen(path, "r");
+    char chunk[1024];
+    size_t got;
+    int n = snprintf(chunk, sizeof chunk, "== %s\n", label);
+    *out = realloc(*out, *len + (size_t)n + 1);
+    memcpy(*out + *len, chunk, (size_t)n + 1);
+    *len += (size_t)n;
+    if (!f) return;
+    while ((got = fread(chunk, 1, sizeof chunk, f)) > 0) {
+        *out = realloc(*out, *len + got + 1);
+        memcpy(*out + *len, chunk, got);
+        *len += got;
+        (*out)[*len] = '\0';
+    }
+    fclose(f);
+}
+
+static void golden_cases(void) {
+    char tools_dir[768];
+    snprintf(tools_dir, sizeof tools_dir, "%s/golden-tools", test_home);
+    mkdirs(tools_dir);
+    tool_entry_t *list = NULL;
+    int count = 0, cap = 0;
+    read_tool_list_into(GOLDENS "tools.tsv", tools_dir, 0, &list, &count, &cap);
+    read_tool_list_into(GOLDENS "backend-tools.tsv", tools_dir, 1, &list, &count, &cap);
+    check(count > 0, "the tool list goldens read back as tools");
+
+    char *out = NULL;
+    size_t len = 0;
+    for (int i = 0; i < count; i++) {
+        write_tool(&list[i]);
+        const char *files[] = {"compatibilitytool.vdf", "toolmanifest.vdf", "flavor", "build", "backend"};
+        for (size_t k = 0; k < sizeof files / sizeof *files; k++) {
+            char path[1024], label[160];
+            snprintf(path, sizeof path, "%s/%s", list[i].dir, files[k]);
+            if (strcmp(files[k], "backend") == 0 && !exists(path)) continue;
+            snprintf(label, sizeof label, "%s/%s", list[i].name, files[k]);
+            append_file(&out, &len, label, path);
+        }
+    }
+    free(list);
+
+    const char *golden = GOLDENS "vdf.txt";
+    const char *update = getenv("CARTOUCHE_UPDATE_GOLDENS");
+    if (update && strcmp(update, "1") == 0) {
+        FILE *f = fopen(golden, "w");
+        if (f) { fwrite(out, 1, len, f); fclose(f); }
+        check(f != NULL, "the VDF golden is rewritten");
+        free(out);
+        return;
+    }
+    char current[1024];
+    snprintf(current, sizeof current, "%s/vdf.txt", test_home);
+    FILE *f = fopen(current, "w");
+    if (f) { fwrite(out, 1, len, f); fclose(f); }
+    free(out);
+    char cmd[2304];
+    snprintf(cmd, sizeof cmd, "diff -u --label golden --label current '%s' '%s'", golden, current);
+    int same = system(cmd) == 0;
+    check(same, "compatibilitytool.vdf, toolmanifest.vdf and the tool files match Goldens/steam-tools/vdf.txt "
+                "(CARTOUCHE_UPDATE_GOLDENS=1 rewrites it)");
+}
+
 int main(void) {
     char home_tmpl[] = "out/compatcheck-home.XXXXXX";
     if (mkdtemp(home_tmpl))
@@ -1348,6 +1417,7 @@ int main(void) {
     shortcut_probe_cases();
     shortcut_exe_cases();
     reload_cases();
+    golden_cases();
 
     if (failures) {
         printf("==> compat: %d check(s) failed\n", failures);

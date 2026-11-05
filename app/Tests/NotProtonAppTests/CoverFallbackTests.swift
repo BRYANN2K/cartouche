@@ -8,7 +8,7 @@ import Testing
 @MainActor
 struct CoverFallbackTests {
 
-    private func installerGame(_ id: String = "installer:x", name: String = "CarX Street", exe: URL? = nil) -> Game {
+    private func installerGame(_ id: String = "installer:x", name: String = "Cobalt Street", exe: URL? = nil) -> Game {
         Game(id: id, source: .installer, name: name, installed: true, executable: exe)
     }
 
@@ -30,7 +30,7 @@ struct CoverFallbackTests {
     func placeholder() async throws {
         let fixture = try SteamFixture("placeholder")
         defer { fixture.remove() }
-        let exe = fixture.root.appending(path: "carx.exe")
+        let exe = fixture.root.appending(path: "cobaltstreet.exe")
         try Data("MZ".utf8).write(to: exe)
         let icon = try #require(NSImage(data: SteamFixture.png("X", size: CGSize(width: 64, height: 64), hue: 0.5)))
         var covers = fixture.covers()
@@ -86,8 +86,8 @@ struct CoverFallbackTests {
 
     @Test("The generated cover is stable per game name")
     func hueStable() {
-        #expect(PlaceholderCover.hue("CarX Street") == PlaceholderCover.hue("CarX Street"))
-        #expect(PlaceholderCover.hue("CarX Street") != PlaceholderCover.hue("Elden Ring"))
+        #expect(PlaceholderCover.hue("Cobalt Street") == PlaceholderCover.hue("Cobalt Street"))
+        #expect(PlaceholderCover.hue("Cobalt Street") != PlaceholderCover.hue("Elden Ring"))
     }
 
     // MARK: App IDs on the install record
@@ -96,13 +96,13 @@ struct CoverFallbackTests {
     func resolveRecord() async throws {
         let fixture = try SteamFixture("resolve")
         defer { fixture.remove() }
-        let folder = try writeRecord(fixture, id: "carx-street", name: "CarX Street", appID: nil)
+        let folder = try writeRecord(fixture, id: "cobalt-street", name: "Cobalt Street", appID: nil)
         let asked = Box<[URL]>([])
         var lookup = SteamLookup(directory: fixture.root.appending(path: "lookup"))
         lookup.fetch = { url in
             asked.value.append(url)
             let body = try? JSONSerialization.data(withJSONObject: [
-                "total": 1, "items": [["id": 1_118_860, "type": "app", "name": "CarX Street"]],
+                "total": 1, "items": [["id": 2_100_001, "type": "app", "name": "Cobalt Street"]],
             ])
             return (body ?? Data(), 200)
         }
@@ -111,15 +111,15 @@ struct CoverFallbackTests {
 
         await model.resolveInstallerAppIDs(lookup: lookup, allowed: true)
         let saved = try #require(InstalledGames.record(in: GameFolder(root: folder)))
-        #expect(saved.appID == 1_118_860)
-        #expect(model.game("installer:carx-street")?.steamAppID == 1_118_860)
+        #expect(saved.appID == 2_100_001)
+        #expect(model.game("installer:cobalt-street")?.steamAppID == 2_100_001)
         #expect(asked.value.count == 1)
 
         // A restart sees the saved ID and asks nothing
         let restarted = libraryModel(fixture, defaults: ScratchDefaults())
         restarted.installsFolder = fixture.root.appending(path: "installs")
         restarted.showInstalledGames(InstalledGames.all(in: restarted.installsFolder))
-        #expect(restarted.game("installer:carx-street")?.steamAppID == 1_118_860)
+        #expect(restarted.game("installer:cobalt-street")?.steamAppID == 2_100_001)
         await restarted.resolveInstallerAppIDs(lookup: lookup, allowed: true)
         #expect(asked.value.count == 1)
     }
@@ -128,7 +128,7 @@ struct CoverFallbackTests {
     func resolveOff() async throws {
         let fixture = try SteamFixture("resolve-off")
         defer { fixture.remove() }
-        let folder = try writeRecord(fixture, id: "carx-street", name: "CarX Street", appID: nil)
+        let folder = try writeRecord(fixture, id: "cobalt-street", name: "Cobalt Street", appID: nil)
         let asked = Box<[URL]>([])
         var lookup = SteamLookup(directory: fixture.root.appending(path: "lookup"))
         lookup.fetch = { url in asked.value.append(url); return (Data(), 500) }
@@ -172,35 +172,35 @@ struct CoverFallbackTests {
     func steamPick() async throws {
         let fixture = try SteamFixture("steam-pick")
         defer { fixture.remove() }
-        let folder = try writeRecord(fixture, id: "carx-street", name: "CarX Street", appID: nil)
-        let art = try SteamFixture.png("CarX", size: CGSize(width: 60, height: 90), hue: 0.9)
+        let folder = try writeRecord(fixture, id: "cobalt-street", name: "Cobalt Street", appID: nil)
+        let art = try SteamFixture.png("Cobalt Street", size: CGSize(width: 60, height: 90), hue: 0.9)
         let covers = fixture.covers { _ in (art, 200) }
         let model = libraryModel(fixture, defaults: ScratchDefaults())
         model.installsFolder = fixture.root.appending(path: "installs")
         model.showInstalledGames(InstalledGames.all(in: model.installsFolder))
-        let game = try #require(model.game("installer:carx-street"))
+        let game = try #require(model.game("installer:cobalt-street"))
 
-        let item = SteamLookup.Item(appID: 1_118_860, name: "CarX Street", kind: "app", capsule: nil)
+        let item = SteamLookup.Item(appID: 2_100_001, name: "Cobalt Street", kind: "app", capsule: nil)
         #expect(await model.useSteamCover(item, for: game, covers: covers))
         let override = try #require(model.coverOverride(for: game.id))
         #expect(covers.local(for: game, kind: .cover, override: override) == .image(override))
-        #expect(InstalledGames.record(in: GameFolder(root: folder))?.appID == 1_118_860)
-        #expect(model.game("installer:carx-street")?.steamAppID == 1_118_860)
+        #expect(InstalledGames.record(in: GameFolder(root: folder))?.appID == 2_100_001)
+        #expect(model.game("installer:cobalt-street")?.steamAppID == 2_100_001)
     }
 
     @Test("A known app ID is kept when a Steam cover is picked")
     func keepsAppID() async throws {
         let fixture = try SteamFixture("keep-appid")
         defer { fixture.remove() }
-        let folder = try writeRecord(fixture, id: "carx-street", name: "CarX Street", appID: 42)
-        let art = try SteamFixture.png("CarX", size: CGSize(width: 60, height: 90), hue: 0.9)
+        let folder = try writeRecord(fixture, id: "cobalt-street", name: "Cobalt Street", appID: 42)
+        let art = try SteamFixture.png("Cobalt Street", size: CGSize(width: 60, height: 90), hue: 0.9)
         let covers = fixture.covers { _ in (art, 200) }
         let model = libraryModel(fixture, defaults: ScratchDefaults())
         model.installsFolder = fixture.root.appending(path: "installs")
         model.showInstalledGames(InstalledGames.all(in: model.installsFolder))
-        let game = try #require(model.game("installer:carx-street"))
+        let game = try #require(model.game("installer:cobalt-street"))
 
-        let item = SteamLookup.Item(appID: 1_118_860, name: "CarX Street", kind: "app", capsule: nil)
+        let item = SteamLookup.Item(appID: 2_100_001, name: "Cobalt Street", kind: "app", capsule: nil)
         #expect(await model.useSteamCover(item, for: game, covers: covers))
         #expect(InstalledGames.record(in: GameFolder(root: folder))?.appID == 42)
     }

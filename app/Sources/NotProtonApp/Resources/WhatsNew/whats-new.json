@@ -1,0 +1,14 @@
+{
+  "releases": [
+    {
+      "version": "0.2.0-beta1",
+      "pages": [
+        { "id": "menu", "image": "menu", "title": "whatsnew.0.2.0.menu.title", "line": "whatsnew.0.2.0.menu.line", "alt": "whatsnew.0.2.0.menu.alt", "shortcut": "⌥C" },
+        { "id": "upscaling", "image": "upscaling", "title": "whatsnew.0.2.0.upscaling.title", "line": "whatsnew.0.2.0.upscaling.line", "alt": "whatsnew.0.2.0.upscaling.alt" },
+        { "id": "hud", "image": "hud", "title": "whatsnew.0.2.0.hud.title", "line": "whatsnew.0.2.0.hud.line", "alt": "whatsnew.0.2.0.hud.alt", "shortcut": "⌥⇧C" },
+        { "id": "resources", "image": "resources", "title": "whatsnew.0.2.0.resources.title", "line": "whatsnew.0.2.0.resources.line", "alt": "whatsnew.0.2.0.resources.alt" },
+        { "id": "framegen", "image": "framegen", "title": "whatsnew.0.2.0.framegen.title", "line": "whatsnew.0.2.0.framegen.line", "alt": "whatsnew.0.2.0.framegen.alt", "soon": true }
+      ]
+    }
+  ]
+}

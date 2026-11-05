@@ -198,9 +198,12 @@ enum GameSetupResolver {
     }
 
     static let allowedPrefixes = ["D3DM_", "DXMT_", "DXVK_", "MTL_", "ROSETTA_"]
+    static let allowedNames: Set = ["WINEMSYNC", "CARTOUCHE_RETINA", FrameGeneration.variable, FrameGeneration.statsVariable,
+                                      FrameGeneration.temporalVariable, OverlayLaunch.hudVariable, OverlayLaunch.cornerVariable,
+                                      OverlayLaunch.controlVariable, OverlayLaunch.languageVariable, LaunchProfile.consentVariable]
 
     static func isAllowed(name: String, value: String) -> Bool {
-        guard (name == "WINEMSYNC" || name == "CARTOUCHE_RETINA" || allowedPrefixes.contains(where: { name.hasPrefix($0) && name.count > $0.count })), name.count <= 64
+        guard (allowedNames.contains(name) || allowedPrefixes.contains(where: { name.hasPrefix($0) && name.count > $0.count })), name.count <= 64
         else { return false }
         let nameOK = name.unicodeScalars.allSatisfy { ("A"..."Z").contains($0) || ("0"..."9").contains($0) || $0 == "_" }
         let valueOK = value.count <= 256 && !value.unicodeScalars.contains { $0.value < 0x20 || $0.value == 0x7f }
@@ -209,7 +212,8 @@ enum GameSetupResolver {
 
     static func resolve(
         _ choice: GameSetupChoice, defaults: SetupDefaults = SetupDefaults(), runners: [Runner],
-        availability: BackendAvailability, hasMacBuild: Bool = false, offered: [Runner]? = nil
+        availability: BackendAvailability, hasMacBuild: Bool = false, offered: [Runner]? = nil,
+        profile: LaunchProfile? = nil
     ) -> Resolution {
         var problems: [Problem] = []
         let offered = offered ?? runners.filter(\.isOffered)
@@ -244,9 +248,26 @@ enum GameSetupResolver {
             if isAllowed(name: name, value: value) { environment[name] = value } else { problems.append(.variableRefused(name)) }
         }
         let supported = AdvancedSupport.options(runner: runner, backend: backend, translation: translation, availability: availability)
-        environment = AdvancedSupport.environment(choice.advanced, supported: supported, existing: environment)
-        let metalHUD = (choice.metalHUD ?? false) && supported.contains(.metalHUD)
+        let metalHUD: Bool
+        if let profile {
+            // The game's profile drives upscaling and the HUDs. The layer's DLSS only for a game that ships it;
+            // Spatial and our library only with Cartouche Sharpening
+            var layer = supported
+            if !profile.dlss { layer.remove(.dlss) }
+            let allowed = profile.sharpening ? layer : layer.subtracting([.spatial])
+            environment = AdvancedSupport.environment(profile.advanced(choice.advanced, layerDLSS: supported.contains(.dlss)),
+                                                      supported: allowed, backend: backend, existing: environment)
+            environment = OverlayLaunch.environment(profile.settings, supported: layer, protected: !profile.sharpening,
+                                                    existing: environment)
+            // For the session's record only: the run script never hands it to the game
+            environment[LaunchProfile.consentVariable] = profile.sharpening ? "1" : "0"
+            metalHUD = !profile.settings.hideMetalHUD && supported.contains(.metalHUD)
+        } else {
+            environment = AdvancedSupport.environment(choice.advanced, supported: supported, backend: backend, existing: environment)
+            metalHUD = (choice.metalHUD ?? false) && supported.contains(.metalHUD)
+        }
         if metalHUD { environment["MTL_HUD_ENABLED"] = "1" }
+        environment = LaunchProfile.filteredEnvironment(environment, dlss: profile?.dlss ?? false)
 
         let version: GameVersion = hasMacBuild ? (choice.version ?? .mac) : .windows
         return Resolution(

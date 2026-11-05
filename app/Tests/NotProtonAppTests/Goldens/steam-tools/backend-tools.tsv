@@ -1,0 +1,12 @@
+cartouche-proton-fex-41073-dxmt	27.0.0.41073-fex	fex	dxmt	CrossOver 2026 10 15-ARM64 - FEX · DXMT
+cartouche-proton-fex-41073-dxvk	27.0.0.41073-fex	fex	dxvk	CrossOver 2026 10 15-ARM64 - FEX · DXVK
+cartouche-proton-fex-41073-wined3d	27.0.0.41073-fex	fex	wined3d	CrossOver 2026 10 15-ARM64 - FEX · wined3d
+cartouche-proton-fex-rosetta-41073-dxmt	27.0.0.41073-fex	rosetta	dxmt	CrossOver 2026 10 15-ARM64 - Rosetta · DXMT
+cartouche-proton-fex-rosetta-41073-dxvk	27.0.0.41073-fex	rosetta	dxvk	CrossOver 2026 10 15-ARM64 - Rosetta · DXVK
+cartouche-proton-fex-rosetta-41073-wined3d	27.0.0.41073-fex	rosetta	wined3d	CrossOver 2026 10 15-ARM64 - Rosetta · wined3d
+cartouche-proton-26.3-d3dmetal	26.3.0.39832	rosetta	d3dmetal	CrossOver 26.3 · D3DMetal
+cartouche-proton-26.3-dxmt	26.3.0.39832	rosetta	dxmt	CrossOver 26.3 · DXMT
+cartouche-proton-26.3-dxvk	26.3.0.39832	rosetta	dxvk	CrossOver 26.3 · DXVK
+cartouche-proton-26.3-wined3d	26.3.0.39832	rosetta	wined3d	CrossOver 26.3 · wined3d
+cartouche-proton-wine-crossover-26.3.0-1-wined3d	wine-crossover-26.3.0-1	rosetta	wined3d	Cartouche Wine 26.3 · wined3d
+cartouche-proton-fex-wine-crossover-26.3.0-1-wined3d	wine-crossover-26.3.0-1	fex	wined3d	Cartouche Wine 26.3 FEX · wined3d

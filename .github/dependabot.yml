@@ -1,0 +1,74 @@
+# Dependency updates (docs/ci/CI.md). Security updates are switched on in the repository
+# settings (docs/ci/GITHUB-SETTINGS.md); the groups below batch them like version updates.
+# Version updates wait 7 days after a release, so a compromised release has time to be pulled.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    groups:
+      actions-minor-patch:
+        applies-to: version-updates
+        update-types: [minor, patch]
+      actions-security:
+        applies-to: security-updates
+        update-types: [minor, patch]
+    commit-message:
+      prefix: ci
+
+  - package-ecosystem: swift
+    directories: [/app, /installer, /retroarch]
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    groups:
+      swift-minor-patch:
+        applies-to: version-updates
+        update-types: [minor, patch]
+      swift-security:
+        applies-to: security-updates
+        update-types: [minor, patch]
+    commit-message:
+      prefix: deps
+
+  # tools/ci/requirements-lint.txt and requirements-security.txt, pinned by hash
+  - package-ecosystem: pip
+    directory: /tools/ci
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    groups:
+      pip-minor-patch:
+        applies-to: version-updates
+        update-types: [minor, patch]
+      pip-security:
+        applies-to: security-updates
+        update-types: [minor, patch]
+    commit-message:
+      prefix: ci
+
+  # OpenSpec, from tools/ci/openspec/package-lock.json
+  - package-ecosystem: npm
+    directory: /tools/ci/openspec
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    groups:
+      npm-minor-patch:
+        applies-to: version-updates
+        update-types: [minor, patch]
+      npm-security:
+        applies-to: security-updates
+        update-types: [minor, patch]
+    commit-message:
+      prefix: ci

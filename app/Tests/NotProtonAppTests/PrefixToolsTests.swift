@@ -226,6 +226,12 @@ struct PrefixToolsTests {
         #expect(refusal("vcrun2022 annihilate")?.contains("annihilate") == true)
         #expect(refusal("prefix=other corefonts")?.contains("prefix=other") == true)
         #expect(refusal("--self-update")?.contains("--self-update") == true)
+        for verb in ["/tmp/evil.verb", "evil.verb", "../x", "Z:\\x", "vcrun2022;id", "$(id)", "VCRUN2022", "a b"] {
+            #expect(PrefixTools.refusedVerb(["corefonts", verb]) == verb, "\(verb)")
+        }
+        for verb in ["vcrun2022", "d3dx9_43", "csmt=off", "renderer=vulkan", "dotnet4.8"] {
+            #expect(PrefixTools.refusedVerb([verb]) == nil, "\(verb)")
+        }
         #expect(refusal("corefonts")?.contains("No compatibility tool") == true)
         #expect(!FileManager.default.fileExists(
             atPath: samplePrefix().root.appending(path: PrefixTools.winetricksLogName).path(percentEncoded: false)))

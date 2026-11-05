@@ -247,11 +247,7 @@ struct ConsolesSettingsTests {
         try await Task.sleep(for: .milliseconds(100))
         let png = try snapshot(view, scheme: .light)
         let image = try #require(NSBitmapImageRep(data: png)?.cgImage)
-        let request = VNRecognizeTextRequest()
-        request.recognitionLevel = .accurate
-        request.usesLanguageCorrection = false
-        try VNImageRequestHandler(cgImage: image).perform([request])
-        return (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
+        return try recognizedTexts(in: image)
     }
 
     private func snapshot(_ view: some View, scheme: ColorScheme) throws -> Data {

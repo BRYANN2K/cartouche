@@ -1,7 +1,23 @@
 {
   "format": 1,
-  "revision": 3,
+  "revision": 4,
   "builds": [
+    {
+      "id": "wine-crossover-26.3.1",
+      "kind": "wineBuild",
+      "origin": "cartouche",
+      "name": "Cartouche Wine",
+      "version": "26.3.1",
+      "displayVersion": "26.3.1",
+      "url": "https://github.com/BRYANN2K/cartouche-wine/releases/download/wine-crossover-26.3.1/wine-crossover-26.3.1-x86_64.tar.xz",
+      "size": 279431416,
+      "sha256": "1dccd7e9b2164a17b6a413935e9c074d46692466d6b7f0aa0e93518fccd10443",
+      "root": "wine-crossover-26.3.1",
+      "loader": "bin/wine",
+      "flavors": [
+        "rosetta"
+      ]
+    },
     {
       "id": "wine-crossover-26.3.0-2",
       "kind": "wineBuild",

@@ -8,13 +8,16 @@ import Synchronization
 final class StoreAPIServer: Sendable {
 
     struct Request: Sendable, Equatable {
+        let method: String
         let path: String
         let authorization: String?
+        let body: Data?
     }
 
     private struct State {
         var files: [String: Data] = [:]
         var status: [String: Int] = [:]
+        var posts: [String: @Sendable (Request) -> (Int, Data)] = [:]
         var requests: [Request] = []
     }
 
@@ -50,6 +53,10 @@ final class StoreAPIServer: Sendable {
     func put(_ path: String, _ data: Data) { state.withLock { $0.files[path] = data } }
     func put(_ path: String, json: String) { put(path, Data(json.utf8)) }
     func fail(_ path: String, with status: Int) { state.withLock { $0.status[path] = status } }
+    // A POST route answered by a closure; the request carries its body
+    func post(_ path: String, handler: @escaping @Sendable (Request) -> (Int, Data)) {
+        state.withLock { $0.posts[path] = handler }
+    }
 
     var requests: [Request] { state.withLock { $0.requests } }
 
@@ -69,16 +76,41 @@ final class StoreAPIServer: Sendable {
             }
             let head = String(decoding: buffer[..<end.lowerBound], as: UTF8.self)
             let lines = head.components(separatedBy: "\r\n")
-            let path = lines.first?.split(separator: " ").dropFirst().first.map(String.init) ?? "/"
+            let first = lines.first?.split(separator: " ") ?? []
+            let method = first.first.map(String.init) ?? "GET"
+            let path = first.dropFirst().first.map(String.init) ?? "/"
             let auth = lines.dropFirst().first { $0.lowercased().hasPrefix("authorization:") }
                 .map { String($0.dropFirst("authorization:".count)).trimmingCharacters(in: .whitespaces) }
-            self.respond(connection, request: Request(path: path, authorization: auth))
+            let wanted = lines.dropFirst().first { $0.lowercased().hasPrefix("content-length:") }
+                .flatMap { Int($0.dropFirst("content-length:".count).trimmingCharacters(in: .whitespaces)) } ?? 0
+            var body = Data(buffer[end.upperBound...])
+            if body.count < wanted {
+                if done || error != nil { connection.cancel(); return }
+                // The rest of the body arrives in later packets; keep collecting.
+                connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { data, _, done, error in
+                    if let data { body.append(data) }
+                    guard body.count >= wanted else {
+                        if done || error != nil { connection.cancel() }
+                        return
+                    }
+                    self.respond(connection, request: Request(method: method, path: path, authorization: auth,
+                                                            body: wanted > 0 ? body.prefix(wanted) : nil))
+                }
+                return
+            }
+            self.respond(connection, request: Request(method: method, path: path, authorization: auth,
+                                                    body: wanted > 0 ? body.prefix(wanted) : nil))
         }
     }
 
     private func respond(_ connection: NWConnection, request: Request) {
         let (body, status) = state.withLock { state -> (Data?, Int?) in
             state.requests.append(request)
+            if let failed = state.status[request.path] { return (nil, failed) }
+            if request.method == "POST", let handler = state.posts[request.path] {
+                let (code, data) = handler(request)
+                return (data, code)
+            }
             return (state.files[request.path], state.status[request.path])
         }
         let code = status ?? (body == nil ? 404 : 200)

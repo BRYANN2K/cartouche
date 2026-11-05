@@ -153,4 +153,29 @@ struct StagedGamesTests {
         #expect(!StagedGames.isStaged(URL(filePath: "/var/folders/x/Library/Caches/Cartouche/DropStagingOther/a.exe"), staging: staging))
         #expect(!StagedGames.isStaged(URL(filePath: "/Volumes/Games/Witcher 3/witcher3.exe"), staging: staging))
     }
+
+    @Test("Discard removes nothing a link inside staging leads to outside it")
+    func discardRefusesLinkedFolders() throws {
+        let work = try scratchDirectory("staged-link")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let fm = FileManager.default
+        let staging = work.appending(path: "DropStaging")
+        let outside = work.appending(path: "Documents")
+        try fm.createDirectory(at: staging, withIntermediateDirectories: true)
+        try fm.createDirectory(at: outside.appending(path: "Game"), withIntermediateDirectories: true)
+        try Data("keep".utf8).write(to: outside.appending(path: "Game/notes.txt"))
+        try fm.createSymbolicLink(at: staging.appending(path: "link"), withDestinationURL: outside)
+
+        let viaLink = staging.appending(path: "link/Game")
+        #expect(StagedGames.isStaged(viaLink, staging: staging))
+        #expect(!StagedGames.resolvedInside(staging, viaLink))
+        StagedGames.discard(viaLink, staging: staging)
+        #expect(fm.fileExists(atPath: outside.appending(path: "Game/notes.txt").path(percentEncoded: false)))
+
+        let real = staging.appending(path: "Archive/Game")
+        try fm.createDirectory(at: real, withIntermediateDirectories: true)
+        #expect(StagedGames.resolvedInside(staging, real))
+        StagedGames.discard(real, staging: staging)
+        #expect(!fm.fileExists(atPath: staging.appending(path: "Archive").path(percentEncoded: false)))
+    }
 }

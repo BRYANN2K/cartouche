@@ -220,7 +220,9 @@ public final class InstallRun: @unchecked Sendable {
     private let drained = DispatchGroup()
 
     // With `outputLimit` the log file never grows past it: the head stays, the middle is dropped.
-    public init(_ launch: InstallLaunch, output: URL? = nil, outputLimit: Int64? = nil) {
+    // `drain` without `output` reads the pipe and throws the data away: the process's writes
+    // are real and continuously consumed — never /dev/null, never an unread Pipe, no log.
+    public init(_ launch: InstallLaunch, output: URL? = nil, outputLimit: Int64? = nil, drain: Bool = false) {
         self.launch = launch
         process.executableURL = URL(filePath: launch.executable)
         process.arguments = launch.arguments
@@ -249,6 +251,15 @@ public final class InstallRun: @unchecked Sendable {
             outputHandle = handle
             process.standardOutput = handle
             process.standardError = handle
+        } else if drain {
+            let pipe = Pipe()
+            process.standardOutput = pipe
+            process.standardError = pipe
+            drained.enter()
+            DispatchQueue.global().async {
+                while !pipe.fileHandleForReading.availableData.isEmpty {}
+                self.drained.leave()
+            }
         } else {
             process.standardOutput = FileHandle.nullDevice
             process.standardError = FileHandle.nullDevice

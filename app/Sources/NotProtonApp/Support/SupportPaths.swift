@@ -10,6 +10,7 @@ enum SupportPaths {
     static let steamPrefix = CARTOUCHE_STEAM_PREFIX
     static let toolPrefix = CARTOUCHE_TOOL_PREFIX
     static let fpsCounterName = CARTOUCHE_FPS_COUNTER_NAME
+    static let framegenName = CARTOUCHE_FRAMEGEN_NAME
 
     static var home: URL {
         URL(filePath: NSHomeDirectory())
@@ -43,6 +44,7 @@ enum SupportPaths {
     static var iconmaker: URL { support.appending(path: "iconmaker") }
     static var appinfo: URL { support.appending(path: "appinfo") }
     static var fpsCounter: URL { support.appending(path: fpsCounterName) }
+    static var framegen: URL { support.appending(path: framegenName) }
     static var performance: URL { support.appending(path: CARTOUCHE_PERFORMANCE_DIR) }
 
     static var packageDownloads: URL {

@@ -17,6 +17,8 @@ struct VersionOrderTests {
         let cases: [(String, String)] = [
             ("0.1.0", "0.2.0-beta.1"), ("0.2.0-beta.1", "0.2.0-beta.2"), ("0.2.0-beta.2", "0.2.0"),
             ("0.0.1-test.1", "0.0.1-test.2"), ("0.2.0-beta.9", "0.2.0-beta.10"), ("0.9.0", "0.10.0"),
+            ("0.1.2", "0.2.0-beta1"), ("0.2.0-beta1", "0.2.0-beta2"), ("0.2.0-beta2", "0.2.0-beta10"),
+            ("0.2.0-beta10", "0.2.0"), ("0.2.0-beta1", "0.2.0-beta.2"), ("0.2.0-beta.9", "0.2.0-beta10"),
         ]
         for (older, newer) in cases {
             #expect(CartoucheVersion.compare(older, newer) == .orderedAscending, "\(older) < \(newer)")
@@ -25,6 +27,7 @@ struct VersionOrderTests {
         #expect(CartoucheVersion.compare("0.2.0", "0.2.0") == .orderedSame)
         #expect(CartoucheVersion.compare("0.2.0", "0.2") == .orderedSame)
         #expect(CartoucheVersion.compare("0.2.0+abc", "0.2.0") == .orderedSame)
+        #expect(CartoucheVersion.compare("0.2.0-beta1", "0.2.0-beta.1") == .orderedSame)
     }
 
     @Test("The shared list sorts the same way as the release tools")
@@ -99,7 +102,7 @@ struct VersionOrderTests {
     func versionHeader() throws {
         let header = try String(contentsOf: IdentityTests.repoRoot.appending(path: "dylib/version.h"), encoding: .utf8)
         let version = try #require(header.firstMatch(of: /#define CARTOUCHE_VERSION "([^"]+)"/)?.1).description
-        #expect(version.wholeMatch(of: /\d+\.\d+\.\d+(-(beta|test)\.\d+)?/) != nil, "\(version) is not a release tag version")
+        #expect(version.wholeMatch(of: /\d+\.\d+\.\d+(-(beta\.?\d+|test\.\d+))?/) != nil, "\(version) is not a release tag version")
         #expect(CartoucheVersion.compare(version, "1.0.0") == .orderedAscending, "\(version)")
     }
 }

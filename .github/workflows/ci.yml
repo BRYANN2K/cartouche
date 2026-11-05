@@ -1,51 +1,242 @@
 name: ci
 
-# The pull request gate. Branch protection on main requires the "required" check,
-# which passes only when every job below passed.
+# The pull request gate (docs/ci/CI.md). Branch protection requires the "required"
+# check, which passes only when every job below passed. No job here reads a secret,
+# and every job runs on a GitHub-hosted runner: never a self-hosted one for code
+# from a pull request.
 on:
   pull_request:
+  # A branch with an open pull request is checked once, by its pull_request run
   push:
-    branches: [main]
+    branches: [main, dev, beta]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  OPENSPEC_VERSION: "1.14.3"
+  XCODE_APP: /Applications/Xcode_27.0.app
+  DOBBY_COMMIT: "5dfc8546954ce3b3198132ab13fddb89ee92cdd7"
+  SHELLCHECK_VERSION: "0.11.0"
+  # sha256 of shellcheck-v0.11.0.linux.x86_64.tar.xz from the release page
+  SHELLCHECK_SHA256: "8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198"
+  ACTIONLINT_VERSION: "1.7.12"
+  # sha256 of actionlint_1.7.12_linux_amd64.tar.gz from the release page
+  ACTIONLINT_SHA256: "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8"
+  SWIFTLINT_VERSION: "0.65.1"
+  # sha256 of swiftlint_linux_amd64.zip from the release page
+  SWIFTLINT_SHA256: "caeed6f4a679c35539ffaf124f6c4ab4a8416917f7d8796279dc52b74026059d"
+  FONT_TOOLS: "afdko==4.0.3 fonttools==4.66.1"
+  HOMEBREW_NO_AUTO_UPDATE: "1"
+  HOMEBREW_NO_INSTALL_CLEANUP: "1"
 
 jobs:
-  app:
-    uses: ./.github/workflows/app.yml
+  build:
+    name: build
+    runs-on: xcode-27
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Record the toolchain
+        run: |
+          sudo xcode-select -s "$XCODE_APP"
+          xcodebuild -version
+          swift --version
+
+      - name: Build the Swift packages
+        run: |
+          for package in app installer retroarch; do
+            echo "::group::swift build $package"
+            (cd "$package" && swift build)
+            echo "::endgroup::"
+          done
+
+      - name: Clone Dobby at the pinned commit
+        run: |
+          git clone --no-checkout https://github.com/jmpews/Dobby.git vendor/dobby
+          git -C vendor/dobby checkout "$DOBBY_COMMIT"
+
+      - name: Restore Dobby build cache
+        id: dobby-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: build/dobby
+          key: dobby-xcode-27-${{ env.DOBBY_COMMIT }}-${{ runner.arch }}
+
+      - name: Build Dobby
+        if: steps.dobby-cache.outputs.cache-hit != 'true'
+        run: make dobby
+
+      # What builds from this repository and pinned public sources alone; the Wine
+      # bridge, the installers and the app bundle are the bundle job's
+      - name: Build the libraries and helpers
+        run: make all overlay-shim fps-counter iconmaker appinfo
+
+  tests:
+    name: tests
+    runs-on: xcode-27
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      # Suites that need exact frame pacing, a hardened runtime dyld enforces or the
+      # Neural Engine read this and skip those checks by name, with the reason. The app
+      # tests run in the bundle job, after the payload they read is staged
+      - name: Mark the runner as hosted
+        if: runner.environment == 'github-hosted'
+        run: echo "CARTOUCHE_CI_HOSTED=1" >> "$GITHUB_ENV"
+
+      - name: Record the toolchain
+        run: |
+          sudo xcode-select -s "$XCODE_APP"
+          xcodebuild -version
+          swift --version
+          echo "virtual machine: $(sysctl -n kern.hv_vmm_present 2>/dev/null || echo unknown)"
+          csrutil status || true
+
+      - name: Run the hermetic C suites
+        run: sh tools/ci/c-suites.sh
+
+      - name: Run the Python suites
+        run: make -s python-tests
+
+      # Serial: these tests block a thread while a fake installer runs, which starves a 3-core runner
+      - name: Run the InstallerKit tests
+        working-directory: installer
+        run: swift test --no-parallel --enable-code-coverage
+
+      - name: Run the RetroArchKit tests
+        working-directory: retroarch
+        run: swift test --enable-code-coverage
+
+      - name: Export the coverage
+        run: |
+          for package in installer retroarch; do
+            sh tools/ci/export-coverage.sh "$package" "coverage/$package.lcov"
+          done
+
+      - name: Upload the coverage
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: coverage-kits
+          path: coverage
+          retention-days: 7
+
+  coverage:
+    name: coverage
+    needs: [tests, bundle]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: coverage-*
+          merge-multiple: true
+          path: coverage
+
+      - name: Check the coverage of the changed lines and the total
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: python3 tools/ci/diff_coverage.py --lcov coverage/*.lcov --base "$BASE" --min-diff 80
 
   lint:
-    uses: ./.github/workflows/lint.yml
+    name: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      # The image ships other versions; they disagree on which checks fire, so an
+      # unpinned tool makes the gate a property of the image
+      - name: Install the pinned shellcheck, actionlint and SwiftLint
+        run: |
+          base=https://github.com
+          curl -fsSL -o "$RUNNER_TEMP/shellcheck.tar.xz" \
+            "$base/koalaman/shellcheck/releases/download/v$SHELLCHECK_VERSION/shellcheck-v$SHELLCHECK_VERSION.linux.x86_64.tar.xz"
+          curl -fsSL -o "$RUNNER_TEMP/actionlint.tar.gz" \
+            "$base/rhysd/actionlint/releases/download/v$ACTIONLINT_VERSION/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl -fsSL -o "$RUNNER_TEMP/swiftlint.zip" \
+            "$base/realm/SwiftLint/releases/download/$SWIFTLINT_VERSION/swiftlint_linux_amd64.zip"
+          printf '%s  %s\n' \
+            "$SHELLCHECK_SHA256" "$RUNNER_TEMP/shellcheck.tar.xz" \
+            "$ACTIONLINT_SHA256" "$RUNNER_TEMP/actionlint.tar.gz" \
+            "$SWIFTLINT_SHA256" "$RUNNER_TEMP/swiftlint.zip" | sha256sum -c -
+          tar xJf "$RUNNER_TEMP/shellcheck.tar.xz" -C "$RUNNER_TEMP"
+          tar xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          unzip -q "$RUNNER_TEMP/swiftlint.zip" -d "$RUNNER_TEMP/swiftlint"
+          sudo install "$RUNNER_TEMP/shellcheck-v$SHELLCHECK_VERSION/shellcheck" /usr/local/bin/shellcheck
+          sudo install "$RUNNER_TEMP/actionlint" /usr/local/bin/actionlint
+          sudo install "$RUNNER_TEMP/swiftlint/swiftlint-static" /usr/local/bin/swiftlint
+          shellcheck --version | grep -qx "version: $SHELLCHECK_VERSION"
+          swiftlint version
+
+      - name: Install ruff and PyYAML, pinned by hash
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --require-hashes -r tools/ci/requirements-lint.txt
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
+
+      - name: SwiftLint
+        run: swiftlint lint --strict --baseline tools/ci/swiftlint-baseline.json --reporter github-actions-logging
+
+      - name: ruff
+        run: ruff check --output-format github .
+
+      - name: Lint the build scripts
+        run: make scriptcheck
+
+      - name: Lint the embedded run script
+        run: make runcheck
+
+      - name: Lint the workflows
+        run: actionlint
+
+      - name: Check the workflows are wired
+        run: python packaging/tests/workflow_check.py
 
   openspec:
     name: openspec validate
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 22
+          persist-credentials: false
 
-      - name: Install the pinned OpenSpec
-        run: npm install --global "@fission-ai/openspec@$OPENSPEC_VERSION"
+      # The image's Node is enough; OpenSpec needs 20.19 or later
+      - name: Install OpenSpec from its lockfile
+        run: |
+          node -e 'const [a, b] = process.versions.node.split(".").map(Number); process.exit(a > 20 || (a === 20 && b >= 19) ? 0 : 1)' \
+            || { echo "::error::Node $(node --version) is older than 20.19"; exit 1; }
+          npm ci --ignore-scripts --no-audit --no-fund --prefix tools/ci/openspec
 
       - name: Validate every change and spec
-        run: openspec validate --all --strict --no-interactive
+        run: tools/ci/openspec/node_modules/.bin/openspec validate --all --strict --no-interactive
 
   redistribution:
     name: redistribution scan
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - name: Scan the repository for Game Porting Toolkit files
         run: sh packaging/redist-scan.sh .
@@ -53,14 +244,375 @@ jobs:
       - name: Check the scan still catches a planted file
         run: sh packaging/tests/redist-scan-test.sh
 
-      - name: Check the workflows are wired
-        run: python3 packaging/tests/workflow_check.py
+  # The full app bundle: everything the app ships, built from public sources, signed
+  # ad hoc, checked and uploaded, then the app tests, which read the staged payload.
+  # A cold run builds Wine, Boost, xz, zstd and libarchive from source; the caches
+  # keep later runs well under the timeout.
+  bundle:
+    name: bundle
+    runs-on: xcode-27
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Record the toolchain
+        run: |
+          sudo xcode-select -s "$XCODE_APP"
+          xcodebuild -version
+          swift --version
+          echo "macOS SDK $(xcrun --sdk macosx --show-sdk-version)"
+
+      - name: Install cross compilers
+        run: brew install mingw-w64 bison flex
+
+      # Dobby, innoextract and libarchive build with cmake
+      - name: Install cmake
+        run: command -v cmake >/dev/null || brew install cmake
+
+      - name: Clone Dobby at the pinned commit
+        run: |
+          git clone --no-checkout https://github.com/jmpews/Dobby.git vendor/dobby
+          git -C vendor/dobby checkout "$DOBBY_COMMIT"
+
+      - name: Restore Dobby build cache
+        id: dobby-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: build/dobby
+          key: dobby-xcode-27-${{ env.DOBBY_COMMIT }}-${{ runner.arch }}
+
+      - name: Build Dobby
+        if: steps.dobby-cache.outputs.cache-hit != 'true'
+        run: make dobby
+
+      - name: Restore the Wine trees
+        id: wine-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            scratch/wine
+            scratch/wine-build-dual
+            scratch/wine-build-arm64
+          key: wine-xcode-27-${{ hashFiles('bridge/setup-wine-tree.sh', 'bridge/register-components.diff') }}
+
+      - name: Restore Proton tarball cache
+        id: proton-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: scratch/proton-lsc
+          key: proton-tarball-${{ hashFiles('lsteamclient/fetch.sh') }}
+
+      - name: Build the dylib
+        run: make all
+
+      - name: Build the overlay shim
+        run: make overlay-shim
+
+      - name: Build helpers
+        run: make iconmaker appinfo
+
+      - name: Build the bridge
+        run: make bridge
+
+      # The caches hold the built outputs, keyed on their pins and build scripts, and
+      # are saved right after the build so a later failing step does not lose them.
+      # A restore predates the checkout, so touch it or make would rebuild it.
+      - name: Restore innoextract build cache
+        id: innoextract-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: out/innoextract
+          key: innoextract-xcode-27-${{ runner.arch }}-${{ hashFiles('installer/innoextract/pins', 'installer/innoextract/build.sh') }}
+
+      # build.sh builds Boost and xz from the pinned sources, not Homebrew's
+      - name: Build innoextract
+        env:
+          HIT: ${{ steps.innoextract-cache.outputs.cache-hit }}
+        run: |
+          if [ "$HIT" = true ]; then touch out/innoextract; fi
+          make innoextract
+
+      # Pull requests never save: a fork could poison an entry the base branch
+      # restores once its changes are merged.
+      - name: Save innoextract build cache
+        if: steps.innoextract-cache.outputs.cache-hit != 'true' && github.event_name != 'pull_request'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: out/innoextract
+          key: innoextract-xcode-27-${{ runner.arch }}-${{ hashFiles('installer/innoextract/pins', 'installer/innoextract/build.sh') }}
+
+      - name: Restore libarchive build cache
+        id: libarchive-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: out/libarchive.dylib
+          key: libarchive-xcode-27-${{ runner.arch }}-${{ hashFiles('installer/libarchive/pins', 'installer/libarchive/build.sh') }}
+
+      - name: Build libarchive
+        env:
+          HIT: ${{ steps.libarchive-cache.outputs.cache-hit }}
+        run: |
+          if [ "$HIT" = true ]; then touch out/libarchive.dylib; fi
+          make libarchive
+
+      - name: Save libarchive build cache
+        if: steps.libarchive-cache.outputs.cache-hit != 'true' && github.event_name != 'pull_request'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: out/libarchive.dylib
+          key: libarchive-xcode-27-${{ runner.arch }}-${{ hashFiles('installer/libarchive/pins', 'installer/libarchive/build.sh') }}
+
+      - name: Save Dobby build cache
+        if: steps.dobby-cache.outputs.cache-hit != 'true' && github.event_name != 'pull_request'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: build/dobby
+          key: dobby-xcode-27-${{ env.DOBBY_COMMIT }}-${{ runner.arch }}
+
+      - name: Save Proton tarball cache
+        if: steps.proton-cache.outputs.cache-hit != 'true' && github.event_name != 'pull_request'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: scratch/proton-lsc
+          key: proton-tarball-${{ hashFiles('lsteamclient/fetch.sh') }}
+
+      - name: Save the Wine trees
+        if: steps.wine-cache.outputs.cache-hit != 'true' && github.event_name != 'pull_request'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            scratch/wine
+            scratch/wine-build-dual
+            scratch/wine-build-arm64
+          key: wine-xcode-27-${{ hashFiles('bridge/setup-wine-tree.sh', 'bridge/register-components.diff') }}
+
+      # fonts/build.sh skips the build when build/fonts.stamp matches fonts/;
+      # the key names the pinned FONT_TOOLS, so editing this file keeps the entry
+      - name: Restore fonts build cache
+        id: fonts-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            build/fonts
+            build/fonts.stamp
+          key: fonts-${{ hashFiles('fonts/**') }}-${{ env.FONT_TOOLS }}
+
+      - name: Install font tools
+        if: steps.fonts-cache.outputs.cache-hit != 'true'
+        run: |
+          brew install fontforge gpatch
+          python3 -m venv scratch/fontvenv
+          # shellcheck disable=SC2086 # one word per pinned package
+          scratch/fontvenv/bin/pip install $FONT_TOOLS
+          echo "$PWD/scratch/fontvenv/bin" >> "$GITHUB_PATH"
+
+      - name: Build the fonts
+        run: make fonts
+
+      - name: Save fonts build cache
+        if: steps.fonts-cache.outputs.cache-hit != 'true' && github.event_name != 'pull_request'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            build/fonts
+            build/fonts.stamp
+          key: fonts-${{ hashFiles('fonts/**') }}-${{ env.FONT_TOOLS }}
+
+      - name: Stage the app payload
+        run: make app-payload
+
+      - name: Build the app
+        run: make app
+
+      - name: Verify the ad hoc signature
+        run: codesign --verify --strict --deep --verbose=2 out/Cartouche.app
+
+      - name: Check the minimum macOS version
+        run: make -s mincheck
+
+      - name: Check the translations
+        run: make -s l10ncheck
+
+      - name: Scan the bundle for Game Porting Toolkit files
+        run: sh packaging/redist-scan.sh out/Cartouche.app
+
+      # Tests that read drawn text with Vision read this and cancel themselves, with
+      # the reason, when the recognizer cannot run here
+      - name: Mark the runner as hosted
+        if: runner.environment == 'github-hosted'
+        run: echo "CARTOUCHE_CI_HOSTED=1" >> "$GITHUB_ENV"
+
+      # No manifest cache: Package.swift declares the payload only once it is staged
+      - name: Run the app tests
+        working-directory: app
+        run: swift test --manifest-cache none --no-parallel --enable-code-coverage
+
+      # ScreenSnapshotTests leaves <name>.failed.png and <name>.diff.png beside a reference it no longer matches
+      - name: Upload the snapshot failures
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: snapshot-failures
+          path: |
+            app/Tests/NotProtonAppTests/Snapshots/*.failed.png
+            app/Tests/NotProtonAppTests/Snapshots/*.diff.png
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Export the app coverage
+        run: sh tools/ci/export-coverage.sh app coverage/app.lcov
+
+      - name: Upload the app coverage
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: coverage-app
+          path: coverage
+          retention-days: 7
+
+      - name: Package the app bundle
+        run: |
+          mkdir -p out/artifact
+          ditto -c -k --keepParent out/Cartouche.app out/artifact/Cartouche.zip
+
+      - name: Upload the app bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: Cartouche
+          path: out/artifact
+
+  # The release gate's repository checks (security/gate.sh --ci, docs/security/RELEASE-GATE.md)
+  # on the commits this run adds: secrets, workflows, project semgrep rules, invariants
+  security:
+    name: security
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      # actionlint runs shellcheck on every run: block, so it gets the lint job's pinned one
+      - name: Install the pinned gitleaks, zizmor, actionlint and shellcheck
+        run: |
+          sh tools/ci/install-security-tools.sh "$RUNNER_TEMP/bin" gitleaks zizmor actionlint
+          curl -fsSL --proto '=https' -o "$RUNNER_TEMP/shellcheck.tar.xz" \
+            "https://github.com/koalaman/shellcheck/releases/download/v$SHELLCHECK_VERSION/shellcheck-v$SHELLCHECK_VERSION.linux.x86_64.tar.xz"
+          echo "$SHELLCHECK_SHA256  $RUNNER_TEMP/shellcheck.tar.xz" | sha256sum -c -
+          tar xJf "$RUNNER_TEMP/shellcheck.tar.xz" -C "$RUNNER_TEMP"
+          install -m 755 "$RUNNER_TEMP/shellcheck-v$SHELLCHECK_VERSION/shellcheck" "$RUNNER_TEMP/bin/shellcheck"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: Install semgrep, pinned by hash
+        run: |
+          python3 -m venv "$RUNNER_TEMP/semgrep"
+          "$RUNNER_TEMP/semgrep/bin/pip" install --require-hashes --only-binary :all: -r tools/ci/requirements-security.txt
+          echo "$RUNNER_TEMP/semgrep/bin" >> "$GITHUB_PATH"
+
+      # The pull request's base, or the previous tip on a push. A new branch or a force
+      # push has none here, so the gate falls back to the last v0.* tag
+      - name: Pick the first commit to check
+        id: range
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          since=""
+          if [ -n "$BASE" ] && git cat-file -e "$BASE^{commit}" 2>/dev/null; then since=$BASE; fi
+          echo "since=$since" >> "$GITHUB_OUTPUT"
+
+      - name: Run the gate's repository checks
+        env:
+          SINCE: ${{ steps.range.outputs.since }}
+        run: bash security/gate.sh --ci --only 10,30,40,45 ${SINCE:+--since "$SINCE"}
+
+      - name: Write the report to the run summary
+        if: always()
+        run: cat security/out/*/report.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+
+      - name: Upload the gate output
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: security-gate
+          path: security/out
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # Memory safety of the shipped C (docs/ci/C-SAFETY.md): the hermetic suites under
+  # ASan+UBSan, clang --analyze and cppcheck against their baseline, and every fuzz seed
+  # and past crash replayed once. No libFuzzer and no network beyond the pinned tools
+  c-safety:
+    name: c-safety
+    runs-on: xcode-27
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Record the toolchain
+        run: |
+          sudo xcode-select -s "$XCODE_APP"
+          xcodebuild -version
+          clang --version | head -1
+
+      # The overlay shim and frame counter suites need a real Metal device and a window
+      # server; on a hosted runner c-asan skips them by name (C_ASAN_GPU=0)
+      - name: Mark the runner as hosted
+        if: runner.environment == 'github-hosted'
+        run: |
+          echo "CARTOUCHE_CI_HOSTED=1" >> "$GITHUB_ENV"
+          echo "C_ASAN_GPU=0" >> "$GITHUB_ENV"
+
+      - name: Restore the cppcheck build
+        id: cppcheck-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ runner.temp }}/cppcheck
+          key: cppcheck-xcode-27-${{ runner.arch }}-${{ hashFiles('tools/ci/install-security-tools.sh') }}
+
+      # cppcheck from its pinned source tarball; mingw-w64 gives c-analyze the Windows headers
+      - name: Install cppcheck and the mingw-w64 headers
+        run: |
+          sh tools/ci/install-security-tools.sh "$RUNNER_TEMP/bin" cppcheck
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+          brew install mingw-w64
+
+      - name: Save the cppcheck build
+        if: steps.cppcheck-cache.outputs.cache-hit != 'true' && github.event_name != 'pull_request'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ runner.temp }}/cppcheck
+          key: cppcheck-xcode-27-${{ runner.arch }}-${{ hashFiles('tools/ci/install-security-tools.sh') }}
+
+      - name: Run the C suites under ASan and UBSan
+        run: make c-asan
+
+      - name: Run clang --analyze and cppcheck
+        run: make c-analyze
+
+      - name: Replay the fuzz seeds and past crashes
+        run: make fuzz-regress
+
+      - name: Upload the sanitizer and analyzer logs
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: c-safety-logs
+          path: |
+            out/c-asan-*.log
+            out/analyze
+          if-no-files-found: ignore
+          retention-days: 7
 
   required:
     name: required
     if: always()
-    needs: [app, lint, openspec, redistribution]
+    needs: [build, tests, coverage, lint, openspec, redistribution, bundle, security, c-safety]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       # A skipped or cancelled job must block the merge too
       - name: Check every job passed

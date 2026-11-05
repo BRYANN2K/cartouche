@@ -1,0 +1,17 @@
+{
+  "schema_version": 3, "profile_version": 7, "steam_build": "1790000000",
+  "steam_build_date": "2026-10-01",
+  "signatures": [
+    {"name": "A::String", "anchor": {"kind": "string", "value": "hello", "nth_xref": 1}},
+    {"name": "A::After", "anchor": {"kind": "insn_after_string", "value": "x", "n": 2}},
+    {"name": "A::Pair", "anchor": {"kind": "insn_pair_in_fn", "value": "y",
+      "pair": {"first": "0xd503201f", "first_mask": "0xffffffff",
+               "second": "0x91000000", "second_mask": "0xff000000", "land": "second"}}},
+    {"name": "A::Call", "anchor": {"kind": "call_target", "value": "z", "call_path": [1, 2],
+      "caller_hops": 1, "caller_tail": true}},
+    {"name": "A::Slot", "anchor": {"kind": "vtable_slot", "va": "0x1234"}},
+    {"name": "A::Calls", "anchor": {"kind": "calls", "calls": ["malloc", "free"], "exact": true}},
+    {"name": "A::Aob", "aob_hex": "FD 7B ?? A9", "match_offset": 4, "anchor": {"kind": "aob"}},
+    {"name": "A::Old", "deprecated": true, "module": "steamui.dylib"}
+  ]
+}

@@ -251,20 +251,22 @@ struct KeychainContributorStore: ContributorStore {
         [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: account]
     }
 
+    private var attributes: [String: Any] {
+        [kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
+         kSecAttrLabel as String: "Cartouche contributions"]
+    }
+
     func read() throws -> ContributionClient.Credential? {
-        guard let data = try Keychain.read(query) else { return nil }
+        guard let data = try Keychain.readMigrating(query, attributes: attributes) else { return nil }
         return try JSONDecoder().decode(ContributionClient.Credential.self, from: data)
     }
 
     func write(_ credential: ContributionClient.Credential) throws {
         let data = try JSONEncoder().encode(credential)
-        try Keychain.write(data, matching: query, attributes: [
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
-            kSecAttrLabel as String: "Cartouche contributions",
-        ])
+        try Keychain.writeProtected(data, matching: query, attributes: attributes)
     }
 
-    func delete() throws { try Keychain.delete(query) }
+    func delete() throws { try Keychain.deleteEverywhere(query) }
 }
 
 actor ContributorIdentity {

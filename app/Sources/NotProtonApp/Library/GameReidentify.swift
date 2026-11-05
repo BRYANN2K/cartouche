@@ -20,7 +20,7 @@ extension LibraryModel {
             let root = record.gameRoot
             guard FileManager.default.fileExists(atPath: root.path(percentEncoded: false)) else { continue }
             let id = await reidentify(record, root: root, index: index, lookup: lookup, allowed: allowed)
-            let folder = GameFolder.of(slug: record.id, in: installsFolder)
+            guard let folder = GameFolder.of(slug: record.id, in: installsFolder) else { continue }
             if let match = id.match {
                 record.name = match.name
                 record.appID = match.appID

@@ -31,13 +31,16 @@
 #define CARTOUCHE_FPS_COUNTER_NAME "fps-counter.dylib"
 #define CARTOUCHE_PERFORMANCE_DIR "performance"
 
+// Experimental frame generation injected into Windows games when CARTOUCHE_FRAMEGEN=1
+#define CARTOUCHE_FRAMEGEN_NAME "framegen.dylib"
+
 // The local agent transport (P11): a Unix socket under the data folder the
 // bundled cartouche-mcp helper connects to; the app is its only server.
 #define CARTOUCHE_AGENT_DIR "agent"
 #define CARTOUCHE_AGENT_SOCKET "agent/mcp.sock"
 
 // Version of the integration installed into Steam, independent of the app release.
-#define CARTOUCHE_STEAM_INTEGRATION_VERSION "0.1.2-1"
+#define CARTOUCHE_STEAM_INTEGRATION_VERSION "0.2.0-beta1-1"
 
 // The dylib injected into Steam.app
 #define CARTOUCHE_DYLIB_NAME "cartouche.dylib"

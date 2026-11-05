@@ -121,6 +121,8 @@ struct AgentTool {
     var sendsInput = false
     var readOnly = true
     var destructive = false
+    // Refusals that need no user: they run before the approval is asked.
+    var check: (@MainActor (AgentBackend, JSONValue) throws -> Void)?
     var approvalText: (@MainActor (AgentBackend, JSONValue) async -> String)?
     var run: @MainActor (AgentBackend, JSONValue) async throws -> JSONValue
 }

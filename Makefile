@@ -76,7 +76,7 @@ DEPS := $(OBJS:.o=.d)
         anchorcheck callscheck sigdb-fixtures webpatch-fixtures peicon-fixtures panel-behavior app-tests \
         tests-list overlay-shim overlay-shim-install overlay-shim-tests \
         overlay-shim-bench iconmaker icon \
-        appinfo helpers-install unarc-driver ntdll-resolve bridge runcheck compatcheck \
+        appinfo helpers-install unarc-driver game-restore ntdll-resolve bridge runcheck compatcheck \
         compatsvc-check libexport-check services-check webuicheck shortcutcheck scriptcheck envcheck buildcheck settingscheck routecheck bridgecheck gamedrivecheck backendcheck launchercheck launchlogcheck launch-shell activatecheck FORCE
 
 APP_PAYLOAD := app/Sources/NotProtonApp/Resources/payload
@@ -156,9 +156,17 @@ l10ncheck:
 compat-data-tests:
 	@python3 -I -m unittest discover -s tools/compat/tests -t tools/compat
 
+# The Python suites of the CI tests job; packaging/tests run under packagingcheck.
+# qa/world/test_make_world.py is left out until test_medium_installer agrees with the
+# fixture it checks (docs/ci/CI.md)
+.PHONY: python-tests
+python-tests: compat-data-tests
+	@python3 -I -m unittest discover -s tools/ci/tests
+	@python3 qa/mocks/test_server.py
+
 # runcheck owns compat_run.sh, whose warnings wait for a change that can move
-# the embedded __text baseline
-SCRIPTS := $(shell git ls-files '*.sh' 2>/dev/null | grep -v '^dylib/feats/compat_run\.sh$$')
+# the embedded __text baseline; docs/research holds one-off zsh benches, not build scripts
+SCRIPTS := $(shell git ls-files '*.sh' 2>/dev/null | grep -v -e '^dylib/feats/compat_run\.sh$$' -e '^docs/research/' -e '/Goldens/')
 
 scriptcheck:
 	@if ! command -v shellcheck >/dev/null 2>&1; then \
@@ -166,11 +174,14 @@ scriptcheck:
 	if [ -z "$(strip $(SCRIPTS))" ]; then $(call SKIP,scriptcheck,a git checkout); exit 0; fi; \
 	for s in $(SCRIPTS); do \
 		shellcheck "$$s" || exit 1; \
-		sh -n "$$s" || exit 1; \
+		case "$$(head -1 "$$s")" in *bash*) sh=bash;; *zsh*) sh=zsh; command -v zsh >/dev/null || continue;; *) sh=sh;; esac; \
+		$$sh -n "$$s" || exit 1; \
 	done; \
 	echo "==> scriptcheck: $(words $(SCRIPTS)) scripts lint and parse clean"
 
 COMPATCHECK := $(OUT_DIR)/compatcheck
+# c-asan clears it to run the C suite alone, the chained checks being shell and Metal
+COMPATCHECK_CHAIN ?= 1
 
 compatcheck: $(RUN_SCRIPT_H)
 	@if [ ! -f dylib/tests/compatcheck.c ]; then $(call SKIP,compatcheck,dylib/tests/compatcheck.c); exit 0; fi; \
@@ -178,8 +189,10 @@ compatcheck: $(RUN_SCRIPT_H)
 	$(TEST_CC) -I$(GENERATED_DIR) \
 	  -o $(COMPATCHECK) dylib/tests/compatcheck.c && \
 	$(COMPATCHECK) && \
+	{ [ -z "$(COMPATCHECK_CHAIN)" ] || { \
 	$(MAKE) -s backendcheck && \
-	$(MAKE) -s fpscheck
+	$(MAKE) -s fpscheck && \
+	$(MAKE) -s framegencheck; }; }
 
 COMPATSVC_CHECK := $(OUT_DIR)/compatsvc-check
 
@@ -564,10 +577,325 @@ fps-counter-tests: $(FPS_COUNTER) $(OUT_DIR)/fps-present.arm64 $(OUT_DIR)/fps-pr
 fps-counter-bench: $(FPS_COUNTER) $(OUT_DIR)/fps-present.arm64 $(OUT_DIR)/fps-present.x86_64
 	@sh $(FPS_COUNTER_TESTS)/bench.sh $(FPS_COUNTER) $(OUT_DIR)
 
+# Frame rate of a game window from outside its process (ScreenCaptureKit, IOKit), for games
+# with an anti-cheat; prototype
+.PHONY: extfps extfps-tests
+extfps: $(OUT_DIR)/extfps
+
+$(OUT_DIR)/extfps: fps-counter/extfps.swift
+	@mkdir -p $(OUT_DIR)
+	swiftc -O -target arm64-apple-macos14 -o $@ $<
+
+extfps-tests: $(OUT_DIR)/extfps $(OUT_DIR)/framegen/game
+	@sh $(FPS_COUNTER_TESTS)/extfps.sh
+
 # Run by compatcheck as well, which the CI runs
 fpscheck: $(FPS_COUNTER) $(OUT_DIR)/fps-present.arm64
 	@if [ ! -f dylib/tests/fpscheck.sh ]; then $(call SKIP,fpscheck,dylib/tests/fpscheck.sh); exit 0; fi; \
 	sh dylib/tests/fpscheck.sh dylib/feats/compat_run.sh $(FPS_COUNTER) $(OUT_DIR)
+
+# Experimental frame generation (spike). x86_64 only: Wine games run under Rosetta.
+# The kernels are compiled when a game starts, from source embedded in the library.
+FRAMEGEN          := $(OUT_DIR)/$(call identity,CARTOUCHE_FRAMEGEN_NAME)
+FRAMEGEN_SRC      := framegen/framegen.m framegen/fg_pipeline.m framegen/fg_ane.m framegen/fg_bridge.m \
+                     framegen/fg_upscale.m framegen/fg_temporal.m framegen/fg_metal.m framegen/fg_proxy.m \
+                     framegen/fg_metrics.m framegen/fg_overlay.m
+FRAMEGEN_KERNELS  := $(OUT_DIR)/framegen/framegen_kernels.h
+FRAMEGEN_UPSCALE_KERNELS := $(OUT_DIR)/framegen/framegen_upscale.h
+FRAMEGEN_OVERLAY_KERNELS := $(OUT_DIR)/framegen/framegen_overlay.h
+FRAMEGEN_OBJC     := -mmacosx-version-min=$(MIN_VER) $(AVAIL) -fobjc-arc -O2 -Wall -Wextra \
+                     -I$(dir $(FRAMEGEN_KERNELS))
+FRAMEGEN_FLAGS    := $(FRAMEGEN_OBJC) -dynamiclib -install_name @rpath/$(notdir $(FRAMEGEN)) \
+                     -framework Metal -framework MetalFX -framework QuartzCore -framework AppKit -framework Foundation \
+                     -framework CoreVideo -framework IOSurface -framework CoreText -framework IOKit
+FRAMEGEN_TESTS    := framegen/tests
+
+.PHONY: framegen framegen-tests framegencheck framegen-test framegen-tune framegen-wine framegen-ane framegen-mfx \
+        framegen-latency framegen-watts framegen-bridge
+.PHONY: framegen-upscale framegen-upbench framegen-fxboth
+.PHONY: framegen-temporal framegen-temporal4
+.PHONY: framegen-dxmt
+.PHONY: framegen-proxy framegen-ffx
+.PHONY: framegen-overlay
+
+# The Neural Engine helper: arm64, since Core ML uses the ANE only in native processes. Its
+# network, framegen-flow.mlmodelc, is converted from Practical-RIFE (MIT) by
+# framegen/ane/convert_rife.py, with coremltools and torch in FRAMEGEN_PYTHON.
+FRAMEGEN_ANE      := $(OUT_DIR)/framegen-ane
+FRAMEGEN_PYTHON  ?= python3
+RIFE_DIR         ?= $(HOME)/Downloads/fg-tests/rife-425lite/train_log
+RIFE_REPO        ?= $(HOME)/Downloads/fg-tests/rife-src/repo
+
+framegen-ane: $(FRAMEGEN_ANE)
+
+$(FRAMEGEN_ANE): framegen/ane/helper.m framegen/ane/fg_ane_protocol.h
+	@mkdir -p $(OUT_DIR)
+	$(CC) -arch arm64 -mmacosx-version-min=$(MIN_VER) -fobjc-arc -O2 -Wall -Wextra -framework Foundation \
+		-framework CoreML -framework CoreVideo -framework IOSurface -o $@ $<
+	codesign -fs - $@
+
+$(OUT_DIR)/framegen-flow.mlmodelc: framegen/ane/convert_rife.py
+	@mkdir -p $(OUT_DIR)/framegen
+	$(FRAMEGEN_PYTHON) -I $< $(RIFE_DIR) $(RIFE_REPO) 512 256 $(OUT_DIR)/framegen/flow.mlpackage lean
+	xcrun coremlcompiler compile $(OUT_DIR)/framegen/flow.mlpackage $(OUT_DIR)/framegen
+	rm -rf $@ && mv $(OUT_DIR)/framegen/flow.mlmodelc $@
+
+# Cartouche FG 1, our own network (CARTOUCHE_FRAMEGEN_ANE=fg1), trained by framegen/ane/a6/train.py
+FG1_CHECKPOINT   ?= $(HOME)/Downloads/fg-tests/a6/run1/best.pt
+
+$(OUT_DIR)/framegen-flow-fg1.mlmodelc: framegen/ane/a6/convert.py framegen/ane/a6/model.py
+	@test -f $(FG1_CHECKPOINT) || { echo "no FG 1 checkpoint at $(FG1_CHECKPOINT) (FG1_CHECKPOINT=...)"; exit 1; }
+	@mkdir -p $(OUT_DIR)/framegen
+	$(FRAMEGEN_PYTHON) $< $(FG1_CHECKPOINT) $(OUT_DIR)/framegen/flow-fg1.mlpackage
+	xcrun coremlcompiler compile $(OUT_DIR)/framegen/flow-fg1.mlpackage $(OUT_DIR)/framegen
+	rm -rf $@ && mv $(OUT_DIR)/framegen/flow-fg1.mlmodelc $@
+
+framegen: $(FRAMEGEN)
+
+$(FRAMEGEN_KERNELS): framegen/kernels.metal
+	@mkdir -p $(dir $@)
+	cd framegen && xxd -i kernels.metal > $(abspath $@)
+
+$(FRAMEGEN_UPSCALE_KERNELS): framegen/upscale.metal
+	@mkdir -p $(dir $@)
+	cd framegen && xxd -i upscale.metal > $(abspath $@)
+
+$(FRAMEGEN_OVERLAY_KERNELS): framegen/overlay.metal
+	@mkdir -p $(dir $@)
+	cd framegen && xxd -i overlay.metal > $(abspath $@)
+
+$(FRAMEGEN): $(FRAMEGEN_SRC) framegen/fg_pipeline.h framegen/fg_ane.h framegen/ane/fg_ane_protocol.h \
+		framegen/bridge/fg_bridge.h framegen/fg_upscale.h framegen/fg_temporal.h framegen/fg_formats.h \
+		framegen/proxy/fg_proxy.h framegen/fg_metrics.h framegen/fg_metrics_shm.h framegen/fg_control_shm.h framegen/fg_overlay.h \
+		$(FRAMEGEN_KERNELS) $(FRAMEGEN_UPSCALE_KERNELS) $(FRAMEGEN_OVERLAY_KERNELS)
+	@mkdir -p $(OUT_DIR)
+	$(CC) -arch x86_64 $(FRAMEGEN_FLAGS) -o $@ $(FRAMEGEN_SRC)
+	codesign -fs - $@
+	@lipo -info $@
+
+$(OUT_DIR)/framegen/pipeline: $(FRAMEGEN_TESTS)/pipeline.m framegen/fg_pipeline.m framegen/fg_pipeline.h $(FRAMEGEN_KERNELS)
+	$(CC) -arch x86_64 $(FRAMEGEN_OBJC) -framework Metal -framework MetalFX -framework Foundation \
+		-o $@ $(FRAMEGEN_TESTS)/pipeline.m framegen/fg_pipeline.m
+
+# Settings search on the test window's scene, scored against the true half-way frame
+$(OUT_DIR)/framegen/tune: $(FRAMEGEN_TESTS)/tune.m $(FRAMEGEN_TESTS)/scene.h framegen/fg_pipeline.m framegen/fg_pipeline.h framegen/fg_ane.m \
+		$(FRAMEGEN_KERNELS)
+	$(CC) -arch x86_64 $(FRAMEGEN_OBJC) -framework AppKit -framework Metal -framework MetalFX -framework MetalKit \
+		-framework CoreVideo -framework IOSurface -o $@ $(FRAMEGEN_TESTS)/tune.m framegen/fg_pipeline.m framegen/fg_ane.m
+
+framegen-tune: $(OUT_DIR)/framegen/tune
+	@$(OUT_DIR)/framegen/tune mockup/brand/cartouche-icon-default.svg $(FRAMEGEN_TUNE_SPEEDS)
+
+# MetalFX's interpolator alone on a square moving a known distance: implicit instant, scaled
+# vectors, descriptor options
+$(OUT_DIR)/framegen/mfx: $(FRAMEGEN_TESTS)/mfx.m
+	@mkdir -p $(dir $@)
+	$(CC) -arch x86_64 $(FRAMEGEN_OBJC) -framework Metal -framework MetalFX -framework Foundation -o $@ $<
+
+framegen-mfx: $(OUT_DIR)/framegen/mfx
+	@$(OUT_DIR)/framegen/mfx 48 16 96
+
+# The GPU cost of our chain around a temporal scaler as DXMT makes one for DLSS
+$(OUT_DIR)/framegen/temporal: $(FRAMEGEN_TESTS)/temporal.m framegen/fg_temporal.m framegen/fg_temporal.h \
+		framegen/fg_upscale.m framegen/fg_upscale.h framegen/fg_formats.h $(FRAMEGEN_UPSCALE_KERNELS)
+	@mkdir -p $(dir $@)
+	$(CC) -arch x86_64 $(FRAMEGEN_OBJC) -framework AppKit -framework Metal -framework MetalFX -framework QuartzCore \
+		-framework Foundation -o $@ $(FRAMEGEN_TESTS)/temporal.m framegen/fg_temporal.m framegen/fg_upscale.m
+
+framegen-temporal: $(OUT_DIR)/framegen/temporal
+	@$(OUT_DIR)/framegen/temporal 300
+
+# The same chain on an MTL4FX temporal scaler in MTL4 command buffers, as D3DMetal may drive one:
+# image against the scene at full size, cost, and the kill switch's output byte for byte
+$(OUT_DIR)/framegen/temporal4: $(FRAMEGEN_TESTS)/temporal4.m $(FRAMEGEN_TESTS)/scene.h framegen/fg_temporal.m \
+		framegen/fg_temporal.h framegen/fg_upscale.m framegen/fg_upscale.h framegen/fg_formats.h $(FRAMEGEN_UPSCALE_KERNELS)
+	@mkdir -p $(dir $@)
+	$(CC) -arch x86_64 $(FRAMEGEN_OBJC) -framework AppKit -framework Metal -framework MetalFX -framework MetalKit \
+		-framework QuartzCore -framework Foundation -o $@ $(FRAMEGEN_TESTS)/temporal4.m framegen/fg_temporal.m \
+		framegen/fg_upscale.m
+
+framegen-temporal4: $(OUT_DIR)/framegen/temporal4 $(OUT_DIR)/framegen/score
+	@sh $(FRAMEGEN_TESTS)/temporal4.sh $(OUT_DIR)/framegen/temporal4 $(OUT_DIR)/framegen/score \
+		mockup/brand/cartouche-icon-default.svg
+
+$(OUT_DIR)/framegen/game: $(FRAMEGEN_TESTS)/game.m $(FRAMEGEN_TESTS)/screen.h
+	@mkdir -p $(dir $@)
+	$(CC) -arch x86_64 $(FRAMEGEN_OBJC) -framework AppKit -framework Metal -framework MetalFX -framework QuartzCore -o $@ $<
+
+# Stands in for DXMT's winemetal.so, which the library looks for to name the backend
+$(OUT_DIR)/framegen/winemetal.so: dylib/stub_x86_64.c
+	@mkdir -p $(dir $@)
+	$(CC) -arch x86_64 -dynamiclib -o $@ $<
+
+framegen-tests: $(FRAMEGEN) $(OUT_DIR)/framegen/pipeline $(OUT_DIR)/framegen/game $(OUT_DIR)/framegen/winemetal.so
+	@$(OUT_DIR)/framegen/pipeline 1920 1080
+	@sh $(FRAMEGEN_TESTS)/framegen.sh $(FRAMEGEN) $(OUT_DIR)/framegen
+
+# The in-game overlay: offscreen pixels, cost and generation inputs, then in the stand-in game with
+# generation on, and the shared metrics block read by a native arm64 process
+$(OUT_DIR)/framegen/overlay: $(FRAMEGEN_TESTS)/overlay.m framegen/fg_overlay.m framegen/fg_overlay.h framegen/fg_metrics.m \
+		framegen/fg_metrics.h framegen/fg_metrics_shm.h framegen/fg_control_shm.h framegen/fg_pipeline.m framegen/fg_pipeline.h \
+		$(FRAMEGEN_KERNELS) $(FRAMEGEN_OVERLAY_KERNELS)
+	@mkdir -p $(dir $@)
+	$(CC) -arch x86_64 $(FRAMEGEN_OBJC) -framework AppKit -framework Metal -framework MetalFX -framework QuartzCore -framework CoreText \
+		-framework IOKit -o $@ $(FRAMEGEN_TESTS)/overlay.m framegen/fg_overlay.m framegen/fg_metrics.m framegen/fg_pipeline.m
+
+$(OUT_DIR)/framegen/metrics-read: $(FRAMEGEN_TESTS)/metrics_read.c framegen/fg_metrics_shm.h
+	@mkdir -p $(dir $@)
+	$(CC) -arch arm64 -O2 -Wall -Wextra -o $@ $<
+
+framegen-overlay: $(FRAMEGEN) $(OUT_DIR)/framegen/overlay $(OUT_DIR)/framegen/metrics-read $(OUT_DIR)/framegen/game \
+		$(OUT_DIR)/framegen/winemetal.so
+	@$(OUT_DIR)/framegen/overlay $(OUT_DIR)/framegen
+	@sh $(FRAMEGEN_TESTS)/overlay.sh $(abspath $(FRAMEGEN)) $(abspath $(OUT_DIR)/framegen)
+
+$(OUT_DIR)/framegen/mouse: $(FRAMEGEN_TESTS)/mouse.m
+	@mkdir -p $(dir $@)
+	$(CC) -arch x86_64 $(FRAMEGEN_OBJC) -framework AppKit -framework ApplicationServices -o $@ $<
+
+# Upscaling (CARTOUCHE_FRAMEGEN_UPSCALE): clicks against the marks the game draws, layer sizes,
+# frame generation on top, failures; natively, then in Wine on DXMT and D3DMetal
+framegen-upscale: $(FRAMEGEN) $(OUT_DIR)/framegen/game $(OUT_DIR)/framegen/winemetal.so $(OUT_DIR)/framegen/mouse \
+		$(OUT_DIR)/framegen/scene.exe
+	@sh $(FRAMEGEN_TESTS)/upscale.sh $(abspath $(FRAMEGEN)) $(abspath $(OUT_DIR)/framegen)
+
+# The spatial chain against bilinear and MetalFX alone, scored against a supersampled render
+$(OUT_DIR)/framegen/upbench: $(FRAMEGEN_TESTS)/upbench.m $(FRAMEGEN_TESTS)/scene.h framegen/fg_upscale.m framegen/fg_upscale.h \
+		framegen/fg_formats.h $(FRAMEGEN_UPSCALE_KERNELS)
+	@mkdir -p $(dir $@)
+	$(CC) -arch x86_64 $(FRAMEGEN_OBJC) -framework AppKit -framework Metal -framework MetalFX -framework MetalKit \
+		-framework QuartzCore -o $@ $(FRAMEGEN_TESTS)/upbench.m framegen/fg_upscale.m
+
+framegen-upbench: $(OUT_DIR)/framegen/upbench
+	@$(OUT_DIR)/framegen/upbench mockup/brand/cartouche-icon-default.svg
+
+# A game's temporal scaler and an interpolator: apart, and with the interpolator made on the scaler
+$(OUT_DIR)/framegen/fxboth: $(FRAMEGEN_TESTS)/fxboth.m $(FRAMEGEN_TESTS)/scene.h
+	@mkdir -p $(dir $@)
+	$(CC) -arch x86_64 $(FRAMEGEN_OBJC) -framework AppKit -framework Metal -framework MetalFX -framework MetalKit -o $@ $<
+
+framegen-fxboth: $(OUT_DIR)/framegen/fxboth
+	@$(OUT_DIR)/framegen/fxboth mockup/brand/cartouche-icon-default.svg
+
+# Relative click-to-photon latency on the stand-in game, off, capped, hooks only and 2x:
+# FRAMEGEN_CLICKS clicks per configuration, at each of FRAMEGEN_BASES
+FRAMEGEN_CLICKS ?= 100
+FRAMEGEN_BASES  ?= 40 60
+
+framegen-latency: $(FRAMEGEN) $(OUT_DIR)/framegen/game $(OUT_DIR)/framegen/winemetal.so
+	@sh $(FRAMEGEN_TESTS)/latency.sh $(abspath $(FRAMEGEN)) $(abspath $(OUT_DIR)/framegen) $(FRAMEGEN_CLICKS) $(FRAMEGEN_BASES)
+
+# Energy per shown frame from powermetrics (root: run "sudo -v" first), off, native and 2x;
+# WATTS_THROTTLE=1 adds 20 minutes with generation on
+FRAMEGEN_WATTS_SECONDS ?= 60
+
+framegen-watts: $(FRAMEGEN) $(OUT_DIR)/framegen/game $(OUT_DIR)/framegen/winemetal.so
+	@sh $(FRAMEGEN_TESTS)/watts.sh $(abspath $(FRAMEGEN)) $(abspath $(OUT_DIR)/framegen) $(FRAMEGEN_WATTS_SECONDS) $(FRAMEGEN_BASES)
+
+# A Direct3D 11 stand-in game, cross-built with mingw-w64, run in Cartouche's own Wine on
+# DXMT and D3DMetal. Needs Cartouche's runners installed on this Mac.
+$(OUT_DIR)/framegen/scene.exe: $(FRAMEGEN_TESTS)/d3d11/scene.c framegen/bridge/fg_bridge.h
+	@mkdir -p $(dir $@)
+	x86_64-w64-mingw32-gcc -O2 -Wall -Wextra -o $@ $< -ld3d11 -ld3dcompiler -ldxgi -luuid
+
+framegen-wine: $(FRAMEGEN) $(OUT_DIR)/framegen/scene.exe $(OUT_DIR)/framegen/game $(OUT_DIR)/framegen/score $(OUT_DIR)/framegen/temporal
+	@sh $(FRAMEGEN_TESTS)/d3d11/check.sh $(abspath $(OUT_DIR)/framegen/scene.exe) $(abspath $(FRAMEGEN))
+
+# The Wine bridge: a PE DLL and its unix half, built outside Wine's tree as DXMT builds
+# winemetal, and found through WINEDLLPATH. Marked builtin as winebuild --builtin does, with
+# Wine's signature right after the DOS header. CrossOver's ntdll looks for the unix half next
+# to the DLL. The unmarked copy stands for a game's own DLL.
+FRAMEGEN_BRIDGE   := $(OUT_DIR)/framegen/bridge
+FRAMEGEN_BRIDGE_PARTS := $(FRAMEGEN_BRIDGE)/builtin/cartouche_bridge.dll $(FRAMEGEN_BRIDGE)/builtin/cartouche_bridge.so \
+                     $(FRAMEGEN_BRIDGE)/native/cartouche_bridge.dll
+
+$(FRAMEGEN_BRIDGE)/builtin/cartouche_bridge.dll: framegen/bridge/cartouche_bridge.c framegen/bridge/fg_bridge.h
+	@mkdir -p $(dir $@)
+	x86_64-w64-mingw32-gcc -O2 -Wall -Wextra -shared -o $@ $<
+	@test "$$(od -An -t u4 -j 60 -N 4 $@ | tr -d ' ')" -ge 81 || { echo "$@: no room for Wine's signature"; rm -f $@; exit 1; }
+	printf 'Wine builtin DLL\000' | dd of=$@ bs=1 seek=64 conv=notrunc 2> /dev/null
+
+$(FRAMEGEN_BRIDGE)/native/cartouche_bridge.dll: framegen/bridge/cartouche_bridge.c framegen/bridge/fg_bridge.h
+	@mkdir -p $(dir $@)
+	x86_64-w64-mingw32-gcc -O2 -Wall -Wextra -shared -DCARTOUCHE_BRIDGE_KIND='"native"' -o $@ $<
+
+$(FRAMEGEN_BRIDGE)/builtin/cartouche_bridge.so: framegen/bridge/cartouche_bridge_unix.c framegen/bridge/fg_bridge.h
+	@mkdir -p $(dir $@)
+	$(CC) -arch x86_64 -mmacosx-version-min=$(MIN_VER) -O2 -Wall -Wextra -dynamiclib -o $@ $<
+	codesign -fs - $@
+
+# 10 000 frames through the bridge in the D3D11 scene on DXMT, then which DLL Wine loads when
+# the game's folder holds one of the same name
+framegen-bridge: $(FRAMEGEN) $(OUT_DIR)/framegen/scene.exe $(FRAMEGEN_BRIDGE_PARTS)
+	@sh $(FRAMEGEN_TESTS)/d3d11/bridge.sh $(abspath $(OUT_DIR)/framegen/scene.exe) $(abspath $(FRAMEGEN)) \
+		$(abspath $(FRAMEGEN_BRIDGE))
+
+# The zero-copy D3D11 path: DXMT with framegen/dxmt/0001-GetMetalTexture.patch, built in a
+# scratch dir (the user's DXMT is untouched), then the scene's textures checked through it and
+# our MetalFX chain in place of its upscale
+FRAMEGEN_DXMT    ?= $(HOME)/Library/Caches/cartouche-fg-dxmt
+
+$(OUT_DIR)/framegen/score: $(FRAMEGEN_TESTS)/d3d11/score.c
+	@mkdir -p $(dir $@)
+	$(CC) -O2 -Wall -Wextra -o $@ $<
+
+framegen-dxmt: $(FRAMEGEN) $(OUT_DIR)/framegen/scene.exe $(FRAMEGEN_BRIDGE_PARTS) $(OUT_DIR)/framegen/score
+	@sh framegen/dxmt/build.sh $(FRAMEGEN_DXMT) > /dev/null
+	@sh $(FRAMEGEN_TESTS)/d3d11/dxmt.sh $(abspath $(OUT_DIR)/framegen/scene.exe) $(abspath $(FRAMEGEN)) \
+		$(abspath $(FRAMEGEN_BRIDGE))/builtin $(abspath $(OUT_DIR)/framegen/score) $(FRAMEGEN_DXMT)/root
+
+# The FFX proxy: AMD's FFX DLL names as Wine builtins with their unix halves, in one folder for
+# WINEDLLPATH. Written from AMD's MIT headers (framegen/proxy/ffx). FRAMEGEN_FFX_SAMPLE is AMD's
+# prebuilt FSR sample (FidelityFX SDK v2.3.0, MIT), with its media unpacked beside it.
+FRAMEGEN_PROXY    := $(OUT_DIR)/framegen/proxy
+FRAMEGEN_PROXY_NAMES := amd_fidelityfx_loader_dx12 amd_fidelityfx_dx12
+FRAMEGEN_PROXY_PARTS := $(foreach n,$(FRAMEGEN_PROXY_NAMES),$(FRAMEGEN_PROXY)/$(n).dll $(FRAMEGEN_PROXY)/$(n).so)
+FRAMEGEN_FFX_SAMPLE ?= $(HOME)/Downloads/fg-tests/ffx/Samples/Upscalers/FidelityFX_FSR/dx12/x64/Release
+
+$(FRAMEGEN_PROXY)/%.dll: framegen/proxy/ffx_proxy.c framegen/proxy/fg_proxy.h $(shell find framegen/proxy/ffx -name '*.h')
+	@mkdir -p $(dir $@)
+	x86_64-w64-mingw32-gcc -O2 -Wall -Wextra -Wno-unknown-pragmas -shared -o $@ $<
+	@test "$$(od -An -t u4 -j 60 -N 4 $@ | tr -d ' ')" -ge 81 || { echo "$@: no room for Wine's signature"; rm -f $@; exit 1; }
+	printf 'Wine builtin DLL\000' | dd of=$@ bs=1 seek=64 conv=notrunc 2> /dev/null
+
+$(FRAMEGEN_PROXY)/%.so: framegen/proxy/ffx_proxy_unix.c framegen/proxy/fg_proxy.h
+	@mkdir -p $(dir $@)
+	$(CC) -arch x86_64 -mmacosx-version-min=$(MIN_VER) -O2 -Wall -Wextra -dynamiclib -o $@ $<
+	codesign -fs - $@
+
+$(OUT_DIR)/framegen/quiet.dylib: $(FRAMEGEN_TESTS)/ffx/quiet.m
+	@mkdir -p $(dir $@)
+	$(CC) -arch x86_64 $(FRAMEGEN_OBJC) -dynamiclib -framework AppKit -o $@ $<
+	codesign -fs - $@
+
+framegen-proxy: $(FRAMEGEN_PROXY_PARTS)
+
+# Frame generation scored on the sample's own frames, from the proxy's copies
+$(OUT_DIR)/framegen/ffx-score: $(FRAMEGEN_TESTS)/ffx/score.m framegen/fg_pipeline.m framegen/fg_pipeline.h $(FRAMEGEN_KERNELS)
+	@mkdir -p $(dir $@)
+	$(CC) -arch x86_64 $(FRAMEGEN_OBJC) -framework Metal -framework MetalFX -framework Foundation \
+		-o $@ $(FRAMEGEN_TESTS)/ffx/score.m framegen/fg_pipeline.m
+
+# AMD's FSR sample on D3DMetal, without then with the proxy: same run, the sample's folder
+# untouched; then the proxy's copies of depth and motion reaching the library
+framegen-ffx: $(FRAMEGEN) $(FRAMEGEN_PROXY_PARTS) $(OUT_DIR)/framegen/quiet.dylib $(OUT_DIR)/framegen/ffx-score
+	@sh $(FRAMEGEN_TESTS)/ffx/sample.sh $(FRAMEGEN_FFX_SAMPLE) $(abspath $(FRAMEGEN)) $(abspath $(FRAMEGEN_PROXY)) \
+		$(abspath $(OUT_DIR)/framegen/quiet.dylib)
+
+# Cartouche Frame Gen Test: top lane off, bottom lane on, and a settings window that tunes
+# the library live and shows both lanes' numbers
+$(OUT_DIR)/framegen/framegen_test: $(FRAMEGEN_TESTS)/framegen_test.m $(FRAMEGEN_TESTS)/scene.h $(FRAMEGEN_TESTS)/screen.h
+	@mkdir -p $(dir $@)
+	$(CC) -arch x86_64 $(FRAMEGEN_OBJC) -framework AppKit -framework Metal -framework MetalKit -framework QuartzCore \
+		-o $@ $<
+
+framegen-test: $(FRAMEGEN) $(OUT_DIR)/framegen/framegen_test $(OUT_DIR)/framegen/winemetal.so
+	DYLD_INSERT_LIBRARIES=$(abspath $(OUT_DIR)/framegen/winemetal.so):$(abspath $(FRAMEGEN)) CARTOUCHE_FRAMEGEN=1 \
+		$(OUT_DIR)/framegen/framegen_test mockup/brand/cartouche-icon-default.svg
+
+# The run script's side, without a window: run by compatcheck as well
+framegencheck: $(FRAMEGEN) $(OUT_DIR)/framegen/game
+	@sh dylib/tests/framegencheck.sh dylib/feats/compat_run.sh $(FRAMEGEN) $(OUT_DIR)/framegen
 
 ICONMAKER := $(OUT_DIR)/iconmaker
 
@@ -605,9 +933,32 @@ UNARC_DRIVER := $(OUT_DIR)/unarc-driver.exe
 
 unarc-driver: $(UNARC_DRIVER)
 
-$(UNARC_DRIVER): helpers/unarc-driver.c
+$(UNARC_DRIVER): helpers/unarc-driver.c helpers/unarc-password.h
 	@mkdir -p $(OUT_DIR)
 	$(MINGW32) -O2 -Wall -static-libgcc -o $@ $<
+	@echo "==> Built $@"
+
+.PHONY: homecheck
+homecheck:
+	@mkdir -p $(OUT_DIR) && \
+	$(TEST_CC) -o $(OUT_DIR)/homecheck dylib/tests/homecheck.c dylib/util/file.c && \
+	$(OUT_DIR)/homecheck
+
+.PHONY: unarccheck
+unarccheck:
+	@mkdir -p $(OUT_DIR) && \
+	$(TEST_CC) -o $(OUT_DIR)/unarc-password-check dylib/tests/unarc-password-check.c && \
+	$(OUT_DIR)/unarc-password-check
+
+# Restores a fullscreen game minimized by the in-game menu, run inside the game's own Wine
+MINGW64     ?= x86_64-w64-mingw32-gcc
+GAME_RESTORE := $(OUT_DIR)/game-restore.exe
+
+game-restore: $(GAME_RESTORE)
+
+$(GAME_RESTORE): helpers/game-restore.c
+	@mkdir -p $(OUT_DIR)
+	$(MINGW64) -O2 -Wall -Wextra -static-libgcc -o $@ $<
 	@echo "==> Built $@"
 
 dobby:
@@ -679,12 +1030,13 @@ bridge:
 fonts:
 	fonts/build.sh
 
-app-payload: $(TARGET) $(OVERLAY_SHIM) $(FPS_COUNTER) $(ICONMAKER) $(APPINFO)
+app-payload: $(TARGET) $(OVERLAY_SHIM) $(FPS_COUNTER) $(FRAMEGEN) $(ICONMAKER) $(APPINFO)
 	@mkdir -p "$(APP_PAYLOAD)/signatures/macos.arm64"
 	@mkdir -p "$(APP_PAYLOAD)/bridge"
 	cp -f $(TARGET) "$(APP_PAYLOAD)/$(DYLIB_NAME)"
 	cp -f $(OVERLAY_SHIM) "$(APP_PAYLOAD)/overlay-shim.dylib"
 	cp -f $(FPS_COUNTER) "$(APP_PAYLOAD)/$(notdir $(FPS_COUNTER))"
+	cp -f $(FRAMEGEN) "$(APP_PAYLOAD)/$(notdir $(FRAMEGEN))"
 	cp -f $(ICONMAKER) "$(APP_PAYLOAD)/iconmaker"
 	cp -f $(APPINFO) "$(APP_PAYLOAD)/appinfo"
 	cp -f dylib/feats/compat_run.sh "$(APP_PAYLOAD)/run"
@@ -700,6 +1052,11 @@ app-payload: $(TARGET) $(OVERLAY_SHIM) $(FPS_COUNTER) $(ICONMAKER) $(APPINFO)
 		cp -f "$(UNARC_DRIVER)" "$(APP_PAYLOAD)/unarc-driver.exe"; \
 	elif [ -f "$(APP_PAYLOAD)/unarc-driver.exe" ]; then echo "==> keeping staged unarc-driver.exe"; \
 	else echo "$(UNARC_DRIVER) needs $(MINGW32) (brew install mingw-w64) or a staged $(APP_PAYLOAD)/unarc-driver.exe" >&2; exit 1; fi
+	@if command -v "$(MINGW64)" >/dev/null 2>&1; then \
+		$(MAKE) --no-print-directory $(GAME_RESTORE) && \
+		cp -f "$(GAME_RESTORE)" "$(APP_PAYLOAD)/game-restore.exe"; \
+	elif [ -f "$(APP_PAYLOAD)/game-restore.exe" ]; then echo "==> keeping staged game-restore.exe"; \
+	else echo "$(GAME_RESTORE) needs $(MINGW64) (brew install mingw-w64) or a staged $(APP_PAYLOAD)/game-restore.exe" >&2; exit 1; fi
 	@if [ ! -d build/fonts ]; then echo "build/fonts is missing, run: $(MAKE) fonts" >&2; exit 1; fi
 	@mkdir -p "$(APP_PAYLOAD)/fonts"
 	@rsync -a --delete build/fonts/ "$(APP_PAYLOAD)/fonts/"
@@ -712,11 +1069,14 @@ APP_BUNDLE  := $(OUT_DIR)/Cartouche.app
 APP_ZIP     := $(OUT_DIR)/Cartouche.zip
 APP_VERSION := $(shell sed -n 's/^\#define CARTOUCHE_VERSION "\(.*\)"/\1/p' dylib/version.h)
 
-# Sparkle compares CFBundleVersion and reads 0.2.0-beta.1 as equal to 0.2.0, so a
+# Sparkle compares CFBundleVersion and reads 0.2.0-beta1 as equal to 0.2.0, so a
 # pre-release carries 0.2.0b1 there (packaging/release.py bundle-version)
-APP_BUNDLE_VERSION := $(shell echo '$(APP_VERSION)' | sed -E 's/-(b)eta\.([0-9]+)$$/\1\2/; s/-(t)est\.([0-9]+)$$/\1\2/')
+APP_BUNDLE_VERSION := $(shell echo '$(APP_VERSION)' | sed -E 's/-(b)eta\.?([0-9]+)$$/\1\2/; s/-(t)est\.([0-9]+)$$/\1\2/')
 
-APP_SIGN_ID ?= -
+# The stable local release identity when this Mac has it and trusts it for
+# code signing (docs/RELEASE.md); ad hoc otherwise, as on CI, on machines
+# without the certificate and with an untrusted copy, which would prompt.
+APP_SIGN_ID ?= $(shell security find-identity -v -p codesigning 2>/dev/null | grep -q '"Cartouche Local Signing"' && echo 'Cartouche Local Signing' || echo '-')
 
 ICONGEN   := $(OUT_DIR)/make-icon
 ICON_SRC  := $(OUT_DIR)/icon-src
@@ -737,7 +1097,7 @@ $(ICON_CAR): $(ICONGEN) $(wildcard $(BRAND_DIR)/*.svg)
 	rm -rf "$(ICON_SRC)" "$(ICON_DIR)"
 	$(ICONGEN) "$(BRAND_DIR)" "$(ICON_SRC)"
 	@mkdir -p "$(ICON_DIR)"
-	xcrun actool "$(ICON_SRC)/Cartouche.icon" "$(ICON_SRC)/Glyphs.xcassets" --compile "$(ICON_DIR)" \
+	xcrun actool "$(ICON_SRC)/Cartouche.icon" "$(ICON_SRC)/Glyphs.xcassets" app/Assets/App.xcassets --compile "$(ICON_DIR)" \
 		--platform macosx --minimum-deployment-target 15.0 --app-icon Cartouche \
 		--output-partial-info-plist "$(ICON_DIR)/partial.plist" >/dev/null
 	iconutil -c icns -o "$(ICON_DIR)/Cartouche.icns" "$(ICON_SRC)/Cartouche.iconset"
@@ -781,7 +1141,7 @@ define BUNDLE_APP
 	# The stdio face of the app's MCP server; MCP clients run it from the bundle
 	cp -f "$$(swift build --package-path app -c $(1) $(SWIFT_FLAGS) --show-bin-path)/cartouche-mcp" \
 		"$(2)/Contents/Helpers/cartouche-mcp"
-	codesign -f -s "$(APP_SIGN_ID)" "$(2)/Contents/Helpers/cartouche-mcp"
+	codesign -f -s "$(APP_SIGN_ID)" -o runtime "$(2)/Contents/Helpers/cartouche-mcp"
 	cp "$(ICON_DIR)/Assets.car" "$(ICON_DIR)/Cartouche.icns" \
 		"$(2)/Contents/Resources/"
 	@missing=$$(cd "$(APP_PAYLOAD)" && find . -type f ! -name '.DS_Store' | sed 's|^\./||' \
@@ -795,21 +1155,33 @@ define BUNDLE_APP
 		exit 1; \
 	fi
 	@echo "==> Payload complete in the bundle"
-	@if [ -x "$(INNOEXTRACT)" ]; then \
+	@if [ -x "$(INNOEXTRACT)" ] && file -b "$(INNOEXTRACT)" | grep -q 'Mach-O'; then \
 		mkdir -p "$(2)/Contents/Helpers" && \
 		cp -f "$(INNOEXTRACT)" "$(2)/Contents/Helpers/innoextract" && \
-		codesign -f -s "$(APP_SIGN_ID)" "$(2)/Contents/Helpers/innoextract"; \
+		codesign -f -s "$(APP_SIGN_ID)" -o runtime "$(2)/Contents/Helpers/innoextract"; \
 	elif [ "$(1)" = release ]; then \
 		echo "==> $(INNOEXTRACT) is missing, the release app cannot read installers without it (run: $(MAKE) innoextract)" >&2; exit 1; \
 	else echo "==> $(INNOEXTRACT) not built, installer analysis needs a Homebrew innoextract (run: $(MAKE) innoextract)"; fi
-	@if [ ! -f "$(LIBARCHIVE)" ]; then \
-		echo "==> $(LIBARCHIVE) is missing, the app would ship without archive extraction (run: $(MAKE) libarchive)" >&2; exit 1; \
+	@if ! file -b "$(LIBARCHIVE)" 2>/dev/null | grep -q 'Mach-O'; then \
+		echo "==> $(LIBARCHIVE) is missing or not a library, the app would ship without archive extraction (run: rm -rf build/libarchive && $(MAKE) libarchive)" >&2; exit 1; \
 	fi
 	@mkdir -p "$(2)/Contents/Helpers"
 	cp -f "$(LIBARCHIVE)" "$(2)/Contents/Helpers/libarchive.dylib"
 	codesign -f -s "$(APP_SIGN_ID)" "$(2)/Contents/Helpers/libarchive.dylib"
-	codesign -f -s "$(APP_SIGN_ID)" "$(2)"
-	codesign --verify --strict "$(2)"
+	# Payload dylibs and tools are resources of the inner bundle: --deep seals
+	# them as data instead of signing them, so they are signed by hand first.
+	@find "$(2)/Contents/Resources/NotProtonApp_NotProtonApp.bundle/Contents/Resources/payload" -type f \
+		| while IFS= read -r f; do \
+			case "$$(od -An -tx1 -N4 "$$f" | tr -d ' ')" in \
+			cffaedfe|feedfacf|feedface|cefaedfe|cafebabe|bebafeca) \
+				if file -b "$$f" | grep -q executable; then codesign -f -s "$(APP_SIGN_ID)" -o runtime "$$f"; \
+				else codesign -f -s "$(APP_SIGN_ID)" "$$f"; fi ;; \
+			esac; \
+		done
+	# Hardened runtime everywhere; only the app itself may load our own frameworks (no Team ID on a local certificate)
+	codesign -f -s "$(APP_SIGN_ID)" --deep -o runtime "$(2)"
+	codesign -f -s "$(APP_SIGN_ID)" -o runtime --entitlements app/Cartouche.entitlements "$(2)"
+	codesign --verify --deep --strict "$(2)"
 	@echo "==> Built $(2) ($(APP_VERSION), $(1))"
 endef
 
@@ -874,7 +1246,18 @@ rebuild: clean all
 FORCE:
 
 include retroarch/retroarch.mk
+include tools/c-safety/c-safety.mk
 
 .PHONY: launchlogcheck
 launchlogcheck:
 	sh dylib/tests/launchlogcheck.sh dylib/feats/compat_run.sh
+
+# Every security check on the exact app that ships (security/gate.sh); see docs/ci/CI-ARCHITECTURE.md
+release-gate: app
+	@bash security/gate.sh --app out/Cartouche.app
+
+# The gate catches every planted defect (secrets, workflows, Keychain, unsafe C, code rules)
+release-gate-selftest:
+	@bash security/tests/planted-defects.sh
+
+.PHONY: release-gate release-gate-selftest

@@ -47,6 +47,7 @@ struct GameCard: View {
     let menu: () -> [GameMenuItem]
     let perform: (GameAction) -> Void
     var antiCheatBlocked = false
+    var antiCheatUnknown = false
     var layoutShape: CoverShape? = nil
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -55,6 +56,11 @@ struct GameCard: View {
     @State private var hovering = false
 
     var inColor: Bool { game.installed || isSelected }
+
+    var lockedStatus: String? {
+        if antiCheatBlocked { return String(localized: "Anti-cheat unsupported") }
+        return antiCheatUnknown ? String(localized: "Anti-cheat") : nil
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -85,13 +91,16 @@ struct GameCard: View {
                 Circle().fill(Color.green).frame(width: 6, height: 6)
                 Text(activity.download(for: game)?.cardStatus ?? String(localized: "Playing"))
             }
-            .foregroundStyle(Color.green)
+            .foregroundStyle(Glass.label2)
         } else if GameMenu.steamLaunching(game, activity: activity) {
             Text("Launching…").foregroundStyle(Glass.label2)
         } else {
             let download = activity.download(for: game)
-            Text(download?.cardStatus ?? (antiCheatBlocked ? String(localized: "Anti-cheat unsupported") : game.status()))
-                .foregroundStyle(download?.isFailed == true || (download == nil && antiCheatBlocked) ? Color.red : Glass.label2)
+            HStack(spacing: 4) {
+                if download == nil && lockedStatus != nil { Image(systemName: "lock") }
+                Text(download?.cardStatus ?? lockedStatus ?? game.status())
+            }
+            .foregroundStyle(download?.isFailed == true ? Color.red : Glass.label2)
         }
     }
 
@@ -145,7 +154,7 @@ struct GameCard: View {
             }
             .scaleEffect(motion.tilts && hovering ? 1.03 : 1)
             .animation(motion.tilts ? .spring(duration: 0.3, bounce: 0) : .easeOut(duration: 0.15), value: hovering)
-            .onHover { hovering = $0 }
+            .trackHover { hovering = $0 }
             .dropDestination(for: URL.self) { urls, _ in
                 guard let image = urls.first(where: { NSImage(contentsOf: $0) != nil }) else { return false }
                 onDropCover(image)
@@ -171,21 +180,16 @@ struct CoverEdge: View {
     }
 }
 
-// A playing game's cover: a green ring that breathes, still under Reduce Motion
+// A playing game's cover: a still green ring held off the cover, no glow
 private struct PlayingRing: View {
     let reduceMotion: Bool
-    @State private var low = false
 
     var body: some View {
-        RoundedRectangle(cornerRadius: 12, style: .continuous)
-            .strokeBorder(Color.green, lineWidth: 2)
-            .shadow(color: .green.opacity(low ? 0.25 : 0.45), radius: low ? 5 : 13)
-            .padding(-2)
+        RoundedRectangle(cornerRadius: 16, style: .continuous)
+            .strokeBorder(Color.green, lineWidth: 2.5)
+            .padding(-4)
             .allowsHitTesting(false)
-            .onAppear {
-                guard !reduceMotion else { return }
-                withAnimation(.easeInOut(duration: 1.3).repeatForever(autoreverses: true)) { low = true }
-            }
+            .accessibilityHidden(true)
     }
 }
 

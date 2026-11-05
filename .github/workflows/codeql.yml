@@ -1,0 +1,140 @@
+name: codeql
+
+# CodeQL code scanning for Swift, C/C++/Objective-C, the workflows and Python
+# (docs/ci/CI.md). Not a required check until its first green run on a hosted runner.
+# CodeQL cannot trace Swift built with Xcode 27 or analyse Swift 6.4 (GitHub changelog,
+# 2026-10-19), so the macOS jobs run on macos-26 with Xcode 26 selected by path, and the
+# Swift job fails when the database holds no Swift file rather than passing empty.
+on:
+  pull_request:
+    branches: [main, "release/**"]
+  push:
+    branches: [main]
+  schedule:
+    - cron: "41 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  XCODE_APP: /Applications/Xcode_26.6.app
+  DOBBY_COMMIT: "5dfc8546954ce3b3198132ab13fddb89ee92cdd7"
+  HOMEBREW_NO_AUTO_UPDATE: "1"
+
+jobs:
+  # Compiled languages: CodeQL traces the build. Only what builds from this repository
+  # and pinned public sources: no Wine tree, no payload, nothing licensed
+  macos:
+    name: codeql ${{ matrix.language }}
+    runs-on: macos-26
+    # The traced Swift build of the app outlasts 90 minutes on a 3-core runner, so Swift
+    # is analysed on main, weekly and on demand; pull requests get C, C++ and Objective-C
+    timeout-minutes: ${{ matrix.language == 'swift' && 240 || 60 }}
+    permissions:
+      contents: read
+      security-events: write # uploads the SARIF to code scanning
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ${{ fromJSON(github.event_name == 'pull_request' && '["c-cpp"]' || '["swift", "c-cpp"]') }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Select Xcode 26
+        run: |
+          sudo xcode-select -s "$XCODE_APP"
+          xcodebuild -version
+          swift --version
+          xcodebuild -version | head -1 | grep -q '^Xcode 26\.' || { echo "::error::CodeQL needs Xcode 26, got $(xcodebuild -version | head -1)"; exit 1; }
+          if swift --version 2>&1 | grep -q 'Swift version 6\.4'; then echo "::error::CodeQL cannot analyse Swift 6.4"; exit 1; fi
+
+      # Dobby is upstream code: built before CodeQL starts, so it is not traced
+      - name: Build Dobby at the pinned commit, untraced
+        if: matrix.language == 'c-cpp'
+        run: |
+          command -v cmake >/dev/null || brew install cmake
+          git clone --no-checkout https://github.com/jmpews/Dobby.git vendor/dobby
+          git -C vendor/dobby checkout "$DOBBY_COMMIT"
+          make dobby
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: manual
+          queries: security-extended
+
+      - name: Build the Swift packages
+        if: matrix.language == 'swift'
+        run: |
+          for package in app installer retroarch; do
+            echo "::group::swift build $package"
+            (cd "$package" && swift build)
+            echo "::endgroup::"
+          done
+
+      # The dylib, the injected shims and the fuzz replays, which compile the parsers
+      - name: Build the C, C++ and Objective-C
+        if: matrix.language == 'c-cpp'
+        run: make all overlay-shim fps-counter fuzz-regress
+
+      - name: Analyze
+        id: analyze
+        uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          category: /language:${{ matrix.language }}
+
+      # A trace that saw no compiler gives an empty database and a green run
+      - name: Check the database extracted source files
+        env:
+          DB_LOCATIONS: ${{ steps.analyze.outputs.db-locations }}
+          LANGUAGE: ${{ matrix.language }}
+        run: |
+          case $LANGUAGE in swift) EXTENSIONS=swift ;; *) EXTENSIONS="c|m|cpp|h" ;; esac
+          # CodeQL names the c-cpp database "cpp"
+          key=${LANGUAGE#c-}
+          db=$(KEY=$key python3 -c 'import json, os; print(json.loads(os.environ["DB_LOCATIONS"] or "{}").get(os.environ["KEY"], ""))')
+          [ -n "$db" ] || db="$RUNNER_TEMP/codeql_databases/$key"
+          if [ -f "$db/src.zip" ]; then
+            n=$(unzip -Z1 "$db/src.zip" | grep -cE "\.($EXTENSIONS)\$" || true)
+          else
+            n=$(find "$db/src" -type f 2>/dev/null | grep -cE "\.($EXTENSIONS)\$" || true)
+          fi
+          echo "$LANGUAGE: $n source files extracted into $db"
+          [ "$n" -gt 0 ] || { echo "::error::CodeQL extracted 0 $LANGUAGE files"; exit 1; }
+
+  # Interpreted languages: no build
+  linux:
+    name: codeql ${{ matrix.language }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write # uploads the SARIF to code scanning
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [actions, python]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+          queries: security-extended
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          category: /language:${{ matrix.language }}

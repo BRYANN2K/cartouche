@@ -3,10 +3,10 @@ import Foundation
 import RetroArchKit
 
 enum GameSource: Hashable, Sendable, Identifiable {
-    case steam, epic, gog, amazon, installer
+    case steam, epic, gog, amazon, ea, ubisoft, installer
     case console(String)
 
-    static let pc: [GameSource] = [.steam, .epic, .gog, .amazon, .installer]
+    static let pc: [GameSource] = [.steam, .epic, .gog, .amazon, .ea, .ubisoft, .installer]
 
     var id: String {
         switch self {
@@ -14,6 +14,8 @@ enum GameSource: Hashable, Sendable, Identifiable {
         case .epic: "epic"
         case .gog: "gog"
         case .amazon: "amazon"
+        case .ea: "ea"
+        case .ubisoft: "ubisoft"
         case .installer: "installer"
         case .console(let name): "console:\(name)"
         }
@@ -34,6 +36,8 @@ enum GameSource: Hashable, Sendable, Identifiable {
         case .epic: "Epic Games"
         case .gog: "GOG"
         case .amazon: "Amazon Games"
+        case .ea: "EA app"
+        case .ubisoft: "Ubisoft Connect"
         case .installer: String(localized: "Windows Installers")
         case .console(let id): ConsoleCatalog.console(id)?.name ?? id
         }
@@ -44,7 +48,12 @@ enum GameSource: Hashable, Sendable, Identifiable {
         return false
     }
 
-    var isStore: Bool { self == .epic || self == .gog || self == .amazon }
+    var isStore: Bool {
+        switch self {
+        case .epic, .gog, .amazon, .ea, .ubisoft: true
+        default: false
+        }
+    }
 }
 
 enum CoverShape: Sendable {
@@ -75,6 +84,8 @@ struct Game: Identifiable, Sendable, Equatable {
     var mediaHeader: URL?
     var mediaScreenshots: [URL]?
     var artwork: URL?
+    // The cover of last resort a store game falls back to when nothing portrait resolves
+    var artworkFallback: URL?
     // The Steam App ID the compatibility data knows a store game by, matched by name, for its estimate. Never used to start the game
     var compatAppID: Int?
     // For a Windows installer game: the setup its install ran with, used as the default of its game setup until the user picks another one
@@ -107,7 +118,14 @@ enum GameDates {
         formatter.unitsStyle = .full
         let calendar = Calendar.current
         if calendar.isDate(date, inSameDayAs: now) { return String(localized: "today") }
-        let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: date), to: calendar.startOfDay(for: now)).day ?? 0
-        return formatter.localizedString(from: DateComponents(day: -max(days, 1)))
+        let from = calendar.startOfDay(for: date), to = calendar.startOfDay(for: now)
+        let span = calendar.dateComponents([.year, .month], from: from, to: to)
+        let days = calendar.dateComponents([.day], from: from, to: to).day ?? 0
+        // The largest whole unit past two weeks: "4 years ago", not "1,614 days ago"
+        let unit = if let years = span.year, years > 0 { DateComponents(year: -years) }
+            else if let months = span.month, months > 0 { DateComponents(month: -months) }
+            else if days >= 14 { DateComponents(weekOfMonth: -(days / 7)) }
+            else { DateComponents(day: -max(days, 1)) }
+        return formatter.localizedString(from: unit)
     }
 }

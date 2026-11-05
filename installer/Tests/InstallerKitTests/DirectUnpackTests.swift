@@ -120,8 +120,8 @@ struct DirectUnpackTests {
 
     @Test("FreeArcExtract's arguments keep the proven order")
     func driverArguments() {
-        let args = DirectUnpack.arguments(installDir: #"C:\G\CarX"#, tempDir: #"C:\T"#, config: #"C:\U\arc.ini"#)
-        #expect(args == ["x", "-o+", #"-dpC:\G\CarX"#, #"-wC:\T"#, #"-cfgC:\U\arc.ini"#])
+        let args = DirectUnpack.arguments(installDir: #"C:\G\Cobalt Street"#, tempDir: #"C:\T"#, config: #"C:\U\arc.ini"#)
+        #expect(args == ["x", "-o+", #"-dpC:\G\Cobalt Street"#, #"-wC:\T"#, #"-cfgC:\U\arc.ini"#])
     }
 
     @Test("The driver's launch is the prefixed driver exe over the mapped source drive")

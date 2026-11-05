@@ -102,7 +102,7 @@ struct ConsolePanelTests {
         for dark in [false, true] {
             let texts = try await renderedTexts(ConsoleMoreSheet(game: content.game, content: content, center: scene.center),
                                                 size: CGSize(width: 480, height: 460), named: "console-more", dark: dark)
-            #expect(seen(texts, "Achievements") && seen(texts, "Files") && seen(texts, "Covers from libretro-thumbnails"))
+            #expect(seen(texts, "Achievements") && seen(texts, "Files") && seen(texts, "Covers from libretro-thumbnails"), "\(texts)")
         }
     }
 

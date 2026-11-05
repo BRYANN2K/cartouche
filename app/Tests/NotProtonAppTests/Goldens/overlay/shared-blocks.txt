@@ -1,0 +1,53 @@
+control name=/cartouche-control.%d magic=0x4c525443 version=1 size=4096 struct=216
+  magic @0
+  version @4
+  size @8
+  pid @12
+  sequence @16
+  hud_level @24
+  hud_corner @28
+  hud_scale @32
+  menu_open @36
+  reduce_motion @40
+  battery_percent @44
+  gpu_watts @48
+  warning @56
+  hotkey @184
+  safe_top @200
+  screen_height @204
+  language @208
+metrics name=/cartouche-metrics.%d magic=0x584d5443 version=1 size=4096 frames=256 struct=1184
+  magic @0
+  version @4
+  size @8
+  pid @12
+  sequence @16
+  seconds @20
+  updated_ns @24
+  presented_fps @32
+  real_fps @36
+  frame_ms @40
+  low1_fps @44
+  added_latency_ms @56
+  cpu_percent @64
+  gpu_percent @68
+  ram_bytes @80
+  thermal @108
+  upscale @112
+  upscale_out_width @124
+  upscale_out_height @128
+  framegen @132
+  framegen_factor @136
+  framegen_ane @140
+  frame_count @148
+  frame_ms_ring @156
+written (pid zeroed):
+  43 54 52 4c 01 00 00 00 00 10 00 00 00 00 00 00 02 00 00 00 00 00 00 00
+  01 00 00 00 03 00 00 00 7d 00 00 00 01 00 00 00 01 00 00 00 52 00 00 00
+  00 00 68 41 00 00 00 00 4d 61 63 20 73 75 72 63 68 61 72 67 c3 a9 00 00
+  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 e2 8c a5 43 00 00 00 00
+  00 00 00 00 00 00 00 00 00 00 14 42 00 a0 8b 44 66 72 00 00 00 00 00 00

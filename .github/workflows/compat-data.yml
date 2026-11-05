@@ -16,6 +16,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: compat-data-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   REFERENCE_VALIDATOR: "jsonschema==4.23.0 rfc3339-validator==0.1.4"
 
@@ -26,6 +30,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - name: Run the builder tests
         run: make -s compat-data-tests
@@ -33,6 +39,7 @@ jobs:
       - name: Install the reference validator
         run: |
           python3 -m venv "$RUNNER_TEMP/venv"
+          # shellcheck disable=SC2086 # one word per pinned package
           "$RUNNER_TEMP/venv/bin/pip" install $REFERENCE_VALIDATOR
 
       # The builder's validator knows only the keywords the schema uses. This
@@ -54,11 +61,13 @@ jobs:
       group: compat-data
       cancel-in-progress: false
     permissions:
-      contents: write
+      contents: write # uploads compat.json.gz to the compat-data prerelease
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - name: Restore the fetch cache
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
@@ -76,13 +85,14 @@ jobs:
 
       - name: Build compat.json.gz
         run: |
-          previous=""
-          [ -f previous/compat.json.gz ] && previous="--previous previous/compat.json.gz"
-          python3 tools/compat/build_compat.py --out out/compat.json.gz --cache .compat-cache $previous
+          set --
+          [ -f previous/compat.json.gz ] && set -- --previous previous/compat.json.gz
+          python3 tools/compat/build_compat.py --out out/compat.json.gz --cache .compat-cache "$@"
 
       - name: Install the reference validator
         run: |
           python3 -m venv "$RUNNER_TEMP/venv"
+          # shellcheck disable=SC2086 # one word per pinned package
           "$RUNNER_TEMP/venv/bin/pip" install $REFERENCE_VALIDATOR
 
       - name: Check size, schema and date

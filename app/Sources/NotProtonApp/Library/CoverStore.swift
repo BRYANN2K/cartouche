@@ -3,6 +3,7 @@
 
 import AppKit
 import Foundation
+import ImageIO
 import RetroArchKit
 
 enum CoverArt: Equatable, Sendable {
@@ -60,7 +61,12 @@ struct CoverStore: Sendable {
             let mine = cached(appID, kind)
             if exists(mine) { return .image(mine) }
         }
-        if let store = storeFile(game), exists(store) { return .image(store) }
+        if let store = storeFile(game, kind: kind), exists(store),
+           kind != .cover || !betterCover(game) || Self.portrait(store) { return .image(store) }
+        if kind == .hero, let cover = storeFile(game, kind: .cover), exists(cover), !Self.portrait(cover) {
+            // A wide cover file still fills the panel better than nothing
+            return .image(cover)
+        }
         if let (system, name) = consoleName(game) {
             for art in Self.thumbnailKinds(kind) {
                 if let found = consoleThumbnails.local(system: system, kind: art, name: name) { return .image(found) }
@@ -80,7 +86,32 @@ struct CoverStore: Sendable {
             return .image(saved)
         }
         if let appID = game.steamAppID, let saved = await download(appID, kind) { return .image(saved) }
-        if let remote = game.artwork, let file = storeFile(game), let saved = await download(remote, to: file) { return .image(saved) }
+        // The panel takes the space's wide art; the card takes the portrait candidate
+        let remote = kind == .cover ? game.artwork : (game.mediaHeader ?? game.artwork)
+        if let remote, let file = storeFile(game, kind: kind), let saved = await download(remote, to: file) {
+            if kind != .cover || game.artworkFallback == nil || Self.portrait(saved) { return .image(saved) }
+            // A wide answer is not a cover: nothing kept unless it is the tile itself
+            if remote != game.artworkFallback { try? FileManager.default.removeItem(at: saved) }
+        }
+        if kind == .cover, game.artworkFallback != nil {
+            // The compat match's Steam cover, same file a Steam game's lands in
+            if let appID = game.compatAppID {
+                let mine = cached(appID, kind)
+                if let found = steamFile(appID, kind) ?? (exists(mine) ? mine : nil), Self.portrait(found) {
+                    return .image(found)
+                }
+                if let saved = await download(appID, kind), Self.portrait(saved) { return .image(saved) }
+            }
+            // PCGamingWiki's own jacket, fetched on demand — never bundled with the app
+            if let file = storeFile(game, kind: kind), let saved = await wikiCover(game, to: file) {
+                return .image(saved)
+            }
+            // Last resort: the launcher's own tile, kept even though it is wide
+            if let remote = game.artworkFallback, let file = storeFile(game, kind: kind) {
+                if exists(file) { return .image(file) }
+                if let saved = await download(remote, to: file) { return .image(saved) }
+            }
+        }
         if let (system, name) = consoleName(game) {
             for art in Self.thumbnailKinds(kind) {
                 if let saved = await consoleThumbnails.image(system: system, kind: art, name: name) { return .image(saved) }
@@ -155,9 +186,24 @@ struct CoverStore: Sendable {
         cache.appending(path: "\(appID)/\(kind.rawValue).jpg")
     }
 
-    func storeFile(_ game: Game) -> URL? {
-        guard game.source.isStore, game.artwork != nil else { return nil }
-        return cache.appending(path: "store/\(game.source.id)/\(StoreFolders.safe(game.id)).img")
+    // True while a level above the tile could still answer for this cover: the game's
+    // own candidate or the compat match's Steam art. Once only the tile is left, the
+    // cached copy serves straight away.
+    private func betterCover(_ game: Game) -> Bool {
+        guard game.artworkFallback != nil else { return false }
+        if let artwork = game.artwork, artwork != game.artworkFallback { return true }
+        if game.compatAppID != nil { return true }
+        // The public wiki could still know this title's jacket
+        if let file = storeFile(game, kind: .cover), !exists(file.appendingPathExtension("wikimissing")) { return true }
+        return false
+    }
+
+    func storeFile(_ game: Game, kind: ArtKind = .cover) -> URL? {
+        guard game.source.isStore else { return nil }
+        // The panel's wide art has its own file so it never lands in the cover's;
+        // without one the hero shares the cover's file, as before
+        let name = StoreFolders.safe(game.id) + (kind == .cover || game.mediaHeader == nil ? "" : "-\(kind.rawValue)")
+        return cache.appending(path: "store/\(game.source.id)/\(name).img")
     }
 
     func download(_ appID: Int, _ kind: ArtKind) async -> URL? {
@@ -192,6 +238,107 @@ struct CoverStore: Sendable {
 
     static func looksLikeImage(_ data: Data) -> Bool {
         data.starts(with: [0xFF, 0xD8, 0xFF]) || data.starts(with: [0x89, 0x50, 0x4E, 0x47])
+    }
+
+    // A card cover is a real jacket only when the downloaded image is taller than wide
+    static func portrait(_ file: URL) -> Bool {
+        guard let source = CGImageSourceCreateWithURL(file as CFURL, nil),
+              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+              let width = properties[kCGImagePropertyPixelWidth] as? Int,
+              let height = properties[kCGImagePropertyPixelHeight] as? Int else { return false }
+        return height > width
+    }
+
+    // MARK: PCGamingWiki jacket — public MediaWiki API, no key (CC BY-NC-SA 3.0)
+
+    // The title's jacket when the launchers and Steam have none: page wikitext names
+    // the cover file, imageinfo resolves it, the image is cached in the store slot.
+    // A wiki miss is remembered an hour so a redraw does not ask again.
+    private func wikiCover(_ game: Game, to file: URL) async -> URL? {
+        let mark = file.appendingPathExtension("wikimissing")
+        if exists(mark), Date().timeIntervalSince(modified(mark)) < Self.missingTTL { return nil }
+        var cover = await wikiCoverFile(game.name)
+        if cover == nil, let found = await wikiSearchTitle(game.name) {
+            cover = await wikiCoverFile(found)
+        }
+        guard let cover else { touch(mark); return nil }
+        guard let info = try? await fetch(Self.wikiImageQuery(cover)), info.1 == 200,
+              let remote = Self.wikiImageURL(info.0),
+              let image = try? await fetch(remote), image.1 == 200, Self.looksLikeImage(image.0) else { return nil }
+        do {
+            try atomicReplace(file, with: image.0, step: "cover")
+            if Self.portrait(file) { return file }
+            try FileManager.default.removeItem(at: file)
+        } catch { return nil }
+        touch(mark)  // the wiki's only answer was not a jacket
+        return nil
+    }
+
+    // The cover filename the page's infobox names, nil when the page has none or is missing.
+    private func wikiCoverFile(_ title: String) async -> String? {
+        guard let answer = try? await fetch(Self.wikiQuery(title)), answer.1 == 200 else { return nil }
+        return Self.wikiCoverName(answer.0)
+    }
+
+    // The wiki's own search for a page the title alone did not land: only a result
+    // still containing the game's own name is trusted — anything else could be art
+    // for a different game.
+    private func wikiSearchTitle(_ name: String) async -> String? {
+        guard let answer = try? await fetch(Self.wikiSearchQuery(name)), answer.1 == 200,
+              let root = try? JSONSerialization.jsonObject(with: answer.0) as? [String: Any],
+              let hits = (root["query"] as? [String: Any])?["search"] as? [[String: Any]] else { return nil }
+        return hits.lazy.compactMap { $0["title"] as? String }
+            .first { $0.range(of: name, options: .caseInsensitive) != nil }
+    }
+
+    static func wikiQuery(_ title: String) -> URL {
+        var query = URLComponents(string: "https://www.pcgamingwiki.com/w/api.php")!
+        query.queryItems = [
+            .init(name: "action", value: "parse"), .init(name: "page", value: title),
+            .init(name: "prop", value: "wikitext"), .init(name: "section", value: "0"),
+            .init(name: "format", value: "json"),
+        ]
+        return QAEnvironment.url(query.url!)
+    }
+
+    static func wikiSearchQuery(_ name: String) -> URL {
+        var query = URLComponents(string: "https://www.pcgamingwiki.com/w/api.php")!
+        query.queryItems = [
+            .init(name: "action", value: "query"), .init(name: "list", value: "search"),
+            .init(name: "srsearch", value: "intitle:\"\(name)\""), .init(name: "srlimit", value: "1"),
+            .init(name: "format", value: "json"),
+        ]
+        return QAEnvironment.url(query.url!)
+    }
+
+    static func wikiImageQuery(_ file: String) -> URL {
+        var query = URLComponents(string: "https://www.pcgamingwiki.com/w/api.php")!
+        query.queryItems = [
+            .init(name: "action", value: "query"), .init(name: "titles", value: "File:" + file),
+            .init(name: "prop", value: "imageinfo"), .init(name: "iiprop", value: "url"),
+            .init(name: "format", value: "json"),
+        ]
+        return QAEnvironment.url(query.url!)
+    }
+
+    // `|cover = <file>` in the page's first section — the infobox's own jacket.
+    static func wikiCoverName(_ body: Data) -> String? {
+        guard let root = try? JSONSerialization.jsonObject(with: body) as? [String: Any],
+              let text = ((root["parse"] as? [String: Any])?["wikitext"] as? [String: Any])?["*"] as? String else { return nil }
+        for line in text.split(separator: "\n") where line.hasPrefix("|cover") {
+            let name = line.drop(while: { $0 != "=" }).dropFirst()
+                .trimmingCharacters(in: .whitespaces)
+                .replacingOccurrences(of: "File:", with: "")
+            return name.isEmpty ? nil : name
+        }
+        return nil
+    }
+
+    static func wikiImageURL(_ body: Data) -> URL? {
+        guard let root = try? JSONSerialization.jsonObject(with: body) as? [String: Any],
+              let page = ((root["query"] as? [String: Any])?["pages"] as? [String: Any])?.values.first as? [String: Any],
+              let url = ((page["imageinfo"] as? [[String: Any]])?.first)?["url"] as? String else { return nil }
+        return URL(string: url)
     }
 
     private func exists(_ url: URL) -> Bool {

@@ -1,0 +1,11 @@
+add	HKLM\SYSTEM\CurrentControlSet\Services\EABackgroundService	/v	ImagePath	/t	REG_EXPAND_SZ	/d	C:\Program Files\Electronic Arts\EA Desktop\EA Desktop\EABackgroundService.exe	/f
+add	HKLM\SYSTEM\CurrentControlSet\Services\EABackgroundService	/v	DisplayName	/t	REG_SZ	/d	EA Background Service	/f
+add	HKLM\SYSTEM\CurrentControlSet\Services\EABackgroundService	/v	Start	/t	REG_DWORD	/d	0x3	/f
+add	HKLM\SYSTEM\CurrentControlSet\Services\EABackgroundService	/v	Type	/t	REG_DWORD	/d	0x10	/f
+add	HKLM\SYSTEM\CurrentControlSet\Services\EABackgroundService	/v	ObjectName	/t	REG_SZ	/d	LocalSystem	/f
+add	HKCR\origin2	/v	URL Protocol	/t	REG_SZ	/d		/f
+add	HKCR\origin2\shell\open\command	/ve	/t	REG_SZ	/d	"C:\Program Files\Electronic Arts\EA Desktop\EA Desktop\EADesktop.exe" "%1"	/f
+add	HKCR\link2ea	/v	URL Protocol	/t	REG_SZ	/d		/f
+add	HKCR\link2ea\shell\open\command	/ve	/t	REG_SZ	/d	"C:\Program Files\Electronic Arts\EA Desktop\EA Desktop\EADesktop.exe" "%1"	/f
+add	HKCR\eadesktop	/v	URL Protocol	/t	REG_SZ	/d		/f
+add	HKCR\eadesktop\shell\open\command	/ve	/t	REG_SZ	/d	"C:\Program Files\Electronic Arts\EA Desktop\EA Desktop\EADesktop.exe" "%1"	/f

@@ -49,6 +49,7 @@ let package = Package(
             resources: (hasPayload ? [.copy("Resources/payload")] : []) + [
                 .process("Resources/Localization"),
                 .process("Resources/Brand.xcassets"),
+                .copy("Resources/WhatsNew"),
                 .copy("Resources/payload.manifest"),
                 .copy("Resources/valve-packages.manifest"),
                 .copy("Resources/compat.schema.json"),
@@ -88,7 +89,9 @@ let package = Package(
             dependencies: ["NotProtonApp", "CartoucheMCP",
                            .product(name: "RetroArchKit", package: "retroarch"),
                            .product(name: "InstallerKit", package: "installer")],
-            path: testsPath
+            path: testsPath,
+            // Read from the source tree, so CARTOUCHE_UPDATE_GOLDENS can rewrite them in place
+            exclude: ["Goldens", "Snapshots"]
         ),
     ] : [])
 )

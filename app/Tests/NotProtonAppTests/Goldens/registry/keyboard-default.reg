@@ -1,0 +1,10 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CURRENT_USER\Software\Wine\Mac Driver]
+"LeftCommandIsCtrl"="n"
+"RightCommandIsCtrl"="n"
+"LeftOptionIsAlt"="n"
+"RightOptionIsAlt"="n"
+"UseConfinementCursorClipping"="y"
+"UsePreciseScrolling"="y"
+

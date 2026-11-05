@@ -111,13 +111,13 @@ struct LibraryModelTests {
         #expect(libraryModel(fixture, defaults: scratch).showNotInstalled == false)
     }
 
-    @Test("Sidebar structure: Library, PC with five sources, and an empty Consoles section")
+    @Test("Sidebar structure: Library, PC with seven sources, and an empty Consoles section")
     func sidebar() async throws {
         let (model, fixture, _) = try await loaded("sidebar")
         defer { fixture.remove() }
         let pc = GameSource.pc.map { LibraryModel.title(.source($0)) }
         #expect([LibraryModel.title(.all), LibraryModel.title(.favorites)] == ["All Games", "Favorites"])
-        #expect(pc == ["Steam", "Epic Games", "GOG", "Amazon Games", "Windows Installers"])
+        #expect(pc == ["Steam", "Epic Games", "GOG", "Amazon Games", "EA app", "Ubisoft Connect", "Windows Installers"])
         #expect(model.consoles.isEmpty)
         #expect(model.badge(.all) == "8")
         #expect(model.badge(.source(.steam)) == "8")

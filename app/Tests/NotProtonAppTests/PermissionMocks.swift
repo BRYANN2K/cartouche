@@ -93,8 +93,7 @@ func snapshot<V: View>(_ view: V, named name: String, dark: Bool = false) -> CGS
     window.contentView = host
     host.layoutSubtreeIfNeeded()
     if let folder = ProcessInfo.processInfo.environment["CARTOUCHE_SNAPSHOTS"],
-       let rep = host.bitmapImageRepForCachingDisplay(in: host.bounds) {
-        host.cacheDisplay(in: host.bounds, to: rep)
+       let rep = renderedBitmap(host) {
         let url = URL(filePath: folder).appending(path: "\(name)-\(dark ? "dark" : "light").png")
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try? rep.representation(using: .png, properties: [:])?.write(to: url)

@@ -21,6 +21,7 @@ extension CartoucheApp {
         updater.start()
         permissions.watchActivation()
         await crashReports.check()
+        Task.detached(priority: .utility) { MetalCacheMigration.run() }
         var route: ScreenRoute?
         if onboarding == nil {
             let model = makeOnboarding()
@@ -31,12 +32,18 @@ extension CartoucheApp {
             } else {
                 model.presentIfDue()
             }
+            whatsNew.presentIfDue(onboardingDue: model.isDue)
         }
         NotificationRouter.shared.install()
+        startResources()
         AgentNotifier.register()
         steamSetup.onInstalled = { [library] in Task { await library.load() } }
         network.start { [library] offline in library.isOffline = offline }
         await compat.load()
+        library.antiCheat = { [compat] game in
+            guard let appID = game.steamAppID ?? game.compatAppID else { return nil }
+            return compat.antiCheat(appID: appID)?.name
+        }
         await performance.refresh()
         // Explicit installations reload the import; Steam quitting only refreshes the status.
         status.onUpkeepInstalled = { [library] in await library.load() }
@@ -53,7 +60,8 @@ extension CartoucheApp {
         await controls.start(relaunch: relaunch, library: library)
         if let route, route.screen == "controls" { await controls.reopen(route) }
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main) {
-            [consoleCenter, controls] _ in MainActor.assumeIsolated {
+            [consoleCenter, controls, resources] _ in MainActor.assumeIsolated {
+                resources.resumeAll(why: "Cartouche quit")
                 controls.endForTermination()
                 consoleCenter.endForTermination()
             }
@@ -71,8 +79,60 @@ extension CartoucheApp {
         await loadRunners()
         startStores()
         await compat.refresh()
+        Task { [compat] in await compat.keepFresh() }
         // Only what the user confirmed waits in the queue; nothing new is collected here
         Task { await contributions.drain() }
+    }
+
+    // Processes a crashed Cartouche left paused go again before anything else runs.
+    private func startResources() {
+        resources.start()
+        resources.contextFolder = SupportPaths.performance.appending(path: PerformanceIncoming.folderName)
+        resources.showWindow = { BackgroundAppsPresenter.shared.show() }
+        BackgroundAppsPresenter.shared.showMainWindow = {
+            NSApp.activate()
+            NSApp.windows.first { $0.identifier?.rawValue.hasPrefix(CartoucheApp.mainWindow) == true }?.makeKeyAndOrderFront(nil)
+        }
+        resources.notify = { NotificationRouter.shared.post(ResourceAlertText.notification($0)) }
+        NotificationRouter.shared.handle(category: ResourceAlertText.category) { [resources] _, _ in
+            BackgroundAppsPresenter.shared.show()
+            resources.alert = nil
+        }
+        let overlay = OverlayController.shared
+        overlay.resources = resources
+        overlay.actions.setResumeApps = { [resources] in resources.resumesAfterGame = $0 }
+        // The menu edits the library game's profile, the one the game page shows
+        overlay.resolveGame = { [library] app in
+            guard var game = OverlayController.gameFromProcess(app) else { return nil }
+            let info = GameProcesses.info(of: app.processIdentifier)
+            let playing = ActivityCenter.shared.playing.flatMap { if case .steam = $0.target { $0.id } else { nil } }
+            guard let match = library.allGames.first(where: { $0.id == game.id }) ?? OverlayGameMatch.match(
+                name: game.name, appID: info.flatMap { OverlayGameMatch.steamAppID($0.environment) },
+                exe: info?.arguments.first { $0.lowercased().hasSuffix(".exe") }, playingID: playing,
+                games: library.allGames, folder: { library.installFolder(of: $0) }) else { return game }
+            let legacy = game.id
+            game.id = match.id
+            game.name = match.name
+            let setup = library.resolution(for: match).setup
+            let scan = library.folderScan(for: match), profile = library.launchProfile(for: match)
+            game.dlss = profile.dlss && AdvancedSupport.options(runner: setup.runner, backend: setup.backend,
+                translation: setup.translation, availability: library.backendAvailability).contains(.dlss)
+            game.antiCheat = game.antiCheat ?? scan?.antiCheat ?? library.antiCheat(match)
+            // A folder not yet scanned counts as protected until it proves clean
+            if profile.protected { game.antiCheat = game.antiCheat ?? ot("Anti-cheat") }
+            game.libraryLoaded = library.framegenLaunched[match.id] ?? false
+            Self.keepLegacyProfile(legacy, for: &game, profiles: library.profiles)
+            return game
+        }
+        overlay.actions.applyLaunch = { [library] game, _ in library.profileSaved(game.id) }
+        resources.gameStarted = { overlay.gameStarted() }
+        resources.gameEnded = { overlay.gameEnded() }
+        resources.isGameRunning = { [relaunch, stores] in
+            if ActivityCenter.shared.playing != nil || !InstallCenter.shared.playingGames.isEmpty || !stores.playing.isEmpty {
+                return true
+            }
+            return await relaunch.games.isGameRunning()
+        }
     }
 
     private func startStores() {
@@ -103,5 +163,15 @@ extension CartoucheApp {
         activity.onGameEnded = { [performance] in Task { await performance.refresh() } }
         InstallCenter.shared.onSessionEnded = { [performance] in Task { await performance.refresh() } }
         activity.watch()
+    }
+
+    // The profile the process id carried moves to the library id; a failed copy keeps reading the old one
+    static func keepLegacyProfile(_ legacy: String, for game: inout OverlayGame, profiles: OverlayProfileStore,
+                                  log: (String) -> Void = AppLog.note) {
+        guard profiles.profile(for: game.id) == nil, let old = profiles.profile(for: legacy) else { return }
+        do { try profiles.save(old, for: game.id) } catch {
+            log("game profile not copied from \(legacy) to \(game.id): \(error.localizedDescription)")
+            game.id = legacy
+        }
     }
 }

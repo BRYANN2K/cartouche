@@ -14,7 +14,6 @@ on:
 
 permissions:
   contents: read
-  issues: write
 
 concurrency:
   group: upstream-watch
@@ -24,13 +23,18 @@ jobs:
   watch:
     name: watch upstream versions
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write # opens one issue per new upstream version
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - name: Check every source
         env:
           GITHUB_TOKEN: ${{ github.token }}
           DRY_RUN: ${{ inputs.dry_run && '--dry-run' || '' }}
         # A source that fails turns the run red after the others were checked
-        run: python3 packaging/upstream-watch/watch.py --repo "$GITHUB_REPOSITORY" $DRY_RUN
+        run: python3 packaging/upstream-watch/watch.py --repo "$GITHUB_REPOSITORY" ${DRY_RUN:+"$DRY_RUN"}

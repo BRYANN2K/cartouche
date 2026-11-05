@@ -106,7 +106,7 @@ Cartouche Wine (built from CodeWeavers' CrossOver sources)
           (149054023 bytes). It holds Wine 11.0 under sources/wine, plus
           dxvk, moltenvk, vkd3d, freetype, gnutls, gstreamer and others.
   Where: not part of the app and not in the repository. Built by CI
-         (.github/workflows/wine-crossover.yml on a macos-15-intel runner with
+         (.github/workflows/wine-crossover.yml of BRYANN2K/cartouche-wine, on a macos-15-intel runner with
          Xcode 16.4) with the scripts in packaging/wine-crossover/. CI
          publishes the assets wine-crossover-26.3.0-1-x86_64.tar.xz and
          wine-crossover-26.3.0-2-x86_64.tar.xz on GitHub releases of
@@ -215,16 +215,26 @@ clients are upstream's own builds:
 Platform marks
 --------------
 
-One-color vector marks drawn inside Cartouche to identify stores and consoles,
-stored in app/Sources/NotProtonApp/Resources/Brand.xcassets. Marks taken from
-Simple Icons (https://simpleicons.org) are dedicated to the public domain under
-CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/): Steam
-(mark-steam), Epic Games (mark-epic), GOG (mark-gog), PlayStation
-(mark-playstation), PlayStation 2 (mark-playstation2), PlayStation Portable
-(mark-psp), Sega (mark-sega) and Atari (mark-atari). The Amazon Games mark
-(mark-amazon) is drawn for Cartouche. Platform names
-and logos belong to their owners; Cartouche uses them only to identify the
-platforms.
+One-color vector marks used as templates to identify stores and consoles,
+stored in app/Sources/NotProtonApp/Resources/Brand.xcassets. Path data is
+unchanged from each source.
+
+Simple Icons (https://github.com/simple-icons/simple-icons), dedicated to the
+public domain under CC0 1.0
+(https://creativecommons.org/publicdomain/zero/1.0/): Steam (mark-steam), Epic
+Games (mark-epic), GOG (mark-gog), EA (mark-ea), Ubisoft (mark-ubisoft),
+PlayStation (mark-playstation), PlayStation 2 (mark-playstation2), PlayStation
+Portable (mark-psp), Sega (mark-sega) and Atari (mark-atari), from the develop
+branch; Amazon Games (mark-amazon), from release 13.21.0.
+
+Bootstrap Icons (https://github.com/twbs/icons), MIT, Copyright (c) 2019-2024
+The Bootstrap Authors: Xbox (mark-xbox), icon "xbox", main branch.
+
+Nintendo Switch, the other Nintendo consoles and PC Engine carry a plain text
+mark in the system font, not a logo.
+
+These licenses cover the drawings only. Platform names and logos belong to
+their owners; Cartouche uses them only to identify the platforms.
 
 Community data
 --------------
@@ -239,6 +249,26 @@ Not yet shipped
 
 The Swift MCP SDK, planned for the agent control phase (P11), is not in the
 repository yet. It will be added here when it is.
+
+The experimental frame generation library (framegen/) is not in a release yet.
+Outside works in it, each with its notice kept in the file:
+
+  framegen/upscale.metal          the one copy of both kernels below, used by
+                                  the spatial chain, DLSS on DXMT and the
+                                  zero-copy D3D11 path
+    CMAA2 2.3 (Intel)             Apache-2.0, from github.com/GameTechDev/CMAA2,
+                                  ported to Metal with the changes listed there
+    RCAS from FSR 1.0 (AMD)       MIT, from
+                                  github.com/GPUOpen-Effects/FidelityFX-FSR
+  framegen/proxy/ffx/**           MIT, 7 headers of AMD's FidelityFX SDK
+                                  (github.com/GPUOpen-LibrariesAndSDKs/FidelityFX-SDK),
+                                  AMD's notice intact in each. The proxy never
+                                  ships or writes AMD's DLL: it loads the
+                                  game's own from a copy in the Wine prefix.
+  framegen/dxmt/0001-*.patch      LGPL-2.1-or-later, a change to DXMT
+                                  (github.com/3Shain/dxmt, v0.80 and main).
+                                  Never shipped: the tests build the patched
+                                  d3d11.dll in the user's cache only.
 
 
 Mac anti-cheat catalog

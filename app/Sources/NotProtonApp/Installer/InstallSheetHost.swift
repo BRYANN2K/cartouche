@@ -49,8 +49,9 @@ private struct InstallSheetHost: ViewModifier {
 extension LibraryModel {
 
     func showInstalledGames(_ games: [InstalledGame]) {
-        otherGames.removeAll { $0.source == .installer }
-        otherGames += games.map(Game.init(installed:))
+        // One assignment: two mutations would rebuild gamesByID without installer games in between,
+        // and keepSelectionVisible would drop the selection — and the game panel with it.
+        otherGames = otherGames.filter { $0.source != .installer } + games.map(Game.init(installed:))
         refreshExeOptions(for: otherGames.filter { $0.source == .installer })
     }
 }

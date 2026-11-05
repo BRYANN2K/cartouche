@@ -117,13 +117,31 @@ enum GameSetupApplier {
     // setups/<appid>.env, NAME=value lines the run script reads at launch
     static func writeEnvironment(_ environment: [String: String], appID: Int, setups: URL = SupportPaths.setups) throws {
         let file = setups.appending(path: "\(appID).env")
-        let lines = environment.filter { GameSetupResolver.isAllowed(name: $0.key, value: $0.value) }
-            .sorted { $0.key < $1.key }.map { "\($0.key)=\($0.value)\n" }
+        let lines = filteredEnvironment(environment).sorted { $0.key < $1.key }.map { "\($0.key)=\($0.value)\n" }
         guard !lines.isEmpty else {
-            try? FileManager.default.removeItem(at: file)
+            if FileManager.default.fileExists(atPath: file.path(percentEncoded: false)) {
+                try FileManager.default.removeItem(at: file)
+            }
             return
         }
         try FileManager.default.createDirectory(at: setups, withIntermediateDirectories: true)
         try atomicReplace(file, with: Data(lines.joined().utf8), step: String(localized: "Save the game’s setup"))
+    }
+
+    // The subset of a game's variables writeEnvironment puts on disk
+    static func filteredEnvironment(_ environment: [String: String]) -> [String: String] {
+        environment.filter { GameSetupResolver.isAllowed(name: $0.key, value: $0.value) }
+    }
+
+    // The variables Steam would read today; empty for a missing or unreadable file
+    static func readEnvironment(appID: Int, setups: URL = SupportPaths.setups) -> [String: String] {
+        guard let text = try? String(contentsOf: setups.appending(path: "\(appID).env"), encoding: .utf8)
+        else { return [:] }
+        var out: [String: String] = [:]
+        for line in text.split(separator: "\n") {
+            let fields = line.split(separator: "=", maxSplits: 1)
+            if fields.count == 2 { out[String(fields[0])] = String(fields[1]) }
+        }
+        return out
     }
 }

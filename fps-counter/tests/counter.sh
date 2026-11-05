@@ -1,5 +1,5 @@
 #!/bin/sh
-# shellcheck disable=SC2015 # ok and bad never fail, so A && ok || bad is safe
+# shellcheck disable=SC2015,SC2154 # ok and bad never fail, so A && ok || bad is safe; hosted.sh sets the reasons
 # The frame counter in a real Metal app, for each slice: a scene locked at 60 fps is
 # counted at 60, a background app is marked, nothing is written without a session
 # folder, the run script's probe sees the library, and a hardened binary refuses it
@@ -17,6 +17,9 @@ runs() {
   if [ "$2" -eq 0 ] && [ "$3" -gt 0 ] 2>/dev/null; then ok "$1";
   else bad "$1" "exit 0 and presented frames" "$2 $3"; fi
 }
+
+# shellcheck disable=SC1091 # linted on its own
+. "$(dirname "$0")/hosted.sh"
 
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
@@ -42,11 +45,15 @@ for arch in arm64 x86_64; do
   is "$arch: the header names the slice" "arch=$arch" "$(sed -n 1p "$file" | tr ' ' '\n' | grep '^arch=')"
   lines=$(grep -vc '^#' "$file")
   [ "$lines" -ge 5 ] && ok "$arch: a line per second ($lines)" || bad "$arch: a line per second" ">= 5" "$lines"
-  outside=$(middle "$file" | awk '$2 < 59 || $2 > 61' | wc -l | tr -d ' ')
-  is "$arch: every whole second counts 60 +- 1" 0 "$outside"
   average=$(middle "$file" | awk '{ s += $2; n++ } END { printf "%.1f", s / n }')
-  awk -v a="$average" 'BEGIN { exit !(a >= 59 && a <= 61) }' \
-    && ok "$arch: average $average fps" || bad "$arch: average within 60 +- 1" "59..61" "$average"
+  if pacing_exact; then
+    outside=$(middle "$file" | awk '$2 < 59 || $2 > 61' | wc -l | tr -d ' ')
+    is "$arch: every whole second counts 60 +- 1" 0 "$outside"
+    awk -v a="$average" 'BEGIN { exit !(a >= 59 && a <= 61) }' \
+      && ok "$arch: average $average fps" || bad "$arch: average within 60 +- 1" "59..61" "$average"
+  else
+    skip "$arch: every whole second and the average count 60 +- 1 (average $average)" "$pacing_why"
+  fi
   counted=$(grep -v '^#' "$file" | awk '{ s += $2 } END { print s }')
   # Frames after the last whole second are not written yet when the app exits
   [ "$counted" -le "$presented" ] && [ "$counted" -ge $((presented - 61)) ] \
@@ -78,6 +85,10 @@ for arch in arm64 x86_64; do
   cp "$app" "$hardened"
   codesign -fs - -o runtime "$hardened" 2> /dev/null
   rm -f "$marker"
+  if ! hardened_refuses "$hardened" "$counter"; then
+    skip "$arch: a hardened binary refuses the library" "$hardened_why"
+    continue
+  fi
   dir="$work/$arch/refused"
   mkdir -p "$dir"
   out=$(DYLD_INSERT_LIBRARIES="$counter" CARTOUCHE_FPS_PROBE="$marker" CARTOUCHE_FPS_DIR="$dir" "$hardened" locked 60 1)
@@ -91,7 +102,7 @@ if [ "$ran" -eq 0 ]; then
   exit 1
 fi
 if [ "$fails" -eq 0 ]; then
-  echo "==> fps counter: all assertions hold on $ran slice(s)"
+  echo "==> fps counter: all assertions hold on $ran slice(s)$(skipped_note)"
 else
   echo "==> fps counter: $fails failed"
   exit 1

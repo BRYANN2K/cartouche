@@ -18,4 +18,4 @@ Do not assume every .bin file has the same format. Do not present setup-wrapper 
 
 ## Consequences
 
-In progress. Main detects external unpackers and prepares Windows 10 and Visual C++ runtimes before setup; it still runs the setup program. The direct driver is not merged. CarX Street is the local test case, not a claim of general format coverage.
+In progress. Main detects external unpackers and prepares Windows 10 and Visual C++ runtimes before setup; it still runs the setup program. The direct driver is not merged. Cobalt Street is the local test case, not a claim of general format coverage.

@@ -3,7 +3,7 @@ import Testing
 @testable import InstallerKit
 
 let sampleIndex = GameIndex([
-    .init(appID: 1_465_360, name: "CarX Street"),
+    .init(appID: 1_465_360, name: "Cobalt Street"),
     .init(appID: 292_030, name: "The Witcher 3: Wild Hunt"),
     .init(appID: 367_520, name: "Hollow Knight"),
     .init(appID: 632_470, name: "Disco Elysium - The Final Cut"),
@@ -21,7 +21,7 @@ let sampleIndex = GameIndex([
 struct GameIndexTests {
 
     @Test("Ten installer folder names find their Steam App ID", arguments: [
-        ("CarX Street [Offline Installer]", 1_465_360),
+        ("Cobalt Street [Offline Installer]", 1_465_360),
         ("The Witcher 3 Wild Hunt GOTY (Offline Installer) v4.04 + 2 DLCs", 292_030),
         ("Hollow_Knight_v1.5.78-GOG", 367_520),
         ("Disco Elysium - The Final Cut", 632_470),
@@ -49,7 +49,7 @@ struct GameIndexTests {
 
     @Test("The installer title is matched before the folder name")
     func titleFirst() {
-        let id = GameIdentification.identify(installerTitle: "CarX Street", folderName: "data-folder-01", index: sampleIndex)
+        let id = GameIdentification.identify(installerTitle: "Cobalt Street", folderName: "data-folder-01", index: sampleIndex)
         #expect(id.match?.appID == 1_465_360)
         #expect(id.source == .installerTitle)
     }
@@ -60,7 +60,7 @@ struct GameIndexTests {
         let found = try #require(GOGInfo.find(in: dir))
         #expect(found.info.id == "1207658924")
         #expect(found.info.primaryExe == "bin/x64/witcher3.exe")
-        let id = GameIdentification.identify(gog: found.info, installerTitle: "CarX Street", folderName: "x", index: sampleIndex)
+        let id = GameIdentification.identify(gog: found.info, installerTitle: "Cobalt Street", folderName: "x", index: sampleIndex)
         #expect(id.source == .gog)
         #expect(id.gogID == "1207658924")
         #expect(id.match?.appID == 292_030)

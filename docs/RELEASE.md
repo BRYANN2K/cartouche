@@ -12,13 +12,9 @@ How a Cartouche release is built, signed and published, and what the maintainer 
 ## Branches and CI
 
 - `main` is the default branch on GitHub (stable code, the install script and the cask). `dev` is the integration branch: pull requests target it. A beta promotes `dev` into `beta`; a release promotes `beta` (or `dev`) into `main`. Until the first beta, `beta` sits at `main`.
-- Tag `vX.Y.Z` on `main` and `vX.Y.Z-beta.N` on `beta`.
-- Checks run on Woodpecker, not GitHub Actions:
-  - `.woodpecker/app.yaml`: app build and Swift tests on the self-hosted Mac agent (`platform: darwin/arm64`, local backend).
-  - `.woodpecker/checks.yaml`: shell lint, OpenSpec validation and the redistribution scan, on the Linux agent.
-  - `.woodpecker/retroarch.yaml`: RetroArch scan and kit jobs on the Mac agent, when `retroarch/` or the submodule changes.
-- They run on pull requests, pushes to `dev`, `beta` and `main`, and manual runs. Gitignored inputs (Dobby, Wine trees, the Proton tarball, innoextract, libarchive, fonts) come from `$CARTOUCHE_CI_CACHE` through `.woodpecker/cache.sh`. The first run on an empty cache is a manual run with `CARTOUCHE_CI_COLD=1`.
-- Releases are published by `.woodpecker/release.yaml` on tag events (see Publishing from Woodpecker). The GitHub workflows in `.github/workflows/` stay as the reference; the GitHub release trigger is paused.
+- Tag `vX.Y.Z` on `main` and `vX.Y.Z-betaN` on `beta` (for example `v0.2.0-beta1`).
+- Checks run on GitHub Actions. `.github/workflows/ci.yml` is the pull request gate (see `docs/ci/CI-ARCHITECTURE.md`), with `codeql.yml`, `scorecard.yml`, `nightly.yml` and `retroarch.yml` beside it.
+- Releases are built, signed and published by hand on the maintainer's Mac, after `make release-gate` passes (see `docs/security/RELEASE-GATE.md`). No workflow publishes a release or holds a signing secret.
 
 ### Published Wine builds
 
@@ -132,54 +128,104 @@ After the GitHub release is published, the `tap` step fills `packaging/homebrew/
 
 After a release: `brew update && brew install --cask bryann2k/cartouche/cartouche`, then `defaults read /Applications/Cartouche.app/Contents/Info CFBundleShortVersionString` must print the version just released.
 
-## Publishing from Woodpecker
-
-GitHub Actions is paused (billing), so `.woodpecker/release.yaml` publishes on the Mac agent instead. It runs on tag events only:
-
-- `vX.Y.Z` is published only if the tagged commit is on `main`; `vX.Y.Z-beta.N` only if it is on `beta`. Any other tag, test tags included, is refused. The check uses the compare API (`GET /repos/{repo}/compare/{branch}...{sha}`, status `identical` or `behind`).
-- The build, the signing (throwaway keychain from `signing_cert_p12` and `signing_cert_password`), `make-appcast.sh`, the release and, for stable only, the Homebrew tap bump are the same as the steps below. `gh` publishes through the REST API with `github_release_token`.
-- Woodpecker secrets, all limited to the `tag` event: `github_release_token` (fine-grained, this repository, Contents read and write), `sparkle_private_key`, `signing_cert_p12`, `signing_cert_password`. The cask commit to `main` uses `github_release_token` too.
-- To publish a tag again after a failure, delete its release if one was created, then restart the tag's pipeline in Woodpecker.
-
-While this repository is private, Sparkle, `install.sh` and Homebrew cannot download the feed or the archives anonymously. A tag still publishes, which is a useful dry run; users get updates once the repository is public.
-
 ## Publishing a release
 
 1. Set `CARTOUCHE_VERSION` in `dylib/version.h` to the new version, for example `0.1.1`.
 2. In `CHANGELOG.md`, rename `## [Unreleased]` to `## [0.1.1] - <date>` and start a new empty `## [Unreleased]` above it. Add ` (critical)` at the end of the heading for a fix users must not skip, such as a dylib fix after a Steam update.
-3. Merge to `main` through a pull request, so the checks run.
-4. Tag the merge commit and push the tag: `git tag -a v0.1.1 -m 0.1.1 && git push origin v0.1.1`.
+3. Write the site entry and deploy the site (see [Release notes on the website](#release-notes-on-the-website)). The release stops if `https://cartouche.bryann2k.dev/changelog/0.1.1/sparkle` does not answer 200.
+4. Merge to `main` through a pull request, so the checks run.
+5. Tag the merge commit and push the tag: `git tag -a v0.1.1 -m 0.1.1 && git push origin v0.1.1`.
 
-The `release` workflow then:
+Then, on the Mac, the release steps:
 
 1. Refuses a tag that does not match `version.h`, has no CHANGELOG section, or is already released.
 2. Builds the app with the same job as the pull request checks, tests included.
 3. Signs it with the certificate in a throwaway keychain and prints the designated requirement in the job summary.
 4. Scans the app and the zip for Game Porting Toolkit files.
-5. Downloads the live appcast and the last three archives, and runs `packaging/make-appcast.sh`: Sparkle's `generate_appcast` signs the archive and makes deltas, the older items are kept as published, then `sign_update` signs the whole feed. The app requires a signed feed (`SURequireSignedFeed`).
-6. Publishes the GitHub release with `Cartouche-<version>.zip`, `Cartouche-<version>.dmg` (made by `packaging/dmg/make-dmg.sh`, the same signed app with the first-open steps in its window), `SHA256SUMS`, the deltas and `appcast.xml`.
+5. Downloads the live appcast and the last three archives, and runs `packaging/make-appcast.sh`: Sparkle's `generate_appcast` signs the archive and makes deltas, the older items are kept as published, the new item is linked to its signed site page, then `sign_update` signs the whole feed. The app requires a signed feed (`SURequireSignedFeed`).
+6. Runs `packaging/check-release-notes.sh dist/appcast.xml`: the page answers 200 and still matches the signature in the feed.
+7. Publishes the GitHub release with `Cartouche-<version>.zip`, `Cartouche-<version>.dmg` (made by `packaging/dmg/make-dmg.sh`, the same signed app with the first-open steps in its window), `SHA256SUMS`, the deltas and `appcast.xml`.
 
 ### Checksum for install.sh
 
 `SHA256SUMS` holds one line, `<sha256>  Cartouche-<version>.zip`, in the format `shasum -a 256 -c` reads. Its name never changes, so `install.sh` (P18) can fetch `https://github.com/BRYANN2K/cartouche/releases/latest/download/SHA256SUMS`, take the archive name from it, download that archive from the same folder and run `shasum -a 256 -c SHA256SUMS` before installing.
 
-If the run fails after the tag was pushed, fix the cause and run the workflow by hand (Actions > release > Run workflow) with the tag.
+If a step fails after the tag was pushed, fix the cause and run the steps again with the same tag.
 
 ### Tags
 
 | Tag | Publishes | Sparkle channel | Bundle version |
 |---|---|---|---|
 | `v0.1.1` | A release, the new `releases/latest` | none, every user | `0.1.1` |
-| `v0.2.0-beta.1` | A pre-release; the live feed on the latest release gains its item | `beta` | `0.2.0b1` |
+| `v0.2.0-beta1` | A pre-release; the live feed on the latest release gains its item | `beta` | `0.2.0b1` |
 | `v0.0.1-test.1` | A normal release, refused once a real release exists | none | `0.0.1t1` |
 
-Sparkle compares the bundle version (`CFBundleVersion`). It reads `0.2.0-beta.1` as equal to `0.2.0`, so the Makefile drops the dash for pre-releases. Sparkle then orders `0.1.1 < 0.2.0b1 < 0.2.0b2 < 0.2.0`. `ReleaseFeedTests` checks this order with Sparkle's own comparator.
+Sparkle compares the bundle version (`CFBundleVersion`). It reads `0.2.0-beta.1` as equal to `0.2.0`, so the Makefile drops the dash (`0.2.0-beta1` and `0.2.0-beta.1` both become `0.2.0b1`) for pre-releases. Sparkle then orders `0.1.1 < 0.2.0b1 < 0.2.0b2 < 0.2.0`. `ReleaseFeedTests` checks this order with Sparkle's own comparator.
 
-Everywhere else, the app (`CartoucheVersion`, used by the Steam install record) and `release.py` (`version_key`) compare the version users see in semver order: `0.1.0 < 0.2.0-beta.1 < 0.2.0-beta.2 < 0.2.0`. Both read `packaging/tests/version-order.txt` in their tests, so they cannot drift apart. The release workflow refuses a tag that is not newer than the last published release.
+Everywhere else, the app (`CartoucheVersion`, used by the Steam install record) and `release.py` (`version_key`) compare the version users see in semver order: `0.1.0 < 0.2.0-beta1 < 0.2.0-beta2 < 0.2.0-beta10 < 0.2.0`. The older form `0.2.0-beta.1` is still accepted and is the same version as `0.2.0-beta1`. Both read `packaging/tests/version-order.txt` in their tests, so they cannot drift apart. The release workflow refuses a tag that is not newer than the last published release.
 
 Users opt into betas in Settings > Receive beta updates (`receiveBetaUpdates` in the app's defaults). The updater then allows Sparkle's `beta` channel at its next check. A user who turns it off keeps the installed beta and gets the next release that is newer.
 
 Test tags exist to try the pipeline before v0.1.0, when nobody runs Cartouche yet. Delete the test releases and their tags afterwards. The first real release drops test items from the feed.
+
+## Release notes on the website
+
+The update window shows `https://cartouche.bryann2k.dev/changelog/<version>/sparkle`: a bare page made for Sparkle, with images. `/changelog` and `/changelog/<version>` show the same notes with the site's design. The source is one Markdown file per version in the site repository (`cartouche-site`).
+
+### Write an entry
+
+1. Start from the CHANGELOG section: `python3 packaging/release.py site-entry 0.1.1 --title "Short title" > ../cartouche-site/src/content/changelog/0.1.1.md`.
+2. Edit it. Front matter:
+
+```yaml
+---
+version: "0.1.1"          # the file name without .md
+date: 2026-10-25
+title: "Short title"      # 80 characters at most
+critical: true            # only for a (critical) release
+hero:                     # optional, shown above the notes
+  src: /changelog/0.1.1/library.webp
+  alt: "The library with the new Stop button on a running game."
+  width: 1200
+  height: 750
+---
+```
+
+3. Put images in `public/changelog/<version>/` and use them in the text with `![alt text](/changelog/0.1.1/name.webp)`.
+4. Run `node --test tests/changelog.test.mjs` in the site repository: it checks place, format, alt text, width and weight. Then `npx astro build && npx astro preview` and open the three pages, in light and dark mode.
+5. Deploy the site, then release.
+
+### Images
+
+| Rule | Value |
+|---|---|
+| Format | WebP (photos, screenshots); PNG only for flat art that WebP blurs |
+| Width | 1200 px at most (2× for the 600 px window). Crop to what changed |
+| Weight | 300 KB per image, 1 MB per release (checked by the site test) |
+| Alt text | Always. Say what the image shows and why it matters, in one sentence |
+| Light and dark | The page follows the Mac's appearance. Pick screenshots that read on both: a framed window, not a transparent cut-out. Avoid text baked into a light or dark background |
+| Loading | Markdown images get `loading="lazy"` and `decoding="async"` |
+
+Convert with `cwebp -q 80 -resize 1200 0 in.png -o out.webp`.
+
+### Why a link and not embedded notes
+
+- Embedded notes (`<description>`) live in the signed feed, but cannot carry images well and duplicate the website.
+- With `SURequireSignedFeed`, Sparkle verifies a linked page like an archive: `sparkle:edSignature` and `sparkle:length` on `<sparkle:releaseNotesLink>`. `make-appcast.sh` downloads the live page, signs those exact bytes and writes the link (`release.py fetch-notes`, `link-notes`).
+- Sparkle 2.10 has no automatic fallback. While an item has a link, it shows the page and ignores `<description>`. If the page cannot be downloaded or fails its signature, the window shows "An error occurred while downloading the release notes" (or "improperly signed"); Install still works.
+- So every item keeps its embedded notes as the fallback. `release.py link-notes` refuses an item without them.
+
+### Rules once a version ships
+
+- Never change a shipped Sparkle page: its bytes are signed. That covers the entry, its images' paths, `src/pages/changelog/[version]/sparkle.astro`, Astro and Markdown upgrades that change the HTML, and Cloudflare features that rewrite HTML (Email Obfuscation, Rocket Loader).
+- Only the newest item of each channel matters: Sparkle shows the notes of the update it offers.
+- After every site deploy, run `SPARKLE_PRIVATE_KEY=… sh packaging/check-release-notes.sh <published appcast.xml>`.
+
+### If the site is down or a page changed
+
+1. Fall back to the embedded notes: `python3 packaging/release.py unlink-notes --appcast appcast.xml`, then `sign_update --ed-key-file - appcast.xml`, then upload the feed to the latest release.
+2. Or re-sign the current page: run `make-appcast.sh` again for that version, or `release.py fetch-notes` + `sign_update -p --disable-signing-warning` + `release.py link-notes`, then sign and upload the feed.
+3. To release without the site: `NOTES_SITE=none sh packaging/make-appcast.sh …` ships embedded notes only, and skip `check-release-notes.sh`.
 
 ## Upstream watch
 

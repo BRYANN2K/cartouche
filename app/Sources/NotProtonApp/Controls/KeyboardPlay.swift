@@ -125,7 +125,8 @@ final class LiveGameFocus: GameFocus {
             return [environment["SteamAppId"], environment["STEAM_COMPAT_APP_ID"]].contains(String(appID))
         }
         guard game.id.hasPrefix("installer:"), let prefix = environment["WINEPREFIX"] else { return false }
-        let folder = GameFolder.of(slug: String(game.id.dropFirst("installer:".count)), in: installs).prefix
+        guard let folder = GameFolder.of(slug: String(game.id.dropFirst("installer:".count)), in: installs)?.prefix
+        else { return false }
         return URL(filePath: prefix).standardizedFileURL.path == folder.standardizedFileURL.path
     }
 

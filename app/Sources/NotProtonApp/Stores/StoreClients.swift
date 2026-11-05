@@ -187,37 +187,78 @@ enum ClientProcess {
 
         let exited = AsyncStream<Int32>.makeStream()
         process.terminationHandler = { exited.continuation.yield($0.terminationStatus); exited.continuation.finish() }
+        let capture = PipeCapture(out: out, err: err, onLine: onLine)
         try process.run()
 
-        return try await withTaskCancellationHandler {
-            async let stdout = Self.drain(out.fileHandleForReading)
-            async let stderr = Self.lines(err.fileHandleForReading, onLine: onLine)
+        return await withTaskCancellationHandler {
             var status: Int32 = -1
             for await code in exited.stream { status = code }
-            return ClientOutput(status: status, stdout: try await stdout, stderr: try await stderr)
+            capture.finish()
+            return ClientOutput(status: status, stdout: capture.stdout, stderr: capture.stderr)
         } onCancel: {
             if process.isRunning { process.terminate() }
         }
     }
 
-    // Blocking read on a Dispatch thread: handle.bytes reads are serialized with stderr's.
-    private static func drain(_ handle: FileHandle) async throws -> String {
-        try await withCheckedThrowingContinuation { continuation in
-            DispatchQueue.global(qos: .utility).async {
-                continuation.resume(with: Result { String(decoding: try handle.readToEnd() ?? Data(), as: UTF8.self) })
-            }
-        }
-    }
+    // Reads the pipes as their data lands instead of waiting for end-of-file: a process
+    // whose children keep running after it exits (EA's installer leaves the client and
+    // its service up) holds the write ends open forever — the exit status is the real end
+    // of the run, not the pipes' EOF.
+    private final class PipeCapture: @unchecked Sendable {
+        private let lock = NSLock()
+        private let out: Pipe
+        private let err: Pipe
+        private let onLine: @Sendable (String) -> Void
+        private var stdoutData = Data()
+        private var stderrData = Data()
+        private var tail = Data()
+        private var eofs = 0
 
-    private static func lines(_ handle: FileHandle, onLine: @escaping @Sendable (String) -> Void) async throws -> String {
-        try await Task.detached {
-            var all: [String] = []
-            for try await line in handle.bytes.lines {
-                all.append(line)
-                onLine(line)
+        init(out: Pipe, err: Pipe, onLine: @escaping @Sendable (String) -> Void) {
+            self.out = out
+            self.err = err
+            self.onLine = onLine
+            out.fileHandleForReading.readabilityHandler = { [weak self] in self?.feed($0.availableData, err: false) }
+            err.fileHandleForReading.readabilityHandler = { [weak self] in self?.feed($0.availableData, err: true) }
+        }
+
+        private func feed(_ data: Data, err: Bool) {
+            var lines: [String] = []
+            lock.withLock {
+                if data.isEmpty {
+                    eofs |= err ? 2 : 1
+                    return
+                }
+                if err {
+                    stderrData.append(data)
+                    tail.append(data)
+                    while let nl = tail.firstIndex(of: 0x0A) {
+                        lines.append(String(decoding: tail[..<nl], as: UTF8.self))
+                        tail = tail.subdata(in: tail.index(after: nl)..<tail.endIndex)
+                    }
+                } else {
+                    stdoutData.append(data)
+                }
             }
-            return all.joined(separator: "\n")
-        }.value
+            for line in lines { onLine(line) }
+        }
+
+        // EOF on both ends settles it at once; a straggler's tail gets a short grace.
+        func finish() {
+            let deadline = Date().addingTimeInterval(2)
+            while lock.withLock({ eofs != 3 }), Date() < deadline {
+                Thread.sleep(forTimeInterval: 0.05)
+            }
+            let rest = lock.withLock { () -> String? in
+                out.fileHandleForReading.readabilityHandler = nil
+                err.fileHandleForReading.readabilityHandler = nil
+                return tail.isEmpty ? nil : String(decoding: tail, as: UTF8.self)
+            }
+            if let rest { onLine(rest) }
+        }
+
+        var stdout: String { lock.withLock { String(decoding: stdoutData, as: UTF8.self) } }
+        var stderr: String { lock.withLock { String(decoding: stderrData, as: UTF8.self) } }
     }
 }
 

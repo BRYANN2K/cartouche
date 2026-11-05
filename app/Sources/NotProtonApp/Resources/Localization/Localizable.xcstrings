@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "" : {
+      "shouldTranslate" : false
+    },
     " Cartouche can be deployed, but the CrossOver compatibility tool cannot be installed without a valid license." : {
       "localizations" : {
         "fr" : {
@@ -41,6 +44,138 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "（使用 %@）"
+          }
+        }
+      }
+    },
+    "%1$@ menu · %2$@ HUD" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ menu · %2$@ HUD"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ menu · %2$@ HUD"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ menu · %2$@ HUD"
+          }
+        }
+      }
+    },
+    "%1$@ upscaling at %2$@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upscaling %1$@ à %2$@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ upscaling at %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ upscaling at %2$@"
+          }
+        }
+      }
+    },
+    "%1$@ upscaling turned on at %2$@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upscaling %1$@ activé à %2$@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ upscaling turned on at %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ upscaling turned on at %2$@"
+          }
+        }
+      }
+    },
+    "%1$@ uses %2$@ of the CPU" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ utilise %2$@ du CPU"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ uses %2$@ of the CPU"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ uses %2$@ of the CPU"
+          }
+        }
+      }
+    },
+    "%1$@ uses %2$@. Our code will load into the game: risk of a ban." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ utilise %2$@. Notre code sera chargé dans le jeu : risque de ban."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ uses %2$@. Our code will load into the game: risk of a ban."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ uses %2$@. Our code will load into the game: risk of a ban."
+          }
+        }
+      }
+    },
+    "%1$@: %2$@ of the CPU" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ : %2$@ du CPU"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: %2$@ of the CPU"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: %2$@ of the CPU"
           }
         }
       }
@@ -327,6 +462,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 在安装后已被更改。"
+          }
+        }
+      }
+    },
+    "%@ closed right after it started." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ s’est fermé juste après son lancement."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ si è chiuso subito dopo l’avvio."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 启动后立即关闭了。"
           }
         }
       }
@@ -1565,6 +1722,28 @@
         }
       }
     },
+    "%@ shown" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ FPS affichés"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%@ shown"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%@ shown"
+          }
+        }
+      }
+    },
     "%@ stays installed until the game using it quits." : {
       "localizations" : {
         "fr" : {
@@ -1697,6 +1876,28 @@
         }
       }
     },
+    "%@ was quit" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ a été quittée"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%@ was quit"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%@ was quit"
+          }
+        }
+      }
+    },
     "%@ was re-signed without the dyld entitlement." : {
       "localizations" : {
         "fr" : {
@@ -1825,6 +2026,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@，%lld%%"
+          }
+        }
+      }
+    },
+    "%@, added" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, ajouté"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, aggiunto"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@，已添加"
           }
         }
       }
@@ -2309,6 +2532,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@：据报告 Mac 上受保护的在线游戏可用"
+          }
+        }
+      }
+    },
+    "%lld Cartouche running" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Cartouche ouverts"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Cartouche aperti"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 个 Cartouche 正在运行"
           }
         }
       }
@@ -3205,6 +3450,50 @@
         }
       }
     },
+    "%lld%% on average" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld %% en moyenne"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld%% in media"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "平均 %lld%%"
+          }
+        }
+      }
+    },
+    "+%@ latency" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "+%@ de latence"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "+%@ latency"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "+%@ latency"
+          }
+        }
+      }
+    },
     ", not supported" : {
       "localizations" : {
         "fr" : {
@@ -3557,12 +3846,34 @@
         }
       }
     },
+    "1% Low" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 % low"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "1% Low"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "1% Low"
+          }
+        }
+      }
+    },
     "1% low" : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1 % les plus bas"
+            "value" : "1 % low"
           }
         },
         "it" : {
@@ -3575,6 +3886,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1% 低帧"
+          }
+        }
+      }
+    },
+    ": other apps at %@ of the CPU" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " : autres apps à %@ du CPU"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ": other apps at %@ of the CPU"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ": other apps at %@ of the CPU"
           }
         }
       }
@@ -4114,7 +4447,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AVX2 avec Rosetta"
+            "value" : "AVX2 pour Rosetta"
           }
         },
         "it" : {
@@ -4351,6 +4684,28 @@
         }
       }
     },
+    "Active" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actif"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Active"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Active"
+          }
+        }
+      }
+    },
     "Add" : {
       "localizations" : {
         "fr" : {
@@ -4373,6 +4728,28 @@
         }
       }
     },
+    "Add %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加 %@"
+          }
+        }
+      }
+    },
     "Add %@ Games…" : {
       "localizations" : {
         "fr" : {
@@ -4391,40 +4768,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "添加 %@ 游戏…"
-          }
-        }
-      }
-    },
-    "Add %lld Consoles" : {
-      "localizations" : {
-        "fr" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Ajouter %lld console"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Ajouter %lld consoles"
-                }
-              }
-            }
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aggiungi %lld console"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "添加 %lld 台主机"
           }
         }
       }
@@ -4459,28 +4802,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "添加 %lld 个游戏"
-          }
-        }
-      }
-    },
-    "Add 1 Console" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ajouter 1 console"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aggiungi 1 console"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "添加 1 台主机"
           }
         }
       }
@@ -4683,6 +5004,28 @@
         }
       }
     },
+    "Add Stores" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter des stores"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi negozi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加商店"
+          }
+        }
+      }
+    },
     "Add a Windows game or your own console games" : {
       "localizations" : {
         "fr" : {
@@ -4767,6 +5110,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "将游戏添加到 Steam"
+          }
+        }
+      }
+    },
+    "Add the game to Ubisoft Connect first, then let it manage the install." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajoutez d’abord le jeu à Ubisoft Connect, puis laissez-le gérer l’installation."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi prima il gioco a Ubisoft Connect, poi lascia che gestisca l’installazione."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先将游戏添加到 Ubisoft Connect，然后由它管理安装。"
+          }
+        }
+      }
+    },
+    "Add the game to the EA app first, then let it manage the install." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajoutez d’abord le jeu à l’EA app, puis laissez-la gérer l’installation."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi prima il gioco a EA app, poi lascia che gestisca l’installazione."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先将游戏添加到 EA app，然后由它管理安装。"
           }
         }
       }
@@ -4925,28 +5312,6 @@
         }
       }
     },
-    "Advertises AVX support. Does not make games faster." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Signale la prise en charge d’AVX au jeu, sans améliorer ses performances."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Segnala il supporto AVX. Non rende i giochi più veloci."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "宣告 AVX 支持，不会加速游戏。"
-          }
-        }
-      }
-    },
     "Agents" : {
       "localizations" : {
         "fr" : {
@@ -4965,6 +5330,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "智能体"
+          }
+        }
+      }
+    },
+    "Alert Threshold" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seuil d’alerte"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Alert Threshold"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Alert Threshold"
+          }
+        }
+      }
+    },
+    "All" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tout"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "All"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "All"
           }
         }
       }
@@ -5009,6 +5418,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "所有 Mac 报告"
+          }
+        }
+      }
+    },
+    "All consoles added" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toutes les consoles sont ajoutées"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tutte le console aggiunte"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已添加所有主机"
+          }
+        }
+      }
+    },
+    "All stores added" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tous les stores sont ajoutés"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tutti i negozi aggiunti"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已添加所有商店"
           }
         }
       }
@@ -5119,6 +5572,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在允许 Steam 客户端更新"
+          }
+        }
+      }
+    },
+    "Allow…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autoriser…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Allow…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Allow…"
           }
         }
       }
@@ -5332,7 +5807,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Anticheat"
+            "value" : "Anti-triche"
           }
         },
         "it" : {
@@ -5345,6 +5820,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "反作弊"
+          }
+        }
+      }
+    },
+    "Anti-aliasing" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anti-aliasing"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Anti-aliasing"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Anti-aliasing"
           }
         }
       }
@@ -5525,6 +6022,28 @@
         }
       }
     },
+    "App name or bundle ID" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nom de l’app ou identifiant de bundle"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nome dell’app o ID bundle"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App 名称或 Bundle ID"
+          }
+        }
+      }
+    },
     "Applications has Cartouche %@. This copy is %@. Moving it would replace the newer version." : {
       "localizations" : {
         "fr" : {
@@ -5587,6 +6106,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "应用修复"
+          }
+        }
+      }
+    },
+    "Approx. 1% low" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 % low ≈"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Approx. 1% low"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Approx. 1% low"
+          }
+        }
+      }
+    },
+    "Apps" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apps"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Apps"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Apps"
           }
         }
       }
@@ -5709,6 +6272,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "确定要继续吗？"
+          }
+        }
+      }
+    },
+    "Asks for the Screen Recording permission" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demande l’autorisation Enregistrement d’écran"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Asks for the Screen Recording permission"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Asks for the Screen Recording permission"
           }
         }
       }
@@ -6201,6 +6786,28 @@
         }
       }
     },
+    "Battery" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Batterie"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Battery"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Battery"
+          }
+        }
+      }
+    },
     "Battery %@" : {
       "localizations" : {
         "fr" : {
@@ -6465,6 +7072,50 @@
         }
       }
     },
+    "Bottom Left" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En bas à gauche"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Bottom Left"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Bottom Left"
+          }
+        }
+      }
+    },
+    "Bottom Right" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En bas à droite"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Bottom Right"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Bottom Right"
+          }
+        }
+      }
+    },
     "Bring your games to this Mac" : {
       "localizations" : {
         "fr" : {
@@ -6619,6 +7270,28 @@
         }
       }
     },
+    "Busy Mac Warning" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alerte Mac surchargé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avviso Mac sovraccarico"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac 繁忙警告"
+          }
+        }
+      }
+    },
     "Button glyphs" : {
       "localizations" : {
         "fr" : {
@@ -6751,8 +7424,51 @@
         }
       }
     },
+    "Capped at %@ real frames" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limité à %@ FPS"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Capped at %@ real frames"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Capped at %@ real frames"
+          }
+        }
+      }
+    },
+    "Capture" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capture"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Capture"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Capture"
+          }
+        }
+      }
+    },
     "Cartouche" : {
-      "localizations" : {},
       "shouldTranslate" : false
     },
     "Cartouche Community" : {
@@ -6795,6 +7511,116 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cartouche 组件"
+          }
+        }
+      }
+    },
+    "Cartouche Engine" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moteur Cartouche"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Cartouche Engine"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Cartouche Engine"
+          }
+        }
+      }
+    },
+    "Cartouche Engine Off" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moteur Cartouche off"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Motore Cartouche off"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 引擎：关"
+          }
+        }
+      }
+    },
+    "Cartouche Engine On" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moteur Cartouche on"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Motore Cartouche on"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 引擎：开"
+          }
+        }
+      }
+    },
+    "Cartouche Options: Off" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Options Cartouche : off"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opzioni Cartouche: off"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 选项：关"
+          }
+        }
+      }
+    },
+    "Cartouche Options: On" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Options Cartouche : on"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opzioni Cartouche: on"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 选项：开"
           }
         }
       }
@@ -7260,6 +8086,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cartouche 会先检查其文件，然后用运行器安装。"
+          }
+        }
+      }
+    },
+    "Cartouche could not download the %@ installer. Try again." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche n’a pas pu télécharger l’installeur de %@. Réessayez."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche non ha potuto scaricare il programma di installazione di %@. Riprova."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 无法下载 %@ 安装程序。请重试。"
           }
         }
       }
@@ -7792,6 +8640,28 @@
         }
       }
     },
+    "Cartouche couldn’t update the launch settings for %@. The launch was stopped: Steam kept older ones." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche n’a pas pu mettre à jour les réglages de lancement de %@. Lancement annulé : Steam gardait les anciens."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche non è riuscita ad aggiornare le impostazioni di avvio di %@. Avvio interrotto: Steam ha mantenuto quelle precedenti."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 无法更新 %@ 的启动设置。已停止启动：Steam 保留了旧设置。"
+          }
+        }
+      }
+    },
     "Cartouche couldn’t use this image: %@" : {
       "localizations" : {
         "fr" : {
@@ -8250,6 +9120,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cartouche 玩家"
+          }
+        }
+      }
+    },
+    "Cartouche refused the %@ installer: it came from an unexpected address." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche a refusé l’installeur de %@ : il vient d’une adresse inattendue."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche ha rifiutato il programma di installazione di %@: proviene da un indirizzo inatteso."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 已拒绝 %@ 安装程序：它来自意外的地址。"
+          }
+        }
+      }
+    },
+    "Cartouche refused the %@ installer: its size is not what was expected." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche a refusé l’installeur de %@ : sa taille n’est pas celle attendue."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche ha rifiutato il programma di installazione di %@: le dimensioni non sono quelle previste."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche 已拒绝 %@ 安装程序：其大小不符合预期。"
           }
         }
       }
@@ -8958,6 +9872,72 @@
         }
       }
     },
+    "Choose Cartouche or DLSS first" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisissez Cartouche ou DLSS d’abord"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Choose Cartouche or DLSS first"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Choose Cartouche or DLSS first"
+          }
+        }
+      }
+    },
+    "Choose Cartouche to turn it on" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisissez Cartouche pour l’activer"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Choose Cartouche to turn it on"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Choose Cartouche to turn it on"
+          }
+        }
+      }
+    },
+    "Choose DLSS first" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisissez DLSS d’abord"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Choose DLSS first"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Choose DLSS first"
+          }
+        }
+      }
+    },
     "Choose Folder…" : {
       "localizations" : {
         "fr" : {
@@ -9420,6 +10400,28 @@
         }
       }
     },
+    "Choose ×2 or ×4 first" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisissez ×2 ou ×4 d’abord"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Choose ×2 or ×4 first"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Choose ×2 or ×4 first"
+          }
+        }
+      }
+    },
     "Choose…" : {
       "localizations" : {
         "fr" : {
@@ -9574,6 +10576,28 @@
         }
       }
     },
+    "Clip" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clip"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Clip"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Clip"
+          }
+        }
+      }
+    },
     "Clone CrossOver" : {
       "localizations" : {
         "fr" : {
@@ -9684,6 +10708,50 @@
         }
       }
     },
+    "Codes, settings, where you are…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codes, réglages, progression…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Codes, settings, where you are…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Codes, settings, where you are…"
+          }
+        }
+      }
+    },
+    "Collapsed" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replié"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compresso"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已折叠"
+          }
+        }
+      }
+    },
     "Collect Diagnostics…" : {
       "localizations" : {
         "fr" : {
@@ -9724,6 +10792,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在收集…"
+          }
+        }
+      }
+    },
+    "Coming Soon" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bientôt"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Coming Soon"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Coming Soon"
           }
         }
       }
@@ -9850,6 +10940,28 @@
         }
       }
     },
+    "Compatibility" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compatibilité"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Compatibility"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Compatibility"
+          }
+        }
+      }
+    },
     "Compatibility Tool" : {
       "localizations" : {
         "fr" : {
@@ -9868,40 +10980,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "兼容工具"
-          }
-        }
-      }
-    },
-    "Compatibility data from %lld days ago." : {
-      "localizations" : {
-        "fr" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Données de compatibilité datant de %lld jour."
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Données de compatibilité datant de %lld jours."
-                }
-              }
-            }
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dati di compatibilità di %lld giorni fa."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "兼容性数据来自 %lld 天前。"
           }
         }
       }
@@ -10038,6 +11116,28 @@
         }
       }
     },
+    "Compute" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Calcul"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Compute"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Compute"
+          }
+        }
+      }
+    },
     "Configuring Steam" : {
       "localizations" : {
         "fr" : {
@@ -10056,6 +11156,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在配置 Steam"
+          }
+        }
+      }
+    },
+    "Confirm" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirmer"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Confirm"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Confirm"
           }
         }
       }
@@ -10518,6 +11640,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "手柄"
+          }
+        }
+      }
+    },
+    "Controller Type" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type de manette"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Controller Type"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Controller Type"
           }
         }
       }
@@ -11006,6 +12150,28 @@
         }
       }
     },
+    "Corner" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coin"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Corner"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Corner"
+          }
+        }
+      }
+    },
     "Corrupt download" : {
       "localizations" : {
         "fr" : {
@@ -11160,6 +12326,40 @@
         }
       }
     },
+    "Couldn't refresh. Compatibility data from %lld days ago." : {
+      "localizations" : {
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Échec de la mise à jour. Données de compatibilité datant de %lld jour."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Échec de la mise à jour. Données de compatibilité datant de %lld jours."
+                }
+              }
+            }
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiornamento non riuscito. Dati di compatibilità di %lld giorni fa."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法刷新。兼容性数据来自 %lld 天前。"
+          }
+        }
+      }
+    },
     "Covers and compatibility data come from this Mac until the connection is back." : {
       "localizations" : {
         "fr" : {
@@ -11270,9 +12470,27 @@
         }
       }
     },
-    "CrossOver" : {
-      "localizations" : {},
-      "shouldTranslate" : false
+    "Critical" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Critique"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Critica"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "严重"
+          }
+        }
+      }
     },
     "CrossOver does not appear to be activated." : {
       "localizations" : {
@@ -11314,6 +12532,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "CrossOver 已激活。"
+          }
+        }
+      }
+    },
+    "Current game" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jeu en cours"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Current game"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Current game"
           }
         }
       }
@@ -11582,24 +12822,24 @@
         }
       }
     },
-    "DLSS → MetalFX" : {
+    "DLSS" : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "DLSS → MetalFX"
+            "value" : "DLSS"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "DLSS → MetalFX"
+            "state" : "new",
+            "value" : "DLSS"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "DLSS → MetalFX"
+            "state" : "new",
+            "value" : "DLSS"
           }
         }
       }
@@ -12613,7 +13853,6 @@
       }
     },
     "Discord" : {
-      "localizations" : {},
       "shouldTranslate" : false
     },
     "Disk write failure" : {
@@ -12656,6 +13895,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "忽略"
+          }
+        }
+      }
+    },
+    "Display" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affichage"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Display"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Display"
           }
         }
       }
@@ -12722,6 +13983,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "不可用"
+          }
+        }
+      }
+    },
+    "Don't show again this session" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ne plus afficher pour cette session"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Don't show again this session"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Don't show again this session"
           }
         }
       }
@@ -13552,6 +14835,72 @@
         }
       }
     },
+    "EA answered %lld." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EA a répondu %lld."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EA ha risposto %lld."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EA 返回了 %lld。"
+          }
+        }
+      }
+    },
+    "EA answered without a session token." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EA a répondu sans jeton de session."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EA ha risposto senza token di sessione."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EA 的响应中没有会话令牌。"
+          }
+        }
+      }
+    },
+    "EA answered without an HTTP response." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EA a répondu sans réponse HTTP."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EA ha risposto senza una risposta HTTP."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EA 未返回 HTTP 响应。"
+          }
+        }
+      }
+    },
     "Each Windows game Cartouche installs, imports or plays from Steam or a store keeps its own prefix. They show here once a game has one." : {
       "localizations" : {
         "fr" : {
@@ -13640,6 +14989,28 @@
         }
       }
     },
+    "Edit…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modifier…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Edit…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Edit…"
+          }
+        }
+      }
+    },
     "Emulator" : {
       "localizations" : {
         "fr" : {
@@ -13658,28 +15029,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "模拟器"
-          }
-        }
-      }
-    },
-    "Enable DLSS in the game too." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Activez aussi le DLSS dans le jeu."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abilita DLSS anche nel gioco."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "同时在游戏中启用 DLSS。"
           }
         }
       }
@@ -13838,6 +15187,28 @@
         }
       }
     },
+    "Expanded" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Déplié"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Espanso"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已展开"
+          }
+        }
+      }
+    },
     "Expected on %@" : {
       "localizations" : {
         "fr" : {
@@ -13865,7 +15236,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Performances estimées sur ce Mac"
+            "value" : "Prévu sur ce Mac"
           }
         },
         "it" : {
@@ -14036,6 +15407,28 @@
         }
       }
     },
+    "FPS Shown" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FPS affichés"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "FPS Shown"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "FPS Shown"
+          }
+        }
+      }
+    },
     "FPS can't be measured with this runner" : {
       "localizations" : {
         "fr" : {
@@ -14054,6 +15447,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法用此运行器测量 FPS"
+          }
+        }
+      }
+    },
+    "FPS not measured" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FPS non mesurés"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "FPS not measured"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "FPS not measured"
           }
         }
       }
@@ -14098,6 +15513,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "失败：%@"
+          }
+        }
+      }
+    },
+    "Fair" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modérée"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Fair"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Fair"
           }
         }
       }
@@ -14366,6 +15803,28 @@
         }
       }
     },
+    "Finish in %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminer dans %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termina in %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 %@ 中完成"
+          }
+        }
+      }
+    },
     "Finish the current installation first." : {
       "localizations" : {
         "fr" : {
@@ -14520,6 +15979,28 @@
         }
       }
     },
+    "Force Quit" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forcer à quitter"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uscita forzata"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "强制退出"
+          }
+        }
+      }
+    },
     "Found" : {
       "localizations" : {
         "fr" : {
@@ -14560,6 +16041,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "位于 %@"
+          }
+        }
+      }
+    },
+    "Frames" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Génération"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Frames"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Frames"
           }
         }
       }
@@ -14696,6 +16199,28 @@
         }
       }
     },
+    "GB" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "GB"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "GB"
+          }
+        }
+      }
+    },
     "GOG answered %lld." : {
       "localizations" : {
         "fr" : {
@@ -14740,6 +16265,50 @@
         }
       }
     },
+    "GPU Power" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Puissance GPU"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "GPU Power"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "GPU Power"
+          }
+        }
+      }
+    },
+    "GPU very busy (%@)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GPU très chargé (%@)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "GPU very busy (%@)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "GPU very busy (%@)"
+          }
+        }
+      }
+    },
     "Game" : {
       "localizations" : {
         "fr" : {
@@ -14780,6 +16349,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "游戏文件夹"
+          }
+        }
+      }
+    },
+    "Game GPU" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GPU jeu"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Game GPU"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Game GPU"
           }
         }
       }
@@ -15198,6 +16789,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "通用"
+          }
+        }
+      }
+    },
+    "Generated Frames" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Génération d’images"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Generated Frames"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Generated Frames"
           }
         }
       }
@@ -15664,6 +17277,50 @@
         }
       }
     },
+    "HUD" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HUD"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "HUD"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "HUD"
+          }
+        }
+      }
+    },
+    "HUD Size" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taille du HUD"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "HUD Size"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "HUD Size"
+          }
+        }
+      }
+    },
     "Hardcore achievements" : {
       "localizations" : {
         "fr" : {
@@ -15730,6 +17387,50 @@
         }
       }
     },
+    "Heat" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chaleur"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Heat"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Heat"
+          }
+        }
+      }
+    },
+    "Heavy Apps" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apps lourdes"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Heavy Apps"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Heavy Apps"
+          }
+        }
+      }
+    },
     "Here is what’s already on this Mac." : {
       "localizations" : {
         "fr" : {
@@ -15748,6 +17449,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "以下是这台 Mac 上已有的内容。"
+          }
+        }
+      }
+    },
+    "Hidden" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masqué"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Hidden"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Hidden"
           }
         }
       }
@@ -15792,6 +17515,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "隐藏的游戏仍保持安装，但不会出现在游戏库和搜索中。"
+          }
+        }
+      }
+    },
+    "Hide Apple's Metal HUD" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masquer le HUD Metal d’Apple"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Hide Apple's Metal HUD"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Hide Apple's Metal HUD"
           }
         }
       }
@@ -16214,6 +17959,28 @@
         }
       }
     },
+    "Image" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Image"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Image"
+          }
+        }
+      }
+    },
     "Import" : {
       "localizations" : {
         "fr" : {
@@ -16412,6 +18179,28 @@
         }
       }
     },
+    "In Game" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En jeu"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "In Game"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "In Game"
+          }
+        }
+      }
+    },
     "In Use" : {
       "localizations" : {
         "fr" : {
@@ -16430,6 +18219,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用中"
+          }
+        }
+      }
+    },
+    "In-Game Menu" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menu en jeu"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menu in gioco"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "游戏内菜单"
+          }
+        }
+      }
+    },
+    "Inactive" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inactif"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Inactive"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Inactive"
+          }
+        }
+      }
+    },
+    "Include the HUD" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inclure le HUD"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Include the HUD"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Include the HUD"
           }
         }
       }
@@ -16540,6 +18395,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "安装 %@"
+          }
+        }
+      }
+    },
+    "Install %@ first." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installez d’abord %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installa prima %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先安装 %@。"
           }
         }
       }
@@ -16870,6 +18747,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已安装"
+          }
+        }
+      }
+    },
+    "Installed Only" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installés uniquement"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo installati"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅显示已安装"
           }
         }
       }
@@ -17608,24 +19507,46 @@
         }
       }
     },
-    "Its files and its prefix are deleted. Cloud saves stay with the store." : {
+    "Its files and its prefix go to the Trash. Cloud saves stay with the store." : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ses fichiers et son préfixe sont supprimés. Les sauvegardes dans le cloud sont conservées par la boutique."
+            "value" : "Ses fichiers et son préfixe vont à la Corbeille. Les sauvegardes cloud restent sur la boutique."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "I suoi file e il suo prefisso vengono eliminati. I salvataggi cloud restano nel negozio."
+            "value" : "I suoi file e il suo prefisso vanno nel Cestino. I salvataggi cloud restano nello store."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "其文件和游戏容器将被删除。云存档会保留在商店中。"
+            "value" : "其文件和前缀将移到废纸篓。云存档保留在商店中。"
+          }
+        }
+      }
+    },
+    "Its files and its prefix in %@ go to the Trash. Cloud saves stay with the store." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ses fichiers et son préfixe dans %@ vont à la Corbeille. Les sauvegardes cloud restent sur la boutique."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I suoi file e il suo prefisso in %@ vanno nel Cestino. I salvataggi cloud restano nello store."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 中的文件和前缀将移到废纸篓。云存档保留在商店中。"
           }
         }
       }
@@ -17916,6 +19837,28 @@
         }
       }
     },
+    "Keep the Last 30 Seconds" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Garder les 30 dernières secondes"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Keep the Last 30 Seconds"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Keep the Last 30 Seconds"
+          }
+        }
+      }
+    },
     "Keep the mouse inside the game" : {
       "localizations" : {
         "fr" : {
@@ -18158,6 +20101,28 @@
         }
       }
     },
+    "Last Played" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dernier lancé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ultima partita"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近游玩"
+          }
+        }
+      }
+    },
     "Last copy from the Cartouche site" : {
       "localizations" : {
         "fr" : {
@@ -18198,6 +20163,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "上次使用"
+          }
+        }
+      }
+    },
+    "Latency" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Latence"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Latency"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Latency"
           }
         }
       }
@@ -18466,6 +20453,28 @@
         }
       }
     },
+    "Library refused" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bibliothèque refusée"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Libreria rifiutata"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "库被拒绝"
+          }
+        }
+      }
+    },
     "License agreements" : {
       "localizations" : {
         "fr" : {
@@ -18730,6 +20739,28 @@
         }
       }
     },
+    "Locked by the anti-cheat" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verrouillé par l’anti-triche"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Locked by the anti-cheat"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Locked by the anti-cheat"
+          }
+        }
+      }
+    },
     "Login Items" : {
       "localizations" : {
         "fr" : {
@@ -18906,6 +20937,28 @@
         }
       }
     },
+    "Low Power Mode" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mode économie d’énergie"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Low Power Mode"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Low Power Mode"
+          }
+        }
+      }
+    },
     "Lower input lag" : {
       "localizations" : {
         "fr" : {
@@ -18928,24 +20981,24 @@
         }
       }
     },
-    "MSync" : {
+    "Lower the quality in the game's options" : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "MSync"
+            "value" : "Baissez la qualité dans les options du jeu"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "MSync"
+            "state" : "new",
+            "value" : "Lower the quality in the game's options"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "MSync"
+            "state" : "new",
+            "value" : "Lower the quality in the game's options"
           }
         }
       }
@@ -18972,6 +21025,56 @@
         }
       }
     },
+    "Mac GPU" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GPU Mac"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Mac GPU"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Mac GPU"
+          }
+        }
+      }
+    },
+    "Mac Resources" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Background Apps"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apps en arrière-plan"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App in background"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "后台应用"
+          }
+        }
+      }
+    },
     "Mac Version" : {
       "localizations" : {
         "fr" : {
@@ -18990,6 +21093,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mac 版本"
+          }
+        }
+      }
+    },
+    "Mac hot" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac chaud"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac caldo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac 过热"
+          }
+        }
+      }
+    },
+    "Mac overloaded" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac surchargé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Mac overloaded"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Mac overloaded"
           }
         }
       }
@@ -19104,6 +21251,28 @@
         }
       }
     },
+    "Managed by macOS" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Géré par macOS"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Managed by macOS"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Managed by macOS"
+          }
+        }
+      }
+    },
     "Matched against the libretro database (No-Intro and Redump)." : {
       "localizations" : {
         "fr" : {
@@ -19148,6 +21317,28 @@
         }
       }
     },
+    "Measure FPS" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mesurer les FPS"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Measure FPS"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Measure FPS"
+          }
+        }
+      }
+    },
     "Medium" : {
       "localizations" : {
         "fr" : {
@@ -19166,6 +21357,116 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "中"
+          }
+        }
+      }
+    },
+    "Memory" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mémoire"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memoria"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "内存"
+          }
+        }
+      }
+    },
+    "Memory critical" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mémoire critique"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memoria critica"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "内存严重不足"
+          }
+        }
+      }
+    },
+    "Memory is critically low." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La mémoire est presque épuisée."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La memoria è quasi esaurita."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "内存严重不足。"
+          }
+        }
+      }
+    },
+    "Memory is under pressure." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La mémoire est sous pression."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La memoria è sotto pressione."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "内存压力较大。"
+          }
+        }
+      }
+    },
+    "Memory tight" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mémoire juste"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memoria al limite"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "内存紧张"
           }
         }
       }
@@ -19197,7 +21498,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Indicateurs Metal"
+            "value" : "HUD Metal"
           }
         },
         "it" : {
@@ -19219,7 +21520,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Metal HUD activé"
+            "value" : "HUD Metal activé"
           }
         },
         "it" : {
@@ -19236,68 +21537,24 @@
         }
       }
     },
-    "Metal Performance HUD" : {
+    "Mini" : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Indicateurs de performances Metal"
+            "value" : "Mini"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "HUD prestazioni Metal"
+            "state" : "new",
+            "value" : "Mini"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Metal 性能 HUD"
-          }
-        }
-      }
-    },
-    "MetalFX scale factor" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Facteur d’agrandissement MetalFX"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fattore di scala MetalFX"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "MetalFX 缩放比例"
-          }
-        }
-      }
-    },
-    "MetalFX upscaling" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mise à l’échelle MetalFX"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Upscaling MetalFX"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "MetalFX 空间升频"
+            "state" : "new",
+            "value" : "Mini"
           }
         }
       }
@@ -19408,6 +21665,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "结果不一"
+          }
+        }
+      }
+    },
+    "Mode" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mode"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Mode"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Mode"
           }
         }
       }
@@ -19720,6 +21999,28 @@
         }
       }
     },
+    "Name" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nom"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nome"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名称"
+          }
+        }
+      }
+    },
     "Native" : {
       "localizations" : {
         "fr" : {
@@ -19769,7 +22070,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nécessite un BIOS"
+            "value" : "BIOS requis"
           }
         },
         "it" : {
@@ -19782,6 +22083,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "需要 BIOS"
+          }
+        }
+      }
+    },
+    "Needs Cartouche Engine" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avec le moteur Cartouche seulement"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Needs Cartouche Engine"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Needs Cartouche Engine"
           }
         }
       }
@@ -20050,6 +22373,28 @@
         }
       }
     },
+    "Neural Engine" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neural Engine"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Neural Engine"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Neural Engine"
+          }
+        }
+      }
+    },
     "Never" : {
       "localizations" : {
         "fr" : {
@@ -20160,6 +22505,28 @@
         }
       }
     },
+    "Next launch" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Au prochain lancement"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Al prossimo avvio"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下次启动时"
+          }
+        }
+      }
+    },
     "Nintendo" : {
       "localizations" : {
         "fr" : {
@@ -20226,6 +22593,28 @@
         }
       }
     },
+    "No Controller Connected" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune manette connectée"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "No Controller Connected"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "No Controller Connected"
+          }
+        }
+      }
+    },
     "No FPS measured yet" : {
       "localizations" : {
         "fr" : {
@@ -20266,6 +22655,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此 Mac 上未找到 Game Porting Toolkit 文件夹。"
+          }
+        }
+      }
+    },
+    "No Heavy Apps" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune app lourde"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "No Heavy Apps"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "No Heavy Apps"
           }
         }
       }
@@ -20842,6 +23253,28 @@
         }
       }
     },
+    "No installed games" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun jeu installé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun gioco installato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有已安装的游戏"
+          }
+        }
+      }
+    },
     "No internet connection" : {
       "localizations" : {
         "fr" : {
@@ -20926,6 +23359,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ProtonDB 上暂无多人游戏报告。"
+          }
+        }
+      }
+    },
+    "No problem" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun problème"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "No problem"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "No problem"
           }
         }
       }
@@ -21106,6 +23561,28 @@
         }
       }
     },
+    "No sign-in reached %@ in time — try again." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune connexion à %@ à temps. Réessayez."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun accesso a %@ in tempo. Riprova."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未能及时登录 %@，请重试。"
+          }
+        }
+      }
+    },
     "No supported copy of CrossOver found." : {
       "localizations" : {
         "fr" : {
@@ -21146,6 +23623,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "不显示窗口。使用默认选项。"
+          }
+        }
+      }
+    },
+    "Nominal" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Normale"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Nominal"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Nominal"
           }
         }
       }
@@ -21876,6 +24375,50 @@
         }
       }
     },
+    "Notes" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Notes"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Notes"
+          }
+        }
+      }
+    },
+    "Notes for %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes pour %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Notes for %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Notes for %@"
+          }
+        }
+      }
+    },
     "Nothing is installed: Cartouche runs the game from its folder." : {
       "localizations" : {
         "fr" : {
@@ -21938,6 +24481,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此 Mac 尚未分享任何内容。"
+          }
+        }
+      }
+    },
+    "Nothing slows the game" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rien ne gêne le jeu"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Nothing slows the game"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Nothing slows the game"
           }
         }
       }
@@ -22048,6 +24613,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "关"
+          }
+        }
+      }
+    },
+    "Off and DLSS only, unless Cartouche Engine is on." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non et DLSS seulement, sauf avec le moteur Cartouche."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Off and DLSS only, unless Cartouche Engine is on."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Off and DLSS only, unless Cartouche Engine is on."
           }
         }
       }
@@ -22170,6 +24757,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "位于外置磁盘"
+          }
+        }
+      }
+    },
+    "On battery" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sur batterie"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A batteria"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用电池"
+          }
+        }
+      }
+    },
+    "On power" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sur secteur"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alimentato"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "接通电源"
           }
         }
       }
@@ -22548,6 +25179,28 @@
         }
       }
     },
+    "Open Launcher" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir le launcher"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri launcher"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开启动器"
+          }
+        }
+      }
+    },
     "Open Library" : {
       "localizations" : {
         "fr" : {
@@ -22614,6 +25267,56 @@
         }
       }
     },
+    "Open Resources" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Background Apps"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voir les apps en arrière-plan"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri Risorse"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开“资源”"
+          }
+        }
+      }
+    },
+    "Open Settings…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir Réglages…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Open Settings…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Open Settings…"
+          }
+        }
+      }
+    },
     "Open Steam" : {
       "localizations" : {
         "fr" : {
@@ -22654,6 +25357,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "打开 Steam 以登录"
+          }
+        }
+      }
+    },
+    "Open Store" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir la boutique"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri lo store"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开商店"
           }
         }
       }
@@ -22808,6 +25533,116 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "选项"
+          }
+        }
+      }
+    },
+    "Other apps %lld%% CPU" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autres apps %lld %% CPU"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Altre app %lld%% CPU"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其他应用 %lld%% CPU"
+          }
+        }
+      }
+    },
+    "Other apps slow the game down" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "D’autres apps ralentissent le jeu"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Other apps slow the game down"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Other apps slow the game down"
+          }
+        }
+      }
+    },
+    "Other apps use %lld%% of the CPU." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les autres apps utilisent %lld %% du CPU."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le altre app usano il %lld%% della CPU."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其他 App 占用了 %lld%% 的 CPU。"
+          }
+        }
+      }
+    },
+    "Other apps use %lld%% of the GPU." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les autres apps utilisent %lld %% du GPU."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le altre app usano il %lld%% della GPU."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其他 App 占用了 %lld%% 的 GPU。"
+          }
+        }
+      }
+    },
+    "Other apps: %@ of the CPU" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autres apps : %@ du CPU"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Other apps: %@ of the CPU"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Other apps: %@ of the CPU"
           }
         }
       }
@@ -23186,6 +26021,72 @@
         }
       }
     },
+    "Per Frame" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frametime"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Per Frame"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Per Frame"
+          }
+        }
+      }
+    },
+    "Percent of game GPU" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "% GPU jeu"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Percent of game GPU"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Percent of game GPU"
+          }
+        }
+      }
+    },
+    "Perf." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perf."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Perf."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Perf."
+          }
+        }
+      }
+    },
     "Perfect" : {
       "localizations" : {
         "fr" : {
@@ -23208,6 +26109,28 @@
         }
       }
     },
+    "Performance" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Performance"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Performance"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Performance"
+          }
+        }
+      }
+    },
     "Permissions and storage" : {
       "localizations" : {
         "fr" : {
@@ -23226,28 +26149,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "权限与存储"
-          }
-        }
-      }
-    },
-    "Pick the systems you play. Cartouche downloads only their cores, from libretro." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choisissez les consoles qui vous intéressent. Cartouche télécharge uniquement les cœurs correspondants depuis libretro."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scegli i sistemi a cui giochi. Cartouche scarica solo i loro core, da libretro."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "选择你玩的主机。Cartouche 只会从 libretro 下载它们的核心。"
           }
         }
       }
@@ -23314,6 +26215,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "开始玩 %@"
+          }
+        }
+      }
+    },
+    "Play Time" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Temps de jeu"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tempo di gioco"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "游戏时长"
           }
         }
       }
@@ -23670,6 +26593,50 @@
         }
       }
     },
+    "Position" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Position"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Position"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Position"
+          }
+        }
+      }
+    },
+    "Power" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Puissance"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Power"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Power"
+          }
+        }
+      }
+    },
     "Precise scrolling" : {
       "localizations" : {
         "fr" : {
@@ -23846,6 +26813,28 @@
         }
       }
     },
+    "Press the new combination" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appuyez sur la nouvelle combinaison"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Press the new combination"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Press the new combination"
+          }
+        }
+      }
+    },
     "Preview the layout. Customize each game in Controls." : {
       "localizations" : {
         "fr" : {
@@ -24000,6 +26989,50 @@
         }
       }
     },
+    "Profile Modified" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profil modifié"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Profile Modified"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Profile Modified"
+          }
+        }
+      }
+    },
+    "Profile saved" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profil enregistré"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Profile saved"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Profile saved"
+          }
+        }
+      }
+    },
     "Program" : {
       "localizations" : {
         "fr" : {
@@ -24040,6 +27073,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "进度仍会显示在 Cartouche 中。"
+          }
+        }
+      }
+    },
+    "Protect the Game's Interface" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protéger l’interface du jeu"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Protect the Game's Interface"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Protect the Game's Interface"
+          }
+        }
+      }
+    },
+    "Protected" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protégé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protetto"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "受保护"
+          }
+        }
+      }
+    },
+    "Protected Apps" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apps protégées"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App protette"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "受保护的 App"
           }
         }
       }
@@ -24660,6 +27759,72 @@
         }
       }
     },
+    "Real" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réels"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Real"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Real"
+          }
+        }
+      }
+    },
+    "Real FPS" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FPS réels"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Real FPS"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Real FPS"
+          }
+        }
+      }
+    },
+    "Real Frame Limit" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limite de FPS"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Real Frame Limit"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Real Frame Limit"
+          }
+        }
+      }
+    },
     "Reason: %@" : {
       "localizations" : {
         "fr" : {
@@ -25116,6 +28281,28 @@
         }
       }
     },
+    "Record your games without leaving them." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrement sans quitter le jeu."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Record your games without leaving them."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Record your games without leaving them."
+          }
+        }
+      }
+    },
     "Recreate Prefix" : {
       "localizations" : {
         "fr" : {
@@ -25468,6 +28655,28 @@
         }
       }
     },
+    "Removal failed" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Échec de la suppression"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rimozione non riuscita"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除失败"
+          }
+        }
+      }
+    },
     "Remove" : {
       "localizations" : {
         "fr" : {
@@ -25816,6 +29025,28 @@
         }
       }
     },
+    "Removing" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suppression"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rimozione"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在移除"
+          }
+        }
+      }
+    },
     "Removing files" : {
       "localizations" : {
         "fr" : {
@@ -25900,6 +29131,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "重命名…"
+          }
+        }
+      }
+    },
+    "Render Scale" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Échelle de rendu"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Render Scale"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Render Scale"
+          }
+        }
+      }
+    },
+    "Render scale set to %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Échelle de rendu réglée à %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Render scale set to %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Render scale set to %@"
+          }
+        }
+      }
+    },
+    "Rendered at %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rendu à %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Rendered at %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Rendered at %@"
           }
         }
       }
@@ -26142,6 +29439,62 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在重置 Steam 的控制器权限"
+          }
+        }
+      }
+    },
+    "Resources" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Background Apps"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apps en arrière-plan"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Risorse"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "资源"
+          }
+        }
+      }
+    },
+    "Resources…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Background Apps…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apps en arrière-plan…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Risorse…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "资源…"
           }
         }
       }
@@ -26454,6 +29807,50 @@
         }
       }
     },
+    "Resume All" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tout reprendre"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riprendi tutto"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部恢复"
+          }
+        }
+      }
+    },
+    "Resume Apps After the Game" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reprendre les apps après le jeu"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Resume Apps After the Game"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Resume Apps After the Game"
+          }
+        }
+      }
+    },
     "Resume Download" : {
       "localizations" : {
         "fr" : {
@@ -26714,6 +30111,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "查看…"
+          }
+        }
+      }
+    },
+    "Rumble" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faire vibrer"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Rumble"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Rumble"
           }
         }
       }
@@ -27070,6 +30489,50 @@
         }
       }
     },
+    "Save" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrer"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Save"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Save"
+          }
+        }
+      }
+    },
+    "Save Clip" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sauvegarder"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Save Clip"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Save Clip"
+          }
+        }
+      }
+    },
     "Save Draft" : {
       "localizations" : {
         "fr" : {
@@ -27246,46 +30709,90 @@
         }
       }
     },
-    "Scale" : {
+    "Scaling" : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Facteur"
+            "value" : "Upscaling"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scala"
+            "state" : "new",
+            "value" : "Scaling"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "缩放比例"
+            "state" : "new",
+            "value" : "Scaling"
           }
         }
       }
     },
-    "Scales the game’s output, not in-game DLSS." : {
+    "Screen Recording Not Allowed" : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Agrandit l’image du jeu, indépendamment du DLSS intégré."
+            "value" : "Enregistrement d’écran non autorisé"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ingrandisce l’immagine finale, non il DLSS nel gioco."
+            "state" : "new",
+            "value" : "Screen Recording Not Allowed"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
+            "state" : "new",
+            "value" : "Screen Recording Not Allowed"
+          }
+        }
+      }
+    },
+    "Screenshot" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
             "state" : "translated",
-            "value" : "缩放游戏的输出画面，与游戏内 DLSS 无关。"
+            "value" : "Capture d’écran"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Screenshot"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Screenshot"
+          }
+        }
+      }
+    },
+    "Screenshot saved in Pictures › Cartouche" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capture enregistrée dans Images › Cartouche"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Screenshot saved in Pictures › Cartouche"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Screenshot saved in Pictures › Cartouche"
           }
         }
       }
@@ -27334,6 +30841,50 @@
         }
       }
     },
+    "See" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voir"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "See"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "See"
+          }
+        }
+      }
+    },
+    "See Apps" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voir les apps"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "See Apps"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "See Apps"
+          }
+        }
+      }
+    },
     "Select your copy of Steam." : {
       "localizations" : {
         "fr" : {
@@ -27378,6 +30929,28 @@
         }
       }
     },
+    "Serious" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Élevée"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Serious"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Serious"
+          }
+        }
+      }
+    },
     "Session" : {
       "localizations" : {
         "fr" : {
@@ -27396,6 +30969,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "会话"
+          }
+        }
+      }
+    },
+    "Session length" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Durée de la partie"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Session length"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Session length"
           }
         }
       }
@@ -27506,6 +31101,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "设置会退出 Steam、添加 Cartouche，然后重新打开 Steam 以导入你的游戏。"
+          }
+        }
+      }
+    },
+    "Set the limit in the game's options" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limite de FPS à régler dans le jeu"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Set the limit in the game's options"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Set the limit in the game's options"
+          }
+        }
+      }
+    },
+    "Set to %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passer à %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Set to %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Set to %@"
+          }
+        }
+      }
+    },
+    "Set up a runner in Settings > Compatibility first." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurez d’abord un runner dans Réglages > Compatibilité."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configura prima un runner in Impostazioni > Compatibilità."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先在“设置 > 兼容性”中配置运行器。"
           }
         }
       }
@@ -27884,6 +31545,50 @@
         }
       }
     },
+    "Sharpness" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Netteté"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Sharpness"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Sharpness"
+          }
+        }
+      }
+    },
+    "Shortcuts" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Raccourcis"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Shortcuts"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Shortcuts"
+          }
+        }
+      }
+    },
     "Show" : {
       "localizations" : {
         "fr" : {
@@ -28078,6 +31783,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "显示报告"
+          }
+        }
+      }
+    },
+    "Show Resources" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Background Apps"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voir les apps en arrière-plan"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra Risorse"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示“资源”"
           }
         }
       }
@@ -28896,6 +32629,28 @@
         }
       }
     },
+    "Sort · %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trier · %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ordina · %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "排序 · %@"
+          }
+        }
+      }
+    },
     "Source" : {
       "localizations" : {
         "fr" : {
@@ -29249,7 +33004,6 @@
       }
     },
     "Steam" : {
-      "localizations" : {},
       "shouldTranslate" : false
     },
     "Steam Input handles this game" : {
@@ -30814,6 +34568,72 @@
         }
       }
     },
+    "Swap" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swap"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swap"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "交换"
+          }
+        }
+      }
+    },
+    "Swap %@ GB" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swap %@ Go"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swap %@ GB"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "交换 %@ GB"
+          }
+        }
+      }
+    },
+    "Swap A and B" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inverser A et B"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Swap A and B"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Swap A and B"
+          }
+        }
+      }
+    },
     "Swap A/B" : {
       "localizations" : {
         "fr" : {
@@ -30880,24 +34700,46 @@
         }
       }
     },
-    "Takes effect next launch. MSync and High Resolution affect this Windows folder." : {
+    "System and Others" : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Les changements s’appliquent au prochain lancement. MSync et Haute résolution concernent tout le dossier Windows de ce jeu."
+            "value" : "Système et autres"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ha effetto al prossimo avvio. MSync e Alta risoluzione si applicano a questa cartella Windows."
+            "state" : "new",
+            "value" : "System and Others"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
+            "state" : "new",
+            "value" : "System and Others"
+          }
+        }
+      }
+    },
+    "Take" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
             "state" : "translated",
-            "value" : "下次启动生效。MSync 和高分辨率设置作用于此 Windows 文件夹。"
+            "value" : "Capturer"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Take"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Take"
           }
         }
       }
@@ -31096,6 +34938,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 在 %@ 处的挂钩位置内容为 %@，而非 %@，偏移量与此 ntdll 不匹配。"
+          }
+        }
+      }
+    },
+    "The %@ installer did not finish. Open it again to check." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’installeur de %@ n’a pas terminé. Relancez-le pour vérifier."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il programma di installazione di %@ non è terminato. Riaprilo per controllare."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 安装程序未完成。请重新打开以检查。"
           }
         }
       }
@@ -31338,6 +35202,248 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cartouche 网站拒绝了此 Mac 的贡献者密钥。"
+          }
+        }
+      }
+    },
+    "The EA app did not start installing %@ — start it from the launcher’s own page." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’app EA n’a pas lancé l’installation de %@ — lancez-la depuis la page du launcher."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’app EA non ha avviato l’installazione di %@ — avviala dalla pagina del launcher."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EA 应用未开始安装 %@ — 请在启动器自己的页面中开始安装。"
+          }
+        }
+      }
+    },
+    "The EA app has no sign-in yet. Sign in inside the launcher, then come back." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’app EA n’est pas encore connectée. Connectez-vous dans le launcher, puis revenez."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’app EA non ha ancora un accesso. Accedi nel launcher, poi torna qui."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EA 应用尚未登录。请在启动器中登录，然后返回。"
+          }
+        }
+      }
+    },
+    "The EA app installer did not finish. Open it again to check." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’installeur de l’EA app n’a pas terminé. Relancez-le pour vérifier."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il programma di installazione di EA app non è terminato. Riaprilo per controllare."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EA app 安装程序未完成。请重新打开以检查。"
+          }
+        }
+      }
+    },
+    "The EA app is experimental in this build — its support is not enabled yet." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’EA app est expérimentale dans cette version : son support n’est pas encore activé."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EA app è sperimentale in questa build: il supporto non è ancora attivo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EA app 在此版本中为实验性功能，尚未启用支持。"
+          }
+        }
+      }
+    },
+    "The EA app needs port 3216, already used by %@. Quit it and try again." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’EA app a besoin du port 3216, déjà utilisé par %@. Quittez-le et réessayez."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EA app richiede la porta 3216, già usata da %@. Chiudilo e riprova."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EA app 需要端口 3216，但它已被 %@ 占用。请退出后重试。"
+          }
+        }
+      }
+    },
+    "The EA app repairs its games itself." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’EA app répare ses jeux elle-même."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EA app ripara da sola i suoi giochi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EA app 会自行修复其游戏。"
+          }
+        }
+      }
+    },
+    "The EA app reported %@ but its folder never landed." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’app EA a signalé %@, mais son dossier n’est jamais apparu."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’app EA ha segnalato %@, ma la sua cartella non è mai comparsa."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EA 应用报告了 %@，但其文件夹始终未出现。"
+          }
+        }
+      }
+    },
+    "The EA app stopped installing %@ before it finished." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’app EA a arrêté l’installation de %@ avant la fin."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’app EA ha interrotto l’installazione di %@ prima della fine."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EA 应用在完成前停止了 %@ 的安装。"
+          }
+        }
+      }
+    },
+    "The EA app updates its games itself." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’EA app met à jour ses jeux elle-même."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EA app aggiorna da sola i suoi giochi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EA app 会自行更新其游戏。"
+          }
+        }
+      }
+    },
+    "The GPU limits the game" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limité par le GPU"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The GPU limits the game"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The GPU limits the game"
+          }
+        }
+      }
+    },
+    "The GPU limits the game (%@)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limité par le GPU (%@)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The GPU limits the game (%@)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The GPU limits the game (%@)"
           }
         }
       }
@@ -32930,6 +37036,28 @@
         }
       }
     },
+    "The launcher opened — sign in there. Cartouche connects as soon as it reports your account." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le launcher est ouvert — connectez-vous dedans. Cartouche se connecte dès qu’il signale votre compte."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il launcher è aperto — accedi lì. Cartouche si collega appena segnala il tuo account."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启动器已打开 — 请在其中登录。启动器报告你的账户后，Cartouche 会立即连接。"
+          }
+        }
+      }
+    },
     "The list of valid fixes is older than one already checked." : {
       "localizations" : {
         "fr" : {
@@ -33278,6 +37406,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "登录没有返回登录令牌。"
+          }
+        }
+      }
+    },
+    "The store is gone." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le store n’est plus disponible."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lo store non è più disponibile."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "商店已不可用。"
           }
         }
       }
@@ -33722,6 +37872,28 @@
         }
       }
     },
+    "This game has no DLSS" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le jeu n’a pas de DLSS"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "This game has no DLSS"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "This game has no DLSS"
+          }
+        }
+      }
+    },
     "This game has no Mac version." : {
       "localizations" : {
         "fr" : {
@@ -33810,6 +37982,50 @@
         }
       }
     },
+    "This is Cartouche." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "C’est Cartouche."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo è Cartouche."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这是 Cartouche。"
+          }
+        }
+      }
+    },
+    "This is a game launcher." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "C’est un lanceur de jeux."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "È un launcher di giochi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这是游戏启动器。"
+          }
+        }
+      }
+    },
     "This prefix was updated by a newer Wine (%@). %@ is older and the game may not start." : {
       "localizations" : {
         "fr" : {
@@ -33850,6 +38066,94 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "这会用所选备份替换游戏容器。当前游戏容器和所选备份均会保留。恢复前请先退出游戏。"
+          }
+        }
+      }
+    },
+    "This runs your game or Wine." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce processus fait tourner votre jeu ou Wine."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo processo esegue il gioco o Wine."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此进程运行你的游戏或 Wine。"
+          }
+        }
+      }
+    },
+    "This shortcut is already taken" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce raccourci est déjà pris"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "This shortcut is already taken"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "This shortcut is already taken"
+          }
+        }
+      }
+    },
+    "This store has no launcher to open." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce store n’a pas de launcher à ouvrir."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo store non ha un launcher da aprire."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此商店没有可打开的启动器。"
+          }
+        }
+      }
+    },
+    "This store has no store page to open." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce store n’a pas de page à ouvrir."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo store non ha una pagina da aprire."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此商店没有可打开的商店页面。"
           }
         }
       }
@@ -33972,6 +38276,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此操作会将 Steam 恢复原状，但不会移除 Cartouche 使用的支持组件。"
+          }
+        }
+      }
+    },
+    "Threshold: %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seuil : %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Threshold: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Threshold: %@"
           }
         }
       }
@@ -34174,6 +38500,50 @@
         }
       }
     },
+    "Top Left" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En haut à gauche"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Top Left"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Top Left"
+          }
+        }
+      }
+    },
+    "Top Right" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En haut à droite"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Top Right"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Top Right"
+          }
+        }
+      }
+    },
     "Translate Now" : {
       "localizations" : {
         "fr" : {
@@ -34328,6 +38698,314 @@
         }
       }
     },
+    "Tune the controller for each game." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réglez la manette pour chaque jeu."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Tune the controller for each game."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Tune the controller for each game."
+          }
+        }
+      }
+    },
+    "Turn On" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activer"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Turn On"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Turn On"
+          }
+        }
+      }
+    },
+    "Turn On Cartouche Engine for %@?" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activer le moteur Cartouche sur %@ ?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Turn On Cartouche Engine for %@?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Turn On Cartouche Engine for %@?"
+          }
+        }
+      }
+    },
+    "Turn on Cartouche Engine on the game's page" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moteur Cartouche à activer sur la page du jeu"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Turn on Cartouche Engine on the game's page"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Turn on Cartouche Engine on the game's page"
+          }
+        }
+      }
+    },
+    "Turn on « Keep the Last 30 Seconds »" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activez « Garder les 30 dernières secondes »"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Turn on « Keep the Last 30 Seconds »"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Turn on « Keep the Last 30 Seconds »"
+          }
+        }
+      }
+    },
+    "Turned Off" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désactivée"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Turned Off"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Turned Off"
+          }
+        }
+      }
+    },
+    "Turned On" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activée"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Turned On"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Turned On"
+          }
+        }
+      }
+    },
+    "Ubisoft Connect did not report where %@ went." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubisoft Connect n’a pas indiqué où se trouve %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubisoft Connect non ha indicato dove si trova %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubisoft Connect 未报告 %@ 的位置。"
+          }
+        }
+      }
+    },
+    "Ubisoft Connect did not start installing %@ — start it from the launcher’s own page." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubisoft Connect n’a pas lancé l’installation de %@ — lancez-la depuis la page du launcher."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubisoft Connect non ha avviato l’installazione di %@ — avviala dalla pagina del launcher."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubisoft Connect 未开始安装 %@ — 请在启动器自己的页面中开始安装。"
+          }
+        }
+      }
+    },
+    "Ubisoft Connect has no sign-in yet. Sign in inside the launcher, then come back." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pas encore de connexion dans Ubisoft Connect. Connectez-vous dans le launcher, puis revenez."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubisoft Connect non ha ancora un accesso. Accedi nel launcher, poi torna qui."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubisoft Connect 尚未登录。请在启动器中登录后再返回。"
+          }
+        }
+      }
+    },
+    "Ubisoft Connect reported %@ but its folder never landed." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubisoft Connect a signalé %@, mais son dossier n’est jamais apparu."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubisoft Connect ha segnalato %@, ma la sua cartella non è mai comparsa."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubisoft Connect 报告了 %@，但其文件夹始终未出现。"
+          }
+        }
+      }
+    },
+    "Ubisoft Connect stopped installing %@ before it finished." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubisoft Connect a arrêté l’installation de %@ avant la fin."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubisoft Connect ha interrotto l’installazione di %@ prima della fine."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubisoft Connect 在完成前停止了 %@ 的安装。"
+          }
+        }
+      }
+    },
+    "Ubisoft Connect updates its games itself — open the game’s page in the launcher." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubisoft Connect met à jour ses jeux lui-même : ouvrez la page du jeu dans le launcher."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubisoft Connect aggiorna da solo i suoi giochi: apri la pagina del gioco nel launcher."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubisoft Connect 会自行更新其游戏，请在启动器中打开游戏页面。"
+          }
+        }
+      }
+    },
+    "Ubisoft Connect verifies its games itself — open the game’s page in the launcher." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubisoft Connect vérifie ses jeux lui-même : ouvrez la page du jeu dans le launcher."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubisoft Connect verifica da solo i suoi giochi: apri la pagina del gioco nel launcher."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubisoft Connect 会自行验证其游戏，请在启动器中打开游戏页面。"
+          }
+        }
+      }
+    },
     "Ultra" : {
       "localizations" : {
         "fr" : {
@@ -34346,6 +39024,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "极致"
+          }
+        }
+      }
+    },
+    "Under 40 real frames, ×4 leaves trails." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sous 40 FPS de base, le ×4 fait du ghosting."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Under 40 real frames, ×4 leaves trails."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Under 40 real frames, ×4 leaves trails."
           }
         }
       }
@@ -34478,6 +39178,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "卸载“%@”？"
+          }
+        }
+      }
+    },
+    "Uninstall the game from the EA app — its Manage page removes it." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désinstallez le jeu depuis l’EA app, sur sa page Gérer."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disinstalla il gioco da EA app, dalla sua pagina Gestisci."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请在 EA app 的“管理”页面卸载游戏。"
           }
         }
       }
@@ -34702,6 +39424,50 @@
         }
       }
     },
+    "Up to 120 shown" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jusqu’à 120 FPS affichés"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Up to 120 shown"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Up to 120 shown"
+          }
+        }
+      }
+    },
+    "Up to twice as many frames shown." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jusqu’à 2× plus de FPS."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Up to twice as many frames shown."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Up to twice as many frames shown."
+          }
+        }
+      }
+    },
     "Update" : {
       "localizations" : {
         "fr" : {
@@ -34900,6 +39666,28 @@
         }
       }
     },
+    "Upscaling" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upscaling"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Upscaling"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Upscaling"
+          }
+        }
+      }
+    },
     "Use" : {
       "localizations" : {
         "fr" : {
@@ -35076,28 +39864,6 @@
         }
       }
     },
-    "Use the display’s full pixel density." : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Utilise tous les pixels de l’écran."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Usa la piena densità di pixel dello schermo."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "使用显示器的完整像素密度。"
-          }
-        }
-      }
-    },
     "Use the newer Cartouche app to update or repair the installed files." : {
       "localizations" : {
         "fr" : {
@@ -35204,6 +39970,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用外部解压器（%@）；文件将直接解压"
+          }
+        }
+      }
+    },
+    "Using the most: %@." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plus gros consommateurs : %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consumano di più: %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "占用最多的：%@。"
           }
         }
       }
@@ -35802,6 +40590,28 @@
         }
       }
     },
+    "Waiting for the game" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En attente du jeu"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Waiting for the game"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Waiting for the game"
+          }
+        }
+      }
+    },
     "Waiting for the other install to finish" : {
       "localizations" : {
         "fr" : {
@@ -35886,6 +40696,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "等待下载"
+          }
+        }
+      }
+    },
+    "Warn when the Mac is too busy for a game" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prévenir quand le Mac est trop chargé pour un jeu"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avvisa quando il Mac è troppo carico per un gioco"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac 过于繁忙不适合玩游戏时发出警告"
+          }
+        }
+      }
+    },
+    "Warning" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alerte"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avviso"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "警告"
           }
         }
       }
@@ -36140,6 +40994,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "可用功能"
+          }
+        }
+      }
+    },
+    "What’s New…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nouveautés…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Novità…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新功能…"
           }
         }
       }
@@ -36585,7 +41461,6 @@
       }
     },
     "Winetricks" : {
-      "localizations" : {},
       "shouldTranslate" : false
     },
     "Winetricks ran %@ in %@." : {
@@ -36633,7 +41508,6 @@
       }
     },
     "Winetricks…" : {
-      "localizations" : {},
       "shouldTranslate" : false
     },
     "With %@" : {
@@ -36944,6 +41818,34 @@
         }
       }
     },
+    "You protected this app in Settings > Resources." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You protected this app in Settings > Background Apps."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App protégée dans Réglages › Apps en arrière-plan."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hai protetto questa app in Impostazioni > Risorse."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你已在“设置”>“资源”中保护此 App。"
+          }
+        }
+      }
+    },
     "You sign in on %@’s own page. Cartouche keeps only a login token, in your Keychain." : {
       "localizations" : {
         "fr" : {
@@ -37028,6 +41930,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你的 %@ 会话已过期"
+          }
+        }
+      }
+    },
+    "Your Mac" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce Mac"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Your Mac"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Your Mac"
+          }
+        }
+      }
+    },
+    "Your Mac is busy" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac surchargé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo Mac è sovraccarico"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的 Mac 很繁忙"
+          }
+        }
+      }
+    },
+    "Your Mac is busy, so the game may not run well" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac surchargé : le jeu risque de mal tourner"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo Mac è sovraccarico, quindi il gioco potrebbe non funzionare bene"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的 Mac 很繁忙，游戏可能运行不佳"
           }
         }
       }
@@ -37560,6 +42528,28 @@
         }
       }
     },
+    "back" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "retour"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "back"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "back"
+          }
+        }
+      }
+    },
     "declares a second bundle. One is the most that can be installed." : {
       "localizations" : {
         "fr" : {
@@ -37890,6 +42880,62 @@
         }
       }
     },
+    "library.badge.signin" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign In"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connexion"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录"
+          }
+        }
+      }
+    },
+    "library.filter.installed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installed"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installés"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installati"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已安装"
+          }
+        }
+      }
+    },
     "macOS adds Cartouche to Login Items, where you can remove it at any time." : {
       "localizations" : {
         "fr" : {
@@ -38044,6 +43090,28 @@
         }
       }
     },
+    "macOS needs this process." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS a besoin de ce processus."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS ha bisogno di questo processo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS 需要此进程。"
+          }
+        }
+      }
+    },
     "macOS still blocks the change. If you allowed Cartouche in App Management, relaunch Cartouche to finish." : {
       "localizations" : {
         "fr" : {
@@ -38062,6 +43130,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "macOS 仍在阻止此更改。如果你已在“App 管理”中允许 Cartouche，请重新启动 Cartouche 以完成。"
+          }
+        }
+      }
+    },
+    "ms Latency" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ms de latence"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "ms Latency"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "ms Latency"
+          }
+        }
+      }
+    },
+    "ms per Frame" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ms de frametime"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "ms per Frame"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "ms per Frame"
           }
         }
       }
@@ -38128,6 +43240,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未指定任何软件包。"
+          }
+        }
+      }
+    },
+    "next launch" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "au prochain lancement"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "next launch"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "next launch"
           }
         }
       }
@@ -38308,6 +43442,94 @@
         }
       }
     },
+    "spatial kind" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartouche"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "spatial kind"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "spatial kind"
+          }
+        }
+      }
+    },
+    "temporal kind" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DLSS"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "temporal kind"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "temporal kind"
+          }
+        }
+      }
+    },
+    "to confirm" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "valider"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "to confirm"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "to confirm"
+          }
+        }
+      }
+    },
+    "to resume" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "reprendre"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "to resume"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "to resume"
+          }
+        }
+      }
+    },
     "today" : {
       "localizations" : {
         "fr" : {
@@ -38331,7 +43553,6 @@
       }
     },
     "vcrun2022 corefonts" : {
-      "localizations" : {},
       "shouldTranslate" : false
     },
     "wineboot -u ended with status %d." : {

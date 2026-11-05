@@ -43,6 +43,8 @@ extension LibraryModel {
     // runtimes the new program needs and the prefix lacks are installed after.
     func changeExe(of game: Game, to exe: URL, installs: InstallCenter = .shared) async {
         guard canChangeExe(game, installs: installs), let folder = GameFolder.of(game, in: installsFolder) else { return }
+        // The launcher's variables follow the folder's scan
+        await scanGames([game])
         let setup = resolution(for: game).setup
         guard let runner = setup.runner else {
             problem = String(localized: "Set up a runner in Settings > Compatibility to play \(game.name).")
@@ -62,6 +64,7 @@ extension LibraryModel {
                 return (change, InstalledGames.all(in: installsFolder))
             }.value
             showInstalledGames(all)
+            noteLaunch(of: game, environment: setup.environment)
             guard !change.runtimes.isEmpty else { return }
             let steps = change.runtimes
             let log = folder.root.appending(path: PrefixTools.winetricksLogName)

@@ -46,7 +46,17 @@ struct StoreSignInWindow: View {
     private var content: some View {
         switch center.signIn?.state {
         case .waiting(let page)?:
-            StoreWebView(page: page) { url, text in center.reached(url, pageText: text) }
+            if page.viaLauncher {
+                // No WKWebView: the flow runs inside the launcher's own window.
+                ContentUnavailableView {
+                    Label { Text("Finish in \(center.signIn?.store.name ?? "")") }
+                        icon: { Image(systemName: "arrow.up.forward.app.fill") }
+                } description: {
+                    Text("The launcher opened — sign in there. Cartouche connects as soon as it reports your account.")
+                }
+            } else {
+                StoreWebView(page: page) { url, text in center.reached(url, pageText: text) }
+            }
         case .failed(let message)?:
             ContentUnavailableView {
                 Label { Text("Sign-in didn’t finish") } icon: { Image(systemName: "exclamationmark.triangle") }

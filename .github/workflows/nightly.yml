@@ -1,0 +1,173 @@
+name: nightly
+
+# The long checks that do not fit a pull request (docs/ci/CI.md, docs/ci/C-SAFETY.md):
+# libFuzzer on every harness, the C suites under ASan+UBSan, and osv-scanner over every
+# lockfile in the repository. Does not gate merges; a red run is fixed like a red PR.
+on:
+  schedule:
+    - cron: "11 2 * * *"
+  workflow_dispatch:
+    inputs:
+      fuzz_minutes:
+        description: Minutes of fuzzing per harness (1 to 90, the job times out at 120)
+        type: number
+        default: 30
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly
+  cancel-in-progress: false
+
+env:
+  XCODE_APP: /Applications/Xcode_27.0.app
+  HOMEBREW_NO_AUTO_UPDATE: "1"
+
+jobs:
+  # One job per harness, so the minutes add up in parallel and a crash names its harness
+  fuzz:
+    name: fuzz ${{ matrix.harness }}
+    runs-on: xcode-27
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        harness: [peicon, aob, sigdb, webpatch, libexport, compat, nativeplatform, spawn, launch, framegen_env]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Record the toolchain
+        run: |
+          sudo xcode-select -s "$XCODE_APP"
+          xcodebuild -version
+          clang --version | head -1
+
+      - name: Read the pinned LLVM commit
+        id: llvm
+        run: |
+          commit=$(sed -n 's/^commit=\([0-9a-f]\{40\}\).*/\1/p' fuzz/build-libfuzzer.sh)
+          [ -n "$commit" ] || { echo "::error::no pinned commit in fuzz/build-libfuzzer.sh"; exit 1; }
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+
+      # build-libfuzzer.sh checks the commit and the tree hash when it fetches; the
+      # cache is keyed on that commit and saved only by this scheduled workflow
+      - name: Restore libFuzzer
+        id: libfuzzer-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: build/libfuzzer
+          key: libfuzzer-${{ steps.llvm.outputs.commit }}-xcode-27-${{ runner.arch }}
+
+      - name: Build libFuzzer
+        run: sh fuzz/build-libfuzzer.sh build/libfuzzer
+
+      - name: Save libFuzzer
+        if: steps.libfuzzer-cache.outputs.cache-hit != 'true' && matrix.harness == 'peicon'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: build/libfuzzer
+          key: libfuzzer-${{ steps.llvm.outputs.commit }}-xcode-27-${{ runner.arch }}
+
+      # The corpus each night grew, kept from run to run
+      - name: Restore the corpus
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: out/fuzz/corpus/${{ matrix.harness }}
+          key: fuzz-corpus-${{ matrix.harness }}-${{ github.run_id }}
+          restore-keys: fuzz-corpus-${{ matrix.harness }}-
+
+      - name: Fuzz
+        env:
+          FUZZ_MINUTES: ${{ inputs.fuzz_minutes || 30 }}
+          HARNESS: ${{ matrix.harness }}
+        run: |
+          case "$FUZZ_MINUTES" in ''|*[!0-9]*) echo "::error::fuzz_minutes must be a whole number"; exit 1 ;; esac
+          [ "$FUZZ_MINUTES" -ge 1 ] && [ "$FUZZ_MINUTES" -le 90 ] || { echo "::error::fuzz_minutes must be 1 to 90"; exit 1; }
+          make fuzz-nightly FUZZ_HARNESSES="$HARNESS" FUZZ_SECONDS=$((FUZZ_MINUTES * 60))
+
+      - name: Save the corpus
+        if: always()
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: out/fuzz/corpus/${{ matrix.harness }}
+          key: fuzz-corpus-${{ matrix.harness }}-${{ github.run_id }}
+
+      # Minimise the input, fix the code and add it to fuzz/regressions/<harness>/
+      - name: Upload the crash
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: fuzz-crash-${{ matrix.harness }}
+          path: |
+            out/fuzz/artifacts/${{ matrix.harness }}
+            out/fuzz/${{ matrix.harness }}.log
+          if-no-files-found: ignore
+          retention-days: 30
+
+  c-asan:
+    name: c-asan
+    runs-on: xcode-27
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Record the toolchain
+        run: |
+          sudo xcode-select -s "$XCODE_APP"
+          xcodebuild -version
+
+      # No Metal device and no window server for the overlay shim and frame counter suites
+      - name: Mark the runner as hosted
+        if: runner.environment == 'github-hosted'
+        run: |
+          echo "CARTOUCHE_CI_HOSTED=1" >> "$GITHUB_ENV"
+          echo "C_ASAN_GPU=0" >> "$GITHUB_ENV"
+
+      - name: Run the C suites under ASan and UBSan
+        run: make c-asan
+
+      - name: Upload the sanitizer logs
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: c-asan-logs
+          path: out/c-asan-*.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # Every lockfile in the tree, against advisories published since the last pull request
+  osv:
+    name: osv-scanner
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Install the pinned osv-scanner
+        run: |
+          sh tools/ci/install-security-tools.sh "$RUNNER_TEMP/bin" osv-scanner
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: Scan the repository
+        run: bash security/gate.sh --ci --only 20
+
+      - name: Write the report to the run summary
+        if: always()
+        run: cat security/out/*/report.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+
+      - name: Upload the scan
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: osv-scanner
+          path: security/out
+          if-no-files-found: ignore
+          retention-days: 14

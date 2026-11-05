@@ -36,6 +36,55 @@ enum YourPlayText {
     }
 }
 
+// A session's record in Compare Setups: our options and their values, then what can bias the numbers
+enum SessionFacts {
+    static let shown = ["CARTOUCHE_FRAMEGEN", "CARTOUCHE_FRAMEGEN_INTERPOLATE", "CARTOUCHE_FRAMEGEN_TEMPORAL", "CARTOUCHE_FRAMEGEN_UPSCALE",
+                        "CARTOUCHE_OVERLAY", "D3DM_ENABLE_METALFX", "DXMT_ENABLE_NVEXT", "DXMT_METALFX_SPATIAL_SWAPCHAIN",
+                        "CARTOUCHE_RETINA", "MTL_HUD_ENABLED"]
+
+    static func options(_ on: Bool, context: [String: String]) -> String {
+        var parts = [on ? String(localized: "Cartouche Options: On") : String(localized: "Cartouche Options: Off")]
+        if context["framegen"] == "refused" { parts.append(String(localized: "Library refused")) }
+        if let consent = context["consent"] {
+            parts.append(consent == "1" ? String(localized: "Cartouche Engine On") : String(localized: "Cartouche Engine Off"))
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    static func values(_ settings: [String: String]) -> String? {
+        let items = shown.compactMap { name in settings[name].map { "\(name)=\($0)" } }
+        return items.isEmpty ? nil : items.joined(separator: " · ")
+    }
+
+    static func context(_ c: [String: String]) -> String? {
+        var parts: [String] = []
+        if let start = c["others_cpu_start"].flatMap(Int.init) {
+            var text = String(localized: "Other apps \(start)% CPU")
+            if let average = c["others_cpu_avg"].flatMap(Int.init) { text += " (" + String(localized: "\(average)% on average") + ")" }
+            parts.append(text)
+        }
+        if let swap = c["swap_used_mb"].flatMap(Double.init), swap > 0 {
+            parts.append(String(localized: "Swap \((swap / 1024).formatted(.number.precision(.fractionLength(1)))) GB"))
+        }
+        switch c["memory_pressure"] {
+        case "warning": parts.append(String(localized: "Memory tight"))
+        case "critical": parts.append(String(localized: "Memory critical"))
+        default: break
+        }
+        if let heat = c["thermal_max"], heat != "nominal" { parts.append(String(localized: "Mac hot")) }
+        switch c["power"] {
+        case "battery": parts.append(String(localized: "On battery"))
+        case "ac": parts.append(String(localized: "On power"))
+        default: break
+        }
+        if let display = c["display"] { parts.append(display) }
+        if let running = c["cartouche_running"].flatMap(Int.init), running > 1 {
+            parts.append(String(localized: "\(running) Cartouche running"))
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+}
+
 struct YourPlayRows: View {
     let play: GamePlay
     let compare: () -> Void
@@ -104,6 +153,16 @@ struct CompareSetupsSheet: View {
                             Text(verbatim: YourPlayText.runner(row))
                             Text(verbatim: YourPlayText.detail(row.setup)).font(.callout).foregroundStyle(.secondary)
                             Text(verbatim: YourPlayText.summary(row)).font(.caption).foregroundStyle(.tertiary)
+                            if let on = row.setup.options {
+                                Text(verbatim: SessionFacts.options(on, context: row.context)).font(.caption.weight(.medium))
+                                if let values = SessionFacts.values(row.settings) {
+                                    Text(verbatim: values).font(.caption2.monospaced()).foregroundStyle(.secondary)
+                                        .lineLimit(2).textSelection(.enabled)
+                                }
+                            }
+                            if let context = SessionFacts.context(row.context) {
+                                Text(verbatim: context).font(.caption2).foregroundStyle(.tertiary).lineLimit(2)
+                            }
                         }
                         HStack(spacing: 6) {
                             Text(YourPlayText.fps(row.average)).monospacedDigit()

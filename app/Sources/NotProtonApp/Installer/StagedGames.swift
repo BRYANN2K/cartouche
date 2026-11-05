@@ -87,13 +87,14 @@ enum StagedGames {
             ?? prefix.appending(path: "drive_c/Games/Game")
     }
 
-    // Removes source once its files live elsewhere, then the empty folders it leaves in staging.
+    // Removes source once its files live elsewhere, then the empty folders it leaves in staging. Removal is permanent,
+    // so the path must be inside staging once its folders are resolved, not only as written.
     static func discard(_ source: URL, staging: URL = SupportPaths.dropStaging) {
         let fm = FileManager.default
-        guard isStaged(source, staging: staging) else { return }
+        guard isStaged(source, staging: staging), resolvedInside(staging, source) else { return }
         try? fm.removeItem(at: source)
         var dir = source.deletingLastPathComponent()
-        while isStaged(dir, staging: staging),
+        while isStaged(dir, staging: staging), resolvedInside(staging, dir),
               (try? fm.contentsOfDirectory(atPath: dir.path(percentEncoded: false)))?.isEmpty == true {
             try? fm.removeItem(at: dir)
             dir = dir.deletingLastPathComponent()
@@ -194,6 +195,26 @@ enum StagedGames {
     private static func inside(_ parent: URL, _ child: URL) -> Bool {
         let bases = forms(parent).map { $0 + "/" }
         return forms(child).contains { path in bases.contains { path.hasPrefix($0) } }
+    }
+
+    // The folder holding url resolved through its links, nearest existing ancestor first; the last name stays as is,
+    // since removing a link removes only the link.
+    static func resolvedInside(_ parent: URL, _ child: URL) -> Bool {
+        let base = unprivate(trimmed(parent.standardizedFileURL.resolvingSymlinksInPath().path(percentEncoded: false)))
+        var folder = child.standardizedFileURL.deletingLastPathComponent()
+        var tail = [child.standardizedFileURL.lastPathComponent]
+        while folder.pathComponents.count > 1,
+              !FileManager.default.fileExists(atPath: folder.path(percentEncoded: false)) {
+            tail.insert(folder.lastPathComponent, at: 0)
+            folder = folder.deletingLastPathComponent()
+        }
+        let resolved = unprivate(trimmed(folder.resolvingSymlinksInPath().path(percentEncoded: false)))
+        let path = ([resolved] + tail).joined(separator: "/")
+        return path.hasPrefix(base + "/")
+    }
+
+    private static func unprivate(_ path: String) -> String {
+        path.hasPrefix("/private/") ? String(path.dropFirst("/private".count)) : path
     }
 
     private static func forms(_ url: URL) -> Set<String> {

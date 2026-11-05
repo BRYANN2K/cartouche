@@ -113,7 +113,7 @@ extension AgentTools {
                         whole = Int64((try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
                     }
                     let human = ByteCountFormatter.string(fromByteCount: whole, countStyle: .binary)
-                    return "install \(url.lastPathComponent) (\(human))"
+                    return "install \(AgentPrompt.clean(url.path(percentEncoded: false), cap: 600)) (\(human))"
                 },
                 run: { backend, args in
                     let url = try fileArg(args, in: backend)
@@ -180,7 +180,14 @@ extension AgentTools {
                     ]),
                     "required": ["job", "fixes"],
                 ]),
-                level: .standard, readOnly: false,
+                // A retry runs the installer under Wine again, so it is asked like the first install.
+                level: .standard, approval: true, readOnly: false,
+                approvalText: { backend, args in
+                    let title = (try? jobID(backend, args))?.title ?? "a game"
+                    let fixes = (args["fixes"]?.array?.compactMap(\.string) ?? []).map { AgentPrompt.clean($0) }
+                    return "run the installer of \(title) again"
+                        + (fixes.isEmpty ? "" : " with \(AgentPrompt.capped(fixes.joined(separator: ", "), AgentPrompt.argvCap))")
+                },
                 run: { backend, args in
                     let job = try jobID(backend, args)
                     guard [.failed, .stopped].contains(job.phase) else {
@@ -248,7 +255,7 @@ extension AgentTools {
                 level: .standard, approval: true, readOnly: false,
                 approvalText: { backend, args in
                     let title = (try? jobID(backend, args))?.title ?? "the game"
-                    return "pick \(args["exe"]?.string ?? "an exe") as \(title)'s program"
+                    return "pick \(AgentPrompt.clean(args["exe"]?.string ?? "an exe")) as \(title)'s program"
                 },
                 run: { backend, args in
                     let job = try jobID(backend, args)
@@ -577,7 +584,7 @@ extension AgentTools {
                 ]),
                 level: .standard, approval: true, readOnly: false,
                 approvalText: { _, args in
-                    "install the runner \(args["runner"]?.string ?? "")"
+                    "install the runner \(AgentPrompt.clean(args["runner"]?.string ?? ""))"
                 },
                 run: { backend, args in
                     let id = try args.require("runner")
@@ -597,7 +604,7 @@ extension AgentTools {
                 ]),
                 level: .standard, approval: true, readOnly: false,
                 approvalText: { _, args in
-                    "repair the runner \(args["runner"]?.string ?? "")"
+                    "repair the runner \(AgentPrompt.clean(args["runner"]?.string ?? ""))"
                 },
                 run: { backend, args in
                     let id = try args.require("runner")
@@ -643,7 +650,7 @@ extension AgentTools {
                 ]),
                 level: .standard, approval: true, readOnly: false,
                 approvalText: { _, args in
-                    "add the console \(args["system"]?.string ?? "")"
+                    "add the console \(AgentPrompt.clean(args["system"]?.string ?? ""))"
                 },
                 run: { backend, args in
                     let id = try args.require("system")
@@ -663,7 +670,7 @@ extension AgentTools {
                 ]),
                 level: .standard, approval: true, readOnly: false, destructive: true,
                 approvalText: { _, args in
-                    "remove the console \(args["system"]?.string ?? "")"
+                    "remove the console \(AgentPrompt.clean(args["system"]?.string ?? ""))"
                 },
                 run: { backend, args in
                     let id = try args.require("system")
@@ -853,8 +860,9 @@ extension AgentTools {
             AgentTool(
                 name: "run_winetricks",
                 detail: "Run Winetricks verbs in the game's prefix, like "
-                    + "\"vcrun2022\". Destructive verbs (annihilate, prefix=, "
-                    + "options) are refused. The run writes winetricks.log.",
+                    + "\"vcrun2022\". Only verb names run (a-z, 0-9, _ = .); "
+                    + "annihilate, prefix=, options, paths and .verb files are refused. "
+                    + "The run writes winetricks.log.",
                 schema: .object([
                     "type": "object",
                     "properties": .object([
@@ -864,9 +872,15 @@ extension AgentTools {
                     "required": ["game", "verbs"],
                 ]),
                 level: .full, approval: true, readOnly: false,
+                check: { _, args in
+                    if let refused = PrefixTools.refusedVerb(args["verbs"]?.array?.compactMap(\.string) ?? []) {
+                        throw AgentToolError("the verb \(AgentPrompt.clean(refused)) is refused; only verb names run")
+                    }
+                },
                 approvalText: { backend, args in
                     let name = (try? findStrict(backend, args))?.name ?? "the game"
-                    return "run Winetricks \((args["verbs"]?.array?.compactMap(\.string) ?? []).joined(separator: " ")) in \(name)'s prefix"
+                    let verbs = (args["verbs"]?.array?.compactMap(\.string) ?? []).map { AgentPrompt.clean($0) }
+                    return "run Winetricks \(AgentPrompt.capped(verbs.joined(separator: " "), AgentPrompt.argvCap)) in \(name)'s prefix"
                 },
                 run: { backend, args in
                     let game = try findStrict(backend, args)
@@ -923,10 +937,10 @@ extension AgentTools {
                 level: .full, approval: true, readOnly: false,
                 approvalText: { backend, args in
                     let name = (try? findStrict(backend, args))?.name ?? "the game"
-                    let key = args["key"]?.string ?? "a key"
-                    let value = args["value"]?.string ?? "a value"
-                    let data = args["data"]?.string ?? ""
-                    let type = args["type"]?.string ?? "REG_SZ"
+                    let key = AgentPrompt.clean(args["key"]?.string ?? "a key")
+                    let value = AgentPrompt.clean(args["value"]?.string ?? "a value")
+                    let data = AgentPrompt.clean(args["data"]?.string ?? "")
+                    let type = AgentPrompt.clean(args["type"]?.string ?? "REG_SZ")
                     return "set \(key)\\\(value) = \(data) (\(type)) in \(name)'s prefix"
                 },
                 run: { backend, args in
@@ -942,7 +956,8 @@ extension AgentTools {
                 name: "run_in_prefix",
                 detail: "Run an exe, msi, bat or cmd file inside the game's "
                     + "prefix, with optional \"args\". Only files inside the "
-                    + "prefix or the app's folders run.",
+                    + "prefix or the app's folders run; shells and launchers "
+                    + "(cmd, start, winebrowser, explorer, rundll32 and the like) are refused.",
                 schema: .object([
                     "type": "object",
                     "properties": .object([
@@ -953,18 +968,27 @@ extension AgentTools {
                     "required": ["game", "exe"],
                 ]),
                 level: .full, approval: true, readOnly: false,
+                check: { _, args in
+                    try AgentPrompt.checkRun(URL(filePath: try args.require("exe")), runArgs(args))
+                },
                 approvalText: { backend, args in
                     let name = (try? findStrict(backend, args))?.name ?? "the game"
-                    return "run \(args["exe"]?.string ?? "a program") in \(name)'s prefix"
+                    let argv = AgentPrompt.argv(args["exe"]?.string ?? "a program", runArgs(args))
+                    return "run \(argv) in \(name)'s prefix"
                 },
                 run: { backend, args in
                     let game = try findStrict(backend, args)
                     let exe = URL(filePath: try args.require("exe"))
-                    try await backend.runInPrefix(game, exe: exe,
-                        args: args["args"]?.array?.compactMap(\.string) ?? [])
+                    let argv = runArgs(args)
+                    try AgentPrompt.checkRun(exe, argv)
+                    try await backend.runInPrefix(game, exe: exe, args: argv)
                     return ["ran": .string(exe.lastPathComponent)]
                 }
             ),
         ]
+    }
+
+    static func runArgs(_ args: JSONValue) -> [String] {
+        args["args"]?.array?.compactMap(\.string) ?? []
     }
 }

@@ -47,7 +47,7 @@ struct StandaloneLaunchTests {
         #expect(ConsoleRoute.resolve(xbox, choice: "xemu", installed: [], coreReady: true).missingText == "xemu is not installed")
         #expect(ConsoleRoute.resolve(xbox, choice: nil, installed: [], coreReady: false).missingText == "xemu is not installed")
         #expect(ConsoleRoute.resolve(ConsoleCatalog.console("switch")!, choice: EmulatorChoice.retroArch, installed: [],
-                                     coreReady: false).missingText == "Ryubing is not installed")
+                                     coreReady: false).missingText == "Eden is not installed")
     }
 
     @MainActor

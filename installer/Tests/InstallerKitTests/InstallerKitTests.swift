@@ -109,7 +109,7 @@ func tempFolder(_ files: [String: String]) throws -> URL {
 
 @Test func readsInnoextractOutput() {
     let info = """
-    Inspecting "CarX Street" - setup data version 5.5.0.1 (unicode)
+    Inspecting "Cobalt Street" - setup data version 5.5.0.1 (unicode)
 
     Languages:
      - en: English
@@ -119,7 +119,7 @@ func tempFolder(_ files: [String: String]) throws -> URL {
     """
     let list = "tmp/idp.dll\ntmp/botva2.dll\ntmp/unarc.dll\ntmp/cls-srep_x64.exe\ntmp/ISDone.dll\napp/_Redist/dxwebsetup.exe\napp/_Redist/QuickSFV.EXE\n"
     let r = InnoInspector.parse(info: info, list: list)
-    #expect(r.title == "CarX Street")
+    #expect(r.title == "Cobalt Street")
     #expect(r.version == "5.5.0.1")
     #expect(r.languages == ["en", "russian"])
     #expect(!r.passworded)
@@ -130,7 +130,7 @@ func tempFolder(_ files: [String: String]) throws -> URL {
 }
 
 @Test(arguments: [
-    ("CarX Street [Offline Installer]", "CarX Street"),
+    ("Cobalt Street [Offline Installer]", "Cobalt Street"),
     ("The Witcher 3 Wild Hunt GOTY (Offline Installer) v4.04 + 2 DLCs", "The Witcher 3 Wild Hunt GOTY"),
     ("Hollow_Knight_v1.5.78-GOG", "Hollow Knight"),
     ("Hollow-Knight-Silksong-GameSite.com", "Hollow Knight Silksong"),
@@ -144,7 +144,7 @@ func cleansGameNames(folder: String, expected: String) {
 }
 
 @Test func buildsInnoCommand() {
-    #expect(InnoCommand(installDir: #"C:\Games\CarX Street"#, mode: .automatic).arguments.contains("/VERYSILENT"))
+    #expect(InnoCommand(installDir: #"C:\Games\Cobalt Street"#, mode: .automatic).arguments.contains("/VERYSILENT"))
     #expect(!InnoCommand(installDir: #"C:\Games\X"#, mode: .guided).arguments.contains("/VERYSILENT"))
 }
 

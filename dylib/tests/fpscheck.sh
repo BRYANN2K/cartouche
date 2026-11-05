@@ -26,6 +26,8 @@ ok() { printf '  ok    %s\n' "$1"; }
 bad() { printf '  FAIL  %s\n         want [%s]\n         got  [%s]\n' "$1" "$2" "$3"; fails=$((fails + 1)); }
 is() { if [ "$2" = "$3" ]; then ok "$1"; else bad "$1" "$2" "$3"; fi; }
 has() { case "$3" in *"$2"*) ok "$1" ;; *) bad "$1" "contains $2" "$3" ;; esac; }
+# shellcheck disable=SC1091 # linted on its own
+. "$(dirname "$0")/../../fps-counter/tests/hosted.sh"
 
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
@@ -91,11 +93,11 @@ is "no probe marker left" "" "$(find "$fps_dir" -name probe)"
 is "the session file is moved into place whole" "" "$(find "$fps_dir" -name session.tmp)"
 has "the log says so" "fps: ok by $runner/accepting" "$(cat "$log")"
 out=$(launch accepting locked 60 5; game_log)
-is "the game runs" "300" "$out"
+frames "the game runs" "300" "$out"
 set -- "$fps_dir"/samples-*
 [ -f "$1" ] && ok "the game's process wrote its samples" || bad "the game's process wrote its samples" "samples-<pid>" "$(ls "$fps_dir")"
 counted=$(grep -v '^#' "$1" | sed '1d;$d' | awk '{ s += $2; n++ } END { if (n) printf "%.0f", s / n }')
-is "at 60 fps" "60" "$counted"
+frames "at 60 fps" "60" "$counted"
 eval "$ended"
 case "$(session_value ended)" in [0-9]*) ok "the end time is written when the game exits" ;; *) bad "the end time" "seconds" "$(session_value ended)" ;; esac
 unset -v MTL_HUD_ENABLED DXVK_HUD
@@ -108,13 +110,17 @@ prepare "$runner/accepting"
 has "a changed loader is tried again" "fps: ok by $runner/accepting" "$(cat "$log")"
 
 echo "== A hardened loader ignores the library =="
-prepare "$runner/hardened"
-is "refused" "refused" "$(session_value measure)"
-is "nothing inserted" "" "$fps_insert"
-out=$(launch hardened locked 60 1; game_log)
-is "the game runs normally" "60" "$out"
-is "and writes no samples" "" "$(find "$fps_dir" -name 'samples-*')"
-has "the log names the runner" "fps: refused by $runner/hardened" "$(cat "$log")"
+if hardened_refuses "$runner/hardened" "$counter_build"; then
+  prepare "$runner/hardened"
+  is "refused" "refused" "$(session_value measure)"
+  is "nothing inserted" "" "$fps_insert"
+  out=$(launch hardened locked 60 1; game_log)
+  frames "the game runs normally" "60" "$out"
+  is "and writes no samples" "" "$(find "$fps_dir" -name 'samples-*')"
+  has "the log names the runner" "fps: refused by $runner/hardened" "$(cat "$log")"
+else
+  skip "a hardened loader is refused, inserts nothing, writes no samples, logs the runner" "$hardened_why"
+fi
 
 echo "== A loader dyld kills when the library cannot load =="
 cp "$x86_counter" "$np_support/fps-counter.dylib"
@@ -128,7 +134,7 @@ prepare "$runner/killed"
 is "refused" "refused" "$(session_value measure)"
 is "nothing inserted" "" "$fps_insert"
 out=$(launch killed locked 60 1; game_log)
-is "the game runs normally" "60" "$out"
+frames "the game runs normally" "60" "$out"
 cp "$counter_build" "$np_support/fps-counter.dylib"
 
 echo "== The launcher keeps the overlay and adds the counter last =="
@@ -162,6 +168,29 @@ fps_insert=""
 eval "$open_args"
 is "a refused runner still records the session" "--env CARTOUCHE_FPS_DIR=/x/1-2-3 --env CARTOUCHE_FPS_COUNTER= --args game.exe" "$*"
 
+echo "== The session records our options and what can bias a comparison =="
+export CARTOUCHE_FRAMEGEN=1 CARTOUCHE_OVERLAY=std CARTOUCHE_RETINA=0 CARTOUCHE_SHARPENING=1 D3DM_ENABLE_METALFX=1
+export CARTOUCHE_FRAMEGEN_LIBRARY=/x/framegen.dylib
+prepare "$runner/accepting"
+settings=$(session_value setting | tr '\n' '|' | sed 's/|$//')
+has "Cartouche's variables, from the launch options too" "CARTOUCHE_FRAMEGEN=1|CARTOUCHE_OVERLAY=std|CARTOUCHE_RETINA=0" "$settings"
+has "and the layer's" "D3DM_ENABLE_METALFX=1" "$settings"
+case "$settings" in *LIBRARY*) bad "no paths" "no CARTOUCHE_FRAMEGEN_LIBRARY" "$settings" ;; *) ok "no paths" ;; esac
+context=$(session_value context | tr '\n' '|')
+for key in others_cpu_start= swap_used_mb= power= cartouche_running= consent=1; do has "context: $key" "$key" "$context"; done
+note=$(sed -n '/^note_framegen() {$/,/^}$/p' "$SRC")
+[ -n "$note" ] || bad "note_framegen found" "a block" ""
+eval "$note"
+framegen_insert="$np_support/framegen.dylib"
+note_framegen
+is "the library went in" "framegen=on" "$(session_value context | grep '^framegen=')"
+has "with interpolation off, as the launch adds it" "CARTOUCHE_FRAMEGEN_INTERPOLATE=0" "$(session_value setting)"
+is "rewritten whole" "" "$(find "$fps_dir" -name session.tmp)"
+framegen_insert=""
+note_framegen
+is "a refused library says so" "framegen=refused" "$(session_value context | grep '^framegen=' | tail -n 1)"
+unset -v CARTOUCHE_FRAMEGEN CARTOUCHE_OVERLAY CARTOUCHE_RETINA CARTOUCHE_SHARPENING D3DM_ENABLE_METALFX CARTOUCHE_FRAMEGEN_LIBRARY
+
 echo "== Nothing is measured when =="
 export CARTOUCHE_FPS=0
 prepare "$runner/accepting"
@@ -183,7 +212,7 @@ open_at=$(grep -n '^open -n -W -a "\$loader_app" "\$@"' "$SRC" | cut -d: -f1)
   || bad "probed after install_bundle, before open" "$bundle_at < x < $open_at" "$block_at"
 
 if [ "$fails" -eq 0 ]; then
-  echo "==> fpscheck: all assertions hold"
+  echo "==> fpscheck: all assertions hold$(skipped_note)"
 else
   echo "==> fpscheck: $fails failed"
   exit 1

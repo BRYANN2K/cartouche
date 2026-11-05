@@ -148,7 +148,7 @@ final class CouchNavigator {
     }
 
     static func lists(_ library: LibraryModel) -> [SidebarItem] {
-        let fixed: [SidebarItem] = [.all, .favorites] + GameSource.pc.map { .source($0) }
+        let fixed: [SidebarItem] = [.all, .favorites] + library.sidebarSources.map { .source($0) }
         let consoles = library.consoles.map { SidebarItem.source(.console($0)) }
         return (fixed + consoles).filter { $0 == .all || $0 == library.selection || library.badge($0) != nil }
     }

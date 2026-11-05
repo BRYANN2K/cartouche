@@ -115,6 +115,8 @@ function page(opts) {
     WebUITransport: { GetTransportInfo: async () => opts.info === undefined
         ? { portClientdll: 4242, authKeyClientdll: 'AUTHK', nMaximumMsgSizeBytes: 4194304 }
         : opts.info },
+    // The shared page registers its download listeners at load; they stay silent here.
+    Downloads: { RegisterForDownloadItems: () => {}, RegisterForDownloadOverview: () => {} },
   };
   const window = {
     appStore: opts.noStore ? undefined : store,

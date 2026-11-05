@@ -1,0 +1,48 @@
+1793286039459 game  native start mode=window frontmost=Aside/17797
+1793286040167 panel activate Spike ok=true
+1793286040298 panel panel start space=8 spaceType=0 plan=n:statusBar,n:screenSaver,a:floating,a:screenSaver frontmost=Spike/35307 cursor=(1306.0, 17.0) SLCursorIsVisible=1 SLSCursorIsVisible=1
+1793286040463 game  tick rendered=57 shown=47 active=true fullscreen=false level=0
+1793286041463 game  tick rendered=60 shown=60 active=true fullscreen=false level=0
+1793286041878 panel open by=plan space=8 spaceType=0 activating=false level=25 frontmostBefore=Spike/35307 gamePid=35307 panelIndex=-1 panelLayer=0 gameIndex=1 gameLayer=0 gameRect=455,274,800x532 above=false
+1793286042268 panel shown +0.3s active=true key=true onActiveSpace=true visible=true frontmost=Spike/35307 space=8 spaceType=0 panelIndex=0 panelLayer=25 gameIndex=2 gameLayer=0 gameRect=455,274,800x532 above=true
+1793286042464 game  tick rendered=60 shown=60 active=true fullscreen=false level=0
+1793286043216 panel shown +1.2s active=true key=true onActiveSpace=true visible=true frontmost=Spike/35307 space=8 spaceType=0 panelIndex=0 panelLayer=25 gameIndex=2 gameLayer=0 gameRect=455,274,800x532 above=true
+1793286043452 panel closed
+1793286043462 game  tick rendered=60 shown=60 active=true fullscreen=false level=0
+1793286044463 game  tick rendered=59 shown=60 active=true fullscreen=false level=0
+1793286044502 panel after close frontmost=Spike/35307 panelIndex=-1 panelLayer=0 gameIndex=1 gameLayer=0 gameRect=455,274,800x532 above=false
+1793286045463 game  tick rendered=60 shown=60 active=true fullscreen=false level=0
+1793286045550 panel open by=plan space=8 spaceType=0 activating=false level=1000 frontmostBefore=Spike/35307 gamePid=35307 panelIndex=-1 panelLayer=0 gameIndex=1 gameLayer=0 gameRect=455,274,800x532 above=false
+1793286045883 panel shown +0.3s active=true key=true onActiveSpace=true visible=true frontmost=Spike/35307 space=8 spaceType=0 panelIndex=0 panelLayer=1000 gameIndex=2 gameLayer=0 gameRect=455,274,800x532 above=true
+1793286046463 game  tick rendered=60 shown=60 active=true fullscreen=false level=0
+1793286046832 panel shown +1.2s active=true key=true onActiveSpace=true visible=true frontmost=Spike/35307 space=8 spaceType=0 panelIndex=0 panelLayer=1000 gameIndex=2 gameLayer=0 gameRect=455,274,800x532 above=true
+1793286046835 panel closed
+1793286047463 game  tick rendered=60 shown=60 active=true fullscreen=false level=0
+1793286047885 panel after close frontmost=Spike/35307 panelIndex=-1 panelLayer=0 gameIndex=1 gameLayer=0 gameRect=455,274,800x532 above=false
+1793286048464 game  tick rendered=60 shown=60 active=true fullscreen=false level=0
+1793286049224 panel open by=plan space=8 spaceType=0 activating=true level=3 frontmostBefore=Spike/35307 gamePid=35307 panelIndex=-1 panelLayer=0 gameIndex=1 gameLayer=0 gameRect=455,274,800x532 above=false
+1793286049401 panel activate refused, retry ignoringOtherApps ok=true
+1793286049402 panel activated Spike/35717
+1793286049463 game  tick rendered=60 shown=60 active=false fullscreen=false level=0
+1793286049555 panel shown +0.3s active=true key=true onActiveSpace=true visible=true frontmost=Spike/35717 space=8 spaceType=0 panelIndex=1 panelLayer=3 gameIndex=2 gameLayer=0 gameRect=455,274,800x532 above=true
+1793286050463 game  tick rendered=60 shown=60 active=false fullscreen=false level=0
+1793286050501 panel closed
+1793286050504 panel reactivate game ok=true
+1793286050505 panel activated Spike/35307
+1793286051463 game  tick rendered=60 shown=60 active=true fullscreen=false level=0
+1793286051554 panel after close frontmost=Spike/35307 panelIndex=-1 panelLayer=0 gameIndex=1 gameLayer=0 gameRect=455,274,800x532 above=false
+1793286052463 game  tick rendered=60 shown=60 active=true fullscreen=false level=0
+1793286052891 panel open by=plan space=8 spaceType=0 activating=true level=1000 frontmostBefore=Spike/35307 gamePid=35307 panelIndex=-1 panelLayer=0 gameIndex=1 gameLayer=0 gameRect=455,274,800x532 above=false
+1793286053070 panel activate refused, retry ignoringOtherApps ok=true
+1793286053070 panel activated Spike/35717
+1793286053224 panel shown +0.3s active=true key=true onActiveSpace=true visible=true frontmost=Spike/35717 space=8 spaceType=0 panelIndex=0 panelLayer=1000 gameIndex=2 gameLayer=0 gameRect=455,274,800x532 above=true
+1793286053463 game  tick rendered=60 shown=60 active=false fullscreen=false level=0
+1793286054170 panel closed
+1793286054174 panel reactivate game ok=true
+1793286054175 panel activated Spike/35307
+1793286054463 game  tick rendered=58 shown=58 active=true fullscreen=false level=0
+1793286055224 panel after close frontmost=Spike/35307 panelIndex=-1 panelLayer=0 gameIndex=1 gameLayer=0 gameRect=455,274,800x532 above=false
+1793286055463 game  tick rendered=60 shown=60 active=true fullscreen=false level=0
+1793286056463 game  tick rendered=60 shown=60 active=true fullscreen=false level=0
+1793286056578 panel end spaces=0 frontmost=Aside/17797
+1793286056578 panel restore Aside ok=true

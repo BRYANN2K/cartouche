@@ -1,0 +1,41 @@
+1793286627808 game  activateapp 1
+1793286627911 game  start rect=455,306,800x500 popup=0 capture=1 clip=0 aggressive=1
+1793286628754 panel activate wine ok=true
+1793286628855 panel panel start space=8 spaceType=0 plan=n:screenSaver,a:screenSaver frontmost=wine/2013 cursor=(855.0, 556.0) SLCursorIsVisible=0 SLSCursorIsVisible=0
+1793286628931 game  tick fps=113.7 fg=1 active=1 hidden=1 cursor=855,556 clip=455,306,1255,806
+1793286629947 game  tick fps=60.0 fg=1 active=1 hidden=1 cursor=855,556 clip=455,306,1255,806
+1793286630440 panel open by=plan space=8 spaceType=0 activating=false level=1000 frontmostBefore=wine/2013 gamePid=2013 panelIndex=-1 panelLayer=0 gameIndex=1 gameLayer=0 gameRect=455,278,800x528 above=false
+1793286630842 panel cursor before-open free=false at=455,306 SLCursorIsVisible=0 SLSCursorIsVisible=0 forced: free=false at=455,306 SLCursorIsVisible=0 SLSCursorIsVisible=0
+1793286630914 game  activateapp 0
+1793286630947 game  tick fps=60.0 fg=0 active=0 hidden=1 cursor=855,556 clip=455,306,1255,806
+1793286631219 panel shown +0.3s active=true key=true onActiveSpace=true visible=true frontmost=wine/2013 space=8 spaceType=0 panelIndex=0 panelLayer=1000 gameIndex=2 gameLayer=0 gameRect=455,278,800x528 above=true
+1793286631963 game  tick fps=60.1 fg=0 active=0 hidden=1 cursor=855,556 clip=455,306,1255,806
+1793286632169 panel shown +1.2s active=true key=true onActiveSpace=true visible=true frontmost=wine/2013 space=8 spaceType=0 panelIndex=0 panelLayer=1000 gameIndex=2 gameLayer=0 gameRect=455,278,800x528 above=true
+1793286632571 panel cursor menu-open free=false at=455,306 SLCursorIsVisible=0 SLSCursorIsVisible=0 forced: free=false at=455,306 SLCursorIsVisible=0 SLSCursorIsVisible=0
+1793286632803 panel closed
+1793286632814 game  activateapp 1
+1793286632963 game  tick fps=60.0 fg=1 active=1 hidden=1 cursor=855,556 clip=455,306,1255,806
+1793286633854 panel after close frontmost=wine/2013 panelIndex=-1 panelLayer=0 gameIndex=1 gameLayer=0 gameRect=455,278,800x528 above=false
+1793286633963 game  tick fps=60.0 fg=1 active=1 hidden=1 cursor=855,556 clip=455,306,1255,806
+1793286634257 panel cursor menu-closed free=false at=455,306 SLCursorIsVisible=0 SLSCursorIsVisible=0 forced: free=false at=455,306 SLCursorIsVisible=0 SLSCursorIsVisible=0
+1793286634980 game  tick fps=60.0 fg=1 active=1 hidden=1 cursor=855,556 clip=455,306,1255,806
+1793286635157 panel open by=plan space=8 spaceType=0 activating=true level=1000 frontmostBefore=wine/2013 gamePid=2013 panelIndex=-1 panelLayer=0 gameIndex=1 gameLayer=0 gameRect=455,278,800x528 above=false
+1793286635560 panel cursor before-open free=false at=455,306 SLCursorIsVisible=0 SLSCursorIsVisible=0 forced: free=false at=455,306 SLCursorIsVisible=0 SLSCursorIsVisible=0
+1793286635738 panel activate refused, retry ignoringOtherApps ok=true
+1793286635739 panel activated Spike/3827
+1793286635748 game  activateapp 0
+1793286635893 panel shown +0.3s active=true key=true onActiveSpace=true visible=true frontmost=Spike/3827 space=8 spaceType=0 panelIndex=1 panelLayer=1000 gameIndex=3 gameLayer=0 gameRect=455,278,800x528 above=true
+1793286635980 game  tick fps=60.0 fg=0 active=0 hidden=1 cursor=855,556 clip=455,306,1255,806
+1793286636839 panel shown +1.2s active=true key=true onActiveSpace=true visible=true frontmost=Spike/3827 space=8 spaceType=0 panelIndex=1 panelLayer=1000 gameIndex=3 gameLayer=0 gameRect=455,278,800x528 above=true
+1793286636997 game  tick fps=60.0 fg=0 active=0 hidden=1 cursor=855,556 clip=455,306,1255,806
+1793286637041 panel cursor menu-open free=true at=60,80 SLCursorIsVisible=1 SLSCursorIsVisible=1
+1793286637469 panel closed
+1793286637473 panel reactivate game ok=true
+1793286637476 panel activated wine/2013
+1793286637481 game  activateapp 1
+1793286638013 game  tick fps=60.0 fg=1 active=1 hidden=1 cursor=855,556 clip=455,306,1255,806
+1793286638525 panel after close frontmost=wine/2013 panelIndex=-1 panelLayer=0 gameIndex=1 gameLayer=0 gameRect=455,278,800x528 above=false
+1793286638927 panel cursor menu-closed free=false at=455,306 SLCursorIsVisible=0 SLSCursorIsVisible=0 forced: free=false at=455,306 SLCursorIsVisible=0 SLSCursorIsVisible=0
+1793286639030 game  tick fps=60.0 fg=1 active=1 hidden=1 cursor=855,556 clip=455,306,1255,806
+1793286639890 panel restore Orca ok=true
+1793286639891 panel end spaces=0 frontmost=Orca/40879

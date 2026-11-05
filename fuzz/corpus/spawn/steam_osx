@@ -1,0 +1,4 @@
+/Applications/Steam.app/Contents/MacOS/steam_osx
+HOME=/Users/u
+DYLD_INSERT_LIBRARIES=/x/cartouche.dylib
+SDL_JOYSTICK_BLACKLIST_DEVICES=0x1

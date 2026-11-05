@@ -321,9 +321,11 @@ without_lock_fds() {
   "$@" 8>&- 9>&-
 }
 
-# If two WINEDLLPATH directories have the same DLL, Wine uses the one listed first.
+# Wine searches the runner's own lib/wine (next to its ntdll.so) before
+# WINEDLLPATH; between WINEDLLPATH entries, the first listed wins.
 export WINEDLLPATH="$CX_ROOT/lib/wine/x86_64-windows:$wine_unix${WINEDLLPATH:+:$WINEDLLPATH}"
-# Cartouche's DXMT or DXVK goes first, so it wins over Wine's own DLLs
+# Cartouche's DXMT or DXVK goes first among WINEDLLPATH entries, so it wins
+# over the other entries but not over the runner's own DLLs.
 [ -z "$np_backend_path" ] || WINEDLLPATH="$np_backend_path:$WINEDLLPATH"
 export PATH="$CX_ROOT/bin:$PATH"
 
@@ -379,6 +381,8 @@ read_game_setup() {
     case "$name" in
       *[!A-Z0-9_]*) continue ;;
       D3DM_?*|DXMT_?*|DXVK_?*|MTL_?*|ROSETTA_?*|WINEMSYNC|CARTOUCHE_RETINA) ;;
+      CARTOUCHE_FRAMEGEN|CARTOUCHE_FRAMEGEN_STATS|CARTOUCHE_FRAMEGEN_TEMPORAL) ;;
+      CARTOUCHE_OVERLAY|CARTOUCHE_OVERLAY_POS|CARTOUCHE_OVERLAY_CONTROL|CARTOUCHE_OVERLAY_LANG|CARTOUCHE_SHARPENING) ;;
       *) echo "setup: $name is not a variable Cartouche sets, ignored"; continue ;;
     esac
     if [ "${wine_unix##*/}" = aarch64-unix ]; then
@@ -1345,24 +1349,33 @@ if [ -n "$STEAM_COMPAT_DATA_PATH" ]; then
       done
     done
     IFS=$old_ifs
+  else
+    # DXMT's copies left from an earlier launch would take DLSS from D3DMetal
+    for dll in nvapi64.dll nvngx.dll; do
+      ! cmp -s "$np_support/backends/dxmt/x86_64-windows/$dll" "$WINEPREFIX/drive_c/windows/system32/$dll" \
+        || rm -f "$WINEPREFIX/drive_c/windows/system32/$dll"
+    done
   fi
   stage_step="fonts"
   link_fonts
   # A prefix that Wine built just now only has dosdevices from this point on.
   stage_step="game drive"
   map_game_drive
-  # DXMT's install guide puts winemetal.dll in the prefix too, not only beside Wine
+  # DXMT's install guide puts winemetal.dll in the prefix too, not only beside Wine: the
+  # 64-bit one in system32, the 32-bit one in syswow64, without which 32-bit games find no D3D11
   if [ "$np_backend" = dxmt ] && [ -n "$np_backend_path" ]; then
     stage_step="graphics backend"
-    metal_src="$np_support/backends/dxmt/x86_64-windows/winemetal.dll"
-    metal_dst="$WINEPREFIX/drive_c/windows/system32/winemetal.dll"
-    if [ -f "$metal_src" ] && [ -d "${metal_dst%/*}" ] && ! cmp -s "$metal_src" "$metal_dst"; then
-      if cp -f "$metal_src" "$metal_dst" 2>> "$log"; then
-        echo "=== copied DXMT's winemetal.dll into the prefix ===" >> "$log" 2>&1 || true
-      else
-        echo "=== could not copy DXMT's winemetal.dll into the prefix ===" >> "$log" 2>&1 || true
+    for metal_pair in x86_64-windows:system32 i386-windows:syswow64; do
+      metal_src="$np_support/backends/dxmt/${metal_pair%%:*}/winemetal.dll"
+      metal_dst="$WINEPREFIX/drive_c/windows/${metal_pair#*:}/winemetal.dll"
+      if [ -f "$metal_src" ] && [ -d "${metal_dst%/*}" ] && ! cmp -s "$metal_src" "$metal_dst"; then
+        if cp -f "$metal_src" "$metal_dst" 2>> "$log"; then
+          echo "=== copied DXMT's ${metal_pair%%:*} winemetal.dll into the prefix ===" >> "$log" 2>&1 || true
+        else
+          echo "=== could not copy DXMT's ${metal_pair%%:*} winemetal.dll into the prefix ===" >> "$log" 2>&1 || true
+        fi
       fi
-    fi
+    done
   fi
 fi
 
@@ -1697,6 +1710,11 @@ if [ -n "\$CARTOUCHE_FPS_COUNTER" ]; then
   export DYLD_INSERT_LIBRARIES="\${DYLD_INSERT_LIBRARIES:+\$DYLD_INSERT_LIBRARIES:}\$CARTOUCHE_FPS_COUNTER"
 fi
 unset CARTOUCHE_FPS_COUNTER
+# First in the list, so the frame counter wraps it and counts the game's own frames
+if [ -n "\$CARTOUCHE_FRAMEGEN_LIBRARY" ]; then
+  export DYLD_INSERT_LIBRARIES="\$CARTOUCHE_FRAMEGEN_LIBRARY\${DYLD_INSERT_LIBRARIES:+:\$DYLD_INSERT_LIBRARIES}"
+fi
+unset CARTOUCHE_FRAMEGEN_LIBRARY
 [ -n "\$CARTOUCHE_GAME_CWD" ] && cd "\$CARTOUCHE_GAME_CWD"
 status=0
 "$WINELOADER" "\$@" || status=\$?
@@ -1819,6 +1837,18 @@ fps_probe() {
   echo "fps: $probed by $WINELOADER"
   [ "$probed" = ok ]
 }
+# What can bias a comparison of two sessions, read as the game starts; the app adds averages
+session_context() {
+  cores=$(sysctl -n hw.ncpu 2>/dev/null || echo 1)
+  echo "context=others_cpu_start=$(ps -A -o %cpu= 2>/dev/null | awk -v n="$cores" '{ s += $1 } END { if (n > 0) printf "%.0f", s / n }')"
+  echo "context=swap_used_mb=$(sysctl -n vm.swapusage 2>/dev/null | sed -nE 's/.*used = ([0-9]+)[.0-9]*M.*/\1/p')"
+  case "$(sysctl -n kern.memorystatus_vm_pressure_level 2>/dev/null)" in
+    1) echo "context=memory_pressure=normal" ;; 2) echo "context=memory_pressure=warning" ;; 4) echo "context=memory_pressure=critical" ;;
+  esac
+  echo "context=power=$(pmset -g batt 2>/dev/null | sed -nE "s/.*drawing from '([A-Za-z]+) Power'.*/\1/p" | tr '[:upper:]' '[:lower:]')"
+  echo "context=cartouche_running=$(pgrep -x Cartouche 2>/dev/null | wc -l | tr -d ' ')"
+  [ -z "${CARTOUCHE_SHARPENING+set}" ] || echo "context=consent=$CARTOUCHE_SHARPENING"
+}
 prepare_fps() {
   if [ "${CARTOUCHE_FPS:-1}" = 0 ]; then
     echo "fps: off, CARTOUCHE_FPS=0 in the launch options"
@@ -1834,7 +1864,9 @@ prepare_fps() {
     echo "backend=${CX_GRAPHICS_BACKEND:-$np_backend}"
     echo "display=$np_display"
     echo "started=$(date +%s)"
-    env | LC_ALL=C sed -nE 's/^((D3DM_|DXMT_|DXVK_|MTL_|ROSETTA_)[A-Z0-9_]*=.*)/setting=\1/p' | LC_ALL=C sort
+    env | LC_ALL=C sed -nE 's/^((D3DM_|DXMT_|DXVK_|MTL_|ROSETTA_)[A-Z0-9_]*=.*|(CARTOUCHE_FRAMEGEN|CARTOUCHE_OVERLAY)[A-Z0-9_]*=.*|CARTOUCHE_RETINA=.*)/setting=\1/p' \
+      | grep -Ev '^setting=CARTOUCHE_FRAMEGEN_(LIBRARY|DIR|PROBE)=' | LC_ALL=C sort
+    session_context
   } > "$fps_dir/session.tmp"
   if fps_probe; then
     fps_insert="$fps_counter"
@@ -1846,6 +1878,43 @@ prepare_fps() {
   mv -f "$fps_dir/session.tmp" "$fps_dir/session"
 }
 prepare_fps >> "$log" 2>&1 || true
+
+# Our library (temporal chain, HUD), for a game whose setup sets CARTOUCHE_FRAMEGEN=1: the app
+# sets it from the game's profile. Frame interpolation stays off. Its CSV and log lines go to
+# this launch's log folder.
+framegen="$np_support/framegen.dylib"
+framegen_insert=""
+prepare_framegen() {
+  [ "${CARTOUCHE_FRAMEGEN:-0}" = 1 ] || return 0
+  if [ ! -f "$framegen" ]; then
+    echo "framegen: requested, but $framegen is not installed"
+    return 0
+  fi
+  marker="${attempt_dir:-${TMPDIR:-/tmp}}/framegen-probe-$$"
+  if DYLD_INSERT_LIBRARIES="$framegen" CARTOUCHE_FRAMEGEN_PROBE="$marker" \
+    "$WINELOADER" --version > /dev/null 2>&1 8>&- 9>&- && [ -s "$marker" ]; then
+    framegen_insert="$framegen"
+    echo "framegen: on for this launch"
+  else
+    echo "framegen: refused by $WINELOADER"
+  fi
+  rm -f "$marker"
+}
+prepare_framegen >> "$log" 2>&1 || true
+
+# The session says whether our library really went in, and the variable the launch adds with it
+note_framegen() {
+  [ -n "$fps_dir" ] && [ -f "$fps_dir/session" ] || return 0
+  if [ -n "$framegen_insert" ]; then state=on
+  elif [ "${CARTOUCHE_FRAMEGEN:-0}" = 1 ]; then state=refused
+  else state=off; fi
+  {
+    cat "$fps_dir/session"
+    echo "context=framegen=$state"
+    [ "$state" != on ] || [ -n "${CARTOUCHE_FRAMEGEN_INTERPOLATE+set}" ] || echo "setting=CARTOUCHE_FRAMEGEN_INTERPOLATE=0"
+  } > "$fps_dir/session.tmp" && mv -f "$fps_dir/session.tmp" "$fps_dir/session"
+}
+note_framegen >> "$log" 2>&1 || true
 
 game_cwd="$(pwd)"
 if [ -n "$STEAM_DYLD_INSERT_LIBRARIES" ]; then
@@ -1878,6 +1947,15 @@ set -- \
   --env CARTOUCHE_LAUNCH_LOG_DIR="$attempt_dir" "$@"
 if [ -n "$fps_dir" ]; then
   set -- --env CARTOUCHE_FPS_DIR="$fps_dir" --env CARTOUCHE_FPS_COUNTER="$fps_insert" "$@"
+fi
+if [ -n "$framegen_insert" ]; then
+  set -- --env CARTOUCHE_FRAMEGEN=1 --env CARTOUCHE_FRAMEGEN_INTERPOLATE=0 --env CARTOUCHE_FRAMEGEN_LIBRARY="$framegen_insert" \
+    --env CARTOUCHE_FRAMEGEN_STATS="${CARTOUCHE_FRAMEGEN_STATS:-0}" --env CARTOUCHE_FRAMEGEN_DIR="$attempt_dir" "$@"
+  [ -z "${CARTOUCHE_FRAMEGEN_TEMPORAL+set}" ] || set -- --env CARTOUCHE_FRAMEGEN_TEMPORAL="$CARTOUCHE_FRAMEGEN_TEMPORAL" "$@"
+  for overlay_var in CARTOUCHE_OVERLAY CARTOUCHE_OVERLAY_POS CARTOUCHE_OVERLAY_CONTROL CARTOUCHE_OVERLAY_LANG; do
+    eval "overlay_set=\${$overlay_var+set}"
+    [ -z "$overlay_set" ] || eval "set -- --env $overlay_var=\"\$$overlay_var\" \"\$@\""
+  done
 fi
 lsregister="/System/Library/Frameworks/CoreServices.framework/Versions/A"
 lsregister="$lsregister/Frameworks/LaunchServices.framework/Support/lsregister"

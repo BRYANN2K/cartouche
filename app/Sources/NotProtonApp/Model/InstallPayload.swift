@@ -17,6 +17,8 @@ enum InstallPayload {
         let signatures: [URL]
         let fontsRoot: URL
         let fonts: [String]
+        // Experimental frame generation, optional like the counter
+        var framegen: URL? = nil
     }
 
     static func root(in bundle: Bundle = .module) throws -> URL {
@@ -50,6 +52,7 @@ enum InstallPayload {
         let appinfo = root.appending(path: "appinfo")
         let run = root.appending(path: "run")
         let fpsCounter = root.appending(path: SupportPaths.fpsCounterName)
+        let framegen = root.appending(path: SupportPaths.framegenName)
         let stamp = try? String(contentsOf: root.appending(path: "build-time"), encoding: .utf8)
         let builtAt = stamp.flatMap { Int64($0.trimmingCharacters(in: .whitespacesAndNewlines)) }
 
@@ -93,7 +96,8 @@ enum InstallPayload {
             appinfo: appinfo, run: run, builtAt: builtAt,
             fpsCounter: files.fileExists(atPath: fpsCounter.path(percentEncoded: false)) ? fpsCounter : nil,
             signatures: signatures,
-            fontsRoot: fontsRoot, fonts: fonts
+            fontsRoot: fontsRoot, fonts: fonts,
+            framegen: files.fileExists(atPath: framegen.path(percentEncoded: false)) ? framegen : nil
         )
     }
 }

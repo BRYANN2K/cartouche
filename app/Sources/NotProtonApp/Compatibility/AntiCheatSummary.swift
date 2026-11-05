@@ -6,6 +6,8 @@ struct AntiCheatSummary: Equatable, Sendable {
     }
 
     let level: Level
+    // The anti-cheats by name, as the in-game menu writes them
+    let name: String
     let title: String
     let details: [String]
     var protonDBInfo: String? = nil
@@ -25,6 +27,7 @@ struct AntiCheatSummary: Equatable, Sendable {
 
     init(names: [String], blocked: Bool) {
         level = blocked ? .blocked : .untested
+        name = ListFormatter.localizedString(byJoining: names)
         title = blocked ? String(localized: "Anti-cheat is not compatible with Wine")
             : String(localized: "Anti-cheat compatibility is unverified")
         details = [ListFormatter.localizedString(byJoining: names),

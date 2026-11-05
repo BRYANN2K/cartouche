@@ -7,8 +7,7 @@ struct LibrarySidebar: View {
     @Environment(ConsoleCenter.self) private var consoles: ConsoleCenter?
 
     private var items: [SidebarItem] {
-        [.all, .favorites, .source(.steam), .source(.epic), .source(.gog), .source(.amazon), .source(.installer)]
-            + model.consoles.map { .source(.console($0)) }
+        [.all, .favorites] + model.sidebarSources.map { .source($0) } + model.consoles.map { .source(.console($0)) }
     }
 
     var body: some View {
@@ -17,13 +16,24 @@ struct LibrarySidebar: View {
                 header(Text("Library"))
                 row(.all) { Image(systemName: "square.grid.2x2") }
                 row(.favorites) { Image(systemName: "star") }
-                header(Text("PC"))
-                ForEach([GameSource.steam, .epic, .gog, .amazon], id: \.self) { source in
+                pcHeader
+                ForEach(model.sidebarSources.filter { $0 != .installer }, id: \.self) { source in
                     row(.source(source)) {
-                        if let mark = PlatformMark.source(source) { PlatformMarkView(mark: mark) }
+                        if let badge = PlatformBadge.source(source) {
+                            BrandMark(badge: badge)
+                        } else {
+                            Image(systemName: "gamecontroller")
+                        }
+                    }
+                    .contextMenu {
+                        if model.canRemoveStore(source) {
+                            Button("Remove", role: .destructive) { model.removeStore(source) }
+                        }
                     }
                 }
-                row(.source(.installer)) { Image(systemName: "shippingbox") }
+                if model.sidebarSources.contains(.installer) {
+                    row(.source(.installer)) { Image(systemName: "shippingbox") }
+                }
                 consolesHeader
                 ForEach(model.consoles, id: \.self) { id in
                     ConsoleSidebarRow(id: id, model: model)
@@ -53,9 +63,17 @@ struct LibrarySidebar: View {
     private func header(_ title: Text) -> some View {
         title
             .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(Glass.label3)
+            .foregroundStyle(Glass.label2)
             .padding(EdgeInsets(top: 14, leading: 10, bottom: 5, trailing: 10))
             .accessibilityAddTraits(.isHeader)
+    }
+
+    private var pcHeader: some View {
+        HStack(spacing: 6) {
+            header(Text("PC"))
+            Spacer()
+            addButton(Text("Add Stores"), isOpen: $model.showAddStores) { AddMenu.stores(model) }
+        }
     }
 
     private var consolesHeader: some View {
@@ -67,25 +85,34 @@ struct LibrarySidebar: View {
                     .help(Text("Downloading cores…"))
                     .padding(.top, 9)
             }
-            Button {
-                model.showAddConsoles = true
-            } label: {
-                Image(systemName: "plus")
-                    .font(.system(size: 12, weight: .medium))
-                    .frame(width: 20, height: 20)
-                    .contentShape(.rect)
+            if let consoles {
+                addButton(Text("Add Consoles"), isOpen: $model.showAddConsoles) { AddMenu.consoles(consoles) }
             }
-            .buttonStyle(SidebarAddButtonStyle())
-            .padding(.top, 9)
-            .padding(.trailing, 6)
-            .help(Text("Add Consoles"))
-            .accessibilityLabel(Text("Add Consoles"))
         }
     }
 
+    private func addButton(_ title: Text, isOpen: Binding<Bool>, @ViewBuilder menu: @escaping () -> AddMenu) -> some View {
+        Button { isOpen.wrappedValue.toggle() } label: {
+            Image(systemName: "plus")
+                .font(.system(size: 12, weight: .medium))
+                .frame(width: 24, height: 24)
+                .contentShape(.rect)
+        }
+        .buttonStyle(SidebarAddButtonStyle(isOpen: isOpen.wrappedValue))
+        .popover(isPresented: isOpen, arrowEdge: .trailing, content: menu)
+        .padding(.top, 9)
+        .padding(.trailing, 4)
+        .help(title)
+        .accessibilityLabel(title)
+    }
+
+    // Beside the tag, an experimental store's Sign In would squeeze its name out of the row.
     private func row<Icon: View>(_ item: SidebarItem, @ViewBuilder icon: @escaping () -> Icon) -> some View {
-        SidebarRow(title: LibraryModel.title(item), badge: model.badge(item), alert: model.isExpired(item),
-                   selected: model.selection == item, icon: icon) {
+        var experimental = false
+        if case .source(let source) = item { experimental = source.isExperimental }
+        let badge = experimental && !model.isSignedIn(item) ? nil : model.badge(item)
+        return SidebarRow(title: LibraryModel.title(item), badge: badge, alert: model.isExpired(item),
+                   experimental: experimental, selected: model.selection == item, icon: icon) {
             model.selection = item
         }
     }
@@ -95,6 +122,7 @@ struct SidebarRow<Icon: View>: View {
     let title: String
     let badge: String?
     var alert = false
+    var experimental = false
     let selected: Bool
     @ViewBuilder let icon: () -> Icon
     let action: () -> Void
@@ -106,13 +134,14 @@ struct SidebarRow<Icon: View>: View {
             HStack(spacing: 9) {
                 icon()
                     .font(.system(size: 14))
-                    .frame(width: 16, height: 16)
+                    .frame(width: 20, height: 20)
                     .foregroundStyle(Color.accentColor)
                     .accessibilityHidden(true)
                 Text(verbatim: title)
                     .font(.system(size: 13, weight: selected ? .semibold : .regular))
                     .lineLimit(1)
                     .truncationMode(.tail)
+                if experimental { ExperimentalTag(compact: true) }
                 Spacer(minLength: 4)
                 if let badge {
                     if alert {
@@ -125,11 +154,13 @@ struct SidebarRow<Icon: View>: View {
                         Text(verbatim: badge)
                             .font(.system(size: 12))
                             .monospacedDigit()
-                            .foregroundStyle(Glass.label3)
+                            .foregroundStyle(Glass.label2)
+                            .fixedSize()
                     }
                 }
             }
-            .padding(.horizontal, 10)
+            .padding(.leading, 8)
+            .padding(.trailing, 10)
             .frame(height: 30)
             .background {
                 if selected {
@@ -143,21 +174,23 @@ struct SidebarRow<Icon: View>: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
-        .onHover { hovering = $0 }
+        .trackHover { hovering = $0 }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(selected ? [.isSelected] : [])
     }
 }
 
 private struct SidebarAddButtonStyle: ButtonStyle {
+    var isOpen = false
+
     @State private var hovering = false
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .foregroundStyle(hovering ? Color.primary : Glass.label2)
-            .background(hovering || configuration.isPressed ? Glass.fill2 : .clear,
-                        in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-            .onHover { hovering = $0 }
+            .foregroundStyle(hovering || isOpen ? Color.primary : Glass.label2)
+            .background(isOpen || configuration.isPressed ? Glass.fill2 : hovering ? Glass.fill : .clear,
+                        in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+            .trackHover { hovering = $0 }
     }
 }
 
@@ -172,6 +205,7 @@ struct LibraryWindow: View {
     @State private var overlayDismissedFor: String?
     @State private var dropTargeted = false
     @State private var adding = AddGamesNavigation()
+    @State private var panelWindow: NSWindow?
     @Environment(\.dropClassifier) private var dropClassifier
     @Environment(\.gameVerification) private var verification
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -211,7 +245,7 @@ struct LibraryWindow: View {
                 sidebar(layout)
                     .transition(reduceMotion ? .opacity : .move(edge: .leading).combined(with: .opacity))
             }
-            main(layout)
+            screenContent
                 .padding(.leading, layout.sidebar > 0 ? Glass.inset : 0)
                 .padding(.trailing, docked ? Glass.inset : floating ? layout.panel + Glass.inset * 2 : 0)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -224,8 +258,11 @@ struct LibraryWindow: View {
             // Too narrow for three columns and the panel: it floats over the grid until closed
             if floating, let game = panelGame {
                 panel(game, layout)
+                    .background(HostedWindow { panelWindow = $0 })
                     .overlay(alignment: .topTrailing) {
                         Button {
+                            // A presented sheet owns Escape: it takes the cancel, the overlay stays
+                            if let sheet = panelWindow?.attachedSheet, sheet.cancelByKeyEquivalent() { return }
                             overlayDismissedFor = model.selectedGameID
                         } label: {
                             Image(systemName: "xmark").font(.system(size: 11, weight: .bold))
@@ -286,9 +323,6 @@ struct LibraryWindow: View {
                 } else {
                     AddGamesDropSheet(add: { _ = handleDrop($0) })
                 }
-            }
-            .sheet(isPresented: $model.showAddConsoles) {
-                if let consoles { AddConsolesSheet(center: consoles) }
             }
             .sheet(item: $model.installRequest) { game in
                 StoreInstallSheet(game: game, model: model, stores: actions.stores)
@@ -402,7 +436,7 @@ struct LibraryWindow: View {
     }
 
     @ViewBuilder
-    private func main(_ layout: WindowLayout) -> some View {
+    private var screenContent: some View {
         if case .grid = model.screen {
             detail.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         } else {
@@ -421,6 +455,8 @@ struct LibraryWindow: View {
                 Text(verbatim: model.subtitle).font(.caption).foregroundStyle(.secondary)
             }
             .lineLimit(1)
+            .frame(maxWidth: WindowLayout(width: width, sidebar: model.showSidebar).title, alignment: .leading)
+            .help(Text(verbatim: model.subtitle))
             .accessibilityElement(children: .combine)
             .accessibilityAddTraits(.isHeader)
         }
@@ -439,6 +475,7 @@ struct LibraryWindow: View {
                     .labelStyle(.iconOnly)
                     .buttonStyle(RoundGlassStyle(size: 32))
                     .help(Text("Add a Windows game or your own console games"))
+                LibraryToolbarControls(model: model)
                 LibrarySearchField(text: $model.searchText, focused: $searchFocused)
                     .frame(height: 28)
                     .padding(.horizontal, 4)
@@ -455,7 +492,7 @@ struct LibraryWindow: View {
         case .loading:
             LoadingGrid()
         case .welcome:
-            WelcomeView(choose: { model.selection = $0 }, addInstaller: { model.showAddGames = true })
+            WelcomeView(choose: { model.addStore($0) }, addInstaller: { model.showAddGames = true })
         case .steamInstall:
             SteamInstallView(setup: steamSetup, locate: SteamInstallView.chooseSteam) {
                 NSWorkspace.shared.open(SupportPaths.Steam.app)
@@ -466,7 +503,7 @@ struct LibraryWindow: View {
             LibraryGrid(model: model, sections: sections, actions: actions, compat: compat)
         case .noResults(let query):
             NoResultsView(query: query) { model.searchText = "" }
-        case .emptyFavorites, .emptySource:
+        case .emptyFavorites, .emptySource, .noInstalledGames:
             EmptyLibraryView(screen: model.screen, addGames: {
                 model.showAddGames = true
             }, retry: { Task { await model.load() } })
@@ -474,13 +511,48 @@ struct LibraryWindow: View {
     }
 }
 
+// Reports the window a view is hosted in: sheet checks stay on it instead of scanning NSApp.windows
+private struct HostedWindow: NSViewRepresentable {
+    final class Anchor: NSView {
+        var found: (NSWindow?) -> Void = { _ in }
+        override func viewDidMoveToWindow() { found(window) }
+    }
+
+    let found: (NSWindow?) -> Void
+
+    func makeNSView(context: Context) -> Anchor {
+        let view = Anchor()
+        view.found = found
+        return view
+    }
+
+    func updateNSView(_ view: Anchor, context: Context) {
+        view.found = found
+    }
+}
+
+private extension NSWindow {
+    // Escape handed to the sheet, answered by its Cancel; false if nothing took it
+    func cancelByKeyEquivalent() -> Bool {
+        guard let event = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [],
+                                           timestamp: ProcessInfo.processInfo.systemUptime,
+                                           windowNumber: windowNumber, context: nil,
+                                           characters: "\u{1b}", charactersIgnoringModifiers: "\u{1b}",
+                                           isARepeat: false, keyCode: 53)
+        else { return false }
+        return performKeyEquivalent(with: event)
+    }
+}
+
 struct LibraryNotices: View {
     let model: LibraryModel
     @Environment(CrashReportCenter.self) private var crashReports: CrashReportCenter?
+    @Environment(ResourceMonitor.self) private var resources: ResourceMonitor?
 
     var body: some View {
         VStack(spacing: 0) {
             if let crashReports { CrashNoticeBanner(center: crashReports) }
+            if let resources { ResourceAlertBanner(monitor: resources) }
             SteamIntegrationBanner()
             ProblemBanner(model: model)
         }
@@ -566,6 +638,9 @@ struct WindowLayout: Equatable {
 
     var sidebar: CGFloat { sidebarShown ? min(260, max(200, (width * 0.167).rounded())) : 0 }
     var panel: CGFloat { min(400, max(300, (width * 0.278).rounded())) }
+
+    // A long title truncates: past this, the toolbar would hide the + and the balls in its overflow
+    var title: CGFloat { max(120, width - panel - 268) }
 
     // Two 132 pt columns, their gap and the grid's insets
     static let gridMinimum: CGFloat = 2 * 132 + 16 + 28 + 2 * Glass.inset

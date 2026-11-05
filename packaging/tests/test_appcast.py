@@ -17,7 +17,10 @@ S = "{http://www.andymatuschak.org/xml-namespaces/sparkle}"
 REPO_URL = "https://github.com/BRYANN2K/cartouche/releases/download"
 
 sys.path.insert(0, str(ROOT / "packaging"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from release import bundle_version  # noqa: E402
+from test_release import NotesServer, sparkle_page  # noqa: E402
+CHECK_NOTES = ROOT / "packaging/check-release-notes.sh"
 
 
 def openssl():
@@ -78,6 +81,7 @@ class AppcastChain(unittest.TestCase):
         cls.work = pathlib.Path(tempfile.mkdtemp())
         cls.private, cls.public = keypair(cls.work)
         cls.feeds = {}
+        cls.server = NotesServer()
         published = None
         # A pipeline test, the first release, a beta, then a critical release
         for version, channel, critical in (("0.0.9-test.1", "", False), ("0.1.0", "", False),
@@ -95,7 +99,10 @@ class AppcastChain(unittest.TestCase):
                 for line in filter(None, listed):
                     url = line.split()[1]
                     shutil.copy(cls.work / "published" / url.rsplit("/", 1)[1], rel)
-            env = dict(os.environ, SPARKLE_PRIVATE_KEY=cls.private, SPARKLE_BIN=str(BIN))
+            # The pipeline test ships embedded notes only; the others link the site page
+            cls.server.page(version)
+            env = dict(os.environ, SPARKLE_PRIVATE_KEY=cls.private, SPARKLE_BIN=str(BIN),
+                       NOTES_SITE="none" if "test" in version else cls.server.site)
             subprocess.run(["sh", MAKE_APPCAST, rel, version, f"{REPO_URL}/v{version}/", channel,
                             "true" if critical else "false"], check=True, env=env, capture_output=True)
             published = rel / "appcast.xml"
@@ -103,6 +110,7 @@ class AppcastChain(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        cls.server.close()
         shutil.rmtree(cls.work)
 
     def items(self, version):
@@ -153,9 +161,63 @@ class AppcastChain(unittest.TestCase):
         self.assertIn("Notes for 0.2.0", self.items("0.2.0")["0.2.0"].findtext("description"))
         self.assertIn("Notes for 0.1.0", self.items("0.2.0")["0.1.0"].findtext("description"))
 
+    def test_release_notes_link_the_signed_site_page(self):
+        self.assertIsNone(self.items("0.0.9-test.1")["0.0.9-test.1"].find(S + "releaseNotesLink"))
+        item = self.items("0.2.0")["0.2.0"]
+        link = item.find(S + "releaseNotesLink")
+        self.assertEqual(link.text, f"{self.server.site}/changelog/0.2.0/sparkle")
+        self.assertEqual(int(link.get(S + "length")), len(sparkle_page("0.2.0")))
+        self.assertEqual(item.findtext(S + "fullReleaseNotesLink"), f"{self.server.site}/changelog")
+        page = self.work / "page.html"
+        page.write_bytes(sparkle_page("0.2.0"))
+        ok = subprocess.run([BIN / "sign_update", "--verify", "--ed-key-file", "-", page, link.get(S + "edSignature")],
+                            input=self.private, text=True, capture_output=True)
+        self.assertEqual(ok.returncode, 0, ok.stderr)
+
+    def test_check_release_notes_catches_a_changed_or_missing_page(self):
+        env = dict(os.environ, SPARKLE_PRIVATE_KEY=self.private, SPARKLE_BIN=str(BIN))
+        check = ["sh", CHECK_NOTES, self.feeds["0.2.0"]]
+        ok = subprocess.run(check, env=env, capture_output=True, text=True)
+        self.assertEqual(ok.returncode, 0, ok.stderr)
+        try:
+            same_length = sparkle_page("0.2.0").replace(b"Notes", b"Nates")
+            self.server.page("0.2.0", body=same_length)
+            bad = subprocess.run(check, env=env, capture_output=True, text=True)
+            self.assertIn("does not match its signature", bad.stderr)
+            self.server.page("0.2.0", status=404)
+            gone = subprocess.run(check, env=env, capture_output=True, text=True)
+            self.assertIn("answered 404", gone.stderr)
+        finally:
+            self.server.page("0.2.0")
+
     def test_test_items_leave_with_the_first_release(self):
         self.assertIn("0.0.9-test.1", self.items("0.0.9-test.1"))
         self.assertNotIn("0.0.9-test.1", self.items("0.1.0"))
+
+    def test_announce_mode_adds_an_informational_item(self):
+        rel = self.work / "announce"
+        rel.mkdir()
+        shutil.copy(self.feeds["0.1.0"], rel / "previous-appcast.xml")
+        (rel / "Cartouche-0.1.0.1.html").write_text("<p><strong>Cartouche 0.2.0 bêta est disponible.</strong></p>")
+        env = dict(os.environ, SPARKLE_PRIVATE_KEY=self.private, SPARKLE_BIN=str(BIN))
+        make = subprocess.run(["sh", MAKE_APPCAST, "--announce", rel, "0.1.0.1",
+                               "https://cartouche.bryann2k.dev/changelog/0.2.0-beta1", "0.2.0 bêta"],
+                              env=env, capture_output=True, text=True)
+        self.assertEqual(make.returncode, 0, make.stderr)
+        items = {i.findtext(S + "version"): i
+                 for i in ET.parse(rel / "appcast.xml").getroot().iter("item")}
+        item = items["0.1.0.1"]
+        self.assertIsNotNone(item.find(S + "informationalUpdate"))
+        self.assertIsNone(item.find("enclosure"))
+        self.assertIsNone(item.find(S + "channel"))
+        self.assertEqual(item.findtext(S + "shortVersionString"), "0.2.0 bêta")
+        self.assertEqual(item.findtext("link"), "https://cartouche.bryann2k.dev/changelog/0.2.0-beta1")
+        self.assertIn("bêta est disponible", item.findtext("description"))
+        self.assertEqual(items["0.1.0"].find("enclosure").get("url"),
+                         f"{REPO_URL}/v0.1.0/Cartouche-0.1.0.zip")
+        ok = subprocess.run([BIN / "sign_update", "--verify", "--ed-key-file", "-", rel / "appcast.xml"],
+                            input=self.private, text=True, capture_output=True, env=env)
+        self.assertEqual(ok.returncode, 0, ok.stderr)
 
     def test_feed_signature_verifies_and_catches_tampering(self):
         env = dict(os.environ, SPARKLE_PRIVATE_KEY=self.private)

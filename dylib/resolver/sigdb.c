@@ -45,8 +45,10 @@ static uint64_t build_field(cJSON *parent, const char *key) {
     if (!v) return 0;
     if (cJSON_IsString(v) && v->valuestring)
         return strtoull(v->valuestring, NULL, 10);
+    // Negative, past 2^64 or NaN, the conversion is undefined, so it reads as no build
     if (cJSON_IsNumber(v))
-        return (uint64_t)v->valuedouble;
+        return v->valuedouble >= 0 && v->valuedouble < 18446744073709551616.0
+                   ? (uint64_t)v->valuedouble : 0;
     return 0;
 }
 

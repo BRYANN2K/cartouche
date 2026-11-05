@@ -1,0 +1,2 @@
+reg	add	HKCU\Software\Wine\Mac Driver	/v	RetinaMode	/t	REG_SZ	/d	y	/f
+reg	add	HKCU\Software\Wine\Mac Driver	/v	RetinaMode	/t	REG_SZ	/d	n	/f

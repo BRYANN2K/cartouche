@@ -1,0 +1,51 @@
+name: scorecard
+
+# OpenSSF Scorecard on the default branch, results to code scanning (docs/ci/CI.md).
+# Does not gate merges; a score under 7 is a warning to act on.
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 6 * * 2"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scorecard
+  cancel-in-progress: false
+
+jobs:
+  analysis:
+    name: scorecard
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write # uploads the SARIF to code scanning
+      id-token: write # publishes the results to the OpenSSF API, signed with the workflow's OIDC identity
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Run Scorecard
+        uses: ossf/scorecard-action@fa7117db83c52d787ae5a89f350999701505d78e # v2.5.0
+        with:
+          results_file: scorecard.sarif
+          results_format: sarif
+          publish_results: true
+
+      - name: Upload the results as an artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: scorecard
+          path: scorecard.sarif
+          retention-days: 14
+
+      - name: Upload the results to code scanning
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          sarif_file: scorecard.sarif
+          category: scorecard

@@ -29,6 +29,12 @@ struct SignInPage: Sendable, Equatable {
     let url: URL
     // Epic shows the code as the text of this one page; GOG and Amazon put it in the address
     let codePage: URL?
+    // True when the flow runs inside the store's own launcher: the sheet then shows a
+    // "finish in the app" prompt instead of a WKWebView, and StoreCenter polls
+    // `detectedSession()` instead of `code(at:)`.
+    var viaLauncher = false
+    // A web sign-in that can fail silently: StoreCenter gives it the same deadline.
+    var timesOut = false
 
     var codeInPage: Bool { codePage != nil }
 
@@ -42,12 +48,17 @@ struct StoreGame: Codable, Sendable, Equatable, Identifiable {
     let id: String
     var title: String
     var art: URL?
+    // What the card falls back to when `art` does not resolve to a portrait image
+    var artFallback: URL? = nil
     var cloudSaves: Bool = false
     var header: URL? = nil
     var screenshots: [URL]? = nil
     var downloadBytes: Int64? = nil
     var diskBytes: Int64? = nil
     var detailsFetchedAt: Date? = nil
+    // Where the launcher's own registry says this game already sits — a launcher-backed
+    // store only. StoreCenter adopts it into a record so the card reads Installed.
+    var installPath: URL? = nil
 }
 
 struct StoreInstall: Codable, Sendable, Equatable {
@@ -86,9 +97,19 @@ enum StoreError: LocalizedError, Equatable {
 protocol StoreAdapter: Sendable {
     var store: GameSource { get }
     var capabilities: StoreCapabilities { get }
+    // Whether the store is live in this build — an experimental one stays listed but
+    // reports unavailable instead of offering installs or a sign-in. An unavailable
+    // adapter is never asked for its session, its library or the network.
+    var isAvailable: Bool { get }
 
     func signInPage() async throws -> SignInPage
     func code(at url: URL, pageText: String?) -> String?
+    // Why the sign-in ended without a code, when this address says so.
+    func signInFailure(at url: URL) -> String?
+    // The account the store's own client is signed into, read from its local state
+    // without any network — what StoreCenter polls while a viaLauncher sign-in is
+    // pending. nil means "no session yet".
+    func detectedSession() async -> String?
     func finishSignIn(code: String) async throws -> String
     func signOut() async throws
     func isExpired(_ secret: StoreSecret, now: Date) -> Bool
@@ -112,6 +133,11 @@ protocol StoreAdapter: Sendable {
     func artURL(_ game: StoreGame) async -> URL?
     // A program that runs beside the game, as comet does for GOG's online features
     func companion(_ id: String) async throws -> ClientCommand?
+
+    var officialLauncher: StoreLauncher? { get }
+    // Launcher-backed stores open their official app and its store pages.
+    func openLauncher() async throws -> any LauncherProcess
+    func openStorePage(_ game: StoreGame?) async throws
 }
 
 extension StoreAdapter {
@@ -119,6 +145,18 @@ extension StoreAdapter {
     func artURL(_ game: StoreGame) async -> URL? { game.art }
     func companion(_ id: String) async throws -> ClientCommand? { nil }
     func forget(_ id: String) async throws {}
+    var isAvailable: Bool { true }
+    func detectedSession() async -> String? { nil }
+    func signInFailure(at url: URL) -> String? { nil }
+    var officialLauncher: StoreLauncher? { nil }
+    // Launcher-backed stores open their official app and its store pages; the rest
+    // have no launcher to open.
+    func openLauncher() async throws -> any LauncherProcess {
+        throw StoreError.failed(String(localized: "This store has no launcher to open."))
+    }
+    func openStorePage(_ game: StoreGame?) async throws {
+        throw StoreError.failed(String(localized: "This store has no store page to open."))
+    }
 }
 
 enum SaveDirection: Sendable { case download, upload }

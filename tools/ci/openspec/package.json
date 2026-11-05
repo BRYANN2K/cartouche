@@ -1,0 +1,8 @@
+{
+  "name": "cartouche-ci-openspec",
+  "private": true,
+  "description": "The OpenSpec CLI the CI openspec job runs, locked by package-lock.json",
+  "dependencies": {
+    "@fission-ai/openspec": "1.14.3"
+  }
+}

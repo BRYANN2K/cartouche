@@ -14,7 +14,7 @@ Mark a game installed only after output verification. Use the shipped MD5/checks
 
 On verification failure or mismatch, automatically retry with the installer’s shipped helpers and original settings. If that still fails, offer a guided run of the real installer under Wine as the last resort. The same verification gate applies before marking its result installed.
 
-Optimizations may change speed only, never output. A native helper replacement is permitted only for an exact known helper version matched by a hash allowlist. Unknown helpers use the shipped Windows helper. Each optimization must produce byte-identical output on a local regression corpus, including CarX Street, Lost in Random and the user’s Silksong RAR where applicable. These are the user’s own files; corpus files and verification data never leave the Mac.
+Optimizations may change speed only, never output. A native helper replacement is permitted only for an exact known helper version matched by a hash allowlist. Unknown helpers use the shipped Windows helper. Each optimization must produce byte-identical output on a local regression corpus, including Cobalt Street, Lost in Random and the user’s Silksong RAR where applicable. These are the user’s own files; corpus files and verification data never leave the Mac.
 
 ## Alternatives rejected
 

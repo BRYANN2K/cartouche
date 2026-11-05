@@ -30,24 +30,13 @@ struct ConsoleSidebarTests {
         scene.library.showAddConsoles = true
         #expect(!scene.library.showConsoleImport)
 
-        var choice = AddConsolesChoice()
-        choice.toggle("nes")
-        choice.toggle("gb")
-        #expect(choice.addTitle == "Add 2 Consoles")
-        let sheetTexts = try await renderedTexts(AddConsolesSheet(center: scene.center, choice: choice),
-                                                 size: CGSize(width: 660, height: 560), named: "add-consoles")
-        #expect(sheetTexts.contains("Add Consoles"))
-        #expect(sheetTexts.contains("Add 2 Consoles"))
-        let tile = try await renderedTexts(AddConsoleTile(console: ConsoleCatalog.console("ps1")!, added: false, picked: false,
-                                                       found: 0, toggle: {}).frame(width: 200),
-                                           size: CGSize(width: 220, height: 110))
-        #expect(tile.contains("Needs BIOS"))
+        #expect(scene.center.consoleMenu(added: []).first { $0.id == "ps1" }?.note == String(localized: "Needs BIOS"))
         for dark in [false, true] {
-            _ = try await renderedTexts(AddConsolesSheet(center: scene.center, choice: choice),
-                                        size: CGSize(width: 660, height: 560), named: "add-consoles", dark: dark)
+            _ = try await renderedTexts(AddMenu.consoles(scene.center), size: CGSize(width: 312, height: 560),
+                                        named: "add-consoles", dark: dark)
         }
 
-        await scene.center.add(choice.picked)
+        await scene.center.add(["nes", "gb"])
 
         #expect(scene.library.consoles == ["nes", "gb"])
         #expect(scene.coresFolder == ["nestopia_libretro.dylib", "sameboy_libretro.dylib"])
@@ -61,8 +50,7 @@ struct ConsoleSidebarTests {
         #expect(seen(texts, "Game Boy"))
         #expect(!seen(texts, "PlayStation"))
 
-        let again = try await renderedTexts(AddConsolesSheet(center: scene.center), size: CGSize(width: 660, height: 560))
-        #expect(again.filter { $0 == "Added" }.count == 2)
+        #expect(scene.center.consoleMenu(added: []).filter { $0.state == .locked }.map(\.id) == ["nes", "gb"])
     }
 
     @Test("Remove a console: right-click PlayStation, Remove; it leaves the sidebar, its core goes, its games stay on disk")

@@ -635,6 +635,8 @@ def rdb(system):
 # gogdl and nile; these stand in for their account/game APIs.
 
 def store_games(store):
+    if store not in ("epic", "gog", "amazon"):
+        return b'{"games": []}'
     fixture = DATA / "stores" / f"{store}.json"
     if fixture.exists():
         return fixture.read_bytes()

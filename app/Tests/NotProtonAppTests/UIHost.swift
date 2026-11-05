@@ -4,6 +4,21 @@ import SwiftUI
 import Testing
 import Vision
 
+// Draws a view as the window's backing store does, at a fixed scale so text
+// and pixel reads stay the same whatever screen the test Mac's window is on
+@MainActor
+func renderedBitmap(_ view: NSView, scale: CGFloat = 2) -> NSBitmapImageRep? {
+    guard let rep = NSBitmapImageRep(bitmapDataPlanes: nil,
+                                     pixelsWide: Int(view.bounds.width * scale),
+                                     pixelsHigh: Int(view.bounds.height * scale),
+                                     bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                                     colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)
+    else { return nil }
+    rep.size = view.bounds.size
+    view.cacheDisplay(in: view.bounds, to: rep)
+    return rep
+}
+
 // A view in an invisible window that a test drives through its AppKit
 // controls and its model, then reads back as drawn text
 @MainActor
@@ -48,16 +63,12 @@ final class UIHost {
     }
 
     func bitmap() throws -> NSBitmapImageRep {
-        let frame = window.contentView!
-        let rep = try #require(frame.bitmapImageRepForCachingDisplay(in: frame.bounds))
-        frame.cacheDisplay(in: frame.bounds, to: rep)
-        return rep
+        try #require(renderedBitmap(window.contentView!))
     }
 
     func texts(named name: String? = nil) throws -> [String] {
         let frame = window.contentView?.superview ?? window.contentView!
-        let rep = try #require(frame.bitmapImageRepForCachingDisplay(in: frame.bounds))
-        frame.cacheDisplay(in: frame.bounds, to: rep)
+        let rep = try #require(renderedBitmap(frame))
         if let name, let folder = ProcessInfo.processInfo.environment["CARTOUCHE_SNAPSHOTS"] {
             let dark = window.appearance?.name == .darkAqua
             let url = URL(filePath: folder).appending(path: "\(name)-\(dark ? "dark" : "light").png")
@@ -65,11 +76,7 @@ final class UIHost {
             try? rep.representation(using: .png, properties: [:])?.write(to: url)
         }
         let image = try #require(rep.cgImage)
-        let request = VNRecognizeTextRequest()
-        request.recognitionLevel = .accurate
-        request.usesLanguageCorrection = false
-        try VNImageRequestHandler(cgImage: image).perform([request])
-        return (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
+        return try recognizedTexts(in: image)
     }
 
     // Waits until the drawn text shows this, up to a limit

@@ -273,7 +273,7 @@ struct DownloadRing: View {
             if let action {
                 Button(action: action) { ring }
                     .buttonStyle(.plain)
-                    .onHover { hovering = $0 }
+                    .trackHover { hovering = $0 }
                     .disabled(mark == .failed || !live)
                     .help(Text(helpText))
                     .accessibilityLabel(Text(helpText))

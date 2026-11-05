@@ -27,6 +27,8 @@ struct CartoucheApp: App {
     @State var stores: StoreCenter
     @State var verification = GameVerificationCenter()
     @State var crashReports = CrashReportCenter()
+    @State var resources = ResourceMonitor()
+    @State var whatsNew = WhatsNewModel()
     @State private var agents: AgentControlModel
     @AppStorage(GeneralSettings.showInMenuBarKey) private var showInMenuBar = true
     @AppStorage(AfterLaunch.key) var afterLaunch = AfterLaunch.hide
@@ -80,12 +82,19 @@ struct CartoucheApp: App {
                 .environment(consoleCenter)
                 .environment(controls)
                 .environment(crashReports)
+                .environment(resources)
                 .controlsSheet(controls)
+                .overlay {
+                    BackgroundAppsOverlay(monitor: resources, presenter: .shared, gameName: ActivityCenter.shared.playing?.name)
+                }
                 .frame(minWidth: 800, minHeight: 560)
                 .permissionExplanations(permissionFlow)
                 .sheet(isPresented: Binding(get: { onboarding?.isPresented ?? false },
                                             set: { onboarding?.isPresented = $0 })) {
                     if let onboarding { OnboardingView(model: onboarding).interactiveDismissDisabled() }
+                }
+                .sheet(item: $whatsNew.shown) { release in
+                    WhatsNewView(release: release) { whatsNew.shown = nil }
                 }
                 .environment(status)
                 .environment(performance)
@@ -125,6 +134,7 @@ struct CartoucheApp: App {
                 .environment(agents)
                 .environment(status)
                 .environment(prefixes)
+                .environment(resources)
                 .onChange(of: status.snapshot?.installedRunners.map(\.id)) {
                     if prefixes.hasLoaded { Task { await prefixes.load() } }
                     Task { await loadRunners() }
@@ -141,7 +151,7 @@ struct CartoucheApp: App {
         // into the defaults would refresh the scene again, endlessly
         MenuBarExtra(isInserted: Binding(get: { showInMenuBar },
                                          set: { if $0 != showInMenuBar { showInMenuBar = $0 } })) {
-            StatusItemMenu(model: library, actions: actions)
+            StatusItemMenu(model: library, actions: actions, resources: resources)
         } label: {
             if NSImage(named: "MenuBarGlyph") != nil {
                 Image("MenuBarGlyph")

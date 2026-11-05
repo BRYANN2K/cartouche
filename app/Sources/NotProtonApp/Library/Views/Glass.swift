@@ -58,9 +58,13 @@ enum Glass {
     static let fill = Color(light: .init(white: 0, alpha: 0.05), dark: .init(white: 1, alpha: 0.08))
     static let fill2 = Color(light: .init(white: 0, alpha: 0.09), dark: .init(white: 1, alpha: 0.14))
     static let separator = Color(light: .init(white: 0, alpha: 0.08), dark: .init(white: 1, alpha: 0.09))
-    static let label2 = Color(nsColor: .secondaryLabelColor)
+    // Secondary text keeps 4.5:1 on the window in both modes; tertiary is for what is turned off
+    static let label2 = Color(light: .init(srgbRed: 60 / 255, green: 60 / 255, blue: 67 / 255, alpha: 0.82),
+                              dark: .init(srgbRed: 235 / 255, green: 235 / 255, blue: 245 / 255, alpha: 0.84))
     static let label3 = Color(nsColor: .tertiaryLabelColor)
     static let edge = Color(light: .init(white: 0, alpha: 0.08), dark: .init(white: 1, alpha: 0.12))
+    // The accent the player picked in System Settings: red stays for failures and destructive actions
+    static let accentFill = Color.accentColor
 }
 
 extension Color {
@@ -121,9 +125,9 @@ private struct ProminentButton: ViewModifier {
 
     func body(content: Content) -> some View {
         if #available(macOS 26, *), mode == .liquid {
-            content.buttonStyle(.glassProminent)
+            content.buttonStyle(.glassProminent).tint(Glass.accentFill)
         } else {
-            content.buttonStyle(.borderedProminent)
+            content.buttonStyle(.borderedProminent).tint(Glass.accentFill)
         }
     }
 }
@@ -158,7 +162,7 @@ struct PillButtonStyle: ButtonStyle {
             .foregroundStyle(prominent ? Color.white : Color.primary)
             .padding(.horizontal, 12)
             .padding(.vertical, 3)
-            .background(prominent ? Color.accentColor : Glass.fill2, in: .capsule)
+            .background(prominent ? Glass.accentFill : Glass.fill2, in: .capsule)
             .scaleEffect(configuration.isPressed ? 0.96 : 1)
             .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
             .contentShape(.capsule)
@@ -168,9 +172,10 @@ struct PillButtonStyle: ButtonStyle {
 // Round actions share the system glass interaction.
 struct RoundGlassStyle: ButtonStyle {
     var size: CGFloat = 34
+    var on = false
 
     func makeBody(configuration: Configuration) -> some View {
-        RoundGlassBody(label: configuration.label, pressed: configuration.isPressed, size: size)
+        RoundGlassBody(label: configuration.label, pressed: configuration.isPressed, size: size, on: on)
     }
 }
 
@@ -178,6 +183,7 @@ private struct RoundGlassBody<Label: View>: View {
     let label: Label
     let pressed: Bool
     let size: CGFloat
+    var on = false
 
     @Environment(\.glassMode) private var mode
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
@@ -188,11 +194,14 @@ private struct RoundGlassBody<Label: View>: View {
 
     var body: some View {
         let core = label
-            .foregroundStyle(Color.primary)
+            .foregroundStyle(on ? Color.white : Color.primary)
             .frame(width: size, height: size)
             .contentShape(.circle)
         Group {
-            if reduceTransparency || contrast == .increased {
+            if on {
+                core.background(Glass.accentFill, in: .circle)
+                    .scaleEffect(pressed && !reduceMotion ? 0.96 : 1)
+            } else if reduceTransparency || contrast == .increased {
                 core.background(Color(nsColor: .controlBackgroundColor), in: .circle)
                     .overlay { Circle().strokeBorder(Glass.edge, lineWidth: 1) }
             } else if #available(macOS 26, *), mode == .liquid {
@@ -207,43 +216,48 @@ private struct RoundGlassBody<Label: View>: View {
     }
 }
 
-// The panel's primary action keeps a solid fallback for accessibility and older systems.
+// The panel's primary action, as Apple TV's Play: the label colour as a solid fill, its text inverted; Stop and the menu are neutral
 struct PlayCapsuleStyle: ButtonStyle {
-    var tint: Color = .accentColor
+    var neutral = false
 
     func makeBody(configuration: Configuration) -> some View {
-        PlayCapsuleBody(label: configuration.label, pressed: configuration.isPressed, tint: tint)
+        PlayCapsuleBody(label: configuration.label, pressed: configuration.isPressed, neutral: neutral)
     }
 }
 
 private struct PlayCapsuleBody<Label: View>: View {
     let label: Label
     let pressed: Bool
-    let tint: Color
+    let neutral: Bool
 
-    @Environment(\.glassMode) private var mode
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.accessibilityShowBorders) private var showBorders
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        let core = label
-            .font(.system(size: 14, weight: .semibold))
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity)
-            .frame(height: 38)
-            .contentShape(.capsule)
+        let dark = scheme == .dark
+        // The label draws in the opposite scheme, so a spinner inside stays dark on white and light on black
+        let inverted = label.environment(\.colorScheme, dark ? .light : .dark)
         Group {
-            if #available(macOS 26, *), mode == .liquid, !reduceTransparency, contrast != .increased {
-                core.glassEffect(.regular.tint(tint).interactive(isEnabled), in: .capsule)
+            if neutral {
+                label.foregroundStyle(Color.primary)
             } else {
-                core.background(tint, in: .capsule)
-                    .brightness(pressed ? -0.08 : 0)
+                inverted.foregroundStyle(dark ? Color.black : Color.white)
             }
         }
-        .overlay { if showBorders { Capsule().strokeBorder(Color.primary, lineWidth: 1) } }
-        .opacity(isEnabled ? 1 : 0.45)
+            .font(.system(size: 13, weight: .semibold))
+            .padding(.horizontal, 16)
+            .frame(maxWidth: .infinity)
+            .frame(height: 36)
+            // Disabled, only the fill fades: the inverted label stays solid and readable on it
+            .background(neutral ? Glass.fill2 : (dark ? Color.white : Color.black).opacity(isEnabled ? 1 : 0.6), in: .capsule)
+            .contentShape(.capsule)
+            .brightness(pressed && !neutral ? (dark ? -0.12 : 0.2) : 0)
+            .scaleEffect(pressed && !reduceMotion ? 0.97 : 1)
+            .animation(.easeOut(duration: 0.12), value: pressed)
+            .overlay { if showBorders { Capsule().strokeBorder(Color.primary, lineWidth: 1) } }
+            .opacity(isEnabled || !neutral ? 1 : 0.45)
     }
 }
 
@@ -298,7 +312,7 @@ private struct SheetButtonBody<Label: View>: View {
             .foregroundStyle(prominent ? Color.white : Color.primary)
             .padding(.horizontal, 16)
             .frame(minHeight: 30)
-            .background(prominent ? Color.accentColor : Glass.fill2, in: .capsule)
+            .background(prominent ? Glass.accentFill : Glass.fill2, in: .capsule)
             .contentShape(.capsule)
             .opacity(isEnabled ? 1 : 0.45)
             .scaleEffect(pressed ? 0.96 : 1)
@@ -493,13 +507,7 @@ private struct BigCapsuleBody<Label: View>: View {
             .foregroundStyle(.white)
             .padding(.horizontal, 22)
             .frame(height: 40)
-            .background(Color.accentColor.opacity(0.88), in: .capsule)
-            .overlay {
-                Capsule().strokeBorder(
-                    LinearGradient(colors: [.white.opacity(0.3), .white.opacity(0)], startPoint: .top, endPoint: .center),
-                    lineWidth: 1)
-            }
-            .shadow(color: Color.accentColor.opacity(0.35), radius: 9, y: 6)
+            .background(Glass.accentFill, in: .capsule)
             .contentShape(.capsule)
             .opacity(isEnabled ? 1 : 0.75)
             .scaleEffect(pressed ? 0.97 : 1)

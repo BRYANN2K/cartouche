@@ -568,16 +568,14 @@ extension AgentTools {
         ])
     }
 
+    static let fileRefusal = "no such file in Cartouche's folders or the ones you granted"
+
+    // Containment first and one error for every refusal: nothing tells an agent whether a path outside exists.
     static func fileArg(_ args: JSONValue, in backend: AgentBackend) throws -> URL {
-        let raw = try args.require("path")
-        let url = URL(filePath: raw)
-        var isDirectory: ObjCBool = false
-        guard FileManager.default.fileExists(atPath: url.path(percentEncoded: false),
-                                             isDirectory: &isDirectory) else {
-            throw AgentToolError("no such file: \(raw)")
-        }
-        guard AgentScan.contains(url, in: backend.roots.allowed) else {
-            throw AgentToolError("Cartouche may not read outside its own folders and the ones you granted")
+        let url = URL(filePath: try args.require("path"))
+        guard AgentScan.contains(url, in: backend.roots.allowed),
+              FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) else {
+            throw AgentToolError(fileRefusal)
         }
         return url
     }

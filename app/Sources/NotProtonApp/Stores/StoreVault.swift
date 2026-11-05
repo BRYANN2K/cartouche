@@ -16,7 +16,24 @@ protocol TokenVault: Sendable {
     func delete(_ store: GameSource) throws
 }
 
-// One generic password per store, readable only while the Mac is unlocked, never synced; in the data protection keychain when the build is entitled to it.
+// A Keychain item: the data protection keychain when the build is entitled to it, else the login keychain.
+protocol SecretItem {
+    func read() throws -> Data?
+    func write(_ data: Data) throws
+    func delete() throws
+}
+
+struct KeychainItem: SecretItem {
+    var query: [String: Any]
+    var attributes: [String: Any]
+
+    func read() throws -> Data? { try Keychain.readMigrating(query, attributes: attributes) }
+    func write(_ data: Data) throws { try Keychain.writeProtected(data, matching: query, attributes: attributes) }
+    func delete() throws { try Keychain.deleteEverywhere(query) }
+}
+
+// One generic password item for every store, readable only while the Mac is unlocked, never synced; an ad hoc
+// build's signature changes each version, so one item asks once where per-store items would ask once each.
 struct KeychainVault: TokenVault {
 
     // QA sign-ins use their own service so the real Keychain items are never read
@@ -26,6 +43,13 @@ struct KeychainVault: TokenVault {
 
     var service = KeychainVault.service
 
+    var groupedQuery: [String: Any] {
+        [kSecClass as String: kSecClassGenericPassword,
+         kSecAttrService as String: service,
+         kSecAttrAccount as String: "stores"]
+    }
+
+    // Per-store items of older builds; their contents move into the shared item once read
     func query(_ store: GameSource) -> [String: Any] {
         [kSecClass as String: kSecClassGenericPassword,
          kSecAttrService as String: service,
@@ -38,20 +62,60 @@ struct KeychainVault: TokenVault {
          kSecAttrLabel as String: "Cartouche store sign-in"]
     }
 
+    private var grouped: any SecretItem { KeychainItem(query: groupedQuery, attributes: attributes(Data())) }
+    private func legacy(_ store: GameSource) -> any SecretItem {
+        KeychainItem(query: query(store), attributes: attributes(Data()))
+    }
+
     func read(_ store: GameSource) throws -> StoreSecret? {
-        // A login-keychain item from an older build moves to the data protection keychain here, once
-        let data = try run { try Keychain.readMigrating(query(store), attributes: attributes(Data())) }
-        guard let data else { return nil }
-        return try JSONDecoder().decode(StoreSecret.self, from: data)
+        try run { try Self.read(store, grouped: grouped, legacy: legacy(store)) }
     }
 
     func write(_ secret: StoreSecret, for store: GameSource) throws {
-        let data = try JSONEncoder().encode(secret)
-        try run { try Keychain.writeProtected(data, matching: query(store), attributes: attributes(data)) }
+        try run { try Self.write(secret, for: store, grouped: grouped, legacy: legacy(store)) }
     }
 
     func delete(_ store: GameSource) throws {
-        try run { try Keychain.deleteEverywhere(query(store)) }
+        try run { try Self.delete(store, grouped: grouped, legacy: legacy(store)) }
+    }
+
+    static func read(_ store: GameSource, grouped: any SecretItem, legacy: any SecretItem) throws -> StoreSecret? {
+        var secrets = try all(grouped)
+        if let secret = secrets[store.id] { return secret }
+        guard let data = try legacy.read() else { return nil }
+        let secret = try JSONDecoder().decode(StoreSecret.self, from: data)
+        secrets[store.id] = secret
+        do {
+            try write(secrets, to: grouped)
+            if try all(grouped)[store.id] == secret { try? legacy.delete() }
+        } catch {
+            // The per-store item stays; the next read tries again
+        }
+        return secret
+    }
+
+    static func write(_ secret: StoreSecret, for store: GameSource, grouped: any SecretItem, legacy: any SecretItem) throws {
+        var secrets = try all(grouped)
+        secrets[store.id] = secret
+        try write(secrets, to: grouped)
+        // An older per-store copy would otherwise come back once this entry is deleted
+        try? legacy.delete()
+    }
+
+    static func delete(_ store: GameSource, grouped: any SecretItem, legacy: any SecretItem) throws {
+        var secrets = try all(grouped)
+        secrets[store.id] = nil
+        if secrets.isEmpty { try grouped.delete() } else { try write(secrets, to: grouped) }
+        try? legacy.delete()
+    }
+
+    private static func all(_ item: any SecretItem) throws -> [String: StoreSecret] {
+        guard let data = try item.read() else { return [:] }
+        return try JSONDecoder().decode([String: StoreSecret].self, from: data)
+    }
+
+    private static func write(_ secrets: [String: StoreSecret], to item: any SecretItem) throws {
+        try item.write(try JSONEncoder().encode(secrets))
     }
 
     private func run<T>(_ body: () throws -> T) throws -> T {

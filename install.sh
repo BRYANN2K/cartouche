@@ -10,7 +10,7 @@
 set -eu
 
 # SHA-1 of the certificate that signs every release (docs/RELEASE.md)
-cert_sha1=b3c04999a68c1411b8b412aace337634cdced059
+cert_sha1=4159b64dc034836b66dc323fb650ddd8d8b46d86
 bundle_id=dev.bryann2k.cartouche
 
 release=${CARTOUCHE_RELEASE_URL:-https://github.com/BRYANN2K/cartouche/releases/latest/download}

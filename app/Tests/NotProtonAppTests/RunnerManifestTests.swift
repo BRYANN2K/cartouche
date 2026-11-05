@@ -102,7 +102,12 @@ struct RunnerManifestTests {
         #expect(latest.origin == .cartouche && latest.isPinned && !latest.isPending)
         #expect(latest.size == 271_814_416)
         #expect(latest.sha256 == "59cf07facf9828d504b4c68fa5c02c5e18115835a7d57a0f46874fcc043136c1")
-        #expect(RunnerOffer.recommended(manifest)?.id == latest.id)
+        let newest = try #require(manifest.build(id: "wine-crossover-26.3.1"))
+        #expect(newest.origin == .cartouche && newest.isPinned && !newest.isPending)
+        #expect(newest.displayVersion == "26.3.1" && newest.root == "wine-crossover-26.3.1")
+        #expect(newest.size == 279_431_416)
+        #expect(newest.sha256 == "1dccd7e9b2164a17b6a413935e9c074d46692466d6b7f0aa0e93518fccd10443")
+        #expect(RunnerOffer.recommended(manifest)?.id == newest.id)
     }
 
     @Test("A pending pin decodes and is listed, but install refuses it before any download")

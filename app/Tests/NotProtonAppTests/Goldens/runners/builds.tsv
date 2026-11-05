@@ -1,0 +1,4 @@
+format 1 revision 7
+wine-crossover-26.3.1	cartouche	Cartouche Wine 26.3.1	wine-crossover-26.3.1-x86_64.tar.xz	flavors=rosetta	pinned=true	pending=false
+wine-crossover-26.3.0-1	cartouche	Cartouche Wine 26.3	wine-crossover-26.3.0-1-x86_64.tar.xz	flavors=rosetta,fex	pinned=true	pending=false
+wine-stable-11.0_1	winehq	Wine Stable 11.0	wine-stable-11.0-osx64.tar.xz	flavors=rosetta	pinned=false	pending=true

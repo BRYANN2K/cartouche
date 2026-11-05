@@ -19,9 +19,9 @@ Windows installers and installed-game folders SHALL enter through the unified Ad
 ### Requirement: Direct extraction for supported external unpackers
 For supported installers with external unpackers, Cartouche SHALL extract the parts through its own unpacker driver without executing setup.tmp or ISDone. Unknown formats SHALL retain the normal installer path or report unsupported extraction clearly. Support SHALL be based on verified recipes, not inferred from a .bin extension. Recipe evidence SHALL be distinguished from completed app integration.
 
-#### Scenario: Verified CarX Street recipe
-- **WHEN** the CarX Street test case is extracted with the CLS Init_MapFile_ driver and unarc.dll FreeArcExtract under WineHQ 11.18
-- **THEN** the direct recipe exits successfully, all 905 real files pass MD5 verification with zero mismatches, output totals 22,703,585,753 bytes, and CarX Street.exe is present; the malformed wildcard row is reported separately from real files
+#### Scenario: Verified Cobalt Street recipe
+- **WHEN** the Cobalt Street test case is extracted with the CLS Init_MapFile_ driver and unarc.dll FreeArcExtract under WineHQ 11.18
+- **THEN** the direct recipe exits successfully, all 905 real files pass MD5 verification with zero mismatches, output totals 22,703,585,753 bytes, and Cobalt Street.exe is present; the malformed wildcard row is reported separately from real files
 
 #### Scenario: No setup wrapper on direct path
 - **WHEN** the supported direct-unpack path runs
@@ -118,7 +118,7 @@ After a successful install the game SHALL appear in the library with its executa
 An installed Windows game SHALL use local GOG/Steam identity first, then installer title, engine metadata, PE product information, executable and folder names to find a Steam App ID. Steam store lookups SHALL run only when Fetch Mac reports from MacGamingDB permits online lookups. A match SHALL bring the cover, compatibility data and recommended setup; no match SHALL use a name-and-icon placeholder. A user cover choice SHALL take priority.
 
 #### Scenario: Matched by installer title
-- **WHEN** an Inno installer titled "CarX Street" is analyzed
+- **WHEN** an Inno installer titled "Cobalt Street" is analyzed
 - **THEN** the game is matched to its Steam App ID and the review step shows its Steam cover
 
 #### Scenario: GOG installer
@@ -201,7 +201,7 @@ The game menu SHALL offer Verify Files… for later verification, including when
 - **THEN** the files are checked against it and verified status is granted only on success
 
 ### Requirement: Output-preserving optimizations
-Optimizations SHALL change speed only, not output. Native helper replacements SHALL be selected only for exact helper versions matched by a hash allowlist; unknown versions SHALL use the shipped Windows helpers. Each optimization SHALL produce byte-identical output on the local regression corpus, including the user-owned CarX Street, Lost in Random and Silksong RAR cases where applicable. Corpus files and verification data SHALL never leave the Mac.
+Optimizations SHALL change speed only, not output. Native helper replacements SHALL be selected only for exact helper versions matched by a hash allowlist; unknown versions SHALL use the shipped Windows helpers. Each optimization SHALL produce byte-identical output on the local regression corpus, including the user-owned Cobalt Street, Lost in Random and Silksong RAR cases where applicable. Corpus files and verification data SHALL never leave the Mac.
 
 #### Scenario: Unknown helper hash
 - **WHEN** a helper version is not an exact hash-allowlist match

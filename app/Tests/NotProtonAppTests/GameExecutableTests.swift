@@ -24,27 +24,27 @@ struct GameExecutableTests {
     func importedChoices() throws {
         let work = try scratchDirectory("exe-choices")
         defer { try? FileManager.default.removeItem(at: work) }
-        let game = work.appending(path: "CarX Street")
-        try write(3000, to: game.appending(path: "CarX Street.exe"))
-        try write(2000, to: game.appending(path: "CarX Street Launcher.exe"))
+        let game = work.appending(path: "Cobalt Street")
+        try write(3000, to: game.appending(path: "Cobalt Street.exe"))
+        try write(2000, to: game.appending(path: "Cobalt Street Launcher.exe"))
         try write(500, to: game.appending(path: "unins000.exe"))
         try write(800, to: game.appending(path: "_Redist/vcredist_x64.exe"))
         try write(900, to: game.appending(path: "EasyAntiCheat/EasyAntiCheat_Setup.exe"))
         let record = InstalledGame(
-            id: "carx-street", name: "CarX Street", appID: nil, gogID: nil, runnerID: "r", graphics: nil,
-            wineVersion: nil, wineRunnerKind: nil, prefix: work.appending(path: "installs/carx-street/pfx").path,
-            exe: game.appending(path: "CarX Street.exe").path, installedAt: Date(),
+            id: "cobalt-street", name: "Cobalt Street", appID: nil, gogID: nil, runnerID: "r", graphics: nil,
+            wineVersion: nil, wineRunnerKind: nil, prefix: work.appending(path: "installs/cobalt-street/pfx").path,
+            exe: game.appending(path: "Cobalt Street.exe").path, installedAt: Date(),
             installerFolder: game.path, redistributables: [], gameFolder: game.path)
 
         let options = GameExecutable.options(for: record)
-        #expect(options.choices.map(\.name) == ["CarX Street.exe", "CarX Street Launcher.exe"])
+        #expect(options.choices.map(\.name) == ["Cobalt Street.exe", "Cobalt Street Launcher.exe"])
         #expect(options.choices.map(\.isLauncher) == [false, true])
         #expect(GameExecutable.isCurrent(options.choices[0], record.exeURL))
 
         // A current program the scan leaves out is still listed, first
         let odd = game.appending(path: "bin/odd.exe")
         let listed = GameExecutable.listed(options, current: odd)
-        #expect(listed.map(\.name) == ["bin/odd.exe", "CarX Street.exe", "CarX Street Launcher.exe"])
+        #expect(listed.map(\.name) == ["bin/odd.exe", "Cobalt Street.exe", "Cobalt Street Launcher.exe"])
         #expect(GameExecutable.listed(options, current: record.exeURL) == options.choices)
     }
 

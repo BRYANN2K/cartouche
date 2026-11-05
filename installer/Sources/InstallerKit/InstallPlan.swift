@@ -3,7 +3,7 @@ import Foundation
 
 public enum GameName {
 
-    // "CarX Street [Offline Installer]" → "CarX Street" "The Witcher 3 Wild Hunt GOTY (Offline Installer) v4.04 + 2 DLCs" → "The Witcher 3 Wild Hunt GOTY"
+    // "Cobalt Street [Offline Installer]" → "Cobalt Street" "The Witcher 3 Wild Hunt GOTY (Offline Installer) v4.04 + 2 DLCs" → "The Witcher 3 Wild Hunt GOTY"
     public static func clean(_ folder: String) -> String {
         // "Stardew.Valley.1.6.8": a dotted version ends the name, before dots become spaces
         var s = folder.replacing(/[\s._-]v?\d+(\.\d+)+\b.*$/, with: "")

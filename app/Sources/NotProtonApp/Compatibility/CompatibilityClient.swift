@@ -70,8 +70,8 @@ struct CompatibilityClient: Sendable {
         try? atomicReplace(stateFile, with: data, step: "compatibility")
     }
 
-    func refresh(now: Date, schema: CompatSchema) async -> Outcome {
-        if let last = lastContact(), now.timeIntervalSince(last) < 24 * 3600, now >= last {
+    func refresh(now: Date, schema: CompatSchema, force: Bool = false) async -> Outcome {
+        if !force, let last = lastContact(), now.timeIntervalSince(last) < 24 * 3600, now >= last {
             return .skipped
         }
         guard let feed else { return .unavailable(status: 0) }

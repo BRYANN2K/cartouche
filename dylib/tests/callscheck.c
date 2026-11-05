@@ -31,16 +31,16 @@ static void reset(void) {
     struct segment_command_64 *text = (void *)(mh + 1);
     text->cmd = LC_SEGMENT_64;
     text->cmdsize = sizeof(*text) + 2 * sizeof(struct section_64);
-    strcpy(text->segname, "__TEXT");
+    snprintf(text->segname, sizeof(text->segname), "%s", "__TEXT");
     text->vmsize = text->filesize = 0x2000;
     text->nsects = 2;
     struct section_64 *sections = (void *)(text + 1);
-    strcpy(sections[0].segname, "__TEXT");
-    strcpy(sections[0].sectname, "__text");
+    snprintf(sections[0].segname, sizeof(sections[0].segname), "%s", "__TEXT");
+    snprintf(sections[0].sectname, sizeof(sections[0].sectname), "%s", "__text");
     sections[0].addr = 0x400;
     sections[0].size = 0x1400;
-    strcpy(sections[1].segname, "__TEXT");
-    strcpy(sections[1].sectname, "__stubs");
+    snprintf(sections[1].segname, sizeof(sections[1].segname), "%s", "__TEXT");
+    snprintf(sections[1].sectname, sizeof(sections[1].sectname), "%s", "__stubs");
     sections[1].addr = 0x1800;
     sections[1].size = 24;
     sections[1].flags = S_SYMBOL_STUBS;
@@ -48,7 +48,7 @@ static void reset(void) {
     struct segment_command_64 *le = (void *)((unsigned char *)text + text->cmdsize);
     le->cmd = LC_SEGMENT_64;
     le->cmdsize = sizeof(*le);
-    strcpy(le->segname, "__LINKEDIT");
+    snprintf(le->segname, sizeof(le->segname), "%s", "__LINKEDIT");
     le->vmaddr = le->fileoff = 0x2000;
     le->vmsize = le->filesize = 0x1000;
     struct symtab_command *sym = (void *)(le + 1);
@@ -103,8 +103,8 @@ static void split_prologue_at_400(void) {
 static void check(const char *label, int exact, uintptr_t expected) {
     np_anchor_t anchor = {.kind = NP_MATCH_CALLS, .call_count = 2,
                           .calls_exact = exact, .no_data_refs = 1};
-    strcpy(anchor.calls[0], "_first");
-    strcpy(anchor.calls[1], "_second");
+    snprintf(anchor.calls[0], sizeof(anchor.calls[0]), "%s", "_first");
+    snprintf(anchor.calls[1], sizeof(anchor.calls[1]), "%s", "_second");
     uintptr_t base = (uintptr_t)image;
     uintptr_t got = np_locate_anchor((void *)image, (intptr_t)base, base, 0x2000, &anchor);
     if (got) got -= base;
@@ -131,7 +131,7 @@ static void four_functions(void) {
 
 static void check_string(const char *label, int hops, int tail, uintptr_t expected) {
     np_anchor_t anchor = {.kind = NP_MATCH_STRING, .caller_hops = hops, .caller_tail = tail};
-    strcpy(anchor.str, "needle");
+    snprintf(anchor.str, sizeof(anchor.str), "%s", "needle");
     uintptr_t base = (uintptr_t)image;
     uintptr_t got = np_locate_anchor((void *)image, (intptr_t)base, base, 0x2000, &anchor);
     if (got) got -= base;

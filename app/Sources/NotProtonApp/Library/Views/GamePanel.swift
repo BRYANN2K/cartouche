@@ -20,6 +20,7 @@ struct GamePanel: View {
     @Environment(StoreCenter.self) private var stores: StoreCenter?
     @Environment(ContributionsModel.self) private var contributions: ContributionsModel?
     @Environment(\.gameVerification) private var verification
+    @Environment(\.playTop) private var playTop
 
     private var content: GamePanelContent {
         GamePanelContent(game: game, compat: compat.panel(appID: game.steamAppID ?? game.compatAppID ?? -1, method: game.version == .mac ? .native : .wine),
@@ -46,13 +47,8 @@ struct GamePanel: View {
         return content
     }
 
-    private var showsAdvanced: Bool {
-        guard game.console == nil else { return false }
-        let setup = model.resolution(for: game).setup
-        guard setup.version == .windows else { return false }
-        return !AdvancedSupport.options(runner: setup.runner, backend: setup.backend,
-                                       translation: setup.translation, availability: model.backendAvailability).isEmpty
-    }
+    // Avancé holds the game's profile, so every installed PC game has one
+    private var showsAdvanced: Bool { game.console == nil && game.installed }
 
     var body: some View {
         let content = content
@@ -108,48 +104,39 @@ struct GamePanel: View {
             VStack(alignment: .leading, spacing: 0) {
                 panelHero
                 VStack(alignment: .leading, spacing: 0) {
+                    // Title and one metadata line, nothing else: Play sits at the same height for every game
                     VStack(alignment: .leading, spacing: 2) {
                         HStack(spacing: 8) {
                             Text(game.name)
-                            .font(.system(size: 22, weight: .bold))
-                            .tracking(-0.44)
+                            .font(.system(size: 20, weight: .semibold))
+                            .tracking(-0.24)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
                             .textSelection(.enabled)
+                            .help(Text(verbatim: game.name))
                             if game.source == .installer && game.installed {
                                 GameVerificationBadge(game: game)
                             }
                         }
-                        Text(consoleContent?.subtitle() ?? content.metadataLine())
-                            .font(.system(size: 12))
+                        if game.console == nil && running {
+                            HStack(spacing: 6) {
+                                Circle().fill(Color.green).frame(width: 6, height: 6)
+                                Text("Playing")
+                            }
+                            .font(.system(size: 13))
                             .foregroundStyle(Glass.label2)
                             .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-                            .help(content.storageLine ?? "")
-                        if let notice = content.compat.ageNotice {
-                            Text(notice)
-                                .font(.system(size: 11))
-                                .foregroundStyle(Color.orange)
-                                .padding(.top, 4)
+                        } else {
+                            Text(consoleContent?.subtitle() ?? content.metadataLine())
+                                .font(.system(size: 13))
+                                .foregroundStyle(Glass.label2)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                                .help(content.storageLine ?? "")
                         }
                     }
                     .padding(.top, 4)
                     .padding(.bottom, 14)
-                    if game.source == .installer && game.installed {
-                        if verification?.progress(for: game.id) != nil {
-                            GameVerificationRow(game: game)
-                        }
-                        if let suggested = model.nameSuggestions[game.id] {
-                            HStack {
-                                Text(String(localized: "Identified as \(suggested)?"))
-                                    .font(.system(size: 12))
-                                    .foregroundStyle(Glass.label2)
-                                Spacer()
-                                Button(String(localized: "Rename")) { model.rename(game, to: suggested) }
-                                    .buttonStyle(.pill)
-                                    .controlSize(.small)
-                            }
-                            .padding(.bottom, 14)
-                        }
-                    }
                     if let console = game.console, let consoles, let consoleContent {
                         ConsolePanel(game: game, console: console, content: consoleContent, center: consoles,
                                      model: model, actions: actions, showingMore: $showingMore, showingJoin: $showingJoin)
@@ -161,11 +148,13 @@ struct GamePanel: View {
                                 CommunityBlock(game: game, model: model, compat: compat, contributions: contributions)
                             }
                             block(section, content)
+                            if section == .play { installerNotes }
                         }
                     }
                 }
                 .padding(EdgeInsets(top: 6, leading: 16, bottom: 20, trailing: 16))
             }
+            .coordinateSpace(.named("gamePanel"))
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .scrollIndicators(.never)
@@ -176,6 +165,29 @@ struct GamePanel: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .id(game.id)
         .transition(.opacity)
+    }
+
+    // Below Play, never above it
+    @ViewBuilder
+    private var installerNotes: some View {
+        if game.source == .installer && game.installed {
+            if verification?.progress(for: game.id) != nil {
+                GameVerificationRow(game: game)
+                    .padding(.bottom, 14)
+            }
+            if let suggested = model.nameSuggestions[game.id] {
+                HStack {
+                    Text(String(localized: "Identified as \(suggested)?"))
+                        .font(.system(size: 12))
+                        .foregroundStyle(Glass.label2)
+                    Spacer()
+                    Button(String(localized: "Rename")) { model.rename(game, to: suggested) }
+                        .buttonStyle(.pill)
+                        .controlSize(.small)
+                }
+                .padding(.bottom, 14)
+            }
+        }
     }
 
     @ViewBuilder
@@ -215,15 +227,28 @@ struct GamePanel: View {
                                 ProgressView().controlSize(.small)
                                 Text("Launching…")
                             }
+                        } else if running {
+                            Text(content.actionLabel(running: true))
                         } else {
-                            Label(content.actionLabel(running: running),
-                                  systemImage: running ? "stop.fill" : (game.installed ? "play.fill" : "arrow.down"))
+                            Label(content.actionLabel(running: false), systemImage: game.installed ? "play.fill" : "arrow.down")
                         }
                     }
-                    .buttonStyle(PlayCapsuleStyle(tint: running ? .red : .accentColor))
-                    .couchRing(controls?.couch.ringsPlay == true, radius: 19)
+                    .buttonStyle(PlayCapsuleStyle(neutral: running))
+                    .couchRing(controls?.couch.ringsPlay == true, radius: 18)
                     .disabled(launching || (!game.installed && model.isOffline))
                     .help(!game.installed && model.isOffline ? Text("Connect to the internet to download") : Text(verbatim: ""))
+                    if running && game.console == nil {
+                        Button {
+                            OverlayController.shared.openForRunningGame(id: game.id)
+                        } label: {
+                            HStack(spacing: 6) {
+                                Text("In-Game Menu")
+                                PageKeyCap(OverlayHotkey.stored()?.label ?? HotkeyCombo.optionC.label)
+                            }
+                        }
+                        .buttonStyle(PlayCapsuleStyle(neutral: true))
+                        .fixedSize(horizontal: true, vertical: false)
+                    }
                     Menu {
                         GameMenuContent(items: GameMenu.items(for: game, in: model, stores: stores, installs: actions.installs,
                                                               consoles: consoles, activity: activity)) { actions.perform($0, on: game) }
@@ -236,7 +261,8 @@ struct GamePanel: View {
                     .fixedSize()
                     .accessibilityLabel(Text("More"))
                 }
-                .padding(.bottom, 22)
+                .onGeometryChange(for: CGFloat.self) { $0.frame(in: .named("gamePanel")).minY } action: { playTop?($0) }
+                .padding(.bottom, 24)
             }
         case .yourPlay:
             if let play = content.play {
@@ -258,7 +284,7 @@ struct GamePanel: View {
         case .bios, .continueFrom, .playTogether, .more:
             EmptyView()
         case .advanced:
-            AdvancedGameRows(game: game, model: model)
+            AdvancedGameRows(game: game, model: model, running: running, antiCheat: model.antiCheatName(for: game))
         case .controls:
             if let controls {
                 group(section.title) { ControlsRow(game: game, center: controls) }
@@ -270,23 +296,31 @@ struct GamePanel: View {
                     EstimateRow(estimate: estimate)
                     Divider()
                 }
+                if let antiCheat = content.compat.antiCheat {
+                    AntiCheatRow(name: antiCheat.name)
+                    Divider()
+                }
                 HStack {
                     Text(estimate?.note ?? line ?? "").font(.system(size: 12)).foregroundStyle(Glass.label2)
                     Spacer()
                     Button("Details") { showingDetails = true }.buttonStyle(.pill)
                 }
-            }
-        case .antiCheat:
-            if let summary = content.compat.antiCheat {
-                group(section.title) {
-                    Label {
-                        Text(summary.title)
-                    } icon: {
-                        Image(systemName: summary.level == .blocked ? "xmark.shield" : summary.level == .onlineWorks ? "checkmark.shield" : "shield")
-                            .foregroundStyle(summary.level == .blocked ? Color.red : summary.level == .onlineWorks ? Color.green : Color.secondary)
+                if let notice = content.compat.ageNotice {
+                    HStack(spacing: 8) {
+                        Text(notice)
+                            .font(.system(size: 11))
+                            .foregroundStyle(Color.orange)
+                        Spacer()
+                        Button(String(localized: "Retry")) { Task { await compat.retry() } }
+                            .buttonStyle(.pill)
+                            .controlSize(.small)
+                            .disabled(compat.isRefreshing)
                     }
                 }
             }
+        case .antiCheat:
+            // A row of Expected on This Mac; the Linux verdict lives in Details
+            EmptyView()
         case .graphics:
             group(section.title) {
                 ForEach(content.layers) { layer in
@@ -383,6 +417,30 @@ struct EstimateRow: View {
     }
 }
 
+struct AntiCheatRow: View {
+    let name: String
+
+    static var reason: String { ot("Off and DLSS only, unless Cartouche Engine is on.") }
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "lock")
+                .foregroundStyle(Glass.label2)
+            Text("Anti-Cheat")
+            Text(verbatim: "· \(name)")
+                .foregroundStyle(Glass.label2)
+                .truncationMode(.tail)
+        }
+        .font(.system(size: 12))
+        .lineLimit(1)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+        .help(Text(verbatim: Self.reason))
+        .accessibilityElement(children: .combine)
+        .accessibilityHint(Text(verbatim: Self.reason))
+    }
+}
+
 struct LayerRow: View {
     let layer: LayerReport
     let isBest: Bool
@@ -398,7 +456,7 @@ struct LayerRow: View {
             Text(GamePanelContent.reportCount(layer.count))
                 .font(.system(size: 11))
                 .monospacedDigit()
-                .foregroundStyle(Glass.label3)
+                .foregroundStyle(Glass.label2)
                 .frame(width: 70, alignment: .trailing)
         }
         .opacity(layer.count < 5 ? 0.6 : 1)

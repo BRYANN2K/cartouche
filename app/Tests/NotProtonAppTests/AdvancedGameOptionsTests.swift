@@ -14,13 +14,14 @@ struct AdvancedGameOptionsTests {
             let options = AdvancedSupport.options(runner: cx, backend: backend, translation: .rosetta, availability: availability, macOSMajor: 15)
             #expect(options.contains(.msync) && options.contains(.highResolution) && options.contains(.advertiseAVX))
             #expect(options.contains(.spatial) == (backend == .dxmt))
-            #expect(options.contains(.dlss) == (backend == .dxmt))
+            #expect(options.contains(.dlss) == (backend == .dxmt || backend == .d3dmetal))
             #expect(options.contains(.metalHUD) == (backend == .dxmt || backend == .d3dmetal))
             let winehq = AdvancedSupport.options(runner: hq, backend: backend, translation: .rosetta, availability: availability)
             #expect(!winehq.contains(.msync) && !winehq.contains(.spatial) && !winehq.contains(.advertiseAVX))
         }
         let fex = AdvancedSupport.options(runner: cx, backend: .dxmt, translation: .fex, availability: availability)
         #expect(!fex.contains(.advertiseAVX) && !fex.contains(.dlss) && !fex.contains(.spatial))
+        #expect(!AdvancedSupport.options(runner: cx, backend: .d3dmetal, translation: .fex, availability: availability).contains(.dlss))
         #expect(!AdvancedSupport.options(runner: cx, backend: .dxmt, translation: .rosetta, availability: .init()).contains(.dlss))
         #expect(AdvancedSupport.options(runner: nil, backend: .dxmt, translation: .rosetta, availability: availability).isEmpty)
     }
@@ -62,7 +63,13 @@ struct AdvancedGameOptionsTests {
         let metal = GameSetupResolver.resolve(GameSetupChoice(graphics: .d3dmetal, advanced: options), runners: [GameSetupTests.release],
             availability: .init(d3dMetalRunners: [GameSetupTests.release.id])).setup
         #expect(metal.environment["DXMT_ENABLE_NVEXT"] == nil && metal.environment["DXMT_METALFX_SPATIAL_SWAPCHAIN"] == nil)
-        let factor = AdvancedSupport.environment(.init(spatial: true, spatialFactor: 3), supported: [.spatial], existing: [:])
+        // The launch filter keeps MetalFX only for a game that ships DLSS
+        #expect(metal.environment["D3DM_ENABLE_METALFX"] == nil)
+        let metalDLSS = GameSetupResolver.resolve(GameSetupChoice(graphics: .d3dmetal, advanced: options), runners: [GameSetupTests.release],
+            availability: .init(d3dMetalRunners: [GameSetupTests.release.id]),
+            profile: LaunchProfile(settings: OverlaySettings(), dlss: true)).setup
+        #expect(metalDLSS.environment["D3DM_ENABLE_METALFX"] == "1")
+        let factor = AdvancedSupport.environment(.init(spatial: true, spatialFactor: 3), supported: [.spatial], backend: .dxmt, existing: [:])
         #expect(factor["DXMT_CONFIG"] == "d3d11.metalSpatialUpscaleFactor=2.0;")
     }
 
@@ -77,6 +84,19 @@ struct AdvancedGameOptionsTests {
         #expect(AdvancedSupport.nvExtensions(runner: runner, runners: work, backends: work) == nil)
         try Data().write(to: folder.appending(path: "nvngx.dll"))
         #expect(AdvancedSupport.nvExtensions(runner: runner, runners: work, backends: work) == folder)
+
+        let dxmt = BackendInstaller.folder(for: .dxmt, in: work).appending(path: "x86_64-windows")
+        let system32 = work.appending(path: "pfx/drive_c/windows/system32")
+        try FileManager.default.createDirectory(at: dxmt, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: system32, withIntermediateDirectories: true)
+        for name in ["nvngx.dll", "nvapi64.dll"] { try Data("dxmt".utf8).write(to: dxmt.appending(path: name)) }
+        try Data("dxmt".utf8).write(to: system32.appending(path: "nvngx.dll"))
+        try Data("other".utf8).write(to: system32.appending(path: "nvapi64.dll"))
+        let wine = WineRunner(root: work, loader: work.appending(path: "wine"), server: work.appending(path: "wineserver"), dllPath: "")
+        try SetupEnvironment.prepareNVExtensions(wine: wine, prefix: work.appending(path: "pfx"),
+                                                 environment: ["D3DM_ENABLE_METALFX": "1"], backends: work)
+        #expect(!FileManager.default.fileExists(atPath: system32.appending(path: "nvngx.dll").path))
+        #expect(FileManager.default.fileExists(atPath: system32.appending(path: "nvapi64.dll").path))
     }
 
     @Test func registryAndSessionFixtures() throws {

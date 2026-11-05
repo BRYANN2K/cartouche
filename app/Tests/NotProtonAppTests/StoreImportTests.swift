@@ -35,7 +35,8 @@ struct StoreImportTests {
         #expect(record.install.path.standardizedFileURL.path == dir.standardizedFileURL.path)
         #expect(scene.calls("legendary").contains("-y import Fennec \(dir.clientPath) --platform Windows"))
         #expect(scene.model.game("epic:Fennec")?.installed == true)
-        await scene.center.uninstall(try #require(scene.model.game("epic:Fennec")))
+        scene.center.uninstall(try #require(scene.model.game("epic:Fennec")))
+        #expect(await scene.waitForJobs())
         #expect(scene.center.record("epic:Fennec") == nil)
         #expect(FileManager.default.fileExists(atPath: dir.appending(path: "Binaries/Game.exe").path))
         // legendary forgets the game but keeps the files: the only uninstall it hears keeps them

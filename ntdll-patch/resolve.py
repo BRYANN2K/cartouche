@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Reads every per-build constant the ntdll detours need out of the binary, for
 # all archs. Internal development tool, ugly
-import hashlib, pathlib, struct, sys, re, bisect, capstone
+import hashlib, pathlib, struct, sys, re, capstone
 from capstone import x86 as X86, arm64 as A64
 
 ARCH = {0x8664: 'x86_64-windows', 0x14c: 'i386-windows', 0xaa64: 'aarch64-windows'}

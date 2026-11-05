@@ -138,6 +138,19 @@ struct RunnerUpdateTests {
         #expect(try Data(contentsOf: other.launcher) == untouched)
     }
 
+    @Test("Steam's stale mapping to the build a game was updated from never takes it back")
+    func noDowngradeFromSteam() throws {
+        #expect(RunnerUpdate.isDowngrade(from: "wine-crossover-26.3.1", to: "wine-crossover-26.3.0-2"))
+        #expect(RunnerUpdate.isDowngrade(from: "wine-crossover-26.3.0-2", to: "wine-crossover-26.3.0-1"))
+        #expect(!RunnerUpdate.isDowngrade(from: "wine-crossover-26.3.0-2", to: "wine-crossover-26.3.1"))
+        #expect(!RunnerUpdate.isDowngrade(from: "wine-crossover-26.3.1", to: "wine-devel-11.18"))
+        #expect(!RunnerUpdate.isDowngrade(from: nil, to: "wine-crossover-26.3.0-2"))
+        let source = try String(contentsOf: URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().appending(path: "Sources/NotProtonApp/Setup/LibrarySetup.swift"), encoding: .utf8)
+        let adopt = try #require(source.range(of: "func adoptSteamChoices"))
+        #expect(source[adopt.lowerBound...].prefix(1500).contains("RunnerUpdate.isDowngrade(from: choice.runnerID, to: steam.runnerID)"))
+    }
+
     @Test("Setups and the default naming the old build name the new one; others stay")
     func movesSetups() {
         var choices = LibraryChoices()

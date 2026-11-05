@@ -66,11 +66,12 @@ public enum WinePath {
         return name.isEmpty ? "Game" : name
     }
 
-    // C:\Games\X → <prefix>/drive_c/Games/X. Only drive C, which is inside the prefix. .lnk and registry paths are installer data: "." and ".." are dropped so the result can never leave drive_c.
+    // C:\Games\X → <prefix>/drive_c/Games/X. Only drive C, which is inside the prefix. .lnk and registry paths are installer data: a ".." segment would leave drive_c, so the whole path is refused.
     public static func unix(_ windows: String, prefix: URL) -> URL? {
         let path = windows.replacingOccurrences(of: "\\", with: "/")
         guard path.count >= 2, path.lowercased().hasPrefix("c:") else { return nil }
-        let rest = path.dropFirst(2).split(separator: "/").map(String.init).filter { $0 != "." && $0 != ".." }
+        let rest = path.dropFirst(2).split(separator: "/").map(String.init).filter { !$0.isEmpty && $0 != "." }
+        guard !rest.contains("..") else { return nil }
         return rest.reduce(prefix.appending(path: "drive_c")) { $0.appending(path: $1) }
     }
 

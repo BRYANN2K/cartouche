@@ -179,7 +179,7 @@ int np_get_section_containing(const struct mach_header_64 *mh, intptr_t slide,
             if (lc->cmdsize - sizeof(*sc) < (uint64_t)sc->nsects * sizeof(struct section_64))
                 return -1;
 
-            const struct section_64 *sect = (const struct section_64 *)(sc + 1);
+            const struct section_64 *sect = (const struct section_64 *)((const uint8_t *)sc + sizeof(*sc));
             for (uint32_t i = 0; i < sc->nsects; i++) {
                 uintptr_t base = (uintptr_t)sect[i].addr + (uintptr_t)slide;
                 if (addr < base || addr >= base + (uintptr_t)sect[i].size)
@@ -214,7 +214,7 @@ int np_find_section(const struct mach_header_64 *mh, intptr_t slide,
                 return -1;
 
             if (strncmp(sc->segname, segname, sizeof(sc->segname)) == 0) {
-                const struct section_64 *sect = (const struct section_64 *)(sc + 1);
+                const struct section_64 *sect = (const struct section_64 *)((const uint8_t *)sc + sizeof(*sc));
                 for (uint32_t i = 0; i < sc->nsects; i++) {
                     if (strncmp(sect[i].sectname, sectname, sizeof(sect[i].sectname)) != 0)
                         continue;
@@ -311,7 +311,7 @@ static const struct section_64 *segment_sections(const struct load_command *lc,
     if (lc->cmdsize - sizeof(*seg) < (uint64_t)seg->nsects * sizeof(struct section_64))
         return NULL;
     *out_count = seg->nsects;
-    return (const struct section_64 *)(seg + 1);
+    return (const struct section_64 *)((const uint8_t *)seg + sizeof(*seg));
 }
 
 const char *np_import_stub_symbol(const struct mach_header_64 *mh, intptr_t slide,

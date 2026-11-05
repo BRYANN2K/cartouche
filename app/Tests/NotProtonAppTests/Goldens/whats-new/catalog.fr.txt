@@ -1,0 +1,26 @@
+# 0.2.0-beta1
+
+## menu image=menu
+title: Menu en jeu
+line: ⌥C pendant une partie.
+alt: Le menu en jeu affiche les performances par-dessus le jeu.
+
+## upscaling image=upscaling
+title: Upscaling
+line: Le DLSS passe par MetalFX.
+alt: Réglages d’upscaling : mode DLSS, échelle de rendu 67 %.
+
+## hud image=hud
+title: HUD
+line: ⌥⇧C pour l’afficher.
+alt: Le HUD dans un coin : 59 FPS, 1 % low, frametime.
+
+## resources image=resources
+title: Apps en arrière-plan
+line: Pause sur les apps qui ralentissent le jeu.
+alt: Liste des apps avec CPU, GPU et mémoire, et boutons Pause et Quitter.
+
+## framegen image=framegen soon
+title: Génération d’images
+line: Jusqu’à 2× plus de FPS.
+alt: Onglet Génération d’images, marqué Bientôt.

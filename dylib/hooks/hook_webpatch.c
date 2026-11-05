@@ -122,7 +122,8 @@ static int open_patched(const char *path) {
 
     np_webpatch_set_fallback_tool(np_compat_fallback_tool_name());
     const char *fex[NP_WEBPATCH_FEX_TOOLS_MAX];
-    np_webpatch_set_fex_tools(fex, np_compat_fex_tools(fex, NP_WEBPATCH_FEX_TOOLS_MAX));
+    size_t fex_count = np_compat_fex_tools(fex, NP_WEBPATCH_FEX_TOOLS_MAX);
+    np_webpatch_set_fex_tools(fex, fex_count);
     size_t patched_len = 0;
     const char *shape = NULL;
     char *patched = np_webpatch_transform((const uint8_t *)raw, raw_len, &patched_len,
@@ -251,6 +252,8 @@ static FILE *np_fopen(const char *path, const char *mode) {
         FILE *fp = fdopen(served, mode);
         if (fp)
             return fp;
+        // A failed fdopen leaves the descriptor open, cppcheck models it as closed
+        // cppcheck-suppress doubleFree
         close(served);
     }
 
@@ -260,6 +263,7 @@ static FILE *np_fopen(const char *path, const char *mode) {
     FILE *fp = fdopen(fd, mode);
     if (!fp) {
         int e = errno;
+        // cppcheck-suppress doubleFree ; as above, the failed fdopen did not close it
         close(fd);
         errno = e;
     }

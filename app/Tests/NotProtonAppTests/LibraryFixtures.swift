@@ -251,9 +251,15 @@ extension GameMenuItem {
 }
 
 @MainActor
+// Hermetic: the games location is the fixture's, never the Mac's real installs folder
 func libraryModel(_ fixture: SteamFixture, running: Bool = true, installed: Bool = true, defaults: ScratchDefaults) -> LibraryModel {
-    LibraryModel(store: LibraryStore(folder: fixture.support), importer: fixture.importer(installed: installed, running: running),
-                 defaults: defaults.defaults)
+    let model = LibraryModel(store: LibraryStore(folder: fixture.support), importer: fixture.importer(installed: installed, running: running),
+                             defaults: defaults.defaults)
+    // A test that picks its own games location keeps it
+    if defaults.defaults.string(forKey: GameFolder.installsKey) == nil {
+        model.installsFolder = fixture.support.appending(path: "installs", directoryHint: .isDirectory)
+    }
+    return model
 }
 
 // The 2026-10-19 compatibility fixture and MacGamingDB's recorded Elden Ring answer, on an M4
@@ -305,8 +311,7 @@ func windowSnapshot<V: View>(_ view: V, named name: String, size: CGSize = CGSiz
     }
     let frame = window.contentView?.superview ?? window.contentView!
     if let folder = ProcessInfo.processInfo.environment["CARTOUCHE_SNAPSHOTS"],
-       let rep = frame.bitmapImageRepForCachingDisplay(in: frame.bounds) {
-        frame.cacheDisplay(in: frame.bounds, to: rep)
+       let rep = renderedBitmap(frame) {
         let url = URL(filePath: folder).appending(path: "\(name)-\(dark ? "dark" : "light").png")
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try? rep.representation(using: .png, properties: [:])?.write(to: url)

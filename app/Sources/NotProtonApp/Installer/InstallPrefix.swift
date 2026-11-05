@@ -65,9 +65,15 @@ struct GameFolder: Sendable, Equatable {
         return of(slug: String(game.id.dropFirst("installer:".count)), in: installs)
     }
 
-    // Where the last scan of several locations found the game, else under installs.
-    static func of(slug: String, in installs: URL) -> GameFolder {
-        GameFolder(root: (located(slug) ?? installs).appending(path: slug))
+    // Where the last scan of several locations found the game, else under installs. A slug that is not one plain
+    // folder name ("", ".", "..", a "/") would point at the games location or above it, so it has no folder.
+    static func of(slug: String, in installs: URL) -> GameFolder? {
+        guard isSafeSlug(slug) else { return nil }
+        return GameFolder(root: (located(slug) ?? installs).appending(path: slug))
+    }
+
+    static func isSafeSlug(_ slug: String) -> Bool {
+        !slug.isEmpty && slug != "." && slug != ".." && !slug.contains("/") && !slug.contains("\0")
     }
 
     // MARK: Locations

@@ -68,7 +68,8 @@ enum CanonicalJSON {
     static func number(_ n: Double) -> String {
         guard n.isFinite else { return "null" }
         if n == 0 { return "0" }
-        if n == n.rounded(), abs(n) < 1e21 { return String(Int64(n)) }
+        // Whole numbers past Int64 (2^63 up to 1e21) take the digit path below instead of trapping.
+        if let whole = Int64(exactly: n) { return String(whole) }
         let sign = n < 0 ? "-" : ""
         var text = "\(abs(n))"
         var exponent = 0

@@ -161,7 +161,7 @@ private struct StateButton: View {
             }
         }
         .buttonStyle(.plain)
-        .onHover { hovering = $0 }
+        .trackHover { hovering = $0 }
         .animation(.spring(duration: 0.2, bounce: 0), value: hovering)
         .disabled(disabled)
         .accessibilityLabel(Text("Continue from \(state.title)"))

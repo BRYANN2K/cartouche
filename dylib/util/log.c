@@ -68,7 +68,7 @@ static void log_open(int may_rotate) {
 
     const char *home = np_home_dir();
     if (!home)
-        home = "/tmp";
+        return;
 
     char folder[512];
     char logpath[512];

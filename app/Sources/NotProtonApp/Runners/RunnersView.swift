@@ -138,7 +138,7 @@ struct ToolkitQuestionSheet: View {
                 }
                 Button("Copy") { Task { await model.answerToolkit(.copy) } }
                     .keyboardShortcut(.defaultAction)
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.borderedProminent).tint(Glass.accentFill)
             }
         }
         .padding(24)

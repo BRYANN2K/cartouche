@@ -1,0 +1,82 @@
+diff --git a/dlls/winemac.drv/cocoa_app.m b/dlls/winemac.drv/cocoa_app.m
+index 227d68b..b580556 100644
+--- a/dlls/winemac.drv/cocoa_app.m
++++ b/dlls/winemac.drv/cocoa_app.m
+@@ -30,6 +30,11 @@
+ static NSString* const WineAppWaitQueryResponseMode = @"WineAppWaitQueryResponseMode";
+ static NSString* const WineWillShowPermissionDialogNotification = @"WineWillShowPermissionDialogNotification";
+ static NSString* const WineDidShowPermissionDialogNotification = @"WineDidShowPermissionDialogNotification";
++static NSString* const CartoucheOverlayWillOpenNotification = @"dev.bryann2k.cartouche.overlay.willOpen";
++static NSString* const CartoucheOverlayDidCloseNotification = @"dev.bryann2k.cartouche.overlay.didClose";
++static BOOL cartoucheClipRestore;
++static CGRect cartoucheClipRect;
++static NSUInteger cartoucheGeneration;
+ 
+ // Private notifications that are reliably dispatched when a window is moved by dragging its titlebar.
+ // The object of the notification is the window being dragged.
+@@ -2112,6 +2117,57 @@ - (void) setupObservations
+             temporarilyIgnoreResignEventsForDialog = FALSE;
+         }];
+ 
++        /* Cartouche: its in-game menu takes the focus for a moment. Like a permission dialog,
++         * the game must not see it as a switch away, or a fullscreen game minimizes itself.
++         * The cursor is set free while the menu is open and clipped again after. */
++        [dnc addObserverForName:CartoucheOverlayWillOpenNotification
++                         object:[NSString stringWithFormat:@"%d", getpid()]
++                          queue:[NSOperationQueue mainQueue]
++                     usingBlock:^(NSNotification *note){
++            ++cartoucheGeneration;
++            NSLog(@"cartouche overlay: willOpen active=%d ignoring=%d clipping=%d", [NSApp isActive], temporarilyIgnoreResignEventsForDialog, self.clippingCursor);
++            if (![NSApp isActive] || temporarilyIgnoreResignEventsForDialog) return;
++            cartoucheClipRestore = self.clippingCursor;
++            if (cartoucheClipRestore)
++            {
++                cartoucheClipRect = clipCursorHandler.cursorClipRect;
++                [self stopClippingCursor];
++            }
++            [nc postNotificationName:WineWillShowPermissionDialogNotification object:nil];
++        }];
++
++        [dnc addObserverForName:CartoucheOverlayDidCloseNotification
++                         object:[NSString stringWithFormat:@"%d", getpid()]
++                          queue:[NSOperationQueue mainQueue]
++                     usingBlock:^(NSNotification *note){
++            NSUInteger generation = ++cartoucheGeneration;
++            NSLog(@"cartouche overlay: didClose active=%d ignoring=%d", [NSApp isActive], temporarilyIgnoreResignEventsForDialog);
++            if (!temporarilyIgnoreResignEventsForDialog) return;
++            /* The menu gives the focus back to the game. macOS may refuse Cartouche's request or
++             * hand the front to another app as Cartouche hides; the game takes it back itself */
++            if (![NSApp isActive])
++                [[NSRunningApplication currentApplication] activateWithOptions:NSApplicationActivateIgnoringOtherApps];
++            /* The menu's windows leave and focus settles for a moment after the close: a resign
++             * in that time is still the menu's, not the user switching away */
++            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 250 * NSEC_PER_MSEC), dispatch_get_main_queue(), ^{
++                if (generation != cartoucheGeneration || !temporarilyIgnoreResignEventsForDialog) return;
++                NSLog(@"cartouche overlay: reclaim active=%d", [NSApp isActive]);
++                if (![NSApp isActive])
++                    [[NSRunningApplication currentApplication] activateWithOptions:NSApplicationActivateIgnoringOtherApps];
++            });
++            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 700 * NSEC_PER_MSEC), dispatch_get_main_queue(), ^{
++                if (generation != cartoucheGeneration || !temporarilyIgnoreResignEventsForDialog) return;
++                NSLog(@"cartouche overlay: settled active=%d", [NSApp isActive]);
++                [nc postNotificationName:WineDidShowPermissionDialogNotification object:nil];
++                if (cartoucheClipRestore)
++                {
++                    cartoucheClipRestore = FALSE;
++                    [self startClippingCursor:cartoucheClipRect];
++                }
++                if (![NSApp isActive]) [self applicationDidResignActive:nil];
++            });
++        }];
++
+         if ([NSApplication instancesRespondToSelector:@selector(yieldActivationToApplication:)])
+         {
+             /* App activation cooperation, starting in macOS 14 Sonoma. */
+@@ -2486,6 +2542,7 @@ - (void)applicationDidResignActive:(NSNotification *)notification
+ 
+         [self invalidateGotFocusEvents];
+ 
++        NSLog(@"cartouche overlay: resign active, ignoring=%d", temporarilyIgnoreResignEventsForDialog);
+         if (!temporarilyIgnoreResignEventsForDialog)
+         {
+             event = macdrv_create_event(APP_DEACTIVATED, nil);

@@ -297,6 +297,7 @@ final class AgentLiveBackend: AgentBackend {
         guard AgentScan.contains(exe, in: roots.allowed + [prefix]) else {
             throw AgentToolError("the program must be inside the game's prefix or Cartouche's folders")
         }
+        try AgentPrompt.checkRun(exe, args)
         guard let loader = env["WINELOADER"] else { throw AgentToolError("no Wine loader") }
         try Shell.detach(loader, [exe.path(percentEncoded: false)] + args, environment: env)
     }

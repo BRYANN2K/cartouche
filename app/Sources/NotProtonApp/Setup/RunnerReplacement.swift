@@ -7,9 +7,13 @@ extension LibraryModel {
     func moveGames(from old: String, to new: Runner) async throws {
         let installs = installsFolder, runnersFolder = self.runnersFolder, backends = backendsFolder
         let records = await Task.detached { InstalledGames.all(in: installs) }.value
-        let jobs = records.filter { $0.runnerID == old }.compactMap { job(for: $0, to: new, installs: installs) }
+        // Each game's new launcher is written from its scan: the walks end before the jobs resolve
+        await scanGames(records.filter { $0.runnerID == old }.map(Game.init(installed:)))
+        let jobs = records.filter { $0.runnerID == old }.compactMap { record -> (Game, RunnerMigration.Job)? in
+            job(for: record, to: new, installs: installs).map { (Game(installed: record), $0) }
+        }
         let rollback = try await Task.detached {
-            try RunnerMigration.move(jobs, to: new, runners: runnersFolder, backends: backends)
+            try RunnerMigration.move(jobs.map(\.1), to: new, runners: runnersFolder, backends: backends)
         }.value
         let moved: [String]
         do {
@@ -20,6 +24,7 @@ extension LibraryModel {
         }
         let defaultMoved = RunnerMigration.replacing(old, with: new.id, in: setupDefaults)
         defaultMoved?.save(defaults)
+        for (game, job) in jobs { noteLaunch(of: game, environment: job.environment) }
         if !jobs.isEmpty {
             let games = await Task.detached { InstalledGames.all(in: installs) }.value
             showInstalledGames(games)
@@ -37,11 +42,16 @@ extension LibraryModel {
         choice.translation = .rosetta
         choice.runnerID = new.id
         if choice.graphics == nil { choice.graphics = game.installGraphics }
+        let profile = launchProfile(for: game)
         let resolved = GameSetupResolver.resolve(choice, defaults: setupDefaults, runners: runners,
-                                                 availability: backendAvailability, offered: installRunners).setup
-        // A setup the new build cannot resolve keeps the game's own graphics and variables
+                                                 availability: backendAvailability, offered: installRunners,
+                                                 profile: profile).setup
+        // A setup the new build cannot resolve keeps the game's own graphics and variables, never the library's
         guard resolved.runner?.id == new.id else {
-            return RunnerMigration.Job(folder: folder, backend: record.backend, environment: choice.environment ?? [:])
+            return RunnerMigration.Job(folder: folder, backend: record.backend,
+                                       environment: LaunchProfile.filteredEnvironment(
+                                           (choice.environment ?? [:]).filter { !OverlayLaunch.variables.contains($0.key) },
+                                           dlss: profile.dlss))
         }
         return RunnerMigration.Job(folder: folder, backend: resolved.backend, environment: resolved.environment)
     }

@@ -1,0 +1,18 @@
+this.m_clientHandles.Add(SteamClient.Installs.RegisterForShowInstallWizard(this.OnShowInstallWizard));
+("#AddNonSteam_Filter_Exe_MacOS"),rFilePatterns:["*.app"];
+{strFileTypeName:"Image Files (*.tga,*.png)",rFilePatterns:["*.tga","*.png"]};
+r=(0,s.q3)(()=>u.rV.settings.bCompatEnabled),a=function(e,t){const[r,i]=n.useState([]);return n.useEffect(()=>{SteamClient.Apps.GetAvailableCompatTools(e).then(i)},[e,t]),r}(t.unAppID,r),o=r&&!!t.strCompatToolName&&t.nCompatToolPriority==h.JN,l=a.length?a[0].strToolName:"";
+return qa?(0,qb.jsx)(qc.B,{feature:qd.OK,label:(0,qe.we)("#Settings_SteamPlay_DefaultTool"),rgOptions:qf,disabled:0==qf.length,selectedOption:qa,;
+this.m_bServicesInitialized=!0,SteamClient.UI.NotifyAppInitialized();
+case qa.qb:return!!(0,qc.td)()||qd.is_available_on_current_platform&&!qd.is_invalid_os_type;;
+case qa.qb:return(0,qc.CI)()&&!(0,qc.mP)()?qd(qe):(0,qc.td)()?!0:qe.is_available_on_current_platform&&!qe.is_invalid_os_type;;
+if(!qa(qb[qc.W6],qd(qe))||!qa(qb[qc.sc],;
+if(!qa(qb[qc.W6],qd(qe))||!qa(qb[qc.sc],;
+,strSearchText:qa&&qa.strSearchText||"",filterGroups:;
+SelectOption(qa,qb,qc){let qd=this.m_filterSpec.filterGroups[qa].rgOptions;;
+Reset(){this.m_filterSpec.strSearchText="",;
+get bIsEmpty(){return this.searchText.length==0&&;
+let qa=this.GetSelectedOptions(qb.W6);qa.length>0&&qc.push(qa.map(qd=>{if(qd==qb.Pu){;
+,qa=qb.n6.currentAppFilter.BIsSelected(qc.W6,qc.Pu);return(0,qd.jsxs)("div",{className:qe().Bar,;
+children:[qa&&(0,qb.jsxs)(qc.he,{direction:"top",nDelayShowMS:240,toolTipContent:qd?"#GameList_View_Platform_Linux":"#GameList_View_Platform_Apple",className:(0,qe.A)(qf().CheckboxWithImage,qg&&qf().Disabled,qh&&qf().Active),onClick:()=>qg||qi(qj.W6,qj.Pu,!qh),children:[qd&&(0,qb.jsx)(qk.Wy0,{}),!qd&&(0,qb.jsx)(qk.kPc,{})]});
+children:[qa&&(0,qb.jsxs)(qc.he,{direction:"top",nDelayShowMS:240,toolTipContent:qd?(0,ql.we)("#GameList_View_Platform_Linux"):(0,ql.we)("#GameList_View_Platform_Apple"),className:(0,qe.A)(qf().CheckboxWithImage,qg&&qf().Disabled,qh&&qf().Active),onClick:()=>qg||qi(qj.W6,qj.Pu,!qh),children:[qd&&(0,qb.jsx)(qk.Wy0,{}),!qd&&(0,qb.jsx)(qk.kPc,{})]});

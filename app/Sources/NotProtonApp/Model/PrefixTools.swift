@@ -435,9 +435,13 @@ enum PrefixTools {
     }
 
     // Under -q annihilate wipes the prefix and its saves without asking, prefix= switches prefix, --self-update
-    // changes winetricks itself. Agents and the prefix sheet share this filter.
+    // changes winetricks itself, and a path or a *.verb file is a shell script run on the Mac. Only verb names pass.
+    // Agents and the prefix sheet share this filter.
     static func refusedVerb(_ verbs: [String]) -> String? {
-        verbs.first { $0 == "annihilate" || $0.hasPrefix("prefix=") || $0.hasPrefix("-") }
+        verbs.first {
+            $0 == "annihilate" || $0.hasPrefix("prefix=") || $0.hasPrefix("-") || $0.hasSuffix(".verb")
+                || $0.wholeMatch(of: /[a-z0-9_=.]+/) == nil
+        }
     }
 
     static func arguments(for executable: URL) -> [String]? {

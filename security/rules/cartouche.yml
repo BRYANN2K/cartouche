@@ -1,0 +1,70 @@
+rules:
+  - id: cartouche.delete-recursive
+    languages: [swift]
+    severity: WARNING
+    message: Permanent recursive delete. Prove the path is inside a Cartouche-owned folder (never $HOME, a standard folder or a volume root), or move it to the Trash. See audit H-1 (#8).
+    pattern-either:
+      - pattern: 'FileManager.default.removeItem(at: $X)'
+      - pattern: '$FM.removeItem(at: $X)'
+      - pattern: 'FileManager.default.removeItem(atPath: $X)'
+      - pattern: '$FM.removeItem(atPath: $X)'
+  - id: cartouche.shell-string
+    languages: [swift]
+    severity: ERROR
+    message: A command line built for a shell. Start processes with an argv array, never /bin/sh -c with interpolated text.
+    pattern-either:
+      - pattern: '["-c", "...\(...)..."]'
+      - pattern: '$P.arguments = ["-c", $S]'
+  - id: cartouche.plain-http
+    languages: [swift]
+    severity: WARNING
+    message: Plain http:// URL. Use https, or document why this endpoint cannot (audit L-11).
+    pattern-regex: '"http://(?!127\.0\.0\.1|localhost|\[::1\])[^"]+"'
+  - id: cartouche.keychain-weak-accessibility
+    languages: [swift]
+    severity: ERROR
+    message: Keychain item readable while the Mac is locked or synced off-device. Use kSecAttrAccessibleWhenUnlockedThisDeviceOnly.
+    pattern-regex: 'kSecAttrAccessible(Always|AfterFirstUnlock|WhenUnlocked)\b(?!ThisDeviceOnly)'
+  - id: cartouche.secret-in-log
+    languages: [swift]
+    severity: WARNING
+    message: A log line that may carry a secret. Never log tokens, keys, passwords or auth codes.
+    pattern-regex: 'AppLog\.(note|error|warn)\([^)]*\b(token|secret|password|authCode|bearer|apiKey)\b'
+  - id: cartouche.integer-trap-from-json
+    languages: [swift]
+    severity: WARNING
+    message: Int(_:)/Int64(_:) on a Double traps when the value is out of range. Use Int(exactly:) or a bounds check (audit L-14).
+    pattern-either:
+      - pattern: 'Int64($N as Double)'
+      - pattern-regex: '\bInt(64)?\((n|number|double|value)\)'
+  - id: cartouche.agent-error-unscrubbed
+    languages: [swift]
+    severity: WARNING
+    message: An agent reply built from error.localizedDescription. Errors carry paths and stderr; pass them through AgentScan.scrub (audit L-1).
+    pattern-regex: 'error\.localizedDescription'
+    paths:
+      include: ["**/Agent/**", "**/MCP/**"]
+  - id: cartouche.ats-arbitrary-loads
+    languages: [generic]
+    severity: ERROR
+    message: NSAllowsArbitraryLoads turns off App Transport Security for every host.
+    pattern-regex: 'NSAllowsArbitraryLoads</key>\s*<true/>'
+    paths:
+      include: ["**/Info.plist"]
+  - id: cartouche.c-unsafe-string
+    languages: [c]
+    severity: ERROR
+    message: Unbounded C string function. Use snprintf/strlcpy/strlcat with the buffer size.
+    pattern-either:
+      - pattern: strcpy(...)
+      - pattern: strcat(...)
+      - pattern: sprintf(...)
+      - pattern: vsprintf(...)
+      - pattern: gets(...)
+  - id: cartouche.c-system
+    languages: [c]
+    severity: ERROR
+    message: system()/popen() runs a shell. Use posix_spawn with an argv array.
+    pattern-either:
+      - pattern: system(...)
+      - pattern: popen(...)

@@ -24,9 +24,20 @@ struct PlaySetup: Hashable, Sendable {
     var runnerID: String
     var translation: GameSetupChoice.Translation
     var backend: GraphicsBackend?
+    // Our options: the library went in, or an upscaling variable was on. nil for a session that recorded neither,
+    // so an A/B with and without them reads as two setups
+    var options: Bool? = nil
 
     // Sessions recorded before the run script wrote the setup get this runner
     static let unknownRunnerID = "unknown"
+
+    static let upscalingVariables = ["D3DM_ENABLE_METALFX", "DXMT_ENABLE_NVEXT", "DXMT_METALFX_SPATIAL_SWAPCHAIN"]
+
+    static func options(settings: [String: String], context: [String: String]) -> Bool? {
+        let upscaling = upscalingVariables.contains { settings[$0] == "1" }
+        if let library = context["framegen"] { return library == "on" || upscaling }
+        return upscaling ? true : nil
+    }
 }
 
 enum PlayStats {
@@ -110,6 +121,9 @@ struct SetupPlay: Equatable, Sendable, Identifiable {
     let lastPlayed: Date
     var width: Int?
     var height: Int?
+    // The latest session's, for Compare Setups
+    var settings: [String: String] = [:]
+    var context: [String: String] = [:]
 
     var id: PlaySetup { setup }
 
@@ -149,7 +163,9 @@ struct GamePlay: Equatable, Sendable {
                 measuredSessions: measured.count,
                 lastPlayed: runs.map(\.ended).max() ?? latest.ended,
                 width: latestMeasured?.measured.width,
-                height: latestMeasured?.measured.height)
+                height: latestMeasured?.measured.height,
+                settings: runs.max(by: { $0.started < $1.started })!.settings,
+                context: runs.max(by: { $0.started < $1.started })!.context)
         }
         .sorted { (a: SetupPlay, b: SetupPlay) in
             if a.meetsMinimumSample != b.meetsMinimumSample { return a.meetsMinimumSample }
@@ -157,7 +173,7 @@ struct GamePlay: Equatable, Sendable {
                 (s.average ?? -1, s.low1 ?? -1, s.measuredSeconds, s.lastPlayed.timeIntervalSince1970)
             }
             let id = { (s: SetupPlay) in
-                "\(s.setup.runnerID)\(s.setup.backend?.rawValue ?? "")\(s.setup.translation)"
+                "\(s.setup.runnerID)\(s.setup.backend?.rawValue ?? "")\(s.setup.translation)\(s.setup.options.map(String.init) ?? "")"
             }
             return key(a) == key(b) ? id(a) < id(b) : key(a) > key(b)
         }

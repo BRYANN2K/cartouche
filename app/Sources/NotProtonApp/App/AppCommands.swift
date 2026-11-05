@@ -34,11 +34,19 @@ extension CartoucheApp {
             Divider()
         }
 
+        CommandGroup(before: .windowList) {
+            Button("Mac Resources") { BackgroundAppsPresenter.shared.show() }
+                .keyboardShortcut("r", modifiers: [.command, .option])
+            Divider()
+        }
+
         CommandMenu("Game") {
             GameCommands(model: library, actions: actions)
         }
 
         CommandGroup(replacing: .help) {
+            Button("What’s New…") { whatsNew.reopen() }
+                .disabled(whatsNew.current == nil)
             Menu("Troubleshooting") {
                 Button("Refresh Steam Status") { Task { await status.refresh() } }
                     .disabled(!status.isIdle)

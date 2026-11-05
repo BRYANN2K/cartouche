@@ -1,0 +1,105 @@
+From 50ba78d98620a051400ef400718ca470f6bbabae Mon Sep 17 00:00:00 2001
+From: bryann2k <bryann2k.dev@gmail.com>
+Date: Wed, 28 Oct 2026 12:11:24 +0100
+Subject: [PATCH] feat(d3d11): expose the Metal texture and event behind D3D11
+ objects
+
+Add IMTLD3D11DeviceExt1, a device extension with two methods:
+
+- GetMetalTexture(ID3D11Resource *, UINT64 *) returns the id<MTLTexture>
+  currently backing a texture resource (E_INVALIDARG for buffers);
+- GetMetalSharedEvent(ID3D11Fence *, UINT64 *) returns the
+  id<MTLSharedEvent> of a fence created by ID3D11Device5::CreateFence.
+
+Native Metal code in the same process (a MetalFX pass, a frame
+interpolator, a capture tool) can then read and write the game's
+textures without a copy, and order its own command buffers against the
+game's work with the standard ID3D11DeviceContext4::Signal and Wait on
+that fence: the game signals N after its rendering, the native side
+waits for N on the GPU, does its work and signals N+1, the game waits
+for N+1 before it goes on.
+
+Handles are unretained, valid while the D3D11 object lives. A dynamic
+texture can change backing on Map(WRITE_DISCARD), so the texture is to
+be asked for again after each map.
+---
+ src/d3d11/d3d11_device.cpp     | 24 +++++++++++++++++++++---
+ src/d3d11/d3d11_interfaces.hpp | 16 ++++++++++++++++
+ 2 files changed, 37 insertions(+), 3 deletions(-)
+
+diff --git a/src/d3d11/d3d11_device.cpp b/src/d3d11/d3d11_device.cpp
+index 62efc67..7d4f8e7 100644
+--- a/src/d3d11/d3d11_device.cpp
++++ b/src/d3d11/d3d11_device.cpp
+@@ -41,7 +41,7 @@ const GUID kGpaUUID = {0xccffef16,
+                        0x468f,
+                        {0xbc, 0xe3, 0xcd, 0x95, 0x33, 0x69, 0xa3, 0x9a}};
+ 
+-class MTLD3D11DeviceImpl final : public MTLD3D11Device, public IMTLD3D11DeviceExt, public IMTLSwapChainFactory {
++class MTLD3D11DeviceImpl final : public MTLD3D11Device, public IMTLD3D11DeviceExt1, public IMTLSwapChainFactory {
+ friend class MTLD3D11DXGIDevice;
+ public:
+   MTLD3D11DeviceImpl(
+@@ -1054,6 +1054,24 @@ public:
+     // TODO
+   };
+ 
++  virtual HRESULT STDMETHODCALLTYPE GetMetalTexture(ID3D11Resource *pResource, UINT64 *pTexture) final {
++    if (!pResource || !pTexture)
++      return E_INVALIDARG;
++    *pTexture = 0;
++    auto texture = GetTexture(pResource);
++    if (!texture || !texture->current())
++      return E_INVALIDARG;
++    *pTexture = texture->current()->texture().handle;
++    return S_OK;
++  };
++
++  virtual HRESULT STDMETHODCALLTYPE GetMetalSharedEvent(ID3D11Fence *pFence, UINT64 *pSharedEvent) final {
++    if (!pFence || !pSharedEvent)
++      return E_INVALIDARG;
++    *pSharedEvent = static_cast<MTLD3D11Fence *>(pFence)->event.handle;
++    return S_OK;
++  };
++
+   virtual FormatCapability
+   GetMTLPixelFormatCapability(WMTPixelFormat Format) final {
+     Format = ORIGINAL_FORMAT(Format);
+@@ -1191,8 +1209,8 @@ public:
+       return S_OK;
+     }
+ 
+-    if (riid == __uuidof(IMTLD3D11DeviceExt)) {
+-      *ppvObject = ref_and_cast<IMTLD3D11DeviceExt>(&d3d11_device_);
++    if (riid == __uuidof(IMTLD3D11DeviceExt) || riid == __uuidof(IMTLD3D11DeviceExt1)) {
++      *ppvObject = ref_and_cast<IMTLD3D11DeviceExt1>(&d3d11_device_);
+       return S_OK;
+     }
+ 
+diff --git a/src/d3d11/d3d11_interfaces.hpp b/src/d3d11/d3d11_interfaces.hpp
+index ff4bb2b..0aadeef 100644
+--- a/src/d3d11/d3d11_interfaces.hpp
++++ b/src/d3d11/d3d11_interfaces.hpp
+@@ -43,3 +43,19 @@ DEFINE_COM_INTERFACE("efc77ae6-2179-4c0a-b844-7661ca0dcde7", IMTLD3D11DeviceExt)
+     : public IUnknown {
+   virtual void STDMETHODCALLTYPE SetShaderExtensionSlot(UINT Slot) = 0;
+ };
++
++/*
++ * Metal objects behind D3D11 objects, for interop with native Metal code in the same process
++ * (a MetalFX pass, a frame interpolator). Each handle is an unretained id<MTL...> pointer, valid
++ * while the D3D11 object lives; retain it to keep it longer.
++ *
++ * GetMetalTexture returns the texture currently backing the resource. A resource with
++ * D3D11_USAGE_DYNAMIC can change backing on Map(WRITE_DISCARD): ask again after each map.
++ *
++ * GetMetalSharedEvent returns the MTLSharedEvent of a fence from ID3D11Device5::CreateFence. Order
++ * native work against D3D11 work with ID3D11DeviceContext4::Signal and Wait on that fence.
++ */
++DEFINE_COM_INTERFACE("137ce045-283f-4481-b939-f47233523d22", IMTLD3D11DeviceExt1) : public IMTLD3D11DeviceExt {
++  virtual HRESULT STDMETHODCALLTYPE GetMetalTexture(ID3D11Resource *pResource, UINT64 *pTexture) = 0;
++  virtual HRESULT STDMETHODCALLTYPE GetMetalSharedEvent(ID3D11Fence *pFence, UINT64 *pSharedEvent) = 0;
++};
+-- 
+2.55.0
+

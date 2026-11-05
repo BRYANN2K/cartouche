@@ -6,14 +6,14 @@ import InstallerKit
 final class StoreProcess: @unchecked Sendable {
     private let run: InstallRun
 
-    init(_ command: ClientCommand, output: URL?) throws {
+    init(_ command: ClientCommand, output: URL?, drain: Bool = false) throws {
         if let output {
             try? FileManager.default.createDirectory(at: output.deletingLastPathComponent(), withIntermediateDirectories: true)
         }
         run = InstallRun(InstallLaunch(executable: command.executable.path(percentEncoded: false),
                                      arguments: command.arguments, environment: command.environment,
                                      currentDirectory: command.currentDirectory),
-                         output: output, outputLimit: InstallEngine.outputLimit)
+                         output: output, outputLimit: InstallEngine.outputLimit, drain: drain)
         try run.start()
     }
 

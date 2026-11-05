@@ -230,7 +230,7 @@ static void *build_ico(np_pe_t *pe, uint32_t rsrc_rva, size_t *out_len) {
 
     size_t   header = 6 + (size_t)written * 16;
     size_t   total  = header + payload;
-    uint8_t *ico    = malloc(total);
+    uint8_t *ico    = total <= NP_PE_MAX_ICO + 6 + NP_PE_MAX_ICO_IMGS * 16 ? malloc(total) : NULL;
     if (!ico) {
         free(picked);
         free(records);
@@ -321,6 +321,8 @@ void *np_pe_icon_ico(const char *path, size_t *out_len) {
     if (map == MAP_FAILED) return NULL;
 
     void *ico = icon_from_map(map, len, out_len);
+    // mmap fails with MAP_FAILED, checked above, never NULL
+    // cppcheck-suppress nullPointerOutOfMemory
     munmap(map, len);
     return ico;
 }

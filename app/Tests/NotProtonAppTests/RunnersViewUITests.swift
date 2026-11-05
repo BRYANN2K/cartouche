@@ -45,7 +45,7 @@ final class RunnersViewUITests {
     }
 
     // A scratch app folder holding a fixture toolkit of the given version
-    func toolkitApp(_ version: String = "3.0") throws -> URL {
+    func toolkitApp(_ version: String = "4.0b3") throws -> URL {
         let apps = work.appending(path: "Applications-\(UUID().uuidString)")
         try PortingToolkitTests.toolkit(
             at: apps.appending(path: "Game Porting Toolkit.app/Contents/Resources/wine/lib"), version: version)
@@ -67,7 +67,7 @@ final class RunnersViewUITests {
         let apps = try toolkitApp()
         let search = self.search(applications: apps)
         let model = model(builds: [build], toolkits: { PortingToolkitSource.discover(search) })
-        PortingToolkitSource.markAsked(version: "3.0", defaults)
+        PortingToolkitSource.markAsked(version: "4.0b3", defaults)
         await model.refresh()
 
         let host = host(model)
@@ -75,8 +75,8 @@ final class RunnersViewUITests {
         #expect(try await host.wait(for: "Cartouche Wine 26.3"))
         let texts = try host.texts(named: "settings-runners")
         for wanted in ["Cartouche Wine • D3DMetal, DXMT", "Not installed", "Download",
-                       "Game Porting Toolkit 3.0", "Set Up", "Wine"] {
-            #expect(texts.contains { $0.contains(wanted) }, "\(wanted) in \(texts)")
+                       "Game Porting Toolkit 4.0b3", "Set Up", "Wine"] {
+            #expect(seen(texts, wanted), "\(wanted) in \(texts)")
         }
     }
 
@@ -93,7 +93,7 @@ final class RunnersViewUITests {
         defer { host.close() }
         #expect(try await host.wait(for: "Use in Place"))
         let texts = try host.texts(named: "runners-toolkit-question")
-        for wanted in ["Game Porting Toolkit", "3.0", "Found in", "Copy", "Use in Place", "Cancel"] {
+        for wanted in ["Game Porting Toolkit", "4.0b3", "Found in", "Copy", "Use in Place", "Cancel"] {
             #expect(texts.contains { $0.contains(wanted) }, "\(wanted) in \(texts)")
         }
         #expect(texts.contains { $0.contains("B") || $0.contains("MB") }, "copy size in \(texts)")
@@ -114,7 +114,7 @@ final class RunnersViewUITests {
 
         let host = host(model)
         defer { host.close() }
-        #expect(try await host.wait(for: "Game Porting Toolkit 3.0"))
+        #expect(try await host.wait(for: "Game Porting Toolkit 4.0b3"))
         #expect(try await host.wait(for: "Ready"))
     }
 
@@ -129,11 +129,11 @@ final class RunnersViewUITests {
         await model.answerToolkit(.inPlace)
         #expect(model.rows.first { $0.kind == .portingToolkit }?.status == "Ready")
         #expect(model.toolkitQuestion == nil)
-        #expect(PortingToolkitSource.receipt(version: "3.0", runners: runners)?.inPlace != nil)
+        #expect(PortingToolkitSource.receipt(version: "4.0b3", runners: runners)?.inPlace != nil)
 
         let host = host(model)
         defer { host.close() }
-        #expect(try await host.wait(for: "Game Porting Toolkit 3.0"))
+        #expect(try await host.wait(for: "Game Porting Toolkit 4.0b3"))
         #expect(try await host.wait(for: "Ready"))
     }
 

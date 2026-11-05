@@ -9,9 +9,11 @@ struct LibraryGrid: View {
     @Environment(ConsoleCenter.self) private var consoles: ConsoleCenter?
     @Environment(ControlsCenter.self) private var controls: ControlsCenter?
     @Environment(StoreCenter.self) private var stores: StoreCenter?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var droppedCover: (game: Game, image: URL)?
 
     var body: some View {
+        let motion = Motion(reduceMotion: reduceMotion)
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 LibraryNotices(model: model)
@@ -27,7 +29,7 @@ struct LibraryGrid: View {
                                         Text(title).font(.system(size: 13, weight: .bold))
                                         Text(String(section.games.count))
                                             .font(.system(size: 12, weight: .medium))
-                                            .foregroundStyle(Glass.label3)
+                                            .foregroundStyle(Glass.label2)
                                     }
                                     .padding(.horizontal, 4)
                                     .accessibilityElement(children: .combine)
@@ -36,7 +38,7 @@ struct LibraryGrid: View {
                                     Color.clear.accessibilityHidden(true)
                                 }
                             }
-                            .frame(height: 22, alignment: .bottomLeading)
+                            .frame(height: section.title == nil ? 0 : 22, alignment: .bottomLeading)
                             LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 16, alignment: .top)],
                                       alignment: .leading, spacing: 22) {
                                 ForEach(section.games) { game in
@@ -47,6 +49,8 @@ struct LibraryGrid: View {
                     }
                 }
                 .padding(EdgeInsets(top: 8, leading: 12, bottom: 24, trailing: 16))
+                .animation(motion.grid, value: model.sort)
+                .animation(motion.grid, value: model.showNotInstalled)
             }
         }
         .softScrollEdges(top: Glass.toolbarHeight + 24, bottom: 24)
@@ -77,8 +81,10 @@ struct LibraryGrid: View {
             menu: { GameMenu.items(for: game, in: model, stores: stores, consoles: consoles) },
             perform: { actions.perform($0, on: game) },
             antiCheatBlocked: game.version != .mac && (compat.map { compat in
-                compat.resolved(game, method: .wine).showsLinuxBlock(game.steamAppID.flatMap { compat.antiCheat(appID: $0) })
+                compat.resolved(game, method: .wine).showsLinuxBlock(
+                    (game.steamAppID ?? game.compatAppID).flatMap { compat.antiCheat(appID: $0) })
             } ?? false),
+            antiCheatUnknown: model.antiCheatUnknown(game),
             layoutShape: shape
         )
     }

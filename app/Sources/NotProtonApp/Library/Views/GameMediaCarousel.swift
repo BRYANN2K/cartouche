@@ -121,7 +121,7 @@ struct GameMediaCarousel: View {
             .clipShape(shape)
         .overlay { shape.strokeBorder(Glass.edge, lineWidth: 0.5) }
         .overlay { if slides.count > 1 { controls } }
-        .onHover { hovering = $0 }
+        .trackHover { hovering = $0 }
         .focusable()
         .focused($focused)
         .focusEffectDisabled()
@@ -241,7 +241,7 @@ private struct SlideView: View {
                 let file: URL?
                 switch slide {
                 case .header:
-                    if game.source == .gog {
+                    if game.source == .gog || game.mediaHeader != nil {
                         file = if let header = game.mediaHeader { await store.local(header, appID: appID, online: online) } else { nil }
                     } else {
                         file = await store.header(appID, online: online)

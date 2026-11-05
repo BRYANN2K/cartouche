@@ -62,7 +62,7 @@ struct GameMenuTests {
         let play = try #require(item(GameMenu.items(for: elden, in: model), GameMenu.play))
         #expect(play.title == "Play")
         #expect(play.shortcut?.label == "⌘↩")
-        runner.perform(.play, on: elden)
+        await runner.perform(.play, on: elden)?.value
         let apex = try #require(model.game("steam:1172470"))
         #expect(GameMenu.items(for: apex, in: model).first?.title == "Install")
         runner.perform(.install, on: apex)
@@ -127,5 +127,20 @@ struct GameMenuTests {
         #expect(menus.contains("Button(\"Find\")") && menus.contains(".keyboardShortcut(\"f\", modifiers: .command)"))
         #expect(!menus.contains(".keyboardShortcut(\"i\", modifiers: .command)"))
         #expect(app.contains("MenuBarExtra(isInserted: Binding(get: { showInMenuBar }"))
+    }
+
+    @Test("A failed Steam env write reaches the log; a good one stays quiet")
+    func steamEnvWriteLogged() throws {
+        let blocker = try scratchDirectory("steam-env").appending(path: "blocker")
+        try Data().write(to: blocker)
+        var lines: [String] = []
+        _ = GameActionRunner.writeSteamEnvironment(["D3DM_ENABLE_METALFX": "1"], appID: 42,
+                                               setups: blocker.appending(path: "setups"), log: { lines.append($0) })
+        #expect(lines.count == 1 && lines[0].contains("app=42"))
+        lines = []
+        let setups = try scratchDirectory("steam-env-ok")
+        _ = GameActionRunner.writeSteamEnvironment(["D3DM_ENABLE_METALFX": "1"], appID: 42, setups: setups, log: { lines.append($0) })
+        #expect(lines.isEmpty)
+        #expect(FileManager.default.fileExists(atPath: setups.appending(path: "42.env").path(percentEncoded: false)))
     }
 }

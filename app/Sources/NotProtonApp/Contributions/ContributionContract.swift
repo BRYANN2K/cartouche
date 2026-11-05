@@ -232,7 +232,7 @@ struct ContributionGame: Codable, Equatable, Hashable, Sendable {
         case .steam:
             guard let appID = game.steamAppID else { return .unknown }
             return .exact(ContributionGame(store: "steam", storeID: String(appID), title: game.name))
-        case .epic, .gog, .amazon:
+        case .epic, .gog, .amazon, .ea, .ubisoft:
             let prefix = game.source.id + ":"
             guard game.id.hasPrefix(prefix) else { return .unknown }
             let id = String(game.id.dropFirst(prefix.count))

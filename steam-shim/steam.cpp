@@ -260,7 +260,7 @@ static void setup_steam_registry(void)
 
     appid = steam_client_utils->GetAppID();
     WINE_TRACE("appid: %u\n", appid);
-    sprintf(buf, "Software\\Valve\\Steam\\Apps\\%u", appid);
+    snprintf(buf, sizeof(buf), "Software\\Valve\\Steam\\Apps\\%u", appid);
     status = RegCreateKeyA(HKEY_CURRENT_USER, buf, &key);
     if (!status)
     {
@@ -732,7 +732,7 @@ void* load_vrclient(void)
         return NULL;
     }
 
-    strcat(pathU, append_path);
+    memcpy(pathU + strlen(pathU), append_path, sizeof(append_path));
 
     WINE_TRACE("got openvr runtime path: %s\n", pathU);
 
@@ -1002,7 +1002,7 @@ static DWORD WINAPI initialize_vr_data(void *arg)
         }
         buffer = new_buffer;
         compositor->GetVulkanDeviceExtensionsRequired(p__wine_get_native_VkPhysicalDevice(phys_devices[i]), buffer, length);
-        sprintf(name, "PCIID:%04x:%04x", prop.vendorID, prop.deviceID);
+        snprintf(name, sizeof(name), "PCIID:%04x:%04x", prop.vendorID, prop.deviceID);
         WINE_TRACE("%s: %s.\n", name, buffer);
 
         if ((status = RegSetValueExA(vr_key, name, 0, REG_SZ, (BYTE *)buffer, length)))
@@ -1577,7 +1577,7 @@ static void setup_steam_files(void)
     const char *start, *end, *next;
     unsigned int i, index = 0;
     std::string contents;
-    char idx_str[10];
+    char idx_str[12];
 
     if (!CreateDirectoryW(config_pathW, NULL) && GetLastError() != ERROR_ALREADY_EXISTS)
     {
@@ -1601,7 +1601,7 @@ static void setup_steam_files(void)
 
         if (convert_path_to_win(s))
         {
-            sprintf(idx_str, "%u", index);
+            snprintf(idx_str, sizeof(idx_str), "%u", index);
             ++index;
 
             for (i = 0; i < s.length(); ++i)
@@ -1643,7 +1643,7 @@ static void setup_steam_files(void)
         s.append(start, end - start);
         if (convert_path_to_win(s))
         {
-            sprintf(idx_str, "%u", index);
+            snprintf(idx_str, sizeof(idx_str), "%u", index);
             ++index;
 
             for (i = 0; i < s.length(); ++i)
@@ -1770,7 +1770,7 @@ BOOL is_ptraced(void)
 
     if (!fp) return FALSE;
 
-    while (fscanf(fp, " %s	%d\n", key, &value) > 0)
+    while (fscanf(fp, " %49s	%d\n", key, &value) > 0)
     {
         if (!strcmp("TracerPid:", key))
         {

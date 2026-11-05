@@ -1,0 +1,67 @@
+# SwiftLint for CI (docs/ci/CI.md). Correctness and security rules only, so the
+# current code style stays as it is. Findings that predate this file are listed in
+# tools/ci/swiftlint-baseline.json; a new one fails the lint job.
+included:
+  - app/Sources
+  - app/Tests
+  - installer/Sources
+  - installer/Tests
+  - retroarch/Sources
+  - retroarch/Tests
+excluded:
+  - app/.build
+  - installer/.build
+  - retroarch/.build
+  - app/Sources/NotProtonApp/Resources
+
+only_rules:
+  - blanket_disable_command
+  - class_delegate_protocol
+  - compiler_protocol_init
+  - discarded_notification_center_observer
+  - duplicate_conditions
+  - duplicate_enum_cases
+  - duplicate_imports
+  - duplicated_key_in_dictionary_literal
+  - dynamic_inline
+  - empty_xctest_method
+  - force_cast
+  - force_try
+  - identical_operands
+  - invalid_swiftlint_command
+  - legacy_random
+  - notification_center_detachment
+  - nsobject_prefer_isequal
+  - overridden_super_call
+  - private_unit_test
+  - prohibited_super_call
+  - superfluous_disable_command
+  - unhandled_throwing_task
+  - unowned_variable_capture
+  - unused_setter_value
+  - weak_delegate
+  - custom_rules
+
+custom_rules:
+  unguarded_remove_item:
+    excluded: '/Tests/'
+    name: Delete without a containment check
+    regex: '\.(removeItem|trashItem)\((at|atPath):'
+    message: >-
+      A delete must first check the path is inside the folder it belongs to (no symlink,
+      no user-picked root). Check it, then add `// swiftlint:disable:next unguarded_remove_item`
+      with the reason.
+    severity: error
+  try_optional_destructive:
+    excluded: '/Tests/'
+    name: try? on a destructive file operation
+    regex: 'try\?\s+[^\n]*\.(removeItem|trashItem|moveItem|replaceItem|replaceItemAt)\('
+    message: >-
+      A failed delete or move must not pass silently: use try and handle or log the error.
+    severity: error
+  http_literal:
+    excluded: '/Tests/'
+    name: Plain http URL
+    regex: '"http://(?!localhost[:/"]|127\.0\.0\.1[:/"]|\[::1\][:/"])'
+    message: Use https; plain http is allowed for localhost only.
+    severity: error

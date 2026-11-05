@@ -75,15 +75,30 @@ enum SetupEnvironment {
         return (folders.map { $0.path(percentEncoded: false) }.joined(separator: ":"), overrides)
     }
 
-    static func prepareNVExtensions(wine: WineRunner, prefix: URL, environment: [String: String]) throws {
-        guard environment["DXMT_ENABLE_NVEXT"] == "1",
-              let path = environment["WINEDLLPATH"] else { return }
+    static func prepareNVExtensions(wine: WineRunner, prefix: URL, environment: [String: String],
+                                    backends: URL = BackendInstaller.folder) throws {
+        guard environment["DXMT_ENABLE_NVEXT"] == "1" else {
+            removeDXMTExtensions(prefix: prefix, backends: backends)
+            return
+        }
+        guard let path = environment["WINEDLLPATH"] else { return }
         for name in ["nvapi64.dll", "nvngx.dll"] {
             guard let source = path.split(separator: ":").map({ URL(filePath: String($0)).appending(path: name) })
                 .first(where: { FileManager.default.fileExists(atPath: $0.path(percentEncoded: false)) }) else { continue }
             let target = prefix.appending(path: "drive_c/windows/system32/\(name)")
             try? FileManager.default.removeItem(at: target)
             try FileManager.default.copyItem(at: source, to: target)
+        }
+    }
+
+    // DXMT's copies left from an earlier launch would take DLSS from D3DMetal
+    static func removeDXMTExtensions(prefix: URL, backends: URL) {
+        let source = BackendInstaller.folder(for: .dxmt, in: backends).appending(path: "x86_64-windows")
+        for name in ["nvapi64.dll", "nvngx.dll"] {
+            let target = prefix.appending(path: "drive_c/windows/system32/\(name)")
+            guard let copy = FileManager.default.contents(atPath: target.path(percentEncoded: false)),
+                  copy == FileManager.default.contents(atPath: source.appending(path: name).path(percentEncoded: false)) else { continue }
+            try? FileManager.default.removeItem(at: target)
         }
     }
 

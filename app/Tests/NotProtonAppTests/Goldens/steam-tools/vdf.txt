@@ -1,0 +1,432 @@
+== cartouche-proton-fex-41073/compatibilitytool.vdf
+"compatibilitytools"
+{
+  "compat_tools"
+  {
+    "cartouche-proton-fex-41073"
+    {
+      "install_path" "."
+      "display_name" "CrossOver 2026 10 15-ARM64 - FEX"
+      "from_oslist" "windows"
+      "to_oslist" "macos"
+    }
+  }
+}
+== cartouche-proton-fex-41073/toolmanifest.vdf
+"manifest"
+{
+  "version" "2"
+  "commandline" "/run %verb%"
+}
+== cartouche-proton-fex-41073/flavor
+fex
+== cartouche-proton-fex-41073/build
+27.0.0.41073-fex
+== cartouche-proton-fex-rosetta-41073/compatibilitytool.vdf
+"compatibilitytools"
+{
+  "compat_tools"
+  {
+    "cartouche-proton-fex-rosetta-41073"
+    {
+      "install_path" "."
+      "display_name" "CrossOver 2026 10 15-ARM64 - Rosetta"
+      "from_oslist" "windows"
+      "to_oslist" "macos"
+    }
+  }
+}
+== cartouche-proton-fex-rosetta-41073/toolmanifest.vdf
+"manifest"
+{
+  "version" "2"
+  "commandline" "/run %verb%"
+}
+== cartouche-proton-fex-rosetta-41073/flavor
+rosetta
+== cartouche-proton-fex-rosetta-41073/build
+27.0.0.41073-fex
+== cartouche-proton-26.3/compatibilitytool.vdf
+"compatibilitytools"
+{
+  "compat_tools"
+  {
+    "cartouche-proton-26.3"
+    {
+      "install_path" "."
+      "display_name" "CrossOver 26.3"
+      "from_oslist" "windows"
+      "to_oslist" "macos"
+    }
+  }
+}
+== cartouche-proton-26.3/toolmanifest.vdf
+"manifest"
+{
+  "version" "2"
+  "commandline" "/run %verb%"
+}
+== cartouche-proton-26.3/flavor
+rosetta
+== cartouche-proton-26.3/build
+26.3.0.39832
+== cartouche-proton-wine-crossover-26.3.0-1/compatibilitytool.vdf
+"compatibilitytools"
+{
+  "compat_tools"
+  {
+    "cartouche-proton-wine-crossover-26.3.0-1"
+    {
+      "install_path" "."
+      "display_name" "Cartouche Wine 26.3"
+      "from_oslist" "windows"
+      "to_oslist" "macos"
+    }
+  }
+}
+== cartouche-proton-wine-crossover-26.3.0-1/toolmanifest.vdf
+"manifest"
+{
+  "version" "2"
+  "commandline" "/run %verb%"
+}
+== cartouche-proton-wine-crossover-26.3.0-1/flavor
+rosetta
+== cartouche-proton-wine-crossover-26.3.0-1/build
+wine-crossover-26.3.0-1
+== cartouche-proton-fex-wine-crossover-26.3.0-1/compatibilitytool.vdf
+"compatibilitytools"
+{
+  "compat_tools"
+  {
+    "cartouche-proton-fex-wine-crossover-26.3.0-1"
+    {
+      "install_path" "."
+      "display_name" "Cartouche Wine 26.3 FEX"
+      "from_oslist" "windows"
+      "to_oslist" "macos"
+    }
+  }
+}
+== cartouche-proton-fex-wine-crossover-26.3.0-1/toolmanifest.vdf
+"manifest"
+{
+  "version" "2"
+  "commandline" "/run %verb%"
+}
+== cartouche-proton-fex-wine-crossover-26.3.0-1/flavor
+fex
+== cartouche-proton-fex-wine-crossover-26.3.0-1/build
+wine-crossover-26.3.0-1
+== cartouche-proton-fex-41073-dxmt/compatibilitytool.vdf
+"compatibilitytools"
+{
+  "compat_tools"
+  {
+    "cartouche-proton-fex-41073-dxmt"
+    {
+      "install_path" "."
+      "display_name" "CrossOver 2026 10 15-ARM64 - FEX · DXMT"
+      "from_oslist" "windows"
+      "to_oslist" "macos"
+    }
+  }
+}
+== cartouche-proton-fex-41073-dxmt/toolmanifest.vdf
+"manifest"
+{
+  "version" "2"
+  "commandline" "/run %verb%"
+}
+== cartouche-proton-fex-41073-dxmt/flavor
+fex
+== cartouche-proton-fex-41073-dxmt/build
+27.0.0.41073-fex
+== cartouche-proton-fex-41073-dxmt/backend
+dxmt
+== cartouche-proton-fex-41073-dxvk/compatibilitytool.vdf
+"compatibilitytools"
+{
+  "compat_tools"
+  {
+    "cartouche-proton-fex-41073-dxvk"
+    {
+      "install_path" "."
+      "display_name" "CrossOver 2026 10 15-ARM64 - FEX · DXVK"
+      "from_oslist" "windows"
+      "to_oslist" "macos"
+    }
+  }
+}
+== cartouche-proton-fex-41073-dxvk/toolmanifest.vdf
+"manifest"
+{
+  "version" "2"
+  "commandline" "/run %verb%"
+}
+== cartouche-proton-fex-41073-dxvk/flavor
+fex
+== cartouche-proton-fex-41073-dxvk/build
+27.0.0.41073-fex
+== cartouche-proton-fex-41073-dxvk/backend
+dxvk
+== cartouche-proton-fex-41073-wined3d/compatibilitytool.vdf
+"compatibilitytools"
+{
+  "compat_tools"
+  {
+    "cartouche-proton-fex-41073-wined3d"
+    {
+      "install_path" "."
+      "display_name" "CrossOver 2026 10 15-ARM64 - FEX · wined3d"
+      "from_oslist" "windows"
+      "to_oslist" "macos"
+    }
+  }
+}
+== cartouche-proton-fex-41073-wined3d/toolmanifest.vdf
+"manifest"
+{
+  "version" "2"
+  "commandline" "/run %verb%"
+}
+== cartouche-proton-fex-41073-wined3d/flavor
+fex
+== cartouche-proton-fex-41073-wined3d/build
+27.0.0.41073-fex
+== cartouche-proton-fex-41073-wined3d/backend
+wined3d
+== cartouche-proton-fex-rosetta-41073-dxmt/compatibilitytool.vdf
+"compatibilitytools"
+{
+  "compat_tools"
+  {
+    "cartouche-proton-fex-rosetta-41073-dxmt"
+    {
+      "install_path" "."
+      "display_name" "CrossOver 2026 10 15-ARM64 - Rosetta · DXMT"
+      "from_oslist" "windows"
+      "to_oslist" "macos"
+    }
+  }
+}
+== cartouche-proton-fex-rosetta-41073-dxmt/toolmanifest.vdf
+"manifest"
+{
+  "version" "2"
+  "commandline" "/run %verb%"
+}
+== cartouche-proton-fex-rosetta-41073-dxmt/flavor
+rosetta
+== cartouche-proton-fex-rosetta-41073-dxmt/build
+27.0.0.41073-fex
+== cartouche-proton-fex-rosetta-41073-dxmt/backend
+dxmt
+== cartouche-proton-fex-rosetta-41073-dxvk/compatibilitytool.vdf
+"compatibilitytools"
+{
+  "compat_tools"
+  {
+    "cartouche-proton-fex-rosetta-41073-dxvk"
+    {
+      "install_path" "."
+      "display_name" "CrossOver 2026 10 15-ARM64 - Rosetta · DXVK"
+      "from_oslist" "windows"
+      "to_oslist" "macos"
+    }
+  }
+}
+== cartouche-proton-fex-rosetta-41073-dxvk/toolmanifest.vdf
+"manifest"
+{
+  "version" "2"
+  "commandline" "/run %verb%"
+}
+== cartouche-proton-fex-rosetta-41073-dxvk/flavor
+rosetta
+== cartouche-proton-fex-rosetta-41073-dxvk/build
+27.0.0.41073-fex
+== cartouche-proton-fex-rosetta-41073-dxvk/backend
+dxvk
+== cartouche-proton-fex-rosetta-41073-wined3d/compatibilitytool.vdf
+"compatibilitytools"
+{
+  "compat_tools"
+  {
+    "cartouche-proton-fex-rosetta-41073-wined3d"
+    {
+      "install_path" "."
+      "display_name" "CrossOver 2026 10 15-ARM64 - Rosetta · wined3d"
+      "from_oslist" "windows"
+      "to_oslist" "macos"
+    }
+  }
+}
+== cartouche-proton-fex-rosetta-41073-wined3d/toolmanifest.vdf
+"manifest"
+{
+  "version" "2"
+  "commandline" "/run %verb%"
+}
+== cartouche-proton-fex-rosetta-41073-wined3d/flavor
+rosetta
+== cartouche-proton-fex-rosetta-41073-wined3d/build
+27.0.0.41073-fex
+== cartouche-proton-fex-rosetta-41073-wined3d/backend
+wined3d
+== cartouche-proton-26.3-d3dmetal/compatibilitytool.vdf
+"compatibilitytools"
+{
+  "compat_tools"
+  {
+    "cartouche-proton-26.3-d3dmetal"
+    {
+      "install_path" "."
+      "display_name" "CrossOver 26.3 · D3DMetal"
+      "from_oslist" "windows"
+      "to_oslist" "macos"
+    }
+  }
+}
+== cartouche-proton-26.3-d3dmetal/toolmanifest.vdf
+"manifest"
+{
+  "version" "2"
+  "commandline" "/run %verb%"
+}
+== cartouche-proton-26.3-d3dmetal/flavor
+rosetta
+== cartouche-proton-26.3-d3dmetal/build
+26.3.0.39832
+== cartouche-proton-26.3-d3dmetal/backend
+d3dmetal
+== cartouche-proton-26.3-dxmt/compatibilitytool.vdf
+"compatibilitytools"
+{
+  "compat_tools"
+  {
+    "cartouche-proton-26.3-dxmt"
+    {
+      "install_path" "."
+      "display_name" "CrossOver 26.3 · DXMT"
+      "from_oslist" "windows"
+      "to_oslist" "macos"
+    }
+  }
+}
+== cartouche-proton-26.3-dxmt/toolmanifest.vdf
+"manifest"
+{
+  "version" "2"
+  "commandline" "/run %verb%"
+}
+== cartouche-proton-26.3-dxmt/flavor
+rosetta
+== cartouche-proton-26.3-dxmt/build
+26.3.0.39832
+== cartouche-proton-26.3-dxmt/backend
+dxmt
+== cartouche-proton-26.3-dxvk/compatibilitytool.vdf
+"compatibilitytools"
+{
+  "compat_tools"
+  {
+    "cartouche-proton-26.3-dxvk"
+    {
+      "install_path" "."
+      "display_name" "CrossOver 26.3 · DXVK"
+      "from_oslist" "windows"
+      "to_oslist" "macos"
+    }
+  }
+}
+== cartouche-proton-26.3-dxvk/toolmanifest.vdf
+"manifest"
+{
+  "version" "2"
+  "commandline" "/run %verb%"
+}
+== cartouche-proton-26.3-dxvk/flavor
+rosetta
+== cartouche-proton-26.3-dxvk/build
+26.3.0.39832
+== cartouche-proton-26.3-dxvk/backend
+dxvk
+== cartouche-proton-26.3-wined3d/compatibilitytool.vdf
+"compatibilitytools"
+{
+  "compat_tools"
+  {
+    "cartouche-proton-26.3-wined3d"
+    {
+      "install_path" "."
+      "display_name" "CrossOver 26.3 · wined3d"
+      "from_oslist" "windows"
+      "to_oslist" "macos"
+    }
+  }
+}
+== cartouche-proton-26.3-wined3d/toolmanifest.vdf
+"manifest"
+{
+  "version" "2"
+  "commandline" "/run %verb%"
+}
+== cartouche-proton-26.3-wined3d/flavor
+rosetta
+== cartouche-proton-26.3-wined3d/build
+26.3.0.39832
+== cartouche-proton-26.3-wined3d/backend
+wined3d
+== cartouche-proton-wine-crossover-26.3.0-1-wined3d/compatibilitytool.vdf
+"compatibilitytools"
+{
+  "compat_tools"
+  {
+    "cartouche-proton-wine-crossover-26.3.0-1-wined3d"
+    {
+      "install_path" "."
+      "display_name" "Cartouche Wine 26.3 · wined3d"
+      "from_oslist" "windows"
+      "to_oslist" "macos"
+    }
+  }
+}
+== cartouche-proton-wine-crossover-26.3.0-1-wined3d/toolmanifest.vdf
+"manifest"
+{
+  "version" "2"
+  "commandline" "/run %verb%"
+}
+== cartouche-proton-wine-crossover-26.3.0-1-wined3d/flavor
+rosetta
+== cartouche-proton-wine-crossover-26.3.0-1-wined3d/build
+wine-crossover-26.3.0-1
+== cartouche-proton-wine-crossover-26.3.0-1-wined3d/backend
+wined3d
+== cartouche-proton-fex-wine-crossover-26.3.0-1-wined3d/compatibilitytool.vdf
+"compatibilitytools"
+{
+  "compat_tools"
+  {
+    "cartouche-proton-fex-wine-crossover-26.3.0-1-wined3d"
+    {
+      "install_path" "."
+      "display_name" "Cartouche Wine 26.3 FEX · wined3d"
+      "from_oslist" "windows"
+      "to_oslist" "macos"
+    }
+  }
+}
+== cartouche-proton-fex-wine-crossover-26.3.0-1-wined3d/toolmanifest.vdf
+"manifest"
+{
+  "version" "2"
+  "commandline" "/run %verb%"
+}
+== cartouche-proton-fex-wine-crossover-26.3.0-1-wined3d/flavor
+fex
+== cartouche-proton-fex-wine-crossover-26.3.0-1-wined3d/build
+wine-crossover-26.3.0-1
+== cartouche-proton-fex-wine-crossover-26.3.0-1-wined3d/backend
+wined3d

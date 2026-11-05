@@ -185,7 +185,7 @@ struct SettingsWindowTests {
 
     @Test("Sidebar: General, Library, Accounts, Steam, Wine Prefixes, Runners, Privacy, Consoles, Controllers and Agents")
     func tabs() {
-        #expect(SettingsTab.allCases.map(\.title) == ["General", "Library", "Accounts", "Steam", "Wine Prefixes", "Runners", "Privacy", "Consoles", "Controllers", "Agents", "Advanced"])
+        #expect(SettingsTab.allCases.map(\.title) == ["General", "Library", "Accounts", "Steam", "Wine Prefixes", "Runners", "Privacy", "Consoles", "Controllers", "Agents", "Resources", "In-Game Menu", "Advanced"])
         #expect(SettingsTab(rawValue: "compatibility") == .compatibility)
         #expect(SettingsTab.compatibility.title == "Runners")
     }
@@ -230,6 +230,7 @@ struct SettingsWindowTests {
             (.privacy, AnyView(PrivacySettingsView(center: center, choices: PrivacyChoices(defaults: scratch.defaults)))),
             (.consoles, AnyView(ConsolesSettingsView(model: consoles, chooseApp: { nil }))),
             (.agents, AnyView(AgentsSettingsView(model: agents))),
+            (.inGameMenu, AnyView(InGameMenuSettingsView())),
             (.advanced, AnyView(AdvancedSettingsView())),
         ]
         for (tab, view) in panes {

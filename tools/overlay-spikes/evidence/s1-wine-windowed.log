@@ -1,0 +1,62 @@
+1793285742325 game  activateapp 1
+1793285742446 game  start rect=455,306,800x500 popup=0 capture=0 aggressive=0
+1793285743210 panel activate wine ok=true
+1793285743330 panel panel start plan=n:floating,n:statusBar,n:popUpMenu,n:screenSaver,a:floating frontmost=wine/98285 cursor=(1170.0, 553.0) SLCursorIsVisible=1 SLSCursorIsVisible=1
+1793285743478 game  tick fps=112.4 fg=1 active=1 hidden=0 cursor=1170,553 clip=0,0,1710,1112
+1793285744386 panel open by=plan activating=false level=3 frontmostBefore=wine/98285 gamePid=98285 panelIndex=-1 panelLayer=0 gameIndex=1 gameLayer=0 gameRect=455,278,800x528 above=false
+1793285744446 game  activateapp 0
+1793285744477 game  tick fps=59.0 fg=0 active=0 hidden=0 cursor=1170,553 clip=0,0,1710,1112
+1793285744752 panel shown +0.3s active=true key=true onActiveSpace=true visible=true frontmost=wine/98285 panelIndex=1 panelLayer=3 gameIndex=2 gameLayer=0 gameRect=455,278,800x528 above=true
+1793285745477 game  tick fps=59.9 fg=0 active=0 hidden=0 cursor=1170,553 clip=0,0,1710,1112
+1793285745698 panel shown +1.2s active=true key=true onActiveSpace=true visible=true frontmost=wine/98285 panelIndex=1 panelLayer=3 gameIndex=2 gameLayer=0 gameRect=455,278,800x528 above=true
+1793285745957 panel closed
+1793285745962 game  activateapp 1
+1793285746495 game  tick fps=60.0 fg=1 active=1 hidden=0 cursor=1170,553 clip=0,0,1710,1112
+1793285747007 panel after close frontmost=wine/98285 panelIndex=-1 panelLayer=0 gameIndex=1 gameLayer=0 gameRect=455,278,800x528 above=false
+1793285747510 game  tick fps=60.0 fg=1 active=1 hidden=0 cursor=1170,553 clip=0,0,1710,1112
+1793285748056 panel open by=plan activating=false level=25 frontmostBefore=wine/98285 gamePid=98285 panelIndex=-1 panelLayer=0 gameIndex=1 gameLayer=0 gameRect=455,278,800x528 above=false
+1793285748078 game  activateapp 0
+1793285748381 panel shown +0.3s active=true key=true onActiveSpace=true visible=true frontmost=wine/98285 panelIndex=0 panelLayer=25 gameIndex=2 gameLayer=0 gameRect=455,278,800x528 above=true
+1793285748527 game  tick fps=60.0 fg=0 active=0 hidden=0 cursor=1170,553 clip=0,0,1710,1112
+1793285749332 panel shown +1.2s active=true key=true onActiveSpace=true visible=true frontmost=wine/98285 panelIndex=0 panelLayer=25 gameIndex=2 gameLayer=0 gameRect=455,278,800x528 above=true
+1793285749545 game  tick fps=60.0 fg=0 active=0 hidden=0 cursor=1170,553 clip=0,0,1710,1112
+1793285749634 panel closed
+1793285749645 game  activateapp 1
+1793285750545 game  tick fps=60.0 fg=1 active=1 hidden=0 cursor=1170,553 clip=0,0,1710,1112
+1793285750684 panel after close frontmost=wine/98285 panelIndex=-1 panelLayer=0 gameIndex=1 gameLayer=0 gameRect=455,278,800x528 above=false
+1793285751560 game  tick fps=60.0 fg=1 active=1 hidden=0 cursor=1170,553 clip=0,0,1710,1112
+1793285751733 panel open by=plan activating=false level=101 frontmostBefore=wine/98285 gamePid=98285 panelIndex=-1 panelLayer=0 gameIndex=1 gameLayer=0 gameRect=455,278,800x528 above=false
+1793285751744 game  activateapp 0
+1793285752056 panel shown +0.3s active=true key=true onActiveSpace=true visible=true frontmost=wine/98285 panelIndex=0 panelLayer=101 gameIndex=2 gameLayer=0 gameRect=455,278,800x528 above=true
+1793285752577 game  tick fps=59.9 fg=0 active=0 hidden=0 cursor=1170,553 clip=0,0,1710,1112
+1793285753002 panel closed
+1793285753010 game  activateapp 1
+1793285753596 game  tick fps=60.1 fg=1 active=1 hidden=0 cursor=1170,553 clip=0,0,1710,1112
+1793285754051 panel after close frontmost=wine/98285 panelIndex=-1 panelLayer=0 gameIndex=1 gameLayer=0 gameRect=455,278,800x528 above=false
+1793285754611 game  tick fps=60.0 fg=1 active=1 hidden=0 cursor=1170,553 clip=0,0,1710,1112
+1793285755393 panel open by=plan activating=false level=1000 frontmostBefore=wine/98285 gamePid=98285 panelIndex=-1 panelLayer=0 gameIndex=1 gameLayer=0 gameRect=455,278,800x528 above=false
+1793285755411 game  activateapp 0
+1793285755612 game  tick fps=60.0 fg=0 active=0 hidden=0 cursor=1170,553 clip=0,0,1710,1112
+1793285755721 panel shown +0.3s active=true key=true onActiveSpace=true visible=true frontmost=wine/98285 panelIndex=0 panelLayer=1000 gameIndex=2 gameLayer=0 gameRect=455,278,800x528 above=true
+1793285756628 game  tick fps=60.0 fg=0 active=0 hidden=0 cursor=1170,553 clip=0,0,1710,1112
+1793285756669 panel closed
+1793285756677 game  activateapp 1
+1793285757627 game  tick fps=60.0 fg=1 active=1 hidden=0 cursor=1170,553 clip=0,0,1710,1112
+1793285757718 panel after close frontmost=wine/98285 panelIndex=-1 panelLayer=0 gameIndex=1 gameLayer=0 gameRect=455,278,800x528 above=false
+1793285758644 game  tick fps=60.0 fg=1 active=1 hidden=0 cursor=1170,553 clip=0,0,1710,1112
+1793285759083 panel open by=plan activating=true level=3 frontmostBefore=wine/98285 gamePid=98285 panelIndex=-1 panelLayer=0 gameIndex=1 gameLayer=0 gameRect=455,278,800x528 above=false
+1793285759251 panel activate refused, retry ignoringOtherApps ok=true
+1793285759252 panel activated Spike/99912
+1793285759277 game  activateapp 0
+1793285759403 panel shown +0.3s active=true key=true onActiveSpace=true visible=true frontmost=Spike/99912 panelIndex=1 panelLayer=3 gameIndex=2 gameLayer=0 gameRect=455,278,800x528 above=true
+1793285759661 game  tick fps=60.0 fg=0 active=0 hidden=0 cursor=1170,553 clip=0,0,1710,1112
+1793285760350 panel closed
+1793285760353 panel reactivate game ok=true
+1793285760355 panel activated wine/98285
+1793285760363 game  activateapp 1
+1793285760677 game  tick fps=60.0 fg=1 active=1 hidden=0 cursor=1170,553 clip=0,0,1710,1112
+1793285761402 panel after close frontmost=wine/98285 panelIndex=-1 panelLayer=0 gameIndex=1 gameLayer=0 gameRect=455,278,800x528 above=false
+1793285761693 game  tick fps=60.0 fg=1 active=1 hidden=0 cursor=1170,553 clip=0,0,1710,1112
+1793285762693 game  tick fps=59.9 fg=1 active=1 hidden=0 cursor=1170,553 clip=0,0,1710,1112
+1793285762760 panel end spaces=0 frontmost=Orca/40879
+1793285762760 panel restore Orca ok=true

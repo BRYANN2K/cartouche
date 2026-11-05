@@ -1,0 +1,32 @@
+# Accepted osv-scanner findings, each with a reason and an end date (docs/security/RELEASE-GATE.md).
+# A lapsed ignoreUntil turns the finding back into a failure.
+
+# semgrep 1.183.0 requires mcp==1.29.0 exactly and opentelemetry-api~=1.37.0
+# (tools/ci/requirements-security.txt). The CI only runs `semgrep scan`: the MCP server and
+# its HTTP transports never start, and no tracestate header reaches opentelemetry. The tool
+# venv lives in the runner's temp folder and is gone after the job. Drop these once semgrep
+# lifts the pins.
+[[IgnoredVulns]]
+id = "GHSA-84m7-p3x7-pcfv"
+ignoreUntil = 2027-02-05
+reason = "mcp 1.29.0, pinned by semgrep; StreamableHTTP session exhaustion, the MCP server never runs in CI"
+
+[[IgnoredVulns]]
+id = "GHSA-5h93-6whr-6q8j"
+ignoreUntil = 2027-02-05
+reason = "mcp 1.29.0, pinned by semgrep; MCP client and server code never runs in CI (semgrep scan only)"
+
+[[IgnoredVulns]]
+id = "GHSA-rwrf-2pqf-9j8j"
+ignoreUntil = 2027-02-05
+reason = "mcp 1.29.0, pinned by semgrep; MCP client and server code never runs in CI (semgrep scan only)"
+
+[[IgnoredVulns]]
+id = "GHSA-w4fh-qvv9-3v23"
+ignoreUntil = 2027-02-05
+reason = "mcp 1.29.0, pinned by semgrep; MCP client and server code never runs in CI (semgrep scan only)"
+
+[[IgnoredVulns]]
+id = "GHSA-xcq7-p3pf-p88h"
+ignoreUntil = 2027-02-05
+reason = "opentelemetry-api 1.37.0, pinned by semgrep; tracestate parsing, semgrep runs with --metrics=off and parses no incoming trace header"

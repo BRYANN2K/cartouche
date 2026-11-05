@@ -46,6 +46,8 @@ final class AgentService {
     // An approval granted just before the model flips this off must not still run.
     var enabled = true
     var approvalTimeout: Duration = .seconds(300)
+    // More would let one agent flood the user with notifications.
+    static let pendingCap = 5
     var notify: @MainActor (AgentApproval) -> Void = { _ in }
 
     private(set) var actions: [AgentAction] = []
@@ -70,43 +72,57 @@ final class AgentService {
         }
         guard tool.level <= level else {
             return refuse(tool, "needs \(tool.level.rawValue) access; the level is \(level.rawValue)",
-                          client: client)
+                          client: client, args: args)
         }
         if tool.sendsInput, let playing = backend.consolePlaying(),
            backend.consoleGame(playing.gameID)?.setup.hardcore == true {
             return refuse(tool, "Hardcore achievements are on; \(name) is refused while it is",
-                          client: client)
+                          client: client, args: args)
+        }
+        if let check = tool.check {
+            do { try check(backend, args) } catch {
+                return refuse(tool, error.localizedDescription, client: client, args: args)
+            }
         }
         if tool.approval {
-            let text = await tool.approvalText?(backend, args) ?? name
+            guard pending.count < Self.pendingCap else {
+                return refuse(tool, "\(Self.pendingCap) approvals are already waiting for the user; "
+                              + "ask again once they are answered", client: client, args: args)
+            }
+            let text = AgentPrompt.clean(await tool.approvalText?(backend, args) ?? name, cap: AgentPrompt.textCap)
             guard await ask(client: client, tool: name, text: text) else {
-                return deny(tool, client: client)
+                return deny(tool, client: client, args: args)
             }
             // The user may have lowered the level or switched agents off while answering; re-check before running.
             guard enabled, tool.level <= level else {
                 return refuse(tool, "the level was lowered or agents were turned off while you answered",
-                              client: client)
+                              client: client, args: args)
             }
         }
         let undo = snapshotUndo(tool: name, args: args)
         do {
             let raw = try await tool.run(backend, args)
             let scanned = AgentScan.scrub(raw, under: backend.roots.allowed, home: home)
-            record(client: client, tool: name, detail: describe(args), outcome: .ok, undo: undo)
+            record(client: client, tool: name, detail: Self.describe(args), outcome: .ok, undo: undo)
             return MCPServer.content(scanned)
         } catch {
-            record(client: client, tool: name, detail: describe(args), outcome: .error(error.localizedDescription))
-            return MCPServer.errorContent(error.localizedDescription)
+            record(client: client, tool: name, detail: Self.describe(args), outcome: .error(error.localizedDescription))
+            return MCPServer.errorContent(scrub(error.localizedDescription))
         }
     }
 
-    private func refuse(_ tool: AgentTool, _ why: String, client: String) -> JSONValue {
-        record(client: client, tool: tool.name, detail: "", outcome: .refused(why))
-        return MCPServer.errorContent("refused: \(tool.name) \(why)")
+    // Errors carry Wine's stderr and full paths: they leave through the same scan as replies.
+    private func scrub(_ text: String) -> String {
+        AgentScan.scrub(text, under: backend.roots.allowed, home: home)
     }
 
-    private func deny(_ tool: AgentTool, client: String) -> JSONValue {
-        record(client: client, tool: tool.name, detail: "", outcome: .denied)
+    private func refuse(_ tool: AgentTool, _ why: String, client: String, args: JSONValue) -> JSONValue {
+        record(client: client, tool: tool.name, detail: Self.describe(args), outcome: .refused(why))
+        return MCPServer.errorContent(scrub("refused: \(tool.name) \(why)"))
+    }
+
+    private func deny(_ tool: AgentTool, client: String, args: JSONValue) -> JSONValue {
+        record(client: client, tool: tool.name, detail: Self.describe(args), outcome: .denied)
         return MCPServer.errorContent("the user denied \(tool.name)")
     }
 
@@ -188,11 +204,52 @@ final class AgentService {
             to: backend.roots.support.appending(path: "agents/actions.jsonl"))
     }
 
-    private func describe(_ args: JSONValue) -> String {
+    static let detailCap = 2_000
+
+    // Top-level values as they came; nested ones by their path, so run_in_prefix args, verbs, env and options show.
+    static func describe(_ args: JSONValue) -> String {
         guard let object = args.object, !object.isEmpty else { return "" }
-        return object.keys.sorted().compactMap { key in
-            args[key]?.string ?? args[key]?.int.map(String.init) ?? args[key]?.bool.map { "\($0)" }
-        }.joined(separator: " ")
+        var parts: [String] = []
+        for key in object.keys.sorted() {
+            guard let value = object[key] else { continue }
+            if let scalar = scalar(value) {
+                parts.append(scalar)
+            } else {
+                flatten(value, path: AgentPrompt.escaped(key, cap: 64), depth: 1, into: &parts)
+            }
+        }
+        return AgentPrompt.capped(parts.joined(separator: " "), detailCap)
+    }
+
+    private static func scalar(_ value: JSONValue) -> String? {
+        switch value {
+        case .string(let text): AgentPrompt.escaped(text)
+        case .bool(let flag): "\(flag)"
+        case .number(let n): n == n.rounded() && abs(n) < 1e15 ? String(Int64(n)) : "\(n)"
+        case .null: "null"
+        case .array, .object: nil
+        }
+    }
+
+    private static func flatten(_ value: JSONValue, path: String, depth: Int, into parts: inout [String]) {
+        guard depth <= 4 else { return parts.append("\(path)=…") }
+        switch value {
+        case .array(let items):
+            if items.allSatisfy({ scalar($0) != nil }) {
+                parts.append("\(path)=[" + items.compactMap(scalar).joined(separator: ", ") + "]")
+            } else {
+                for (index, item) in items.enumerated() {
+                    flatten(item, path: "\(path)[\(index)]", depth: depth + 1, into: &parts)
+                }
+            }
+        case .object(let map):
+            for key in map.keys.sorted() {
+                guard let item = map[key] else { continue }
+                flatten(item, path: "\(path).\(AgentPrompt.escaped(key, cap: 64))", depth: depth + 1, into: &parts)
+            }
+        default:
+            parts.append("\(path)=\(scalar(value) ?? "")")
+        }
     }
 
     // MARK: - resources/read

@@ -12,8 +12,10 @@ struct StoredSession: Equatable, Sendable, Identifiable {
     var appID: Int
     var setup: PlaySetup
     var runnerName: String
-    // The game's Cartouche variables (D3DM_, DXMT_, DXVK_, MTL_, ROSETTA_)
+    // The game's variables as it got them: the layer's (D3DM_, DXMT_, DXVK_, MTL_, ROSETTA_) and ours (CARTOUCHE_)
     var settings: [String: String] = [:]
+    // What can bias a comparison: other apps' CPU, swap, memory, heat, power, the screen, our library's state
+    var context: [String: String] = [:]
     var started: Date
     var ended: Date
     var measurement: Measurement
@@ -25,6 +27,8 @@ struct StoredSession: Equatable, Sendable, Identifiable {
 enum PerformanceIncoming {
     static let folderName = "incoming"
     static let sessionFile = "session"
+    // The app's half of the context, written while the game runs
+    static let appContextFile = "app-context"
     static let abandonedAfter: TimeInterval = 15 * 60
 
     struct Folder: Equatable, Sendable {
@@ -45,11 +49,14 @@ enum PerformanceIncoming {
         }
         var keys: [String: String] = [:]
         var settings: [String: String] = [:]
-        for line in text.split(separator: "\n") {
+        var context: [String: String] = [:]
+        let app = (try? String(contentsOf: folder.appending(path: appContextFile), encoding: .utf8)) ?? ""
+        for line in text.split(separator: "\n") + app.split(separator: "\n").map { "context=" + $0 } {
             guard let eq = line.firstIndex(of: "=") else { continue }
             let key = String(line[..<eq]), value = String(line[line.index(after: eq)...])
-            if key == "setting", let inner = value.firstIndex(of: "=") {
-                settings[String(value[..<inner])] = String(value[value.index(after: inner)...])
+            if key == "setting" || key == "context", let inner = value.firstIndex(of: "=") {
+                let name = String(value[..<inner]), item = String(value[value.index(after: inner)...])
+                if key == "setting" { settings[name] = item } else if !item.isEmpty { context[name] = item }
             } else if keys[key] == nil {
                 keys[key] = value
             }
@@ -81,9 +88,11 @@ enum PerformanceIncoming {
             appID: appID,
             setup: PlaySetup(runnerID: runner,
                              translation: keys["flavor"] == "fex" ? .fex : .rosetta,
-                             backend: keys["backend"].flatMap(GraphicsBackend.init(rawValue:))),
+                             backend: keys["backend"].flatMap(GraphicsBackend.init(rawValue:)),
+                             options: PlaySetup.options(settings: settings, context: context)),
             runnerName: keys["display"].flatMap { $0.isEmpty ? nil : $0 } ?? runner,
             settings: settings,
+            context: context,
             started: Date(timeIntervalSince1970: started),
             ended: Date(timeIntervalSince1970: max(started, ended)),
             measurement: keys["measure"] == "refused" ? .refused : .on,
@@ -116,7 +125,7 @@ struct PerformanceStore: Sendable {
     var database: URL { folder.appending(path: "sessions.sqlite") }
     var incoming: URL { folder.appending(path: PerformanceIncoming.folderName) }
 
-    static let schemaVersion = 2
+    static let schemaVersion = 3
 
     static let schema = """
         CREATE TABLE IF NOT EXISTS sessions (
@@ -128,6 +137,7 @@ struct PerformanceStore: Sendable {
           backend TEXT,
           runner_name TEXT NOT NULL,
           settings TEXT NOT NULL,
+          context TEXT NOT NULL DEFAULT '{}',
           started REAL NOT NULL,
           ended REAL NOT NULL,
           measurement TEXT NOT NULL,
@@ -192,14 +202,15 @@ struct PerformanceStore: Sendable {
         try db.execute("BEGIN")
         do {
             let settings = String(decoding: try JSONEncoder.sorted.encode(s.settings), as: UTF8.self)
+            let context = String(decoding: try JSONEncoder.sorted.encode(s.context), as: UTF8.self)
             let histogram = s.measured.histogram.sorted { $0.key < $1.key }.map { "\($0.key):\($0.value)" }
                 .joined(separator: ",")
             let inserted = try db.run("""
-                INSERT OR IGNORE INTO sessions (folder, app_id, runner, translation, backend, runner_name, settings,
+                INSERT OR IGNORE INTO sessions (folder, app_id, runner, translation, backend, runner_name, settings, context,
                   started, ended, measurement, measured_seconds, frames, average, low1, histogram, width, height)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, [.text(name), .int(Int64(s.appID)), .text(s.setup.runnerID), .text(s.setup.translation.rawValue),
-                      s.setup.backend.map { .text($0.rawValue) } ?? .null, .text(s.runnerName), .text(settings),
+                      s.setup.backend.map { .text($0.rawValue) } ?? .null, .text(s.runnerName), .text(settings), .text(context),
                       .real(s.started.timeIntervalSince1970), .real(s.ended.timeIntervalSince1970),
                       .text(s.measurement.rawValue), .int(Int64(s.measured.seconds)), .int(Int64(s.measured.frames)),
                       s.measured.average.map { .real($0) } ?? .null, s.measured.low1.map { .real($0) } ?? .null,
@@ -229,7 +240,7 @@ struct PerformanceStore: Sendable {
         let db = try Database(database)
         let rows = try db.query("""
             SELECT id, app_id, runner, translation, backend, runner_name, settings, started, ended, measurement,
-              measured_seconds, frames, histogram, width, height
+              measured_seconds, frames, histogram, width, height, context
             FROM sessions \(appID == nil ? "" : "WHERE app_id = ?") ORDER BY started, id
             """, appID.map { [.int(Int64($0))] } ?? [])
         return rows.compactMap { row in
@@ -247,12 +258,16 @@ struct PerformanceStore: Sendable {
             if case .int(let h) = row[14] { measured.height = Int(h) }
             var backend: GraphicsBackend?
             if case .text(let raw) = row[4] { backend = GraphicsBackend(rawValue: raw) }
+            let values = (try? JSONDecoder().decode([String: String].self, from: Data(settings.utf8))) ?? [:]
+            var context: [String: String] = [:]
+            if case .text(let raw) = row[15] { context = (try? JSONDecoder().decode([String: String].self, from: Data(raw.utf8))) ?? [:] }
             return StoredSession(
                 id: id, appID: Int(app),
                 setup: PlaySetup(runnerID: runner, translation: GameSetupChoice.Translation(rawValue: translation) ?? .rosetta,
-                                 backend: backend),
+                                 backend: backend, options: PlaySetup.options(settings: values, context: context)),
                 runnerName: name,
-                settings: (try? JSONDecoder().decode([String: String].self, from: Data(settings.utf8))) ?? [:],
+                settings: values,
+                context: context,
                 started: Date(timeIntervalSince1970: started), ended: Date(timeIntervalSince1970: ended),
                 measurement: StoredSession.Measurement(rawValue: measurement) ?? .on,
                 measured: measured)
@@ -326,6 +341,7 @@ final class Database {
             ("backend", "TEXT"),
             ("runner_name", "TEXT NOT NULL DEFAULT ''"),
             ("settings", "TEXT NOT NULL DEFAULT '{}'"),
+            ("context", "TEXT NOT NULL DEFAULT '{}'"),
             ("measurement", "TEXT NOT NULL DEFAULT 'on'"),
             ("measured_seconds", "INTEGER NOT NULL DEFAULT 0"),
             ("frames", "INTEGER NOT NULL DEFAULT 0"),

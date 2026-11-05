@@ -18,7 +18,7 @@ struct OnboardingView: View {
                     ForEach(OnboardingStep.allCases, id: \.self) { item in
                         HStack(spacing: 10) {
                             ZStack {
-                                Circle().fill(item == model.step ? Color.accentColor : Glass.fill2)
+                                Circle().fill(item == model.step ? Glass.accentFill : Glass.fill2)
                                 if item < model.step {
                                     Image(systemName: "checkmark")
                                 } else {
@@ -561,7 +561,10 @@ private struct StoreTile: View {
         let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
         HStack(alignment: .center, spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(verbatim: store.name).font(.system(size: 13, weight: .semibold)).lineLimit(1)
+                HStack(spacing: 6) {
+                    Text(verbatim: store.name).font(.system(size: 13, weight: .semibold)).lineLimit(1)
+                    if store.isExperimental { ExperimentalTag() }
+                }
                 status.font(.system(size: 11)).foregroundStyle(Glass.label2)
             }
             Spacer(minLength: 8)
@@ -576,7 +579,9 @@ private struct StoreTile: View {
     @ViewBuilder
     private var status: some View {
         switch model.connection(store) {
-        case .connected(let account), .expired(let account): Text(verbatim: account)
+        case .connected(let account), .expired(let account):
+            let shown = StoreConnection.shownAccount(account)
+            if shown.isEmpty { Text("Signed in") } else { Text(verbatim: shown) }
         case .waiting: Text("Signing in…")
         case .notConnected: Text("Optional")
         }
@@ -590,7 +595,14 @@ private struct StoreTile: View {
         case .waiting:
             ProgressView().controlSize(.small).accessibilityLabel(Text("Signing in"))
         case .notConnected, .expired:
-            Button("Sign In") { model.beginSignIn(store) }.buttonStyle(.pill)
+            switch model.launcherStep(store) {
+            case .install?, .failed(_, retry: .install)?:
+                Button("Install") { model.installLauncher(store) }.buttonStyle(.pill)
+            case .installing?, .starting?:
+                ProgressView().controlSize(.small).accessibilityLabel(Text("Installing"))
+            default:
+                Button("Sign In") { model.beginSignIn(store) }.buttonStyle(.pill)
+            }
         }
     }
 }

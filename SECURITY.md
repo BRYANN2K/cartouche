@@ -29,7 +29,7 @@ This is a short summary. Agent control (P11) is specified in `openspec/specs/age
 
 - Wine builds, DXMT and DXVK are downloaded outside the app release.
 - Each file is checked against a SHA-256 in a pinned manifest before use. A mismatch deletes the file.
-- Runner files are checked again later. A changed file marks the runner damaged.
+- The Wine loader, `wineserver` and the `ntdll.dll` files of an installed runner are hashed again later. A changed file marks the runner damaged. Other runner files, and DXMT and DXVK once installed, are trusted as installed.
 - Cartouche never downloads or hosts D3DMetal or Game Porting Toolkit files.
 
 ### Self-signed signing
@@ -44,15 +44,17 @@ This is a short summary. Agent control (P11) is specified in `openspec/specs/age
 
 The MCP server lets an AI agent read the library and act on it through the same functions the UI uses. The threat is a malicious or confused agent, or a network party reaching the server.
 
-- The default transport is stdio: a `cartouche-mcp` helper binary the client starts (`claude mcp add cartouche -- cartouche-mcp`). The helper speaks MCP over stdio to the client and reaches the app over a Unix socket at `~/Library/Application Support/Cartouche/agent/mcp.sock`. The socket's folder is 0700 and the socket 0600; the app accepts a peer only when it runs as the same user (`getpeereid`) and its executable is the bundled helper inside the app (`LOCAL_PEERPID` + `proc_pidpath`). An agent never reaches the app's internals directly.
+- The default transport is stdio: a `cartouche-mcp` helper binary the client starts (`claude mcp add cartouche -- cartouche-mcp`). The helper speaks MCP over stdio to the client and reaches the app over a Unix socket at `~/Library/Application Support/Cartouche/agent/mcp.sock`. The socket's folder is 0700 and the socket 0600, and the app accepts a peer only when it runs as the same user (`getpeereid`). It also checks that the peer's executable is the bundled helper (`LOCAL_PEERPID` + `proc_pidpath`), but this is not a boundary: any process of the same user can start that helper and drive it, or connect and then exec it. The real boundary is the 0700 folder, the access level and the per-call approvals. An agent never reaches the app's internals directly.
 - The optional HTTP transport listens on 127.0.0.1 only, is off by default and needs a bearer token: 32 bytes from the system CSPRNG, kept in the Keychain. Requests without it get HTTP 401. Remote access from another machine is a non-goal.
-- A client's name is only a claim. Approvals and the action log show it as "an agent claiming to be …", with its transport, per peer.
-- Three access levels: Read only, Standard (default) and Full. Every tool belongs to a level; a call above the level set in Settings is refused and names the level it needs.
-- Tools that install, delete or run an executable wait for approval in the app. A notification asks "Allow?" and the tool returns only after Allow or Deny.
-- Every agent action is logged in Settings > Agents with the client name and time. Configuration changes can be undone from the log, and the undo is itself recorded.
-- A test client scans every read tool's answers for token patterns and paths outside the allowed roots. The scan is a CI test.
+- A client's name is only a claim. Approvals, their notifications and the action log show it as "an agent claiming to be …", with its transport, per peer.
+- Three access levels: Read only (default), Standard and Full. Every tool belongs to a level; a call above the level set in Settings is refused and names the level it needs. A tool without a level is Read only.
+- Tools that install, retry an install, delete or run an executable wait for approval in the app. A notification asks "Allow?" and the tool returns only after Allow, Deny or a timeout. The prompt shows the agent's text on one line, without control characters and capped in length; at most 5 approvals wait at once, and further calls are refused.
+- Full level plus one approval of `run_in_prefix` runs a Windows program under Wine with the user's rights. The prompt shows the program and every argument. Shells, launchers, script hosts and file copiers (`cmd`, `start`, `winebrowser`, `explorer`, `rundll32`, `wscript`, `xcopy`, `reg` and the like) are refused, and a batch file's arguments may not carry `cmd` syntax. The program must be inside the prefix or Cartouche's folders. Wine's `Z:` drive still maps the whole disk, because games rely on it: an approved program can read and write any file the user can, and so can reach code execution outside Wine, for example by writing a LaunchAgent. Approve only programs you know. `run_winetricks` takes verb names only (`^[a-z0-9_=.]+$`, no `.verb` files), and `registry_set` shows the key and data it writes.
+- Every agent action is logged in Settings > Agents with the client name, the time and its arguments, nested ones included. Configuration changes can be undone from the log, and the undo is itself recorded.
+- Every reply and every error passes a scrubber that hides token patterns and cuts paths outside the allowed roots to their file name. A test client scans every read tool's answers, and a test covers error replies.
+- File arguments are checked for containment before existence, and every refusal returns the same error, so an agent cannot probe which files exist elsewhere.
 - Agents reach RetroArch only through Cartouche's relay: the app starts RetroArch with `--mcp-stdio` only, so there is no RetroArch endpoint to reach. Cartouche applies its access levels before relaying, and refuses input tools while a Hardcore session runs.
-- An agent can never receive store tokens, passwords, Keychain items, or files outside the app's data folder and folders the user granted. It cannot act on store accounts beyond what the user signed in to.
+- Through its read tools, an agent never receives store tokens, passwords, Keychain items, or files outside the app's data folder and folders the user granted. It cannot act on store accounts beyond what the user signed in to. The exception is a program the user approved through `run_in_prefix` at Full level, as described above.
 
 ### Other
 

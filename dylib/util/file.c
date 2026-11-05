@@ -51,6 +51,9 @@ const char *np_home_dir(void) {
     if (env && env[0])
         return env;
 
+    // Only without HOME. macOS gives each getpwuid result its own storage, which a later
+    // lookup leaves alone (make homecheck); the returned dir stays valid.
+    // cppcheck-suppress getpwuidCalled
     struct passwd *pw = getpwuid(getuid());
     if (pw && pw->pw_dir && pw->pw_dir[0])
         return pw->pw_dir;

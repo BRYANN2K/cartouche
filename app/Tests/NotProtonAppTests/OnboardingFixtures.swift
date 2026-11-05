@@ -259,8 +259,7 @@ func sheetSnapshot<V: View>(_ view: V, named name: String, size: CGSize = CGSize
     }
     let frame = window.contentView?.superview ?? window.contentView!
     if let folder = ProcessInfo.processInfo.environment["CARTOUCHE_SNAPSHOTS"],
-       let rep = frame.bitmapImageRepForCachingDisplay(in: frame.bounds) {
-        frame.cacheDisplay(in: frame.bounds, to: rep)
+       let rep = renderedBitmap(frame) {
         let url = URL(filePath: folder).appending(path: "\(name)-\(dark ? "dark" : "light").png")
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try? rep.representation(using: .png, properties: [:])?.write(to: url)

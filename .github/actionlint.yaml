@@ -1,0 +1,5 @@
+# actionlint's bundled runner labels predate the hosted xcode-27 image
+# (arm64 macOS 27, Xcode 27). Declaring it here keeps the label check honest.
+self-hosted-runner:
+  labels:
+    - xcode-27

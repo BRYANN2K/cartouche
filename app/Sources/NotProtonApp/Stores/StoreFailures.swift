@@ -20,6 +20,7 @@ struct StoreFailure: Identifiable, Equatable, Sendable {
         case .install: String(localized: "Download failed")
         case .update: String(localized: "Update failed")
         case .verify: String(localized: "Verification failed")
+        case .uninstall: String(localized: "Removal failed")
         case .importing: String(localized: "Import failed")
         }
         if case .importing = kind { canRetry = false } else { canRetry = true }
@@ -49,6 +50,7 @@ extension StoreCenter {
         case .install: install(game)
         case .update: update(game)
         case .verify: verify(game)
+        case .uninstall: uninstall(game)
         case .importing: break
         }
     }

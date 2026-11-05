@@ -274,8 +274,7 @@ func renderedTexts<V: View>(_ view: V, size: CGSize, named name: String? = nil, 
     let end = Date().addingTimeInterval(settle)
     while Date() < end { try? await Task.sleep(for: .milliseconds(20)) }
     let frame = window.contentView?.superview ?? window.contentView!
-    let rep = try #require(frame.bitmapImageRepForCachingDisplay(in: frame.bounds))
-    frame.cacheDisplay(in: frame.bounds, to: rep)
+    let rep = try #require(renderedBitmap(frame))
     window.contentViewController = nil
     window.orderOut(nil)
     window.close()
@@ -285,19 +284,17 @@ func renderedTexts<V: View>(_ view: V, size: CGSize, named name: String? = nil, 
         try? rep.representation(using: .png, properties: [:])?.write(to: url)
     }
     let image = try #require(rep.cgImage)
-    let request = VNRecognizeTextRequest()
-    request.recognitionLevel = .accurate
-    request.usesLanguageCorrection = false
-    try VNImageRequestHandler(cgImage: image).perform([request])
-    return (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
+    return try recognizedTexts(in: image)
 }
 
-// Text recognition reads a glyph as a bullet and some Latin letters as their
-// Cyrillic look-alikes; this compares what a person would read
+// Text recognition reads a glyph as a bullet, some Latin letters as their Cyrillic look-alikes,
+// and small text's i as l or g as a; this compares what a person would read
 func seen(_ texts: [String], _ wanted: String) -> Bool {
     let lookAlikes: [Character: Character] = [
         "А": "A", "В": "B", "Е": "E", "К": "K", "М": "M", "Н": "H", "О": "O", "Р": "P", "С": "C", "Т": "T",
         "Х": "X", "а": "a", "е": "e", "о": "o", "р": "p", "с": "c", "у": "y", "х": "x",
+        "i": "l", "I": "l", "g": "a", "•": "-",
     ]
-    return texts.contains { String($0.map { lookAlikes[$0] ?? $0 }).contains(wanted) }
+    func read(_ text: String) -> String { String(text.map { lookAlikes[$0] ?? $0 }) }
+    return texts.contains { read($0).contains(read(wanted)) }
 }

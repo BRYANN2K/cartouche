@@ -22,13 +22,19 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "unarc-password.h"
+
 typedef int (__stdcall *cbtype)(char *what, int int1, int int2, char *str);
 typedef int (__cdecl *extract_t)(cbtype, ...);
 
 static const char *password;
 
 static int __stdcall cb(char *what, int int1, int int2, char *str) {
-    if (!strcmp(what, "password") && password) { strcpy(str, password); return 1; }
+    if (!strcmp(what, "password") && password) {
+        if (unarc_answer_password(str, int1, password)) return 1;
+        fprintf(stderr, "the password does not fit unarc's %d byte buffer, not answered\n", int1);
+        return 0;
+    }
     if (!strcmp(what, "filename") || !strcmp(what, "error") || !strcmp(what, "total"))
         printf("%s %d %d %s\n", what, int1, int2, str ? str : "");
     else if (!strcmp(what, "write")) printf("write %d MB\r", int1);
@@ -55,7 +61,8 @@ int main(int argc, char **argv) {
     if (!init) { fprintf(stderr, "CreateFileMapping: %lu\n", GetLastError()); return 3; }
     char *scope = MapViewOfFile(init, FILE_MAP_ALL_ACCESS, 0, 0, 256);
     if (!scope) { fprintf(stderr, "MapViewOfFile: %lu\n", GetLastError()); CloseHandle(init); return 3; }
-    strcpy(scope, "Global\\");
+    static const char global[] = "Global\\";
+    memcpy(scope, global, sizeof global);
     fprintf(stderr, "CLS namespace initialized: %s\n", scope);
 
     HMODULE dll = LoadLibraryA(module);

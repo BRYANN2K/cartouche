@@ -167,7 +167,7 @@ struct ControlsSheet: View {
                         Text(verbatim: button.label(family))
                     }
                     .focused($focusedButton, equals: button)
-                    .onHover { hoveredButton = $0 ? button : (hoveredButton == button ? nil : hoveredButton) }
+                    .trackHover { hoveredButton = $0 ? button : (hoveredButton == button ? nil : hoveredButton) }
                     .simultaneousGesture(TapGesture().onEnded { selectedButton = button })
                     .background {
                         RoundedRectangle(cornerRadius: 6)

@@ -240,13 +240,18 @@ enum AgentNotifier {
         }
     }
 
+    // The client is already "An agent claiming to be …": the banner names it as the sheet does.
+    static func body(client: String, text: String) -> String {
+        String(localized: "\(client) wants to \(text).")
+    }
+
     @MainActor
     static func post(_ approval: AgentApproval, router: NotificationRouter = .shared) {
         register(in: router)
         router.post(NotificationSpec(
             identifier: approval.id.uuidString,
             title: String(localized: "Cartouche agent request"),
-            body: approval.text,
+            body: body(client: approval.client, text: approval.text),
             category: category,
             actions: [NotificationButton(id: allowAction, title: String(localized: "Allow"), requiresUnlock: true),
                       NotificationButton(id: denyAction, title: String(localized: "Deny"))],

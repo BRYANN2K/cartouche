@@ -35,8 +35,15 @@ Format: Status, Context, Decision, Alternatives rejected, Consequences. Files ar
 | [0028](0028-static-inspection-detection-tree.md) | Detect installers by static inspection, with evidence and confidence (approves the tree left proposed by 0025–0026) | Accepted, 2026-10-21 |
 | [0029](0029-local-crash-reports.md) | Crash reports stay local | Accepted, 2026-10-21; implemented |
 | [0030](0030-advanced-windows-game-options.md) | Advanced Windows-game options in the game panel | Accepted, 2026-10-21; amended by 0031; merged |
-| [0031](0031-advanced-options-gating.md) | Advanced options gated per runner and backend, no frame generation (amends 0030) | Accepted, 2026-10-21; merged |
+| [0031](0031-advanced-options-gating.md) | Advanced options gated per runner and backend, no frame generation (amends 0030) | Accepted, 2026-10-21; merged; amended by 0038 |
 | [0032](0032-onboarding-v2.md) | Onboarding v2: seven steps with background tasks | Accepted, 2026-10-21; merged; evidence pending |
 | [0033](0033-cartouche-wine-naming.md) | Our Wine build is called Cartouche Wine (supersedes 0007, 0015, 0027, 0032 in part, naming only) | Accepted, 2026-10-21; merged |
 | [0034](0034-direct-unpack-fallback-on-try-again.md) | A failed direct unpack falls back to the original setup on Try Again, never automatically (amends 0017) | Accepted, 2026-10-21; merged; pending build and live check |
 | [0037](0037-one-game-panel.md) | One game panel, fixed module order | Accepted, 2026-10-23 |
+| [0038](0038-frame-generation-in-process-metalfx.md) | Frame generation in the game process, MetalFX as the interpolator (amends 0031: experimental opt-in) | Accepted, 2026-10-27; implemented on phase/frame-gen-prototype |
+| [0039](0039-frame-generation-engine-data.md) | Use the game's own motion when its upscaler goes through MetalFX | Accepted, 2026-10-27; DXMT implemented, D3DMetal untested |
+| [0040](0040-frame-generation-repair-and-cost.md) | Repair MetalFX's frame, protect still pixels, constant depth, MetalFX at half size | Accepted, 2026-10-27; implemented |
+| [0041](0041-frame-generation-pacing.md) | Chained presents paced by measured latency, judged against native | Accepted, 2026-10-27; implemented |
+| [0042](0042-frame-generation-neural-engine.md) | Optical flow on the Neural Engine through an arm64 helper | Accepted, 2026-10-27; opt-in, implemented |
+| [0043](0043-frame-generation-test-bench.md) | Frame generation measured on our own scenes, in our own Wine | Accepted, 2026-10-27; implemented |
+| [0044](0044-frame-generation-sources-and-licences.md) | What frame generation may learn from, and what it may ship | Accepted, 2026-10-27 |

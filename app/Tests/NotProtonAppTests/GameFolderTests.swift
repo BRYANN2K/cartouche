@@ -18,7 +18,7 @@ struct GameFolderTests {
         return folder
     }
 
-    @Test("Games already found are suggested: 4 Game Boy games in the folder, Game Boy not added, its tile says \"4 games found\"")
+    @Test("Games already found are suggested: 4 Game Boy games in the folder, Game Boy not added, its row says \"4 games\"")
     func foundGamesAreSuggested() async throws {
         let scene = try await ConsoleScene("found")
         defer { scene.remove(); scene.center.stopWatching() }
@@ -29,12 +29,9 @@ struct GameFolderTests {
         #expect(!scene.center.isAdded("gb"))
         #expect(scene.center.found == ["gb": 4])
         #expect(scene.library.consoleGames.isEmpty)
-        let texts = try await renderedTexts(AddConsolesSheet(center: scene.center), size: CGSize(width: 660, height: 560),
-                                            named: "add-consoles-found")
-        _ = try await renderedTexts(AddConsolesSheet(center: scene.center), size: CGSize(width: 660, height: 560),
-                                    named: "add-consoles-found", dark: true)
-        #expect(seen(texts, "4 games found"))
-        print("evidence: folder holds \(ConsoleFixtures.gameBoy.count) Game Boy files, found \(scene.center.found), tile reads '4 games found': \(seen(texts, "4 games found"))")
+        let note = scene.center.consoleMenu(added: []).first { $0.id == "gb" }?.note
+        #expect(note == String(localized: "\(4) games"))
+        print("evidence: folder holds \(ConsoleFixtures.gameBoy.count) Game Boy files, found \(scene.center.found), row reads '\(note ?? "")'")
 
         let section = Form { GameFoldersSection(folders: scene.folders) }.formStyle(.grouped).environment(scene.center)
         let pane = try await renderedTexts(section, size: CGSize(width: 640, height: 300), named: "settings-game-folders")

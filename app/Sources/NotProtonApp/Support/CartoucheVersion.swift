@@ -1,6 +1,6 @@
 import Foundation
 
-// String.compare(options: .numeric) puts 0.2.0-beta.1 after 0.2.0; packaging/release.py version_key agrees.
+// String.compare(options: .numeric) puts 0.2.0-beta1 after 0.2.0; packaging/release.py version_key agrees.
 enum CartoucheVersion {
 
     static func compare(_ lhs: String, _ rhs: String) -> ComparisonResult {
@@ -49,8 +49,13 @@ enum CartoucheVersion {
             let core = parts[0].split(separator: ".", omittingEmptySubsequences: false).map { CartoucheVersion.number(String($0)) }
             guard !core.isEmpty, !core.contains(nil) else { return nil }
             self.core = core.compactMap { $0 }
-            pre = parts.count > 1 ? parts[1].split(separator: ".").map(String.init) : []
+            var pre = parts.count > 1 ? parts[1].split(separator: ".").map(String.init) : []
             if parts.count > 1 && pre.isEmpty { return nil }
+            // beta1 is beta.1: 0.2.0-beta2 < 0.2.0-beta10, as release.py version_key orders them
+            if let first = pre.first, first.hasPrefix("beta"), let n = CartoucheVersion.number(String(first.dropFirst(4))) {
+                pre.replaceSubrange(0...0, with: ["beta", String(n)])
+            }
+            self.pre = pre
         }
     }
 }

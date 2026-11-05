@@ -1,0 +1,20 @@
+# Python lint for CI (docs/ci/CI.md). Correctness and security rules only:
+# the scripts keep their current style.
+target-version = "py311"
+extend-exclude = ["vendor", "scratch", "out", "build"]
+
+[lint]
+select = [
+  "E9",    # syntax errors
+  "F",     # pyflakes: undefined names, unused imports, repeated keys
+  "PLE",   # pylint errors
+  "B006",  # mutable default argument
+  "B012",  # return in finally
+  "S102",  # exec
+  "S301",  # pickle
+  "S307",  # eval
+  "S506",  # yaml.load without a safe loader
+  "S602",  # subprocess with shell=True
+  "S604",  # shell=True on any call
+  "S605",  # os.system and friends with a shell
+]

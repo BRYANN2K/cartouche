@@ -1,0 +1,4 @@
+# Reviewed 2026-11-05: fake token values in AgentTests fixtures, and Sparkle's PUBLIC EdDSA key (SUPublicEDKey) in a build note
+19a1c03bbb5145af5ff4fc45898916ddfe8b7d20:app/Tests/NotProtonAppTests/AgentTests.swift:generic-api-key:1044
+19a1c03bbb5145af5ff4fc45898916ddfe8b7d20:app/Tests/NotProtonAppTests/AgentTests.swift:generic-api-key:1049
+556b44d20d43f3d1e232bf587e41c01be7043018:docs/research/release-0.2.0-beta/build-beta1.md:generic-api-key:126

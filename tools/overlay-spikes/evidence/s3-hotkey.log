@@ -1,0 +1,5 @@
+1793286676277 panel start space=8 spaceType=0 plan=- frontmost=Orca/40879 cursor=(493.0, 786.0) SLCursorIsVisible=1 SLSCursorIsVisible=1
+1793286676277 hotkey register id=1 status=0
+1793286676277 hotkey register id=2 status=0
+1793286681529 restore Orca ok=true
+1793286681529 end spaces=0 frontmost=Orca/40879

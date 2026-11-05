@@ -39,6 +39,7 @@ final class ConsoleCenter {
     @ObservationIgnored var watcher: FolderWatcher?
     @ObservationIgnored var scan: Task<Void, Never>?
     @ObservationIgnored var scanAgain = false
+    @ObservationIgnored private var addQueue: Task<Void, Never>?
     @ObservationIgnored var seen: [String: (stamp: String, found: Identification)] = [:]
     @ObservationIgnored var statesCache: [String: (stamp: Int, states: [SaveState])] = [:]
     @ObservationIgnored var biosCache: [String: (stamp: String, status: BIOSStatus)] = [:]
@@ -130,6 +131,63 @@ final class ConsoleCenter {
             folderChanged()
             await scan?.value
         }
+    }
+
+    // The + menu's clicks run one at a time, so two consoles on one core download it once
+    func enqueueAdd(_ id: String) {
+        guard !isAdded(id), !downloading.contains(id) else { return }
+        downloading.insert(id)
+        let previous = addQueue
+        addQueue = Task {
+            await previous?.value
+            await add([id])
+            downloading.remove(id)
+        }
+    }
+
+    func addsFinished() async { await addQueue?.value }
+
+    func canUnadd(_ id: String) -> Bool {
+        let busy = playing.map { game($0.gameID)?.console == id } ?? false
+        return isAdded(id) && games(of: id).isEmpty && preparing[id] == nil && !busy
+    }
+
+    // Nothing to confirm: the console holds no game yet
+    func unadd(_ id: String) async {
+        guard canUnadd(id) else { return }
+        problem = nil
+        do {
+            try await shelf.remove(id)
+        } catch {
+            problem = error.localizedDescription
+        }
+        if library?.selection == .source(.console(id)) { library?.selection = .all }
+        await reload()
+        await settings.refresh()
+    }
+
+    func consoleMenu(added: Set<String>) -> [AddMenuItem] {
+        ConsoleMaker.allCases.flatMap { maker in
+            ConsoleCatalog.made(by: maker).map { console in
+                let state: AddMenuItem.State
+                if downloading.contains(console.id) {
+                    state = .pending
+                } else if !isAdded(console.id) {
+                    state = .available
+                } else {
+                    state = added.contains(console.id) && canUnadd(console.id) ? .added : .locked
+                }
+                return AddMenuItem(id: console.id, name: console.name, badge: .console(console.id), group: maker.title,
+                                   note: menuNote(console), state: state)
+            }
+        }
+    }
+
+    private func menuNote(_ console: Console) -> String? {
+        if console.bios != .none { return String(localized: "Needs BIOS") }
+        let games = found[console.id] ?? 0
+        if games == 0 { return nil }
+        return games == 1 ? String(localized: "1 game") : String(localized: "\(games) games")
     }
 
     func remove(_ id: String) async {

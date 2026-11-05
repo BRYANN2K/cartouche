@@ -159,12 +159,12 @@ final class RunnersModelTests {
         #expect(row.title == "Game Porting Toolkit")
         #expect(row.status == "Not found")
         #expect(row.link == RunnersModel.Row.Link(
-            title: "How to Get It", url: URL(string: "https://developer.apple.com/games/game-porting-toolkit/")!))
+            title: "How to Get It", url: PortingToolkitSource.howToGetIt))
         #expect(offered(model).isEmpty)
     }
 
     // A scratch app folder holding a fixture toolkit of the given version
-    func toolkitApp(_ version: String = "3.0", in parent: URL? = nil) throws -> URL {
+    func toolkitApp(_ version: String = "4.0b3", in parent: URL? = nil) throws -> URL {
         let apps = (parent ?? work).appending(path: "Applications-\(UUID().uuidString)")
         try PortingToolkitTests.toolkit(
             at: apps.appending(path: "Game Porting Toolkit.app/Contents/Resources/wine/lib"), version: version)
@@ -180,11 +180,11 @@ final class RunnersModelTests {
         await model.refresh()
 
         let row = try #require(model.rows.first { $0.kind == .portingToolkit })
-        #expect(row.title == "Game Porting Toolkit 3.0")
+        #expect(row.title == "Game Porting Toolkit 4.0b3")
         #expect(row.status == "Not installed")
         #expect(row.action == .setUp)
         let question = try #require(model.toolkitQuestion)
-        #expect(question.install.version == "3.0")
+        #expect(question.install.version == "4.0b3")
         #expect(question.copySize > 0)
 
         await model.answerToolkit(.copy)
@@ -193,9 +193,9 @@ final class RunnersModelTests {
         #expect(after.status == "Ready")
         #expect(after.detail == "Found in \(PortingToolkitTests.path(apps))")
         #expect(model.toolkitQuestion == nil)
-        #expect(FileManager.default.fileExists(atPath: PortingToolkitSource.folder(version: "3.0", runners: runners)
+        #expect(FileManager.default.fileExists(atPath: PortingToolkitSource.folder(version: "4.0b3", runners: runners)
             .appending(path: "lib/external/D3DMetal.framework").path(percentEncoded: false)))
-        #expect(offered(model) == ["gptk-3.0"])
+        #expect(offered(model) == ["gptk-4.0b3"])
     }
 
     @Test("Use in Place records the folder, keeps no copy, and reads the framework there")
@@ -210,12 +210,12 @@ final class RunnersModelTests {
 
         let row = try #require(model.rows.first { $0.kind == .portingToolkit })
         #expect(row.status == "Ready")
-        #expect(PortingToolkitSource.receipt(version: "3.0", runners: runners)?.inPlace
+        #expect(PortingToolkitSource.receipt(version: "4.0b3", runners: runners)?.inPlace
             == PortingToolkitTests.path(lib))
         #expect(!FileManager.default.fileExists(
-            atPath: PortingToolkitSource.folder(version: "3.0", runners: runners)
+            atPath: PortingToolkitSource.folder(version: "4.0b3", runners: runners)
                 .appending(path: "lib").path(percentEncoded: false)))
-        #expect(offered(model) == ["gptk-3.0"])
+        #expect(offered(model) == ["gptk-4.0b3"])
         #expect(PortingToolkitSource.libd3dshared(runners: runners).map(PortingToolkitTests.path)
             == PortingToolkitTests.path(lib.appending(path: "external/libd3dshared.dylib")))
 
@@ -230,11 +230,11 @@ final class RunnersModelTests {
 
         let otherApps = try toolkitApp()
         model.chooseToolkitFolder = { otherApps.appending(path: "Game Porting Toolkit.app") }
-        await model.perform(.repair, on: "gptk-3.0")
+        await model.perform(.repair, on: "gptk-4.0b3")
 
-        let repaired = try #require(model.rows.first { $0.id == "gptk-3.0" })
+        let repaired = try #require(model.rows.first { $0.id == "gptk-4.0b3" })
         #expect(repaired.status == "Ready")
-        #expect(FileManager.default.fileExists(atPath: PortingToolkitSource.folder(version: "3.0", runners: runners)
+        #expect(FileManager.default.fileExists(atPath: PortingToolkitSource.folder(version: "4.0b3", runners: runners)
             .appending(path: "lib/external/D3DMetal.framework").path(percentEncoded: false)))
     }
 
@@ -252,7 +252,7 @@ final class RunnersModelTests {
         let row = try #require(model.rows.first { $0.kind == .portingToolkit })
         #expect(row.action == .setUp)
 
-        await model.perform(.setUp, on: "gptk-3.0")
+        await model.perform(.setUp, on: "gptk-4.0b3")
         #expect(model.toolkitQuestion != nil)
         await model.answerToolkit(.inPlace)
         #expect(model.rows.first { $0.kind == .portingToolkit }?.status == "Ready")
@@ -287,8 +287,8 @@ final class RunnersModelTests {
         await model.refreshManifestIfDue(now: now.addingTimeInterval(25 * 60 * 60))
         #expect(count.value == 4)
         await model.refresh()
-        #expect(model.rows.contains { $0.title == "Cartouche Wine 26.3.0-2" })
-        #expect(!model.rows.contains { $0.title == "Cartouche Wine 26.3.0-1" })
+        #expect(model.rows.contains { $0.title == "Cartouche Wine 26.3.1" })
+        #expect(!model.rows.contains { $0.title == "Cartouche Wine 26.3.0-2" })
 
         // The daily switch pauses the manifest fetch too
         defaults.set(false, forKey: DailyChecks.key)
@@ -317,16 +317,16 @@ final class RunnersModelTests {
         #expect(row.action == .setUp)
 
         // Use in Place is not offered: Set Up asks and copies whichever way the user answers
-        await model.perform(.setUp, on: "gptk-3.0")
+        await model.perform(.setUp, on: "gptk-4.0b3")
         #expect(model.toolkitQuestion != nil)
         await model.answerToolkit(.inPlace)
         #expect(model.toolkitQuestion == nil)
 
         #expect(model.rows.first { $0.kind == .portingToolkit }?.status == "Ready")
-        let receipt = try #require(PortingToolkitSource.receipt(version: "3.0", runners: runners))
+        let receipt = try #require(PortingToolkitSource.receipt(version: "4.0b3", runners: runners))
         #expect(receipt.inPlace == nil, "a mounted image is always copied")
         #expect(!receipt.files.isEmpty)
-        #expect(FileManager.default.fileExists(atPath: PortingToolkitSource.folder(version: "3.0", runners: runners)
+        #expect(FileManager.default.fileExists(atPath: PortingToolkitSource.folder(version: "4.0b3", runners: runners)
             .appending(path: "lib/external/D3DMetal.framework").path(percentEncoded: false)))
     }
 
@@ -369,15 +369,15 @@ final class RunnersModelTests {
                               isRunning: { _ in running.value }, onSync: { synced.add() })
         await model.refresh()
         await model.answerToolkit(.copy)
-        let copy = PortingToolkitSource.folder(version: "3.0", runners: runners)
+        let copy = PortingToolkitSource.folder(version: "4.0b3", runners: runners)
         let before = synced.count
 
-        await model.perform(.remove, on: "gptk-3.0")
+        await model.perform(.remove, on: "gptk-4.0b3")
         #expect(FileManager.default.fileExists(atPath: copy.path(percentEncoded: false)))
         #expect(synced.count == before)
 
         running.value = false
-        await model.perform(.remove, on: "gptk-3.0")
+        await model.perform(.remove, on: "gptk-4.0b3")
         #expect(!FileManager.default.fileExists(atPath: copy.path(percentEncoded: false)))
         #expect(synced.count == before + 1)
     }

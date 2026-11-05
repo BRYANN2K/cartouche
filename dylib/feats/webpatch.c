@@ -268,9 +268,9 @@ static int out_expand(np_out_t *o, const char *replace, const np_cap_t *caps) {
     "(" NP_WEB_IS_ZH "?\"" ZH "\":" NP_WEB_IS_IT "?\"" IT "\":\"" EN "\")"
 
 #define NP_COMPAT_HINT NP_WEB_TEXT( \
-    "Enable CrossOver under Properties > Compatibility to install and run the Windows version.", \
-    "请在“属性 > 兼容性”中启用 CrossOver，以安装并运行 Windows 版本。", \
-    "Abilita CrossOver in Propriet\\u00e0 > Compatibilit\\u00e0 per installare e avviare la versione Windows.")
+    "Turn on a Cartouche tool under Properties > Compatibility to install and run the Windows version.", \
+    "请在“属性 > 兼容性”中启用 Cartouche 工具，以安装并运行 Windows 版本。", \
+    "Abilita uno strumento Cartouche in Propriet\\u00e0 > Compatibilit\\u00e0 per installare e avviare la versione Windows.")
 
 #define NP_IMAGE_FILES_LABEL NP_WEB_TEXT( \
     "Image Files (*.tga,*.png,*.exe)", "图像文件 (*.tga,*.png,*.exe)", "File immagine (*.tga,*.png,*.exe)")

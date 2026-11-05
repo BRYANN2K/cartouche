@@ -160,6 +160,16 @@ static const struct { uint64_t build; const char *type_name; uintptr_t vptr; } e
     {1790904859, "41CCompatManager_SpecifyCompatTool_Response",    0x16ad360},
     {1790904859, "40CCompatManager_StateChanged_Notification",     0x16ad410},
     {1790904859, "14CUserShortcuts",                              0x1793de0},
+
+    {1792618285, "14CCompatManager",                              0x1743d50},
+    {1792618285, "21CMsgCompatManagerTool",                       0x16acff0},
+    {1792618285, "22CMsgCompatManagerAlias",                      0x16ad0a0},
+    {1792618285, "37CCompatManager_GetCompatTools_Request",        0x16ad150},
+    {1792618285, "38CCompatManager_GetCompatTools_Response",       0x16ad200},
+    {1792618285, "40CCompatManager_SpecifyCompatTool_Request",     0x16ad2b0},
+    {1792618285, "41CCompatManager_SpecifyCompatTool_Response",    0x16ad360},
+    {1792618285, "40CCompatManager_StateChanged_Notification",     0x16ad410},
+    {1792618285, "14CUserShortcuts",                              0x1793d10},
 };
 
 static int run_rtti(const struct mach_header_64 *mh, intptr_t slide,

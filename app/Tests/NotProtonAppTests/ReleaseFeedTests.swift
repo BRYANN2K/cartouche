@@ -43,7 +43,8 @@ struct ReleaseFeedTests {
     func makefileMapsBundleVersions() throws {
         let makefile = try String(contentsOf: IdentityTests.repoRoot.appending(path: "Makefile"), encoding: .utf8)
         #expect(makefile.contains(#""Set :CFBundleVersion $(APP_BUNDLE_VERSION)""#))
-        for (version, bundle) in [("0.1.0", "0.1.0"), ("0.2.0-beta.12", "0.2.0b12"), ("0.0.1-test.3", "0.0.1t3")] {
+        for (version, bundle) in [("0.1.0", "0.1.0"), ("0.2.0-beta.12", "0.2.0b12"), ("0.2.0-beta1", "0.2.0b1"),
+                                  ("0.2.0-beta12", "0.2.0b12"), ("0.0.1-test.3", "0.0.1t3")] {
             let make = Process()
             make.executableURL = URL(filePath: "/usr/bin/make")
             make.currentDirectoryURL = IdentityTests.repoRoot

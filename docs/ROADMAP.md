@@ -32,7 +32,7 @@ Each phase was one OpenSpec change. A phase is done when every scenario of its s
 
 P0–P18 have code on `beta`. All phase specs are folded into `openspec/specs/`. That is not proof that every original criterion passed. Merged code and fixture tests do not replace real-service, real-game or clean-machine release checks.
 
-The 2026-10-21 work was built and run on a Mac during the 0.1.0 validation pass (2026-10-23 and 24). Since then: games location in Settings > Library, Wine Tools and Stop for running Steam games, the problem banner, community contributions (off until the site's service is live), network backoff on 429/503, and the MCP token in the Keychain. Checks run on Woodpecker. Items marked "pending live check" below still need a real game or service.
+The 2026-10-21 work was built and run on a Mac during the 0.1.0 validation pass (2026-10-23 and 24). Since then: games location in Settings > Library, Wine Tools and Stop for running Steam games, the problem banner, community contributions (off until the site's service is live), network backoff on 429/503, and the MCP token in the Keychain. Checks run on GitHub Actions. Items marked "pending live check" below still need a real game or service.
 
 ### Merged before 2026-10-21
 
@@ -69,16 +69,16 @@ Also merged: drop handoff and Back to Add Games, direct-unpack fallback on Try A
 ### Still required before v0.1.0
 
 - First Mac build of the integration branch, then fixes for any failing tests.
-- Live checks: Steam export after Repair; a controller with Cartouche Wine 26.3.0-2; D3DMetal on Silksong; installer with an external unpacker: install, cancel and direct-unpack fallback; CarX Street setup under Cartouche Wine.
+- Live checks: Steam export after Repair; a controller with Cartouche Wine 26.3.0-2; D3DMetal on Silksong; installer with an external unpacker: install, cancel and direct-unpack fallback; Cobalt Street setup under Cartouche Wine.
 - Cartouche Wine 26.3.0-2 (SDL3 for controllers, bundled Wine Mono and Wine Gecko) is a prerelease in `cartouche-wine` and pinned in the bundled manifest; promote it after its Mac checks.
-- Maintainer tasks: the Woodpecker Mac agent and its build cache (checks already run on Woodpecker; the release pipeline still has to move off GitHub Actions), the signing certificate and secrets, the Sparkle EdDSA key and the `release` environment in `cartouche-wine`, the Homebrew tap repository. See `docs/RELEASE.md`.
+- Maintainer tasks: the signing certificate and secrets, the Sparkle EdDSA key and the `release` environment in `cartouche-wine`, the Homebrew tap repository. See `docs/RELEASE.md`.
 - Earlier evidence still open: real Steam owned-list freshness and account switching, tool registration and download controls; real runner first boot and frame-counter injection; user-supplied RAR coverage; real store sign-ins, two-Mac cloud saves, netplay and RetroAchievements; permissions on supported macOS versions; onboarding captures. Manual QA runs with `qa/` remain postponed, not passed.
 
 ### After v0.1.0
 
 - 0.1.1: mods and patches (M). Run an .exe in the game's prefix, per-game DLL overrides, open the game's C: drive.
 - Cartouche Wine 26.3.0-3: GStreamer. Plan in `docs/research/26.3.0-3-wine-gstreamer.md`.
-- ISDone/unarc installer crash: research finds a Rosetta and WoW64 thunk race that the CrossOver 26.3 sources already work around. No new Wine patch is planned. The CarX Street setup check under Cartouche Wine confirms it or not.
+- ISDone/unarc installer crash: research finds a Rosetta and WoW64 thunk race that the CrossOver 26.3 sources already work around. No new Wine patch is planned. The Cobalt Street setup check under Cartouche Wine confirms it or not.
 
 The app repository stays private until v0.1.0. Wine build recipes and assets are public in BRYANN2K/cartouche-wine. The landing page is https://cartouche.bryann2k.dev, linked from About.
 

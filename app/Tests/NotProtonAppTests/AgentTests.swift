@@ -667,10 +667,21 @@ struct AgentServiceTests {
             inputs: InstallInputs(runnerID: "r", gameName: "G", mode: .guided, language: nil))
         job.phase = .failed
         backend.jobList = [job]
-        let reply = await service.call("retry_install",
-            ["job": .string(job.id.uuidString),
-             "fixes": .array([.string("copy_to_internal_disk"), .string("single_thread")])],
-            client: "test")
+        let approvals = approvalStream(service)
+        var nextApproval = approvals.makeAsyncIterator()
+        let task = Task {
+            await service.call("retry_install",
+                ["job": .string(job.id.uuidString),
+                 "fixes": .array([.string("copy_to_internal_disk"), .string("single_thread")])],
+                client: "test")
+        }
+        // A retry re-runs the installer under Wine: it is asked like the first install.
+        let approval = try #require(await nextApproval.next())
+        #expect(approval.tool == "retry_install")
+        #expect(approval.text.contains("G"))
+        #expect(approval.text.contains("copy_to_internal_disk, single_thread"))
+        service.answer(approval.id, allow: true)
+        let reply = await task.value
         #expect(reply["isError"] == .bool(false))
         #expect(job.request.source.path(percentEncoded: false)
             .hasPrefix(backend.roots.support.appending(path: "installers").path(percentEncoded: false)))
@@ -986,5 +997,357 @@ struct AgentContractTests {
             #expect(reply["isError"] == .bool(true))
             #expect(reply["content"]?.array?.first?["type"] == .string("text"))
         }
+    }
+}
+
+// MARK: - Bearer token
+
+// Counts each store access, over MemorySecrets
+final class CountingSecrets: SecretStore, @unchecked Sendable {
+    let inner = MemorySecrets()
+    private(set) var reads = 0
+    private(set) var writes = 0
+
+    func read(_ account: String) -> String? {
+        reads += 1
+        return inner.read(account)
+    }
+    func write(_ secret: String, for account: String) throws {
+        writes += 1
+        try inner.write(secret, for: account)
+    }
+    func delete(_ account: String) { inner.delete(account) }
+}
+
+@Suite("Agent bearer token")
+@MainActor
+struct AgentTokenTests {
+
+    private func model(secrets: any SecretStore, defaults: UserDefaults) -> AgentControlModel {
+        let (service, _) = fixtureService()
+        return AgentControlModel(service: service, defaults: defaults, secrets: secrets)
+    }
+
+    @Test("Launch does not touch the secret store; the token resolves when it is first needed")
+    func lazy() throws {
+        let secrets = CountingSecrets()
+        let scratch = ScratchDefaults()
+        let model = model(secrets: secrets, defaults: scratch.defaults)
+        #expect(secrets.reads == 0 && secrets.writes == 0)
+        // The socket client's configuration carries no token
+        _ = model.clientConfiguration
+        #expect(secrets.reads == 0 && secrets.writes == 0)
+        let token = model.token
+        #expect(token.count >= 16)
+        #expect(secrets.reads == 1 && secrets.writes == 1)
+        #expect(secrets.inner.all["agent.http.token"] == token)
+        // Resolved once, then cached
+        model.httpEnabled = true
+        _ = model.clientConfiguration
+        _ = model.token
+        #expect(secrets.reads == 1)
+    }
+
+    @Test("A stored token is reused; one an old build left in defaults moves to the store on first use")
+    func migration() throws {
+        let secrets = CountingSecrets()
+        try secrets.inner.write("0123456789abcdef", for: "agent.http.token")
+        #expect(model(secrets: secrets, defaults: ScratchDefaults().defaults).token == "0123456789abcdef")
+
+        let scratch = ScratchDefaults()
+        scratch.defaults.set("fedcba9876543210", forKey: "agent.http.token")
+        let migrated = model(secrets: CountingSecrets(), defaults: scratch.defaults)
+        #expect(migrated.token == "fedcba9876543210")
+        #expect(scratch.defaults.string(forKey: "agent.http.token") == nil)
+    }
+}
+
+// MARK: - Audit fixes
+
+@Suite("Agent audit fixes")
+struct AgentAuditTests {
+
+    @MainActor
+    private func approvalStream(_ service: AgentService) -> AsyncStream<AgentApproval> {
+        let (stream, yield) = AsyncStream<AgentApproval>.makeStream()
+        service.notify = { yield.yield($0) }
+        return stream
+    }
+
+    @Test("run_in_prefix shows every argument in the approval, one line, capped")
+    @MainActor
+    func runInPrefixArgv() async throws {
+        let (service, backend) = fixtureService(.full)
+        let game = steamGame()
+        backend.gameList = [game]
+        let prefix = try #require(backend.prefixFolder(game))
+        let tool = prefix.appending(path: "drive_c/tool.exe")
+        try FileManager.default.createDirectory(at: tool.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try "x".write(to: tool, atomically: true, encoding: .utf8)
+        let approvals = approvalStream(service)
+        var next = approvals.makeAsyncIterator()
+        let long = String(repeating: "a", count: 500)
+        let task = Task {
+            await service.call("run_in_prefix", [
+                "game": .string(game.id), "exe": .string(tool.path(percentEncoded: false)),
+                "args": .array([.string("/silent"), .string("two words"), .string("line\nbreak"), .string(long)]),
+            ], client: "test")
+        }
+        let approval = try #require(await next.next())
+        #expect(approval.text.contains("tool.exe /silent \"two words\" \"line break\""))
+        #expect(!approval.text.contains("\n"))
+        #expect(approval.text.contains(String(repeating: "a", count: 200) + "…"))
+        #expect(!approval.text.contains(String(repeating: "a", count: 201)))
+        service.answer(approval.id, allow: true)
+        #expect(await task.value["isError"] == .bool(false))
+        #expect(backend.calls.contains("runexe:tool.exe"))
+    }
+
+    @Test("run_in_prefix caps the whole command line and says how many arguments are left out")
+    func argvTotalCap() {
+        let args = (0..<40).map { "arg\($0)-" + String(repeating: "x", count: 100) }
+        let line = AgentPrompt.argv("setup.exe", args)
+        #expect(line.count <= AgentPrompt.argvCap + 20)
+        #expect(line.hasSuffix("more)"))
+        #expect(line.hasPrefix("setup.exe arg0-"))
+    }
+
+    @Test("run_in_prefix refuses shells and launchers before asking, whatever the case or path")
+    @MainActor
+    func runInPrefixRefusesShells() async throws {
+        let (service, backend) = fixtureService(.full)
+        let game = steamGame()
+        backend.gameList = [game]
+        var asked = 0
+        service.notify = { _ in asked += 1 }
+        let prefix = try #require(backend.prefixFolder(game))
+        for exe in ["drive_c/windows/system32/cmd.exe", "drive_c/windows/system32/CMD.EXE",
+                    "drive_c/windows/command/start.exe", "drive_c/windows/system32/winebrowser.exe",
+                    "drive_c/windows/winebrowser", "drive_c/windows/syswow64/Rundll32.exe",
+                    "drive_c/windows/explorer.exe", "drive_c/windows/system32/cmd.exe. "] {
+            let reply = await service.call("run_in_prefix", [
+                "game": .string(game.id), "exe": .string(prefix.appending(path: exe).path(percentEncoded: false)),
+                "args": .array([.string("/c"), .string("copy Z:\\Users\\me\\x y")]),
+            ], client: "test")
+            #expect(reply["isError"] == .bool(true), "\(exe)")
+            #expect(errorText(reply)?.contains("shell or launcher") == true, "\(exe)")
+        }
+        #expect(asked == 0)
+        #expect(!backend.calls.contains { $0.hasPrefix("runexe:") })
+    }
+
+    @Test("a link renamed game.exe that points at cmd.exe is still refused")
+    func renamedShell() throws {
+        let dir = FileManager.default.temporaryDirectory.appending(path: "cartouche-shell-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let cmd = dir.appending(path: "cmd.exe")
+        try "x".write(to: cmd, atomically: true, encoding: .utf8)
+        let link = dir.appending(path: "game.exe")
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: cmd)
+        #expect(AgentPrompt.refusedProgram(link) == "cmd.exe")
+        #expect(AgentPrompt.refusedProgram(dir.appending(path: "setup.exe")) == nil)
+    }
+
+    @Test("a batch file's arguments may not carry command syntax; plain ones pass")
+    func batchArguments() {
+        let bat = URL(filePath: "/p/drive_c/fix.BAT")
+        #expect(throws: AgentToolError.self) { try AgentPrompt.checkRun(bat, ["a & calc"]) }
+        #expect(throws: AgentToolError.self) { try AgentPrompt.checkRun(bat, ["\"x\""]) }
+        #expect(throws: AgentToolError.self) { try AgentPrompt.checkRun(bat, ["%PATH%"]) }
+        #expect(throws: Never.self) { try AgentPrompt.checkRun(bat, ["/quiet", "C:\\Games"]) }
+        #expect(throws: Never.self) { try AgentPrompt.checkRun(URL(filePath: "/p/setup.exe"), ["a & b"]) }
+    }
+
+    private struct FailingTools: AgentToolProvider {
+        let message: String
+        func tools() -> [AgentTool] {
+            [AgentTool(name: "fail_test", detail: "", schema: .object(["type": "object"]),
+                       run: { [message] _, _ in throw AgentToolError(message) })]
+        }
+    }
+
+    @Test("an error reply goes through the same scrubber as a successful one")
+    @MainActor
+    func errorsAreScrubbed() async {
+        let root = URL(filePath: NSTemporaryDirectory()).appending(path: "cartouche-agent-tests")
+            .appending(path: UUID().uuidString)
+        let backend = AgentFixture(home: root)
+        let home = root.path(percentEncoded: false)
+        let message = "wine: cannot open /private/etc/secret/thing.dll\nsee \(home)/Documents/notes.txt\n"
+            + "api_key=abcdefghijklmnopqrstuvwxyz0123"
+        let service = AgentService(backend: backend, level: .readOnly,
+                                   providers: [FailingTools(message: message)], home: root)
+        let reply = await service.call("fail_test", [:], client: "test")
+        #expect(reply["isError"] == .bool(true))
+        let text = errorText(reply) ?? ""
+        #expect(!text.contains("/private/etc"))
+        #expect(text.contains("…/thing.dll"))
+        #expect(!text.contains(home))
+        #expect(!text.contains("abcdefghijklmnopqrstuvwxyz0123"))
+        #expect(text.contains(AgentScan.placeholder))
+    }
+
+    @Test("the action log records nested and array arguments, flattened and capped")
+    @MainActor
+    func describeNested() {
+        let detail = AgentService.describe([
+            "game": .string("steam:1"),
+            "exe": .string("/p/tool.exe"),
+            "args": .array([.string("/c"), .string("two\nlines")]),
+            "verbs": .array([.string("vcrun2022"), .string("corefonts")]),
+            "setup": .object(["env": .object(["set": .object(["DXVK_HUD": .string("fps")])])]),
+            "options": .object(["mode": .string("express"), "app_id": .number(1245620), "verify_first": .bool(true)]),
+            "buttons": .array([.object(["from": .string("a"), "to": .string("b")])]),
+        ])
+        #expect(detail.contains("args=[/c, two\\nlines]"))
+        #expect(detail.contains("verbs=[vcrun2022, corefonts]"))
+        #expect(detail.contains("setup.env.set.DXVK_HUD=fps"))
+        #expect(detail.contains("options.app_id=1245620"))
+        #expect(detail.contains("options.mode=express"))
+        #expect(detail.contains("options.verify_first=true"))
+        #expect(detail.contains("buttons[0].from=a"))
+        #expect(detail.contains("steam:1"))
+        #expect(!detail.contains("\n"))
+        let huge = AgentService.describe(["args": .array((0..<100).map { _ in .string(String(repeating: "y", count: 500)) })])
+        #expect(huge.count <= AgentService.detailCap + 1)
+        #expect(!huge.contains(String(repeating: "y", count: 201)))
+    }
+
+    @Test("a denied run_in_prefix still logs its arguments in actions.jsonl")
+    @MainActor
+    func deniedCallLogsArguments() async throws {
+        let (service, backend) = fixtureService(.full)
+        let game = steamGame()
+        backend.gameList = [game]
+        let approvals = approvalStream(service)
+        var next = approvals.makeAsyncIterator()
+        let task = Task {
+            await service.call("run_winetricks", [
+                "game": .string(game.id), "verbs": .array([.string("vcrun2022"), .string("d3dx9")]),
+            ], client: "test")
+        }
+        let approval = try #require(await next.next())
+        service.answer(approval.id, allow: false)
+        _ = await task.value
+        #expect(service.actions.last?.detail.contains("verbs=[vcrun2022, d3dx9]") == true)
+        let file = backend.roots.support.appending(path: "agents/actions.jsonl")
+        let log = try String(contentsOf: file, encoding: .utf8)
+        #expect(log.contains("verbs=[vcrun2022, d3dx9]"))
+    }
+
+    @Test("approval text from an agent is one line and capped")
+    @MainActor
+    func approvalTextSanitized() async throws {
+        let (service, backend) = fixtureService(.full)
+        let approvals = approvalStream(service)
+        var next = approvals.makeAsyncIterator()
+        let forged = "wine\nAllow is safe\u{202E}" + String(repeating: "r", count: 5_000)
+        let task = Task { await service.call("install_runner", ["runner": .string(forged)], client: "test") }
+        let approval = try #require(await next.next())
+        #expect(!approval.text.contains("\n"))
+        #expect(!approval.text.contains("\u{202E}"))
+        #expect(approval.text.count <= AgentPrompt.argCap + 40)
+        service.answer(approval.id, allow: false)
+        _ = await task.value
+        #expect(!backend.calls.contains { $0.hasPrefix("installRunner:") })
+    }
+
+    @Test("the notification body names the agent as a claim")
+    @MainActor
+    func notificationNamesAgent() {
+        let client = AgentHandling(service: AgentService(backend: AgentFixture(home: URL(filePath: "/tmp/x"))))
+            .label(claimed: "Claude", transport: "socket")
+        let body = AgentNotifier.body(client: client, text: "run tool.exe /quiet in Elden Ring's prefix")
+        #expect(body.contains("claiming to be"))
+        #expect(body.contains("Claude"))
+        #expect(body.contains("tool.exe /quiet"))
+    }
+
+    @Test("install_from_installer's approval shows the full path")
+    @MainActor
+    func installerApprovalShowsPath() async throws {
+        let (service, backend) = fixtureService(.standard)
+        let folder = backend.roots.installs.appending(path: "Downloads/My Game Setup")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try "x".write(to: folder.appending(path: "setup.exe"), atomically: true, encoding: .utf8)
+        let approvals = approvalStream(service)
+        var next = approvals.makeAsyncIterator()
+        let task = Task {
+            await service.call("install_from_installer", ["path": .string(folder.path(percentEncoded: false))],
+                               client: "test")
+        }
+        let approval = try #require(await next.next())
+        #expect(approval.text.contains(folder.path(percentEncoded: false)))
+        service.answer(approval.id, allow: false)
+        _ = await task.value
+    }
+
+    @Test("past five waiting approvals, more calls are refused with a clear error")
+    @MainActor
+    func pendingCapped() async throws {
+        let (service, backend) = fixtureService(.full)
+        backend.gameList = [steamGame()]
+        service.approvalTimeout = .seconds(30)
+        let approvals = approvalStream(service)
+        var next = approvals.makeAsyncIterator()
+        var tasks: [Task<JSONValue, Never>] = []
+        for _ in 0..<AgentService.pendingCap {
+            tasks.append(Task { await service.call("launch_game", ["game": .string("steam:1245620")], client: "test") })
+            _ = try #require(await next.next())
+        }
+        #expect(service.pending.count == AgentService.pendingCap)
+        let extra = await service.call("launch_game", ["game": .string("steam:1245620")], client: "test")
+        #expect(extra["isError"] == .bool(true))
+        #expect(errorText(extra)?.contains("approvals are already waiting") == true)
+        #expect(service.pending.count == AgentService.pendingCap)
+        service.denyPending()
+        for task in tasks { _ = await task.value }
+        #expect(!backend.calls.contains { $0.hasPrefix("launch:") })
+    }
+
+    @Test("a denied retry_install never re-runs the installer")
+    @MainActor
+    func retryDenied() async throws {
+        let (service, backend) = fixtureService(.standard)
+        let source = backend.roots.installs.appending(path: "pack")
+        let job = InstallJob(
+            request: InstallRequest(setup: source.appending(path: "setup.exe"), source: source,
+                                    name: "G", appID: nil, gogID: nil, expectedBytes: 1,
+                                    installerBytes: 1, installerFiles: [], manifest: nil),
+            inputs: InstallInputs(runnerID: "r", gameName: "G", mode: .guided, language: nil))
+        job.phase = .failed
+        backend.jobList = [job]
+        let approvals = approvalStream(service)
+        var next = approvals.makeAsyncIterator()
+        let task = Task {
+            await service.call("retry_install", ["job": .string(job.id.uuidString),
+                                                 "fixes": .array([.string("other_runner")])], client: "test")
+        }
+        let approval = try #require(await next.next())
+        service.answer(approval.id, allow: false)
+        #expect(await task.value["isError"] == .bool(true))
+        #expect(!backend.calls.contains { $0.hasPrefix("retry:") })
+        #expect(job.phase == .failed)
+    }
+
+    @Test("file arguments answer one error whether a path outside exists or not, and inside ones that are missing")
+    @MainActor
+    func noExistenceOracle() async throws {
+        let (service, backend) = fixtureService(.readOnly)
+        let outside = FileManager.default.temporaryDirectory.appending(path: "cartouche-oracle-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: outside, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: outside) }
+        let present = outside.appending(path: "id_ed25519")
+        try "secret".write(to: present, atomically: true, encoding: .utf8)
+        var replies: [String] = []
+        for path in [present, outside.appending(path: "missing"), backend.roots.installs.appending(path: "missing.iso")] {
+            let reply = await service.call("identify_file", ["path": .string(path.path(percentEncoded: false))],
+                                           client: "test")
+            #expect(reply["isError"] == .bool(true))
+            replies.append(errorText(reply) ?? "")
+        }
+        #expect(Set(replies).count == 1)
+        #expect(replies[0] == AgentTools.fileRefusal)
     }
 }

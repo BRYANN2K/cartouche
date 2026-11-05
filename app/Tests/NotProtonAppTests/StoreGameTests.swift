@@ -61,6 +61,21 @@ struct StoreGameTests {
         #expect(downloads == clients.map { scene.calls($0).filter { !Set($0.split(separator: " ")).isDisjoint(with: ["install", "download"]) }.count })
     }
 
+    @Test("Epic: the adapter's environment cannot hand MetalFX to a game without DLSS")
+    func epicMetalFXFiltered() async throws {
+        let scene = try await StoreScene("metalfx")
+        defer { scene.remove() }
+        await scene.signIn(.epic, code: "epic-good-code")
+        let game = try #require(scene.model.game("epic:Fennec"))
+        scene.center.install(game)
+        #expect(await scene.waitForJobs())
+        try await playAndWait(scene, "epic:Fennec")
+        // legendary's JSON asks for D3DM_ENABLE_METALFX=1; the game ships no DLSS, so it must not land
+        let calls = scene.text("wine.calls")
+        #expect(calls.contains("D3DM_ENABLE_METALFX=\n"))
+        #expect(!calls.contains("D3DM_ENABLE_METALFX=1"))
+    }
+
     @Test("Epic: a free game downloads with progress in the activity slot, then plays with the runner and backend of its setup")
     func epic() async throws {
         let scene = try await StoreScene("game-epic")
@@ -166,7 +181,7 @@ struct StoreGameTests {
         let menu = GameMenu.items(for: game, in: scene.model)
         #expect(menu.first?.action == .install && menu.flatMap(\.flatActions).contains(.uninstall))
         var actions = GameActionRunner(model: scene.model, stores: scene.center)
-        actions.confirmUninstall = { _ in true }
+        actions.confirmUninstall = { _, _ in true }
         actions.perform(.install, on: game)
         #expect(scene.model.installRequest?.id == game.id)
         #expect(scene.center.job(for: game.id) == nil)
@@ -221,6 +236,174 @@ struct StoreGameTests {
         #expect(asked.all == ["https://cdn1.epicgames.com/tall.jpg"])
         #expect(covers.local(for: game, kind: .hero, override: nil) == .image(file))
         #expect(file.path.hasPrefix(work.appending(path: "covers/store/epic").path))
+    }
+
+    // A Ubisoft card's cover chain: the launcher's own box art when it really is
+    // portrait, the compat match's Steam cover next, the space's tile last. The
+    // panel's wide art has its own file so it never clobbers the cover.
+    private func ubisoftGame(art: String?, fallback: String = "https://ubiservices.cdn.ubi.com/space-x/ConnectPC/backgroundTileImageId.jpg",
+                             compat: Int? = nil, header: String? = nil) -> Game {
+        var game = Game(id: "ubisoft:42", source: .ubisoft, name: "Fixture Ubi", installed: false)
+        game.artwork = art.flatMap(URL.init)
+        game.artworkFallback = URL(string: fallback)
+        game.compatAppID = compat
+        game.mediaHeader = header.flatMap(URL.init)
+        return game
+    }
+
+    @Test("Ubisoft cover: the launcher's own box art wins when it downloads portrait")
+    func ubisoftCoverPortrait() async throws {
+        let work = try scratchDirectory("ubi-cover-portrait")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let box = try SteamFixture.png("Box", size: CGSize(width: 60, height: 90), hue: 0.3)
+        let asked = LineLog()
+        let covers = CoverStore(steamCache: work.appending(path: "steam"), cache: work.appending(path: "covers"),
+                                fetch: { url in asked.add(url.absoluteString); return (box, 200) })
+        let game = ubisoftGame(art: "https://cdn.ubi.test/box.jpg")
+        guard case .image(let file) = await covers.art(for: game, kind: .cover, override: nil) else {
+            Issue.record("no cover"); return
+        }
+        #expect(asked.all == ["https://cdn.ubi.test/box.jpg"])
+        #expect(file.path.hasPrefix(work.appending(path: "covers/store/ubisoft").path))
+    }
+
+    @Test("Ubisoft cover: a wide box art is refused and the compat cover is used instead")
+    func ubisoftCoverCompat() async throws {
+        let work = try scratchDirectory("ubi-cover-compat")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let wide = try SteamFixture.png("Wide", size: CGSize(width: 90, height: 60), hue: 0.5)
+        let portrait = try SteamFixture.png("Steam", size: CGSize(width: 60, height: 90), hue: 0.7)
+        let covers = CoverStore(steamCache: work.appending(path: "steam"), cache: work.appending(path: "covers"),
+                                fetch: { url in
+            url.absoluteString.contains("cdn.ubi.test") ? (wide, 200) : (portrait, 200)
+        })
+        let game = ubisoftGame(art: "https://cdn.ubi.test/box.jpg", compat: 359550)
+        guard case .image(let file) = await covers.art(for: game, kind: .cover, override: nil) else {
+            Issue.record("no cover"); return
+        }
+        // The compat AppID's own cover file — same name Steam games get
+        #expect(file == work.appending(path: "covers/359550/library_600x900.jpg"))
+        // The refused wide image left nothing in the store slot
+        #expect(covers.local(for: game, kind: .cover, override: nil) == nil)
+    }
+
+    @Test("Ubisoft cover: with no portrait anywhere the tile is the last resort, kept as-is")
+    func ubisoftCoverTile() async throws {
+        let work = try scratchDirectory("ubi-cover-tile")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let tile = try SteamFixture.png("Tile", size: CGSize(width: 140, height: 79), hue: 0.9)
+        let covers = CoverStore(steamCache: work.appending(path: "steam"), cache: work.appending(path: "covers"),
+                                fetch: { _ in (tile, 200) })
+        let game = ubisoftGame(art: nil)
+        guard case .image(let file) = await covers.art(for: game, kind: .cover, override: nil) else {
+            Issue.record("no cover"); return
+        }
+        // The wide tile is kept: last resort serves it, and the local fast path stops re-asking
+        #expect(covers.local(for: game, kind: .cover, override: nil) == .image(file))
+    }
+
+    // PCGamingWiki's public API answers three things: the page's wikitext (|cover =
+    // names the jacket file), a title search for renamed pages, and the file's own URL.
+    private func wikiFetch(jacket: Data, parses: MutexBox<Int>, asked: LineLog,
+                           missingFirst: Bool = false) -> CoverStore.Fetch {
+        { url in
+            let s = url.absoluteString
+            asked.add(s)
+            if s.contains("action=parse") {
+                parses.value += 1
+                if missingFirst && parses.value == 1 {
+                    return (Data(#"{"error":{"code":"missingtitle","info":"No page"}}"#.utf8), 200)
+                }
+                return (Data(#"{"parse":{"wikitext":{"*":"{{Infobox game\n|cover = Fixture_cover.jpg\n}}"}}}"#.utf8), 200)
+            }
+            if s.contains("list=search") {
+                return (Data(#"{"query":{"search":[{"title":"Fixture Ubi (2020)"}]}}"#.utf8), 200)
+            }
+            if s.contains("imageinfo") {
+                return (Data(#"{"query":{"pages":{"1":{"imageinfo":[{"url":"https://images.pcgamingwiki.com/f/f0/Fixture_cover.jpg"}]}}}}"#.utf8), 200)
+            }
+            return s.contains("images.pcgamingwiki.com") || s.contains("backgroundTileImageId") ? (jacket, 200) : (Data(), 404)
+        }
+    }
+
+    @Test("Ubisoft cover: PCGamingWiki's jacket serves when launchers and Steam have none")
+    func ubisoftCoverWiki() async throws {
+        let work = try scratchDirectory("ubi-cover-wiki")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let jacket = try SteamFixture.png("Wiki", size: CGSize(width: 60, height: 90), hue: 0.1)
+        let asked = LineLog(), parses = MutexBox(0)
+        let covers = CoverStore(steamCache: work.appending(path: "steam"), cache: work.appending(path: "covers"),
+                                fetch: wikiFetch(jacket: jacket, parses: parses, asked: asked))
+        let game = ubisoftGame(art: nil)
+        guard case .image(let file) = await covers.art(for: game, kind: .cover, override: nil) else {
+            Issue.record("no cover"); return
+        }
+        #expect(file.path.hasPrefix(work.appending(path: "covers/store/ubisoft").path))
+        #expect(covers.local(for: game, kind: .cover, override: nil) == .image(file))
+        // One page ask, one file ask, one image — and the tile was never wanted
+        #expect(asked.all.count == 3)
+        #expect(!asked.all.contains { $0.contains("backgroundTileImageId") })
+    }
+
+    @Test("Ubisoft cover: the wiki's own search lands the jacket of a renamed page")
+    func ubisoftCoverWikiSearch() async throws {
+        let work = try scratchDirectory("ubi-cover-wikisearch")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let jacket = try SteamFixture.png("Wiki", size: CGSize(width: 60, height: 90), hue: 0.1)
+        let asked = LineLog(), parses = MutexBox(0)
+        let covers = CoverStore(steamCache: work.appending(path: "steam"), cache: work.appending(path: "covers"),
+                                fetch: wikiFetch(jacket: jacket, parses: parses, asked: asked, missingFirst: true))
+        let game = ubisoftGame(art: nil)  // named "Fixture Ubi" — the wiki page is "Fixture Ubi (2020)"
+        guard case .image(let file) = await covers.art(for: game, kind: .cover, override: nil) else {
+            Issue.record("no cover"); return
+        }
+        #expect(parses.value == 2)  // the exact page missed, the searched one named the cover
+        #expect(file.path.hasPrefix(work.appending(path: "covers/store/ubisoft").path))
+    }
+
+    @Test("Ubisoft cover: a wiki miss falls to the tile and is not asked again for an hour")
+    func ubisoftCoverWikiMiss() async throws {
+        let work = try scratchDirectory("ubi-cover-wikimiss")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let tile = try SteamFixture.png("Tile", size: CGSize(width: 140, height: 79), hue: 0.9)
+        let asked = LineLog(), parses = MutexBox(0)
+        var fetch = wikiFetch(jacket: tile, parses: parses, asked: asked, missingFirst: true)
+        let inner = fetch
+        fetch = { url in   // the search names nothing the game name is part of
+            url.absoluteString.contains("list=search")
+                ? (Data(#"{"query":{"search":[{"title":"Something Else Entirely"}]}}"#.utf8), 200)
+                : try await inner(url)
+        }
+        let covers = CoverStore(steamCache: work.appending(path: "steam"), cache: work.appending(path: "covers"),
+                                fetch: fetch)
+        let game = ubisoftGame(art: nil)
+        guard case .image = await covers.art(for: game, kind: .cover, override: nil) else {
+            Issue.record("no cover"); return
+        }
+        let calls = asked.all.count
+        _ = await covers.art(for: game, kind: .cover, override: nil)
+        // The cached tile serves at once: the hour-old miss means no wiki round-trip
+        #expect(asked.all.count == calls)
+    }
+
+    @Test("Ubisoft hero: the space's wide art fills the panel's file, apart from the cover")
+    func ubisoftHeroFile() async throws {
+        let work = try scratchDirectory("ubi-hero")
+        defer { try? FileManager.default.removeItem(at: work) }
+        let portrait = try SteamFixture.png("Box", size: CGSize(width: 60, height: 90), hue: 0.3)
+        let wide = try SteamFixture.png("Bg", size: CGSize(width: 90, height: 60), hue: 0.5)
+        let covers = CoverStore(steamCache: work.appending(path: "steam"), cache: work.appending(path: "covers"),
+                                fetch: { url in
+            url.absoluteString.contains("box.jpg") ? (portrait, 200) : (wide, 200)
+        })
+        let game = ubisoftGame(art: "https://cdn.ubi.test/box.jpg", header: "https://cdn.ubi.test/bg.jpg")
+        guard case .image(let cover) = await covers.art(for: game, kind: .cover, override: nil),
+              case .image(let hero) = await covers.art(for: game, kind: .hero, override: nil) else {
+            Issue.record("missing art"); return
+        }
+        #expect(cover != hero)
+        #expect(hero.lastPathComponent.contains("hero"))
+        #expect(covers.local(for: game, kind: .hero, override: nil) == .image(hero))
     }
 
     @Test("Store games run under Rosetta: no translation choice, whatever the default")

@@ -82,7 +82,7 @@ enum StoreStubs {
           [ -n "$offline" ] || signed
           dir="$(cat "$state/epic-installed-$app")"
           code="-AUTH_PASSWORD=exchange-code"; [ -n "$offline" ] && code=""
-          printf '{"game_executable": "Binaries/Game.exe", "game_directory": "%s", "game_parameters": ["-windowed"], "egl_parameters": ["%s", "-epicapp=%s"], "user_parameters": [], "launch_command": [], "working_directory": "%s/Binaries", "environment": {"DXVK_LOG_LEVEL": "none", "HOME": "/tmp/legendary-home"}, "pre_launch_command": "", "pre_launch_wait": false}\n' "$dir" "$code" "$app" "$dir" ;;
+          printf '{"game_executable": "Binaries/Game.exe", "game_directory": "%s", "game_parameters": ["-windowed"], "egl_parameters": ["%s", "-epicapp=%s"], "user_parameters": [], "launch_command": [], "working_directory": "%s/Binaries", "environment": {"DXVK_LOG_LEVEL": "none", "HOME": "/tmp/legendary-home", "D3DM_ENABLE_METALFX": "1"}, "pre_launch_command": "", "pre_launch_wait": false}\n' "$dir" "$code" "$app" "$dir" ;;
         uninstall) rm -f "$state/epic-installed-$1" ;;
         import) echo "$2" > "$state/epic-installed-$1" ;;
         sync-saves) signed; echo "$*" >> "$state/legendary.saves" ;;
@@ -221,7 +221,7 @@ enum StoreStubs {
         {
           echo "args: $*"
           echo "pwd: $(pwd)"
-          for v in WINEPREFIX CX_GRAPHICS_BACKEND WINEDLLOVERRIDES WINEDLLPATH DXVK_HUD MTL_HUD_ENABLED DXVK_LOG_LEVEL HOME; do
+          for v in WINEPREFIX CX_GRAPHICS_BACKEND WINEDLLOVERRIDES WINEDLLPATH DXVK_HUD MTL_HUD_ENABLED DXVK_LOG_LEVEL HOME D3DM_ENABLE_METALFX; do
             eval "echo \"$v=\${$v}\""
           done
           [ -f "$save" ] && echo "found save: $(cat "$save")"
@@ -329,7 +329,9 @@ final class StoreScene {
         runner = try fakeRunner(in: runners, flavors: [.rosetta])
         let root = SupportPaths.clonedRoot(forBuild: runner.id, runners: runners)
         try StoreStubs.install(StoreStubs.wine(state: state), at: root.appending(path: "lib/wine/x86_64-unix/wine"))
-        try StoreStubs.install("#!/bin/sh\nexit 0\n", at: root.appending(path: "bin/wineserver"))
+        // wineserver notes its arguments: -w waits and -k kills are what tests check for
+        try StoreStubs.install("#!/bin/sh\nprintf '%s\\n' \"$*\" >> '\(state.path(percentEncoded: false))/wineserver.calls'\nexit 0\n",
+                               at: root.appending(path: "bin/wineserver"))
         model.runners = [runner]
 
         try "epic-good-code".write(to: state.appending(path: "epic-code"), atomically: true, encoding: .utf8)
@@ -368,11 +370,97 @@ final class StoreScene {
             .epic: EpicAdapter(context: folders.context(.epic, files: files, secrets: secrets)),
             .gog: gog,
             .amazon: AmazonAdapter(context: folders.context(.amazon, files: files, secrets: secrets)),
+            .ea: EAAdapter(enabled: true,
+                           backing: LauncherBackedStore(folders: folders, secrets: secrets,
+                                                      wine: { LauncherStoreTests.wine },
+                                                      run: RecordingLauncherRun(state: state, store: "ea"),
+                                                      eaPreflight: {},
+                                                      poll: { try await Task.sleep(for: .milliseconds(15)) })),
+            .ubisoft: UbisoftAdapter(backing: LauncherBackedStore(folders: folders, secrets: secrets,
+                                                                wine: { LauncherStoreTests.wine },
+                                                                run: RecordingLauncherRun(state: state, store: "ubisoft"),
+                                                                poll: { try await Task.sleep(for: .milliseconds(15)) })),
         ])
         center.runners = runners
         center.backends = work.appending(path: "backends")
         center.gameEnvironment = ["HOME": work.appending(path: "home").path, "PATH": "/usr/bin:/bin"]
         return center
+    }
+
+    // The launcher's prefix as a signed-in Ubisoft Connect leaves it: exe, registry, caches —
+    // the sealed .vdat ones under LocalAppData when the current launcher wrote them.
+    func seedUbisoft(sealed: Bool = false) throws {
+        let pfx = folders.launcher(.ubisoft).appending(path: "pfx")
+        let exe = pfx.appending(path: "drive_c/Program Files (x86)/Ubisoft/Ubisoft Game Launcher/UbisoftConnect.exe")
+        try FileManager.default.createDirectory(at: exe.deletingLastPathComponent(), withIntermediateDirectories: true)
+        FileManager.default.createFile(atPath: exe.path(percentEncoded: false), contents: Data("MZ".utf8))
+        try LauncherStoreTests.systemReg.write(to: pfx.appending(path: "system.reg"), atomically: true, encoding: .utf8)
+        try UbisoftCacheTests.writeCache(into: pfx, installDir: !sealed, sealed: sealed)
+        let game = pfx.appending(path: "drive_c/Program Files (x86)/Ubisoft/Ubisoft Game Launcher/games/Harbor Lords")
+        try FileManager.default.createDirectory(at: game, withIntermediateDirectories: true)
+    }
+
+    // The EA app's prefix with its exe and one installed game's installerdata entry.
+    func seedEA() throws {
+        let pfx = folders.launcher(.ea).appending(path: "pfx")
+        let exe = pfx.appending(path: "drive_c/Program Files/Electronic Arts/EA Desktop/EA Desktop/EADesktop.exe")
+        try FileManager.default.createDirectory(at: exe.deletingLastPathComponent(), withIntermediateDirectories: true)
+        FileManager.default.createFile(atPath: exe.path(percentEncoded: false), contents: Data("MZ".utf8))
+        try "WINE REGISTRY Version 2\n".write(to: pfx.appending(path: "system.reg"), atomically: true, encoding: .utf8)
+        // installerdata.xml: a hand-written fixture of the shape the launcher writes —
+        // the offer's own element carries its installPath.
+        let data = pfx.appending(path: "drive_c/ProgramData/EA Desktop/InstallerData")
+        try FileManager.default.createDirectory(at: data, withIntermediateDirectories: true)
+        try """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <installs>
+          <game contentID="Origin.OFR.50.00040000">
+            <installPath>C:\\Program Files\\EA Games\\Sample EA Game</installPath>
+          </game>
+        </installs>
+        """.write(to: data.appending(path: "installerdata.xml"), atomically: true, encoding: .utf8)
+        let game = pfx.appending(path: "drive_c/Program Files/EA Games/Sample EA Game")
+        try FileManager.default.createDirectory(at: game, withIntermediateDirectories: true)
+    }
+
+    // The EA app's prefix after the user signed into it: the exe and a live session JSON,
+    // the shape the probe adopts.
+    func seedEASession() throws {
+        let pfx = folders.launcher(.ea).appending(path: "pfx")
+        let exe = pfx.appending(path: "drive_c/Program Files/Electronic Arts/EA Desktop/EA Desktop/EADesktop.exe")
+        try FileManager.default.createDirectory(at: exe.deletingLastPathComponent(), withIntermediateDirectories: true)
+        FileManager.default.createFile(atPath: exe.path(percentEncoded: false), contents: Data("MZ".utf8))
+        let sessions = pfx.appending(path: "drive_c/ProgramData/EA Desktop")
+        try FileManager.default.createDirectory(at: sessions, withIntermediateDirectories: true)
+        try Data(#"{"access_token": "ea-access", "refresh_token": "ea-refresh", "expires_in": 3599, "refresh_expires_in": 360000}"#.utf8)
+            .write(to: sessions.appending(path: "session.json"))
+    }
+
+    // accounts.ea.com's token endpoint and the private GraphQL, on the local server.
+    func serveEA() {
+        guard let server, let base else { return }
+        let dead = state.appending(path: "ea-dead-refresh")
+        server.post("/connect/token") { request in
+            let body = String(decoding: request.body ?? Data(), as: UTF8.self)
+            if body.contains("grant_type=refresh_token") {
+                return FileManager.default.fileExists(atPath: dead.path(percentEncoded: false))
+                    ? (401, Data()) : (200, Data(EAClientTests.session().utf8))
+            }
+            return body.contains("code=ea-good-code") ? (200, Data(EAClientTests.session().utf8)) : (400, Data())
+        }
+        let pageCount = MutexBox(0)
+        server.post("/graphql") { request in
+            let body = String(decoding: request.body ?? Data(), as: UTF8.self)
+            if body.contains("GetPlayerName") { return (200, Data(EAClientTests.whoami.utf8)) }
+            if body.contains("getLegacyEntitlements") { return (200, Data(EAClientTests.legacy.utf8)) }
+            pageCount.value += 1
+            return (200, Data((pageCount.value == 1 ? EAClientTests.ownedPage1 : EAClientTests.ownedPage2).utf8))
+        }
+        if var ea = center.adapter(.ea) as? EAAdapter {
+            ea.flow.tokenURL = base.appending(path: "connect/token")
+            ea.api.endpoint = base.appending(path: "graphql")
+            center.replace(ea, for: .ea)
+        }
     }
 
     func calls(_ client: String) -> [String] {
@@ -400,6 +488,8 @@ final class StoreScene {
     }
 
     func signIn(_ store: GameSource, code: String) async {
+        // EA's session is the launcher's own file; the code handed over is only its marker
+        if store == .ea { try? seedEASession() }
         await center.beginSignIn(store)
         await center.finishSignIn(store, code: code)
     }
@@ -424,5 +514,54 @@ final class StoreScene {
         server?.stop()
         steam.remove()
         try? FileManager.default.removeItem(at: work)
+    }
+}
+
+// The launcher commands a test sees: "run <exe> <args>" for installs, "start …" for opens,
+// appended to state/<store>.launcher.calls like the client stubs keep theirs.
+final class RecordingLauncherRun: LauncherRun, @unchecked Sendable {
+    let state: URL
+    let store: String
+    // A game dir an "install" run can leave behind, as the launcher would.
+    var onRun: (@Sendable (ClientCommand) -> Void)? = nil
+
+    init(state: URL, store: String) {
+        self.state = state
+        self.store = store
+    }
+
+    func run(_ command: ClientCommand) async throws -> ClientOutput {
+        record("run", command)
+        onRun?(command)
+        return ClientOutput(status: 0, stdout: "", stderr: "")
+    }
+
+    func start(_ command: ClientCommand) async throws -> any LauncherProcess {
+        record("start", command)
+        return RunningProcess()
+    }
+
+    func start(_ command: ClientCommand, drained: Bool) async throws -> any LauncherProcess {
+        record(drained ? "start-drained" : "start", command)
+        return RunningProcess()
+    }
+
+    private func record(_ kind: String, _ command: ClientCommand) {
+        let line = kind + " " + ([command.executable.path(percentEncoded: false)] + command.arguments).joined(separator: " ") + "\n"
+        try? FileManager.default.createDirectory(at: state, withIntermediateDirectories: true)
+        let file = state.appending(path: "\(store).launcher.calls")
+        if let handle = try? FileHandle(forWritingTo: file) {
+            defer { try? handle.close() }
+            handle.seekToEndOfFile()
+            handle.write(Data(line.utf8))
+        } else {
+            try? Data(line.utf8).write(to: file)
+        }
+    }
+
+    private final class RunningProcess: LauncherProcess {
+        var isRunning: Bool { true }
+        func wait() async -> Int32 { 0 }
+        func stop() {}
     }
 }

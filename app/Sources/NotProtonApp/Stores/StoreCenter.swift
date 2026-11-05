@@ -9,13 +9,14 @@ import Observation
 final class StoreJob: Identifiable {
 
     enum Kind: Equatable, Sendable {
-        case install, update, verify, importing
+        case install, update, verify, uninstall, importing
 
         var label: String {
             switch self {
             case .install: String(localized: "Downloading")
             case .update: String(localized: "Updating")
             case .verify: String(localized: "Verifying")
+            case .uninstall: String(localized: "Removing")
             case .importing: String(localized: "Importing")
             }
         }
@@ -71,7 +72,7 @@ struct SignInSession: Equatable, Sendable {
 @Observable
 final class StoreCenter {
 
-    static let stores: [GameSource] = [.epic, .gog, .amazon]
+    static let stores: [GameSource] = [.epic, .gog, .amazon, .ea, .ubisoft]
 
     private(set) var connections: [GameSource: StoreConnection] = [:]
     private(set) var games: [GameSource: [StoreGame]] = [:]
@@ -83,6 +84,8 @@ final class StoreCenter {
     private(set) var boots: [String: StoreBoot] = [:]
     var signIn: SignInSession?
     var problem: String?
+    // What a launcher is doing now; nil falls back to whether its exe is there.
+    var launcherActivity: [GameSource: LauncherState] = [:]
 
     @ObservationIgnored let folders: StoreFolders
     @ObservationIgnored let secrets: StoreSecrets
@@ -102,13 +105,25 @@ final class StoreCenter {
     @ObservationIgnored var matchAppID: @MainActor (String) -> Int? = { _ in nil }
     // Sign-in finish and library-list times, for the 15 second promise.
     @ObservationIgnored private(set) var lastSignIn: (finished: Date, listed: Date?)?
+    // The launcher-session watcher while a viaLauncher sign-in is up, and its pacing.
+    @ObservationIgnored private var sessionWatch: Task<Void, Never>?
+    @ObservationIgnored var sessionPollInterval: TimeInterval = 2
+    @ObservationIgnored var sessionPollTimeout: TimeInterval = 15 * 60
+    @ObservationIgnored var launcherInstalls: [GameSource: Task<Void, Never>] = [:]
+    @ObservationIgnored var fetchInstaller: @Sendable (LauncherInstaller, URL, @escaping @Sendable (Double) -> Void) async throws -> URL = LauncherInstaller.fetch
+    @ObservationIgnored var runInstaller: @Sendable (StoreLauncher, URL) async throws -> Void = { try await $0.install(from: $1) }
 
     convenience init(folders: StoreFolders, vault: any TokenVault, files: StoreClientFiles, library: LibraryModel?) {
         let secrets = folders.secrets(vault: vault)
+        let wine: @Sendable () async throws -> WineRunner = { throw StoreError.notSignedIn }
         self.init(sharing: secrets, folders: folders, files: files, library: library, adapters: [
             .epic: EpicAdapter(context: folders.context(.epic, files: files, secrets: secrets)),
             .gog: GOGAdapter(context: folders.context(.gog, files: files, secrets: secrets)),
             .amazon: AmazonAdapter(context: folders.context(.amazon, files: files, secrets: secrets)),
+            .ea: EAAdapter(backing: LauncherBackedStore(folders: folders, secrets: secrets, wine: wine,
+                                                      run: ProcessLauncherRun(log: folders.launcher(.ea).appending(path: "launcher.log")))),
+            .ubisoft: UbisoftAdapter(backing: LauncherBackedStore(folders: folders, secrets: secrets, wine: wine,
+                                                                run: ProcessLauncherRun(log: folders.launcher(.ubisoft).appending(path: "launcher.log")))),
         ])
     }
 
@@ -119,7 +134,40 @@ final class StoreCenter {
         self.library = library
         self.secrets = secrets
         self.adapters = adapters
+        wireLaunchers()
     }
+
+    // The launcher's Wine is the runner a store game's install would pick: resolved at call
+    // time, after the center's own `runners` and the library's list are known.
+    private func wireLaunchers() {
+        let wine: @Sendable () async throws -> WineRunner = { [weak self] in
+            guard let self else { throw StoreError.failed(String(localized: "The store is gone.")) }
+            return try await self.launcherWine()
+        }
+        let backend: @Sendable () async -> GraphicsBackend? = { [weak self] in await self?.launcherBackend() ?? nil }
+        if var adapter = adapters[.ea] as? EAAdapter { adapter.backing.wine = wine; adapter.backing.backend = backend; adapters[.ea] = adapter }
+        if var adapter = adapters[.ubisoft] as? UbisoftAdapter { adapter.backing.wine = wine; adapter.backing.backend = backend; adapters[.ubisoft] = adapter }
+    }
+
+    func launcherWine() throws -> WineRunner {
+        if let runner = library?.installRunners.first, let wine = InstallRunners.wine(for: runner, runners: runners) {
+            return wine
+        }
+        throw StoreError.failed(String(localized: "Set up a runner in Settings > Compatibility first."))
+    }
+
+    // The launcher's backend is the one an unconfigured store game's launch would pick
+    // on the same runner (B11): the launcher parents the game, per-game choices of a
+    // different backend only land when the launcher itself is the started process.
+    func launcherBackend() -> GraphicsBackend? {
+        guard let library else { return nil }
+        return GameSetupResolver.resolve(GameSetupChoice(), defaults: library.setupDefaults,
+                                         runners: library.runners, availability: library.backendAvailability,
+                                         offered: library.installRunners).setup.backend
+    }
+
+    // Tests repoint an adapter's endpoints at the fixture server.
+    func replace(_ adapter: any StoreAdapter, for store: GameSource) { adapters[store] = adapter }
 
     // Cartouche's own folders and the real Keychain
     static func live(library: LibraryModel) -> StoreCenter {
@@ -141,8 +189,9 @@ final class StoreCenter {
             games[store] = folders.loadLibrary(store)
             for record in folders.loadRecords(store) { installed[record.gameID] = record }
             noArt[store] = folders.loadArtMisses(store)
-            let secret = try? await secrets.secret(store)
-            if let secret, let adapter = adapters[store] {
+            adoptLauncherInstalls(store)
+            // An unavailable adapter is never asked for its session: no vault read, no expiry check.
+            if let adapter = adapters[store], adapter.isAvailable, let secret = try? await secrets.secret(store) {
                 connections[store] = adapter.isExpired(secret, now: now()) ? .expired(account: secret.account) : .connected(account: secret.account)
             } else {
                 connections[store] = .notConnected
@@ -167,16 +216,45 @@ final class StoreCenter {
         do {
             // Sign-in runs on an empty folder; saved tokens stay in the vault until the new session lands.
             let page = try await adapter.signInPage()
-            if signIn?.store == store { signIn?.state = .waiting(page) }
+            if signIn?.store == store {
+                signIn?.state = .waiting(page)
+                if page.viaLauncher || page.timesOut { watch(store, adapter: adapter) }
+            }
         } catch {
             fail(store, error)
         }
     }
 
+    // A launcher-backed sign-in ends when the launcher's own cache names an account:
+    // the watcher polls it until it does, the user cancels, or the timeout passes.
+    private func watch(_ store: GameSource, adapter: any StoreAdapter) {
+        sessionWatch?.cancel()
+        sessionWatch = Task { [weak self] in
+            guard let self else { return }
+            let deadline = now().addingTimeInterval(sessionPollTimeout)
+            while !Task.isCancelled {
+                guard case .waiting = signIn?.state, signIn?.store == store else { return }
+                if let account = await adapter.detectedSession() {
+                    await finishSignIn(store, code: account)
+                    return
+                }
+                guard now() < deadline else {
+                    fail(store, StoreError.failed(String(localized: "No sign-in reached \(store.name) in time — try again.")))
+                    return
+                }
+                try? await Task.sleep(for: .seconds(sessionPollInterval))
+            }
+        }
+    }
+
     @discardableResult
     func reached(_ url: URL, pageText: String? = nil) -> Bool {
-        guard let session = signIn, case .waiting = session.state, let adapter = adapters[session.store],
-              let code = adapter.code(at: url, pageText: pageText) else { return false }
+        guard let session = signIn, case .waiting = session.state, let adapter = adapters[session.store] else { return false }
+        guard let code = adapter.code(at: url, pageText: pageText) else {
+            guard let failure = adapter.signInFailure(at: url) else { return false }
+            fail(session.store, StoreError.failed(failure))
+            return true
+        }
         signIn?.state = .finishing
         Task { await finishSignIn(session.store, code: code) }
         return true
@@ -202,12 +280,16 @@ final class StoreCenter {
 
     func cancelSignIn() {
         guard let session = signIn else { return }
+        sessionWatch?.cancel()
+        sessionWatch = nil
         signIn = nil
         if connections[session.store] == .waiting { connections[session.store] = priorConnections[session.store] ?? .notConnected }
         publish()
     }
 
     private func fail(_ store: GameSource, _ error: Error) {
+        sessionWatch?.cancel()
+        sessionWatch = nil
         if signIn?.store == store { signIn?.state = .failed(error.localizedDescription) }
         if connections[store] == .waiting { connections[store] = priorConnections[store] ?? .notConnected }
         publish()
@@ -223,7 +305,7 @@ final class StoreCenter {
     // MARK: Library
 
     func refresh(_ store: GameSource) async {
-        guard let adapter = adapters[store], connection(store).isSignedIn, !refreshing.contains(store) else { return }
+        guard let adapter = adapters[store], adapter.isAvailable, connection(store).isSignedIn, !refreshing.contains(store) else { return }
         refreshing.insert(store)
         defer { refreshing.remove(store) }
         do {
@@ -232,6 +314,7 @@ final class StoreCenter {
             for i in list.indices {
                 guard let previous = known[list[i].id] else { continue }
                 if list[i].art == nil { list[i].art = previous.art }
+                if list[i].artFallback == nil { list[i].artFallback = previous.artFallback }
                 list[i].header = previous.header
                 list[i].screenshots = previous.screenshots
                 list[i].downloadBytes = previous.downloadBytes
@@ -239,6 +322,7 @@ final class StoreCenter {
                 list[i].detailsFetchedAt = previous.detailsFetchedAt
             }
             games[store] = list
+            adoptLauncherInstalls(store)
             try? folders.saveLibrary(list, for: store)
             if case .expired(let account) = connection(store) { connections[store] = .connected(account: account) }
             if lastSignIn != nil, lastSignIn?.listed == nil { lastSignIn?.listed = now() }
@@ -321,6 +405,33 @@ final class StoreCenter {
         publish()
     }
 
+    // A game the launcher finished installing on its own becomes a record too:
+    // its folder holds only the pfx link to the launcher's prefix — Installed and
+    // Play then reflect the launcher's truth, as an install through Cartouche would.
+    private func adoptLauncherInstalls(_ store: GameSource) {
+        for game in games[store] ?? [] {
+            guard let path = game.installPath, LauncherFolder.folderBytes(path) >= 0 else { continue }
+            let gameID = "\(store.id):\(game.id)"
+            if var record = installed[gameID] {
+                guard !record.imported, record.install.path != path else { continue }
+                record.install.path = path
+                try? folders.save(record)
+                installed[gameID] = record
+                continue
+            }
+            let folder = folders.gameFolder(store, title: game.title, id: game.id)
+            do {
+                try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+                let link = folder.appending(path: "pfx")
+                try? FileManager.default.removeItem(at: link)
+                try FileManager.default.createSymbolicLink(
+                    at: link, withDestinationURL: folders.launcher(store).appending(path: "pfx"))
+                keep(StoreInstalledGame(store: store.id, id: game.id, title: game.title,
+                                        install: StoreInstall(path: path), folder: folder, installedAt: now()))
+            } catch { continue }
+        }
+    }
+
     func libraryGames() -> [Game] {
         var out: [Game] = []
         for store in Self.stores {
@@ -340,6 +451,7 @@ final class StoreCenter {
     static func game(_ store: GameSource, _ game: StoreGame, installed: StoreInstalledGame?, appID: Int? = nil) -> Game {
         var out = Game(id: "\(store.id):\(game.id)", source: store, name: game.title, installed: installed != nil)
         out.artwork = game.art
+        out.artworkFallback = game.artFallback
         out.mediaHeader = game.header
         out.mediaScreenshots = game.screenshots
         out.storageBytes = game.diskBytes
@@ -350,9 +462,11 @@ final class StoreCenter {
 
     func publish() {
         guard let library else { return }
-        for store in Self.stores { library.stores[store] = connection(store) }
-        library.otherGames.removeAll { $0.source.isStore }
-        library.otherGames += libraryGames()
+        // One assignment: store by store, the sidebar would drop a selected store not yet updated.
+        library.stores.merge(Self.stores.map { ($0, connection($0)) }) { _, new in new }
+        // One assignment: two mutations would rebuild gamesByID without store games in between,
+        // and keepSelectionVisible would drop the selection — and the game panel with it.
+        library.otherGames = library.otherGames.filter { !$0.source.isStore } + libraryGames()
     }
 
     func record(_ gameID: String) -> StoreInstalledGame? { installed[gameID] }
@@ -376,7 +490,7 @@ final class StoreCenter {
 
     func install(_ game: Game, destination: URL? = nil) {
         guard let adapter = adapters[game.source], let storeGame = storeGame(game), job(for: game.id) == nil else { return }
-        let folder = destination ?? library?.storeGameFolder(game.source, title: storeGame.title, id: storeGame.id) ?? folders.gameFolder(game.source, title: storeGame.title, id: storeGame.id)
+        let folder = destination.map { StoreUninstall.folder(in: $0, title: storeGame.title, id: storeGame.id) } ?? library?.storeGameFolder(game.source, title: storeGame.title, id: storeGame.id) ?? folders.gameFolder(game.source, title: storeGame.title, id: storeGame.id)
         enqueue(StoreJob(gameID: game.id, title: game.name, kind: .install)) { [weak self] job in
             let install = try await adapter.install(storeGame, base: folder.appending(path: "game", directoryHint: .isDirectory)) { fraction in
                 Task { @MainActor in job.fraction = fraction }
@@ -405,22 +519,26 @@ final class StoreCenter {
         }
     }
 
-    func uninstall(_ game: Game) async {
+    // A job like the installs: the record and the files only come off once the store
+    // confirms the removal — a cancelled job keeps both.
+    func uninstall(_ game: Game) {
         guard let adapter = adapters[game.source], let record = installed[game.id],
               !playing.contains(game.id), job(for: game.id) == nil else { return }
-        do {
+        enqueue(StoreJob(gameID: game.id, title: game.name, kind: .uninstall)) { [weak self] _ in
             if record.imported {
                 try await adapter.forget(record.id)
             } else {
                 try await adapter.uninstall(record.id, install: record.install)
             }
-            try? FileManager.default.removeItem(at: record.folder)
-            folders.remove(record)
-            installed[game.id] = nil
-            publish()
-        } catch {
-            handle(error, store: game.source)
+            self?.forget(record)
         }
+    }
+
+    private func forget(_ record: StoreInstalledGame) {
+        StoreUninstall.clear(record.folder)
+        folders.remove(record)
+        installed[record.gameID] = nil
+        publish()
     }
 
     func stop(_ activity: StoreActivity) {
@@ -505,7 +623,7 @@ final class StoreCenter {
     func play(_ game: Game) {
         guard let adapter = adapters[game.source], let record = installed[game.id],
               !playing.contains(game.id), job(for: game.id) == nil else { return }
-        guard let setup = setup(for: game), let runner = setup.runner else {
+        guard let runner = setup(for: game)?.runner else {
             problem = String(localized: "Set up a runner in Settings > Compatibility to play \(game.name).")
             return
         }
@@ -517,7 +635,7 @@ final class StoreCenter {
         let offline = (library?.isOffline ?? false) || { if case .expired = connection(game.source) { return true }; return false }()
         Task {
             do {
-                try await run(game, record: record, adapter: adapter, setup: setup, wine: wine, offline: offline)
+                try await run(game, record: record, adapter: adapter, wine: wine, offline: offline)
             } catch {
                 handle(error, store: game.source)
             }
@@ -525,8 +643,11 @@ final class StoreCenter {
         }
     }
 
-    private func run(_ game: Game, record: StoreInstalledGame, adapter: any StoreAdapter, setup: GameSetup, wine: WineRunner,
+    private func run(_ game: Game, record: StoreInstalledGame, adapter: any StoreAdapter, wine: WineRunner,
                      offline: Bool) async throws {
+        // The folder's answers to DLSS and the anti-cheat land before the launch variables are resolved
+        await library?.scan([(id: game.id, folder: record.install.path)])
+        guard let setup = setup(for: game) else { return }
         let backends = self.backends, runners = self.runners
         let wine = try await Task.detached {
             try GraphicsRunner.prepare(wine, backend: setup.backend, backends: backends, runners: runners)
@@ -574,12 +695,23 @@ final class StoreCenter {
                                         environment: setup.environment, backends: backends, base: gameEnvironment)
         let prefixEnvironment = env
         let prefix = record.prefix
-        try await Task.detached {
-            try AdvancedPrefixSettings.apply(wine: wine, prefix: prefix, environment: prefixEnvironment)
-            CrashHandling.apply(wine: wine, prefix: prefix, environment: prefixEnvironment)
-        }.value
-        // Only allowlisted store variables: legendary JSON must not set DYLD_* or HOME on the native loader.
-        env.merge(launch.environment.filter { GameSetupResolver.isAllowed(name: $0.key, value: $0.value) }) { $1 }
+        let shared = launcherShared(record)
+        // Per-game prefix writes stop the wineserver (msync/retina markers): never on a
+        // launcher-owned prefix, whose server also serves the launcher and other games.
+        if !shared {
+            try await Task.detached {
+                try AdvancedPrefixSettings.apply(wine: wine, prefix: prefix, environment: prefixEnvironment)
+                CrashHandling.apply(wine: wine, prefix: prefix, environment: prefixEnvironment)
+            }.value
+        }
+        // Only allowlisted store variables, and never the profile's own: legendary JSON must not set DYLD_* or
+        // HOME on the native loader, nor give back the variables an anti-cheat had the launch remove.
+        env.merge(launch.environment.filter {
+            !OverlayLaunch.variables.contains($0.key) && $0.key != LaunchProfile.consentVariable
+                && GameSetupResolver.isAllowed(name: $0.key, value: $0.value)
+        }) { $1 }
+        env = LaunchProfile.filteredEnvironment(env, dlss: library?.launchProfile(for: game).dlss ?? false)
+        library?.noteLaunch(of: game, environment: env)
         let command = ClientCommand(executable: URL(filePath: WineInstall.rosetta[0]),
                                     arguments: Array(WineInstall.rosetta.dropFirst()) + [wine.loader.path(percentEncoded: false),
                                                                                         launch.executable.path(percentEncoded: false)] + launch.arguments,
@@ -598,8 +730,11 @@ final class StoreCenter {
             }
             _ = await process.wait()
             CrashLog.keep(log, in: folder)
-            // The game may have left its launcher behind and kept running in the prefix
-            await StoreCenter.waitForWine(wine, environment: env)
+            // The game may have left its launcher behind and kept running in the prefix —
+            // except a shared launcher prefix, whose session must outlive this one run.
+            if !shared {
+                await StoreCenter.waitForWine(wine, environment: env)
+            }
             helper?.stop()
             await MainActor.run { self.processes[game.id] = nil }
         }
@@ -635,10 +770,15 @@ final class StoreCenter {
         play(game)
     }
 
-    // A failed boot's last resort: the prefix is wiped, then made from scratch.
+    // A failed boot's last resort: the prefix is wiped, then made from scratch —
+    // never a launcher-shared prefix: wiping it would take the launcher's files with it.
     func recreateBoot(_ game: Game) {
         guard let record = installed[game.id] else { return }
         boots[game.id] = nil
+        guard !launcherShared(record) else {
+            play(game)
+            return
+        }
         let prefix = record.prefix
         guard Self.discard(prefix) == nil, FileManager.default.fileExists(atPath: prefix.path(percentEncoded: false)) else {
             play(game)
@@ -660,13 +800,26 @@ final class StoreCenter {
         return Task.detached(priority: .utility) { try? FileManager.default.removeItem(at: aside) }
     }
 
-    // wineserver -k whatever stayed in the prefix, so the session and its token files close.
+    // The record's prefix resolves through its pfx link: a launcher-backed game's is the
+    // launcher's own, shared by every game it manages.
+    func launcherShared(_ record: StoreInstalledGame) -> Bool {
+        guard let store = Self.stores.first(where: { $0.id == record.store }) else { return false }
+        let launcher = folders.launcher(store).appending(path: "pfx").standardizedFileURL
+        return record.prefix.resolvingSymlinksInPath().standardizedFileURL == launcher
+    }
+
+    // wineserver -k whatever stayed in the prefix, so the session and its token files close —
+    // never on a shared launcher prefix: that one wineserver owns the launcher and every
+    // other running game, so stopping one game stops nothing at all there.
     func stopPlaying(_ game: Game) {
-        if let record = installed[game.id] { WineBootstrap.stop(record.prefix) }
+        let shared = installed[game.id].map(launcherShared) ?? false
+        if let record = installed[game.id], !shared { WineBootstrap.stop(record.prefix) }
         boots[game.id] = nil
         guard playing.contains(game.id) else { return }
-        for process in processes[game.id] ?? [] { process.stop() }
-        guard let record = installed[game.id], let setup = setup(for: game), let runner = setup.runner,
+        if !shared {
+            for process in processes[game.id] ?? [] { process.stop() }
+        }
+        guard let record = installed[game.id], !shared, let setup = setup(for: game), let runner = setup.runner,
               let wine = InstallRunners.wine(for: runner, runners: runners) else { return }
         let env = WineInstall.environment(runner: wine, prefix: record.prefix, inputs: nil, base: gameEnvironment)
         Task { await WineServer.kill(server: wine.server, env: env) }

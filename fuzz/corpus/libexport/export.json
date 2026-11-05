@@ -1,0 +1,5 @@
+{"version":1,"generated":1790000000,
+"steamid":"76561197960287930","apps":[
+{"appid":10,"name":"Game","installed":true,"last_played":1790000000,"playtime":42,"hidden":false},
+{"appid":20,"name":"Other","installed":false}],
+"collections":[{"id":"uc-1","name":"Favs","apps":[10,20]}]}

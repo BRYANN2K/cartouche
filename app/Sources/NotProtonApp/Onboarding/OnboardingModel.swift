@@ -424,7 +424,7 @@ final class OnboardingModel {
         }
     }
 
-    var storeTiles: [GameSource] { StoreCenter.stores }
+    var storeTiles: [GameSource] { StoreCenter.offered }
 
     func connection(_ store: GameSource) -> StoreConnection {
         stores?.connection(store) ?? .notConnected
@@ -434,6 +434,10 @@ final class OnboardingModel {
         guard let stores else { return }
         Task { await stores.beginSignIn(store) }
     }
+
+    func launcherStep(_ store: GameSource) -> LauncherStep? { stores?.launcherStep(store) }
+
+    func installLauncher(_ store: GameSource) { stores?.installLauncher(store) }
 
     // MARK: Consoles
 

@@ -80,7 +80,7 @@ struct StoreAdapterTests {
         #expect(launch.executable == install.path.appending(path: "Binaries/Game.exe"))
         #expect(launch.arguments == ["-windowed", "-AUTH_PASSWORD=exchange-code", "-epicapp=Fennec"])
         #expect(launch.workingDirectory.lastPathComponent == "Binaries")
-        #expect(launch.environment == ["DXVK_LOG_LEVEL": "none", "HOME": "/tmp/legendary-home"])
+        #expect(launch.environment == ["DXVK_LOG_LEVEL": "none", "HOME": "/tmp/legendary-home", "D3DM_ENABLE_METALFX": "1"])
         try await epic.uninstall("Fennec", install: install)
         let calls = scene.calls("legendary")
         #expect(calls.contains("-y install Fennec --base-path \(base.path(percentEncoded: false)) --platform Windows --skip-sdl"))

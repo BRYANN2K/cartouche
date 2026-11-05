@@ -149,7 +149,7 @@ struct StatusRow: View {
     private func button(_ action: StatusAction) -> some View {
         if action.isProminent {
             Button(action.label, role: action.role, action: action.perform)
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.borderedProminent).tint(Glass.accentFill)
         } else {
             Button(action.label, role: action.role, action: action.perform)
                 .buttonStyle(.bordered)

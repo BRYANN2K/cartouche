@@ -1,0 +1,10 @@
+# gitleaks rules for the release gate and the CI security job.
+[extend]
+useDefault = true
+
+# Fake token values in the agent token migration test, reviewed 2026-11-05.
+[[allowlists]]
+description = "fake agent tokens in AgentTests"
+condition = "AND"
+paths = ['''^app/Tests/NotProtonAppTests/AgentTests\.swift$''']
+regexes = ['''0123456789abcdef''', '''fedcba9876543210''']

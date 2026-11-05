@@ -35,7 +35,19 @@ final class AgentControlModel {
     }
 
     // Bearer token for HTTP clients; kept in the Keychain so a restart does not break the client config.
-    let token: String
+    // Resolved on first use: a launch must not touch the Keychain while HTTP stays off.
+    var token: String {
+        if let cachedToken { return cachedToken }
+        let legacy = defaults.string(forKey: Self.tokenKey)
+        let saved = secrets.read(Self.tokenKey) ?? legacy
+        let resolved = (saved?.count ?? 0) >= 16 ? saved! : MCPToken.generate()
+        if (try? secrets.write(resolved, for: Self.tokenKey)) != nil, legacy != nil {
+            defaults.removeObject(forKey: Self.tokenKey)
+        }
+        cachedToken = resolved
+        return resolved
+    }
+    @ObservationIgnored private var cachedToken: String?
 
     private(set) var socketState = "off"
     private(set) var httpState = "off"
@@ -52,6 +64,7 @@ final class AgentControlModel {
     var tools: [AgentTool] { service.tools.values.sorted { $0.name < $1.name } }
 
     private let defaults: UserDefaults
+    private let secrets: any SecretStore
     private let socketURL: URL
     private var socket: MCPSocketServer?
     private var http: MCPHTTPServer?
@@ -69,21 +82,12 @@ final class AgentControlModel {
         let secrets = secrets ?? (defaults == .standard
             ? KeychainSecrets(service: QAEnvironment.isActive ? "dev.bryann2k.cartouche.mcp.qa" : "dev.bryann2k.cartouche.mcp")
             : MemorySecrets())
+        self.secrets = secrets
         self.service = service
         self.defaults = defaults
         socketURL = socket
         server = MCPServer(handler: AgentHandling(service: service))
         httpPort = UInt16(exactly: defaults.integer(forKey: Self.portKey)) ?? 3398
-        // A token an earlier version left in defaults moves to the Keychain once
-        let legacy = defaults.string(forKey: Self.tokenKey)
-        if let saved = secrets.read(Self.tokenKey) ?? legacy, saved.count >= 16 {
-            token = saved
-        } else {
-            token = MCPToken.generate()
-        }
-        if (try? secrets.write(token, for: Self.tokenKey)) != nil, legacy != nil {
-            defaults.removeObject(forKey: Self.tokenKey)
-        }
         if let raw = defaults.string(forKey: Self.levelKey), let saved = AgentLevel(rawValue: raw) {
             service.level = saved
         }

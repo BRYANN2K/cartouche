@@ -137,7 +137,7 @@ public enum InnoInspector {
         var report = InnoReport()
         var inLanguages = false
         for line in info.split(whereSeparator: \.isNewline).map(String.init) {
-            // Inspecting "CarX Street" - setup data version 5.5.0.1 (unicode)
+            // Inspecting "Cobalt Street" - setup data version 5.5.0.1 (unicode)
             if let m = try? /Inspecting "(.+)" - setup data version ([0-9.]+)/.firstMatch(in: line) {
                 report.title = String(m.1); report.version = String(m.2)
             }

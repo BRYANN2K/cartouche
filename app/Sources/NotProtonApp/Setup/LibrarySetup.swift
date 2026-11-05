@@ -36,12 +36,14 @@ extension LibraryModel {
             if choice.runnerID == nil { choice.runnerID = game.installRunnerID }
             if choice.graphics == nil { choice.graphics = game.installGraphics }
             return GameSetupResolver.resolve(choice, defaults: setupDefaults, runners: runners,
-                                             availability: backendAvailability, offered: installRunners)
+                                             availability: backendAvailability, offered: installRunners,
+                                             profile: launchProfile(for: game))
         }
         if game.source.isStore { choice.translation = .rosetta }
         return GameSetupResolver.resolve(choice, defaults: setupDefaults, runners: runners,
                                          availability: backendAvailability, hasMacBuild: hasMacBuild(game),
-                                         offered: game.source.isStore ? installRunners : steamRunners)
+                                         offered: game.source.isStore ? installRunners : steamRunners,
+                                         profile: launchProfile(for: game))
     }
 
     func graphicsChoices(for game: Game) -> [GraphicsBackend] {
@@ -77,6 +79,7 @@ extension LibraryModel {
         do {
             let outcome = try GameSetupApplier.apply(setup, appID: appID, tools: backendTools,
                                                      requests: compatRequestsFile, setups: setupsFolder)
+            noteLaunch(of: game, environment: outcome.environment)
             // A Windows choice with no tool would leave Steam on the old mapping while the menu shows the new one.
             if setup.version == .windows, let runner = setup.runner, outcome.tool == nil {
                 problem = String(localized: "\(runner.name) \(runner.displayVersion) isn’t available to Steam yet. Steam keeps the previous choice.")
@@ -99,6 +102,8 @@ extension LibraryModel {
                   let steam = GameSetupApplier.choice(fromTool: name, in: backendTools, runners: runners)
             else { continue }
             var choice = setup(for: game.id)
+            // A stale config.vdf never takes a game back to an older build of the series it was updated from
+            if RunnerUpdate.isDowngrade(from: choice.runnerID, to: steam.runnerID) { continue }
             guard choice.runnerID != steam.runnerID || choice.graphics != steam.graphics
                 || choice.translation != steam.translation || (hasMacBuild(game) && choice.version != .windows)
             else { continue }
@@ -115,14 +120,15 @@ extension LibraryModel {
     func applyInstallerSetup(_ setup: GameSetupChoice, for game: Game) {
         setupNotices[game.id] = nil
         guard game.id.hasPrefix("installer:") else { return }
-        let folder = GameFolder.of(slug: String(game.id.dropFirst("installer:".count)), in: installsFolder)
-        guard var record = InstalledGames.record(in: folder) else { return }
+        guard let folder = GameFolder.of(slug: String(game.id.dropFirst("installer:".count)), in: installsFolder),
+              var record = InstalledGames.record(in: folder) else { return }
         var choice = setup
         choice.translation = .rosetta
         if choice.runnerID == nil { choice.runnerID = game.installRunnerID }
         if choice.graphics == nil { choice.graphics = game.installGraphics }
         let resolved = GameSetupResolver.resolve(choice, defaults: setupDefaults, runners: runners,
-                                               availability: backendAvailability, offered: installRunners).setup
+                                               availability: backendAvailability, offered: installRunners,
+                                               profile: launchProfile(for: game)).setup
         guard let runner = resolved.runner else {
             problem = String(localized: "Set up a runner in Settings > Compatibility to play \(game.name).")
             return
@@ -146,6 +152,7 @@ extension LibraryModel {
             record.wineVersion = runner.version
             record.wineRunnerKind = runner.kind.rawValue
             try InstalledGames.save(record, in: folder)
+            noteLaunch(of: game, environment: resolved.environment)
             showInstalledGames(InstalledGames.all(in: installsFolder))
         } catch {
             problem = String(localized: "Cartouche couldn’t apply this setup: \(error.localizedDescription)")
@@ -158,23 +165,42 @@ extension LibraryModel {
     func refreshInstallerLaunchers() async {
         let installs = installsFolder
         let records = await Task.detached { InstalledGames.all(in: installs) }.value
-        let refreshes: [LauncherRefresh] = records.map(Game.init(installed:)).compactMap { game in
+        // Each launcher's variables follow the folder's scan: the walks end before the resolves
+        await scanGames(records.map(Game.init(installed:)))
+        let refreshes: [(game: Game, refresh: LauncherRefresh)] = records.map(Game.init(installed:)).compactMap { game in
             guard let folder = GameFolder.of(game, in: installs) else { return nil }
             let resolved = resolution(for: game).setup
             guard let runner = resolved.runner, runner.id == game.installRunnerID, let backend = resolved.backend,
                   let wine = InstallRunners.wine(for: runner, runners: runnersFolder) else { return nil }
-            return LauncherRefresh(folder: folder, wine: wine, backend: backend, environment: resolved.environment,
-                                   backends: backendsFolder, runners: runnersFolder)
+            return (game, LauncherRefresh(folder: folder, wine: wine, backend: backend, environment: resolved.environment,
+                                          backends: backendsFolder, runners: runnersFolder))
         }
         guard !refreshes.isEmpty else { return }
-        let games = await Task.detached { () -> [InstalledGame]? in
-            var changed = false
-            for refresh in refreshes {
-                if (try? refresh.apply()) == true { changed = true }
-            }
-            return changed ? InstalledGames.all(in: installs) : nil
+        let written = await Task.detached { () -> (changed: [Game], all: [InstalledGame]?) in
+            var changed: [Game] = []
+            for entry in refreshes where (try? entry.refresh.apply()) == true { changed.append(entry.game) }
+            return (changed, changed.isEmpty ? nil : InstalledGames.all(in: installs))
         }.value
-        if let games { showInstalledGames(games) }
+        for entry in refreshes where written.changed.contains(entry.game) {
+            noteLaunch(of: entry.game, environment: entry.refresh.environment)
+        }
+        if let all = written.all { showInstalledGames(all) }
+    }
+
+    // Steam games read their variables at launch: each one follows its profile, the app's defaults included.
+    // The folder scans finish first: nothing writes a variable the anti-cheat walk would have vetoed.
+    func refreshSteamEnvironments() async {
+        await scanGames(allGames.filter { $0.source == .steam && $0.installed })
+        for game in allGames where game.source == .steam && game.installed {
+            guard let appID = game.steamAppID else { continue }
+            let setup = resolution(for: game).setup
+            guard setup.version == .windows, setup.runner != nil else { continue }
+            let unsafe = launchProfile(for: game).protected || setup.environment[FrameGeneration.variable] != "1"
+            let written = GameActionRunner.writeSteamEnvironment(setup.environment, appID: appID,
+                                                                 setups: setupsFolder, staleUnsafe: unsafe)
+            noteLaunch(of: game, environment: written
+                ?? GameSetupApplier.readEnvironment(appID: appID, setups: setupsFolder))
+        }
     }
 
     // Settings > Compatibility's defaults become Steam's tool for every other Windows game

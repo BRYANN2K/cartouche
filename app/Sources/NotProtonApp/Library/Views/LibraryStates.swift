@@ -56,7 +56,7 @@ struct LoadingGrid: View {
 // The mockup's .empty-lib: a quiet symbol, a bold line, a secondary line and one pill action
 struct EmptyState<Icon: View, Actions: View>: View {
     let title: Text
-    let message: Text
+    var message: Text? = nil
     @ViewBuilder let icon: () -> Icon
     @ViewBuilder let actions: () -> Actions
 
@@ -71,10 +71,12 @@ struct EmptyState<Icon: View, Actions: View>: View {
             title.font(.system(size: 15, weight: .bold))
                 .multilineTextAlignment(.center)
                 .padding(.bottom, 4)
-            message.font(.system(size: 13))
-                .foregroundStyle(Glass.label2)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 420)
+            if let message {
+                message.font(.system(size: 13))
+                    .foregroundStyle(Glass.label2)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 420)
+            }
             actions()
                 .buttonStyle(.pill)
                 .padding(.top, 12)
@@ -87,13 +89,13 @@ struct EmptyState<Icon: View, Actions: View>: View {
 }
 
 extension EmptyState where Actions == EmptyView {
-    init(title: Text, message: Text, @ViewBuilder icon: @escaping () -> Icon) {
+    init(title: Text, message: Text? = nil, @ViewBuilder icon: @escaping () -> Icon) {
         self.init(title: title, message: message, icon: icon, actions: { EmptyView() })
     }
 }
 
 struct WelcomeView: View {
-    let choose: (SidebarItem) -> Void
+    let choose: (GameSource) -> Void
     let addInstaller: () -> Void
 
     var body: some View {
@@ -116,9 +118,9 @@ struct WelcomeView: View {
                     .frame(maxWidth: 420)
                     .padding(.bottom, 26)
                 HStack(spacing: 10) {
-                    choice(Text(verbatim: "Steam"), Text("Uses Steam Play"), mark: .steam) { choose(.source(.steam)) }
-                    choice(Text(verbatim: "Epic Games"), Text("Sign in"), mark: .epic) { choose(.source(.epic)) }
-                    choice(Text(verbatim: "GOG"), Text("Sign in"), mark: .gog) { choose(.source(.gog)) }
+                    choice(Text(verbatim: "Steam"), Text("Uses Steam Play"), mark: .steam) { choose(.steam) }
+                    choice(Text(verbatim: "Epic Games"), Text("Sign in"), mark: .epic) { choose(.epic) }
+                    choice(Text(verbatim: "GOG"), Text("Sign in"), mark: .gog) { choose(.gog) }
                     choice(Text("Windows Installer"), Text("setup.exe and .bin"), symbol: "shippingbox") { addInstaller() }
                 }
             }
@@ -160,7 +162,7 @@ private struct ChoiceButtonStyle: ButtonStyle {
             .background(hovering ? Glass.fill2 : Glass.fill, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .animation(.spring(duration: 0.2, bounce: 0), value: configuration.isPressed)
-            .onHover { hovering = $0 }
+            .trackHover { hovering = $0 }
     }
 }
 
@@ -296,9 +298,14 @@ struct EmptyLibraryView: View {
     let screen: LibraryScreen
     let addGames: () -> Void
     let retry: () -> Void
+    @Environment(StoreCenter.self) private var stores: StoreCenter?
 
     var body: some View {
         switch screen {
+        case .noInstalledGames:
+            EmptyState(title: Text("No installed games")) {
+                Image(systemName: "tray")
+            }
         case .emptyFavorites:
             EmptyState(title: Text("No favorites yet"), message: Text("Click the star on a game to add it here.")) {
                 Image(systemName: "star")
@@ -330,6 +337,8 @@ struct EmptyLibraryView: View {
             } actions: {
                 if source == .steam {
                     Button("Open Steam") { NSWorkspace.shared.open(SupportPaths.Steam.app) }
+                } else if let stores, stores.signedInLauncher(.source(source)) != nil {
+                    Button("Open Launcher") { Task { await stores.openLauncher(source) } }
                 }
             }
         default:

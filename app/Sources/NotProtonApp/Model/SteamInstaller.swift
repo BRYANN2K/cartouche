@@ -116,7 +116,8 @@ enum SteamInstaller {
             payload: payload, bridgePayload: bridgeLocated, app: app, bridge: bridge,
             signatures: signatures, fonts: fonts, overlayShim: overlayShim, iconmaker: iconmaker, appinfo: appinfo,
             compatTools: compatTools, tools: tools, runners: runners,
-            fpsCounter: support.appending(path: SupportPaths.fpsCounterName))
+            fpsCounter: support.appending(path: SupportPaths.fpsCounterName),
+            framegen: support.appending(path: SupportPaths.framegenName))
         let content = try DeploymentContent.inspect(files: files, bundled: build, installed: previousBuild,
                                                    legacyVersion: SteamBundle.deployedVersion(at: deployedVersion),
                                                    recordMismatch: replacingUnrecordedDylib ? .accept : .refuse)

@@ -45,15 +45,19 @@ struct StoreSignInTests {
     func tokenOnlyInVault() async throws {
         let scene = try await StoreScene("signin-vault", gogServer: true)
         defer { scene.remove() }
+        try scene.seedUbisoft()
+        scene.serveEA()
         await scene.signIn(.epic, code: "epic-good-code")
         await scene.center.beginSignIn(.gog)
         await scene.center.finishSignIn(.gog, code: "gog-good-code")
         await scene.center.beginSignIn(.amazon)
         await scene.center.finishSignIn(.amazon, code: "amazon-good-code")
+        await scene.signIn(.ubisoft, code: "00000000-dead-beef-0000-000000000042")
+        await scene.signIn(.ea, code: "ea-good-code")
         for store in StoreCenter.stores { #expect(scene.center.connection(store).isSignedIn, "\(store.name)") }
         #expect(try scene.vault.read(.gog)?.account == "galaxy_player")
         #expect(try scene.vault.read(.amazon)?.account == "Ana")
-        #expect(scene.filesHolding(["epic-access", "epic-refresh", "gog-access", "gog-refresh", "encrypted-token", "amzn1.account.TEST"]).isEmpty)
+        #expect(scene.filesHolding(["epic-access", "epic-refresh", "gog-access", "gog-refresh", "encrypted-token", "amzn1.account.TEST", "ea-access", "ea-refresh"]).isEmpty)
         // Each run had them in place, written for the client alone
         #expect(scene.text("gogdl.saw-token").contains("gog-refresh"))
         #expect(scene.text("nile.saw-token").contains("amzn1.account.TEST"))
@@ -185,6 +189,8 @@ struct StoreSignInTests {
         #expect(query[kSecClass as String] as? String == kSecClassGenericPassword as String)
         #expect(query[kSecAttrService as String] as? String == "dev.bryann2k.cartouche.store")
         #expect(query[kSecAttrAccount as String] as? String == "gog")
+        // Every store shares one item, so a new build asks once for all of them
+        #expect(vault.groupedQuery[kSecAttrAccount as String] as? String == "stores")
         let attributes = vault.attributes(Data())
         #expect(attributes[kSecAttrAccessible as String] as? String == kSecAttrAccessibleWhenUnlockedThisDeviceOnly as String)
         #expect(attributes[kSecAttrSynchronizable as String] == nil)

@@ -1,0 +1,25 @@
+1793286299572 game  activateapp 1
+1793286299680 game  start rect=0,0,1710x1112 popup=1 capture=0 clip=0 aggressive=0
+1793286300519 panel activate wine ok=true
+1793286300698 game  tick fps=52.3 fg=1 active=1 hidden=0 cursor=1306,17 clip=0,0,1710,1112
+1793286300726 panel panel start space=8 spaceType=0 plan=n:screenSaver frontmost=wine/49672 cursor=(1306.0, 17.0) SLCursorIsVisible=1 SLSCursorIsVisible=1
+1793286301712 game  tick fps=65.0 fg=1 active=1 hidden=0 cursor=1306,17 clip=0,0,1710,1112
+1793286301782 panel open by=plan space=8 spaceType=0 activating=false level=1000 frontmostBefore=wine/49672 gamePid=49672 panelIndex=-1 panelLayer=0 gameIndex=0 gameLayer=26 gameRect=0,0,1710x1112 above=false
+1793286301864 game  activateapp 0
+1793286302164 panel shown +0.3s active=true key=true onActiveSpace=true visible=true frontmost=wine/49672 space=8 spaceType=0 panelIndex=0 panelLayer=1000 gameIndex=1 gameLayer=26 gameRect=0,0,1710x1112 above=true
+1793286302728 game  tick fps=60.0 fg=0 active=0 hidden=0 cursor=1306,17 clip=0,0,1710,1112
+1793286302937 panel capture /tmp/overlay-spikes-logs/glass-borderless.png windows=2 size=1710x1112
+1793286303108 panel shown +1.2s active=true key=true onActiveSpace=true visible=true frontmost=wine/49672 space=8 spaceType=0 panelIndex=2 panelLayer=1000 gameIndex=3 gameLayer=26 gameRect=0,0,1710x1112 above=true
+1793286303355 panel closed
+1793286303362 game  activateapp 1
+1793286303728 game  tick fps=60.0 fg=1 active=1 hidden=0 cursor=1306,17 clip=0,0,1710,1112
+1793286304406 panel after close frontmost=wine/49672 panelIndex=-1 panelLayer=0 gameIndex=2 gameLayer=26 gameRect=0,0,1710x1112 above=false
+1793286304745 game  tick fps=60.0 fg=1 active=1 hidden=0 cursor=1306,17 clip=0,0,1710,1112
+1793286305762 game  tick fps=60.0 fg=1 active=1 hidden=0 cursor=1306,17 clip=0,0,1710,1112
+1793286306778 game  tick fps=60.0 fg=1 active=1 hidden=0 cursor=1306,17 clip=0,0,1710,1112
+1793286307778 game  tick fps=60.0 fg=1 active=1 hidden=0 cursor=1306,17 clip=0,0,1710,1112
+1793286308778 game  tick fps=60.0 fg=1 active=1 hidden=0 cursor=1306,17 clip=0,0,1710,1112
+1793286309778 game  tick fps=60.0 fg=1 active=1 hidden=0 cursor=1306,17 clip=0,0,1710,1112
+1793286310795 game  tick fps=60.0 fg=1 active=1 hidden=0 cursor=1306,17 clip=0,0,1710,1112
+1793286311229 panel end spaces=0 frontmost=Aside/17797
+1793286311229 panel restore Aside ok=true

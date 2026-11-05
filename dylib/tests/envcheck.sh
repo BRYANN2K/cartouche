@@ -96,11 +96,16 @@ is "settings after a non-UTF-8 value are forwarded" "--env DXVK_HUD=1 " "$after_
 echo "== D3DMetal comes from the user's installed toolkit =="
 d3d_case=$(sed -n '/^      d3dmetal)$/,/^        ;;$/p' "$SRC" | sed '1d;$d')
 [ -n "$d3d_case" ] || { echo "FAIL: the d3dmetal case was not found"; exit 1; }
-mkdir -p "$np_support/runners/gptk-8.8/lib/external"
+mkdir -p "$np_support/runners/gptk-8.8/lib/external" \
+  "$np_support/runners/gptk-8.8/lib/wine/x86_64-windows"
 : > "$np_support/runners/gptk-8.8/lib/external/libd3dshared.dylib"
+: > "$np_support/runners/gptk-8.8/lib/wine/x86_64-windows/d3d11.dll"
+: > "$np_support/runners/gptk-8.8/lib/wine/x86_64-windows/dxgi.dll"
 inplace="$work/in-place-lib"
-mkdir -p "$inplace/external" "$np_support/runners/gptk-9.9"
+mkdir -p "$inplace/external" "$inplace/wine/x86_64-windows" "$np_support/runners/gptk-9.9"
 : > "$inplace/external/libd3dshared.dylib"
+: > "$inplace/wine/x86_64-windows/d3d11.dll"
+: > "$inplace/wine/x86_64-windows/dxgi.dll"
 printf '{"version":"9.9","origin":"x","files":{},"inPlace":"%s"}\n' "$inplace" \
   > "$np_support/runners/gptk-9.9/.cartouche-runner.json"
 np_gptk=""; np_backend_from=""; np_backend_missing=""

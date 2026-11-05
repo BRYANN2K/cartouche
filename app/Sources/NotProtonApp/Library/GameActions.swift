@@ -287,7 +287,9 @@ struct GameActionRunner {
     // The rename sheet's answer: the new name, or nil on cancel or an empty one.
     var renamePrompt: @MainActor (Game) -> String? = GameActionRunner.renamePrompt
     var stores: StoreCenter?
-    var confirmUninstall: @MainActor (Game) -> Bool = GameActionRunner.confirmUninstall
+    // Play on an overloaded Mac shows « Apps en arrière-plan » first; the closure plays
+    var beforePlay: @MainActor (Game, @escaping @MainActor () -> Void) -> Void = { _, go in go() }
+    var confirmUninstall: @MainActor (Game, URL?) -> Bool = { GameActionRunner.confirmUninstall($0, folder: $1) }
     // Where a missing backend is fixed: Settings > Compatibility, with its Runners and downloads.
     var moreBackends: @MainActor () -> Void = {
         UserDefaults.standard.set(SettingsTab.compatibility.rawValue, forKey: SettingsWindow.tabKey)
@@ -313,17 +315,69 @@ struct GameActionRunner {
         SteamGameStop(files: $1).stop(appID: $0)
     }
 
-    static func confirmUninstall(_ game: Game) -> Bool {
+    static func confirmUninstall(_ game: Game, folder: URL? = nil) -> Bool {
         let alert = NSAlert()
         alert.messageText = String(localized: "Uninstall \(game.name)?")
-        alert.informativeText = String(localized: "Its files and its prefix are deleted. Cloud saves stay with the store.")
+        alert.informativeText = folder.map {
+            String(localized: "Its files and its prefix in \($0.path(percentEncoded: false)) go to the Trash. Cloud saves stay with the store.")
+        } ?? String(localized: "Its files and its prefix go to the Trash. Cloud saves stay with the store.")
         alert.addButton(withTitle: String(localized: "Uninstall"))
         alert.addButton(withTitle: String(localized: "Cancel"))
         alert.buttons.first?.hasDestructiveAction = true
         return alert.runModal() == .alertFirstButtonReturn
     }
 
-    func perform(_ action: GameAction, on game: Game) {
+    // Play's task, when its wait on the folder walk has one: callers that must know the launch
+    // happened await it; a second Play on the same game joins it instead of launching twice.
+    @discardableResult
+    func perform(_ action: GameAction, on game: Game) -> Task<Void, Never>? {
+        if action == .play && game.installed { return play(game) }
+        launch(action, on: game)
+        return nil
+    }
+
+    // The folder's answers to DLSS and the anti-cheat land before the launch variables are written;
+    // already answered, the launch does not leave the caller's tick.
+    private func play(_ game: Game) -> Task<Void, Never>? {
+        if let pending = model.pendingPlays[game.id] { return pending }
+        guard model.scanPending(for: game) else {
+            beforePlay(game) { self.launch(.play, on: game) }
+            return nil
+        }
+        let model = model
+        let task = Task {
+            await model.scanGames([game])
+            model.pendingPlays[game.id] = nil
+            self.beforePlay(game) { self.launch(.play, on: game) }
+        }
+        model.pendingPlays[game.id] = task
+        return task
+    }
+
+    // The env file Steam reads at launch; a failed write must not stay silent. Answers the variables
+    // Steam will actually read: the new file, the stale one a benign failure left, or nil when a game
+    // that needed ours could not drop its stale file either — its launch must not happen.
+    static func writeSteamEnvironment(_ environment: [String: String], appID: Int, setups: URL,
+                                      staleUnsafe: Bool = false, log: (String) -> Void = AppLog.note) -> [String: String]? {
+        do {
+            try GameSetupApplier.writeEnvironment(environment, appID: appID, setups: setups)
+            return GameSetupApplier.filteredEnvironment(environment)
+        } catch {
+            log("steam env not written app=\(appID): \(error.localizedDescription)")
+        }
+        let file = setups.appending(path: "\(appID).env")
+        guard staleUnsafe, FileManager.default.fileExists(atPath: file.path(percentEncoded: false)) else {
+            return GameSetupApplier.readEnvironment(appID: appID, setups: setups)
+        }
+        if (try? FileManager.default.removeItem(at: file)) != nil {
+            log("steam env stale, deleted after a failed write app=\(appID)")
+            return [:]
+        }
+        log("steam env stale and not removable app=\(appID)")
+        return nil
+    }
+
+    private func launch(_ action: GameAction, on game: Game) {
         if action == .install && !game.installed && (game.source == .steam || game.source.isStore) {
             model.installRequest = game
             return
@@ -344,6 +398,19 @@ struct GameActionRunner {
             } else if let id = game.steamAppID {
                 guard !GameMenu.steamLaunching(game, activity: activity), !GameMenu.steamRunning(game, in: model, activity: activity) else { return }
                 let setup = model.resolution(for: game).setup
+                // The profile may have changed since Steam last read it. A game that needs our
+                // variables never starts on a stale file: gone is safer than wrong.
+                if setup.version == .windows {
+                    let profile = model.launchProfile(for: game)
+                    let unsafe = profile.protected || setup.environment[FrameGeneration.variable] != "1"
+                    guard let written = Self.writeSteamEnvironment(setup.environment, appID: id,
+                                                                   setups: model.setupsFolder, staleUnsafe: unsafe)
+                    else {
+                        model.problem = String(localized: "Cartouche couldn’t update the launch settings for \(game.name). The launch was stopped: Steam kept older ones.")
+                        return
+                    }
+                    model.noteLaunch(of: game, environment: written)
+                }
                 AppLog.note("Steam launch requested app=\(id) runner=\(setup.runner?.id ?? "native") graphics=\(setup.backend?.rawValue ?? "native")")
                 open(URL(string: "steam://rungameid/\(id)")!)
                 Task { await activity.refresh() }
@@ -572,7 +639,7 @@ struct GameActionRunner {
         case .update: stores.update(game)
         case .verifyFiles: stores.verify(game)
         case .uninstall:
-            if confirmUninstall(game) { Task { await stores.uninstall(game) } }
+            if confirmUninstall(game, stores.record(game.id)?.folder) { stores.uninstall(game) }
         case .showInFinder:
             if let record = stores.record(game.id) { reveal(record.install.path) }
         default: return false

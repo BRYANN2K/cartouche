@@ -9,7 +9,7 @@
     {
       "name": "CCompatManager::Init",
       "aob_hex": "EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE",
-      "func_addr_this_build": "0x690f6c",
+      "func_addr_this_build": "0x6adac8",
       "anchor": {
         "kind": "string",
         "value": "STEAM_COMPAT_TOOL_MAPPINGS"
@@ -19,7 +19,7 @@
     {
       "name": "CCompatManager::BIsCompatibilityToolEnabled",
       "aob_hex": "EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE",
-      "func_addr_this_build": "0x6962f0",
+      "func_addr_this_build": "0x6a5c40",
       "anchor": {
         "kind": "string",
         "value": "CCompatManager::BIsCompatibilityToolEnabled"
@@ -29,7 +29,7 @@
     {
       "name": "CCompatManager::YldRegisterTool",
       "aob_hex": "EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE",
-      "func_addr_this_build": "0x699f00",
+      "func_addr_this_build": "0x6a9d24",
       "match_offset": 168,
       "anchor": {
         "kind": "string",
@@ -40,7 +40,7 @@
     {
       "name": "CCompatManager::GetOSListOverrideForApp.oslist_gate",
       "match_offset": -8,
-      "func_addr_this_build": "0x695ed0",
+      "func_addr_this_build": "0x6a578c",
       "aob_hex": "EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE",
       "anchor": {
         "kind": "string",
@@ -53,7 +53,7 @@
     {
       "name": "CCompatManager::ResolveCompatToolForApp.local_redirect",
       "match_offset": -8,
-      "func_addr_this_build": "0x695fc4",
+      "func_addr_this_build": "0x6a590c",
       "aob_hex": "EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE",
       "anchor": {
         "kind": "string",
@@ -65,7 +65,7 @@
     {
       "name": "CAppManager::TerminateProcessByPid",
       "aob_hex": "EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE",
-      "func_addr_this_build": "0xd6f28",
+      "func_addr_this_build": "0xdd5f8",
       "anchor": {
         "kind": "string",
         "value": "terminate",
@@ -77,7 +77,7 @@
     {
       "name": "CCompatManager::FindToolForTargetApp",
       "aob_hex": "EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE",
-      "func_addr_this_build": "0x69577c",
+      "func_addr_this_build": "0x6a5348",
       "anchor": {
         "kind": "string",
         "value": "FindToolForTargetApp matched with itself - ignoring: %u %s"
@@ -87,7 +87,7 @@
     {
       "name": "CCompatManager::GetValidPlatforms",
       "aob_hex": "EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE",
-      "func_addr_this_build": "0x69457c",
+      "func_addr_this_build": "0x6a3db4",
       "anchor": {
         "kind": "string",
         "value": "AppID %u does not advertise linux as a supported platform, but a linux specific depot is present.\n"
