@@ -22,25 +22,12 @@ on:
         description: Also run the tests that download real cores from the libretro buildbot
         type: boolean
         default: false
-      diagnostic:
-        description: Only check Vision text recognition on this runner
-        type: boolean
-        default: false
 
 permissions:
   contents: read
 
 jobs:
-  vision-probe:
-    if: inputs.diagnostic == true
-    runs-on: xcode-27
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - run: swift packaging/tests/vision-probe.swift
-
   scan:
-    if: inputs.diagnostic != true
     name: no RetroArch or core binary in git
     runs-on: xcode-27
     timeout-minutes: 15
@@ -53,7 +40,6 @@ jobs:
         run: make -s retroarch-scancheck
 
   kit:
-    if: inputs.diagnostic != true
     name: RetroArchKit tests
     runs-on: xcode-27
     timeout-minutes: 40
@@ -92,7 +78,6 @@ jobs:
         run: make -s retroarch-l10ncheck
 
   build:
-    if: inputs.diagnostic != true
     name: RetroArch.app, run ${{ matrix.run }}
     runs-on: xcode-27
     timeout-minutes: 60
@@ -133,7 +118,6 @@ jobs:
             out/retroarch/RetroArch.sha256
 
   reproducible:
-    if: inputs.diagnostic != true
     name: both runs name the pinned commit
     needs: build
     runs-on: xcode-27
@@ -167,7 +151,6 @@ jobs:
           fi
 
   embed:
-    if: inputs.diagnostic != true
     name: embedded under Cartouche.app/Contents/Helpers
     needs: build
     runs-on: xcode-27

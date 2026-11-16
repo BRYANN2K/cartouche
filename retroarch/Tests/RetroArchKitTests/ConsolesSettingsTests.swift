@@ -248,9 +248,9 @@ struct ConsolesSettingsTests {
         let png = try snapshot(view, scheme: .light)
         let image = try #require(NSBitmapImageRep(data: png)?.cgImage)
         let request = VNRecognizeTextRequest()
-        request.recognitionLevel = .accurate
+        // The accurate Vision model is unavailable on hosted Mac VMs.
+        request.recognitionLevel = .fast
         request.usesLanguageCorrection = false
-        request.usesCPUOnly = true
         request.recognitionLanguages = ["en-US"]
         try VNImageRequestHandler(cgImage: image).perform([request])
         return (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }

@@ -15,9 +15,9 @@ kc=${3:-}
 
 sign() {
     if [ -n "$kc" ]; then
-        codesign -f -s "$identity" --keychain "$kc" "$1"
+        codesign -f -s "$identity" --keychain "$kc" --preserve-metadata=identifier,entitlements,flags "$1"
     else
-        codesign -f -s "$identity" "$1"
+        codesign -f -s "$identity" --preserve-metadata=identifier,entitlements,flags "$1"
     fi
     codesign --verify --strict "$1"
 }

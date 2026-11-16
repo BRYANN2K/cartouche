@@ -66,7 +66,8 @@ final class UIHost {
         }
         let image = try #require(rep.cgImage)
         let request = VNRecognizeTextRequest()
-        request.recognitionLevel = .accurate
+        // The accurate Vision model is unavailable on hosted Mac VMs.
+        request.recognitionLevel = .fast
         request.usesLanguageCorrection = false
         try VNImageRequestHandler(cgImage: image).perform([request])
         return (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }

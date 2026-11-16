@@ -36,7 +36,22 @@ for v in 1 2; do
 <key>CFBundleVersion</key><string>0.0.$v</string>
 </dict></plist>
 EOF
+    helper="$app/Contents/Helpers/RetroArch.app"
+    mkdir -p "$helper/Contents/MacOS"
+    cp "$app/Contents/Info.plist" "$helper/Contents/Info.plist"
+    cp "$app/Contents/MacOS/Cartouche" "$helper/Contents/MacOS/Cartouche"
+    cat > "$work/jit.plist" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict><key>com.apple.security.cs.allow-jit</key><true/></dict></plist>
+EOF
+    codesign -f -s - --options runtime --entitlements "$work/jit.plist" "$helper"
     sh "$signing/sign-app.sh" "$app" "Cartouche Test Signing" "$kc" > "$work/dr$v"
+    codesign -d --entitlements :- "$helper" > "$work/helper-entitlements.plist" 2>/dev/null
+    [ "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.cs.allow-jit' "$work/helper-entitlements.plist")" = true ] \
+        || fail "release signing removed RetroArch's JIT entitlement"
+    codesign -dv "$helper" 2>&1 | grep -q 'flags=.*runtime' || fail "release signing removed RetroArch's runtime flag"
+    codesign --verify --strict --deep "$app"
 done
 
 [ -s "$work/dr1" ] || fail "no designated requirement printed"
