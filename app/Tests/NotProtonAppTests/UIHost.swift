@@ -56,7 +56,7 @@ final class UIHost {
 
     func texts(named name: String? = nil) throws -> [String] {
         let frame = window.contentView?.superview ?? window.contentView!
-        let rep = try #require(frame.bitmapImageRepForCachingDisplay(in: frame.bounds))
+        let rep = try ocrBitmap(frame)
         frame.cacheDisplay(in: frame.bounds, to: rep)
         if let name, let folder = ProcessInfo.processInfo.environment["CARTOUCHE_SNAPSHOTS"] {
             let dark = window.appearance?.name == .darkAqua
@@ -88,4 +88,15 @@ final class UIHost {
         window.orderOut(nil)
         window.close()
     }
+}
+
+// A fixed Retina-scale capture keeps OCR independent of the runner display.
+@MainActor
+func ocrBitmap(_ frame: NSView) throws -> NSBitmapImageRep {
+    let rep = try #require(NSBitmapImageRep(
+        bitmapDataPlanes: nil, pixelsWide: Int(frame.bounds.width * 2), pixelsHigh: Int(frame.bounds.height * 2),
+        bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+        colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
+    rep.size = frame.bounds.size
+    return rep
 }

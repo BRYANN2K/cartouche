@@ -274,7 +274,7 @@ func renderedTexts<V: View>(_ view: V, size: CGSize, named name: String? = nil, 
     let end = Date().addingTimeInterval(settle)
     while Date() < end { try? await Task.sleep(for: .milliseconds(20)) }
     let frame = window.contentView?.superview ?? window.contentView!
-    let rep = try #require(frame.bitmapImageRepForCachingDisplay(in: frame.bounds))
+    let rep = try ocrBitmap(frame)
     frame.cacheDisplay(in: frame.bounds, to: rep)
     window.contentViewController = nil
     window.orderOut(nil)
