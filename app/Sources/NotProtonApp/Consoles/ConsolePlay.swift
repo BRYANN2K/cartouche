@@ -95,12 +95,15 @@ extension ConsoleCenter {
         return states
     }
 
-    func bios(for game: ConsoleGame) async -> BIOSStatus? {
+    func bios(for game: ConsoleGame, core: String? = nil) async -> BIOSStatus? {
         guard let console = console(of: game) else { return nil }
+        let core = core ?? game.setup.core ?? console.core
         let paths = paths
-        let stamp = await Task.detached { Self.biosStamp(in: paths.bios) }.value
+        let stamp = await Task.detached {
+            core + ":" + Self.biosStamp(in: paths.bios) + ":" + Self.biosStamp(in: paths.coreInfo)
+        }.value
         if let cached = biosCache[game.id], cached.stamp == stamp { return cached.status }
-        let status = await Task.detached { BIOSChecker(paths: paths).status(for: console) }.value
+        let status = await Task.detached { BIOSChecker(paths: paths).status(for: console, core: core) }.value
         biosCache[game.id] = (stamp, status)
         return status
     }
@@ -154,7 +157,8 @@ extension ConsoleCenter {
             await playStandalone(game, in: installed, reduceMotion: reduceMotion)
             return
         }
-        if let bios = await bios(for: game), !bios.isReady {
+        let core = core ?? game.setup.core ?? console.core
+        if let bios = await bios(for: game, core: core), !bios.isReady {
             playing = nil
             problem = bios.message
             return
@@ -164,7 +168,6 @@ extension ConsoleCenter {
         }
         do {
             // A joined game plays with the host's core
-            let core = core ?? game.setup.core ?? console.core
             let coreURL: URL
             if let resolveCore {
                 coreURL = try await resolveCore(core)
@@ -201,7 +204,12 @@ extension ConsoleCenter {
         } catch {
             playing = nil
             powerOn = nil
-            problem = String(localized: "\(game.name) could not start: \(error.localizedDescription)")
+            var detail = error.localizedDescription
+            if let sessionError = error as? RetroArchSessionError, sessionError != .notRunning {
+                let log = paths.logs.appending(path: "retroarch.log").path(percentEncoded: false)
+                detail += "\n" + String(localized: "RetroArch log: \(log)")
+            }
+            problem = String(localized: "\(game.name) could not start: \(detail)")
         }
     }
 

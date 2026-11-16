@@ -68,7 +68,7 @@ struct BIOSTests {
         try Data("not a BIOS".utf8).write(to: paths.bios.appending(path: "scph5501.bin"))
         let status = BIOSChecker(paths: paths).status(for: playStation)
         #expect(status.summary == .wrongFile("scph5501.bin"))
-        #expect(status.message == "scph5501.bin is not the expected file")
+        #expect(status.message == "scph5501.bin is not the expected file (expected MD5: \(Self.ps1US)).")
     }
 
     @Test func anotherRegionsBIOSIsEnough() throws {
@@ -77,6 +77,52 @@ struct BIOSTests {
             .replacingOccurrences(of: "8dd7d5296a650fac7319bce665a6a53c", with: md5(standIn)))
         try standIn.write(to: paths.bios.appending(path: "scph5500.bin"))
         #expect(BIOSChecker(paths: paths).status(for: playStation).summary == .found)
+    }
+
+    @Test func swanStationAcceptsOpenBIOSEvenWhenRenamed() throws {
+        for name in ["openbios.bin", "scph5501.bin"] {
+            let paths = try setup("swanstation")
+            var image = Data(repeating: 0, count: 512 * 1024)
+            image.replaceSubrange(0x78..<0x80, with: Data("OpenBIOS".utf8))
+            try image.write(to: paths.bios.appending(path: name))
+            let status = BIOSChecker(paths: paths).status(for: playStation)
+            #expect(status.isReady)
+            #expect(status.files.first { $0.name == name }?.description == "OpenBIOS")
+        }
+    }
+
+    @Test func anOpenBIOSNameOrTruncatedHeaderIsNotEnough() throws {
+        let paths = try setup("swanstation")
+        for image in [Data("OpenBIOS".utf8), Data(repeating: 0, count: 512 * 1024)] {
+            try image.write(to: paths.bios.appending(path: "openbios.bin"))
+            #expect(!BIOSChecker(paths: paths).status(for: playStation).isReady)
+        }
+        var truncated = Data(repeating: 0, count: 0x80)
+        truncated.replaceSubrange(0x78..<0x80, with: Data("OpenBIOS".utf8))
+        try truncated.write(to: paths.bios.appending(path: "scph5501.bin"))
+        #expect(!BIOSChecker(paths: paths).status(for: playStation).isReady)
+    }
+
+    @Test func openBIOSIsNotAcceptedForBeetle() throws {
+        let paths = try setup("mednafen_psx_hw", info: try infoText("swanstation"))
+        var image = Data(repeating: 0, count: 512 * 1024)
+        image.replaceSubrange(0x78..<0x80, with: Data("OpenBIOS".utf8))
+        try image.write(to: paths.bios.appending(path: "scph5501.bin"))
+        #expect(!BIOSChecker(paths: paths).status(for: playStation, core: "mednafen_psx_hw").isReady)
+    }
+
+    @Test func pcsxReARMedCanUseItsBuiltInBIOS() throws {
+        let paths = RetroArchPaths(root: try scratchFolder("bios-hle"))
+        #expect(BIOSChecker(paths: paths).status(for: playStation, core: "pcsx_rearmed").isReady)
+        #expect(!BIOSChecker(paths: paths).status(for: playStation, core: "mednafen_psx_hw").isReady)
+    }
+
+    @Test func swanStationAcceptsOtherFirmwareListedByTheCore() throws {
+        let standIn = Data("stand-in for PSP BIOS".utf8)
+        let paths = try setup("swanstation", info: try infoText("swanstation")
+            .replacingOccurrences(of: "c53ca5908936d412331790f4426c6c33", with: md5(standIn)))
+        try standIn.write(to: paths.bios.appending(path: "psxonpsp660.bin"))
+        #expect(BIOSChecker(paths: paths).status(for: playStation).isReady)
     }
 
     @Test func theRuleNamesTheBIOSBeforeTheInfoFileIsHere() throws {

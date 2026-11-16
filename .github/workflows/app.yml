@@ -169,7 +169,10 @@ jobs:
         run: make app-payload
 
       - name: Build the app
-        run: make app
+        run: |
+          git submodule update --init --recursive --depth 1 vendor/RetroArch
+          xcrun metal --version >/dev/null 2>&1 || xcodebuild -downloadComponent MetalToolchain
+          make app
 
       - name: Check the minimum macOS version
         run: make -s mincheck

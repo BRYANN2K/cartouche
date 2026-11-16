@@ -6752,7 +6752,9 @@
       }
     },
     "Cartouche" : {
-      "localizations" : {},
+      "localizations" : {
+
+      },
       "shouldTranslate" : false
     },
     "Cartouche Community" : {
@@ -11271,7 +11273,9 @@
       }
     },
     "CrossOver" : {
-      "localizations" : {},
+      "localizations" : {
+
+      },
       "shouldTranslate" : false
     },
     "CrossOver does not appear to be activated." : {
@@ -12613,7 +12617,9 @@
       }
     },
     "Discord" : {
-      "localizations" : {},
+      "localizations" : {
+
+      },
       "shouldTranslate" : false
     },
     "Disk write failure" : {
@@ -24154,6 +24160,28 @@
         }
       }
     },
+    "Put a BIOS dumped from your PlayStation or a 512 KiB OpenBIOS image in the BIOS folder. OpenBIOS does not need to be renamed." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Placez un BIOS extrait de votre PlayStation ou une image OpenBIOS de 512 Kio dans le dossier BIOS. Inutile de renommer OpenBIOS."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserisci un BIOS estratto dalla tua PlayStation o un’immagine OpenBIOS da 512 KiB nella cartella BIOS. Non è necessario rinominare OpenBIOS."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请将从自己的 PlayStation 提取的 BIOS 或 512 KiB 的 OpenBIOS 镜像放入 BIOS 文件夹。无需重命名 OpenBIOS。"
+          }
+        }
+      }
+    },
     "Quit" : {
       "localizations" : {
         "fr" : {
@@ -26516,6 +26544,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "RetroArch 未能翻译：%@"
+          }
+        }
+      }
+    },
+    "RetroArch log: %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Journal RetroArch : %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registro RetroArch: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroArch 日志：%@"
           }
         }
       }
@@ -29249,7 +29299,9 @@
       }
     },
     "Steam" : {
-      "localizations" : {},
+      "localizations" : {
+
+      },
       "shouldTranslate" : false
     },
     "Steam Input handles this game" : {
@@ -36585,7 +36637,9 @@
       }
     },
     "Winetricks" : {
-      "localizations" : {},
+      "localizations" : {
+
+      },
       "shouldTranslate" : false
     },
     "Winetricks ran %@ in %@." : {
@@ -36633,7 +36687,9 @@
       }
     },
     "Winetricks…" : {
-      "localizations" : {},
+      "localizations" : {
+
+      },
       "shouldTranslate" : false
     },
     "With %@" : {
@@ -38331,7 +38387,9 @@
       }
     },
     "vcrun2022 corefonts" : {
-      "localizations" : {},
+      "localizations" : {
+
+      },
       "shouldTranslate" : false
     },
     "wineboot -u ended with status %d." : {

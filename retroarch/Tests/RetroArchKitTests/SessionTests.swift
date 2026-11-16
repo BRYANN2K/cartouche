@@ -75,10 +75,28 @@ struct SessionTests {
         let setup = try Setup()
         let session = RetroArchSession(launch: setup.launch())
         try await session.start()
-        await #expect(throws: RetroArchSessionError.self) {
+        do {
             try await session.load(core: nil, content: setup.work.appending(path: "missing.sfc"))
+            Issue.record("A refused load must throw")
+        } catch {
+            #expect(error.localizedDescription.contains("LOAD_CONTENT"))
+            #expect(error.localizedDescription.contains("no content at"))
+            #expect(error.localizedDescription.contains("missing.sfc"))
+            #expect(!error.localizedDescription.contains("error 4"))
         }
         _ = await session.stop()
+    }
+
+    @Test func everySessionErrorHasAnActionableDescription() {
+        let errors: [RetroArchSessionError] = [
+            .notRunning, .alreadyRunning, .needsMCP, .toolUnavailable("LOAD_CONTENT"),
+            .toolFailed(tool: "LOAD_CONTENT", reason: "core failed to load"),
+            .exitedEarly(status: 3), .exitedEarly(status: nil), .unexpectedReply("bad reply"),
+        ]
+        for error in errors {
+            #expect(!error.localizedDescription.contains("RetroArchKit.RetroArchSessionError"))
+            #expect(!error.localizedDescription.isEmpty)
+        }
     }
 
     @Test func stopsByClosingThePipe() async throws {

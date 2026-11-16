@@ -98,6 +98,8 @@ steps:
         make fonts
       - make app-payload
       - (cd app && swift build --build-tests && swift test --skip-build --no-parallel)
+      - git submodule update --init --recursive --depth 1 vendor/RetroArch
+      - xcrun metal --version >/dev/null 2>&1 || xcodebuild -downloadComponent MetalToolchain
       - make app
       - codesign --verify --strict --deep out/Cartouche.app
       - sh packaging/redist-scan.sh out/Cartouche.app
