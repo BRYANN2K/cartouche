@@ -59,12 +59,22 @@ struct ConsolesSettingsTests {
             """.write(to: script, atomically: true, encoding: .utf8)
             try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: script.path)
             let image = work.appending(path: "RetroArch_Metal.dmg")
-            let hdiutil = Process()
-            hdiutil.executableURL = URL(fileURLWithPath: "/usr/bin/hdiutil")
-            hdiutil.arguments = ["create", "-quiet", "-srcfolder", folder.path, "-volname", "RetroArch", "-format", "UDZO", image.path]
-            try hdiutil.run()
-            hdiutil.waitUntilExit()
-            return try Data(contentsOf: image)
+            // Disk-image services can briefly refuse a create on hosted Macs.
+            // Retry only fixture creation; installation assertions still run once.
+            for attempt in 1...3 {
+                let hdiutil = Process()
+                hdiutil.executableURL = URL(fileURLWithPath: "/usr/bin/hdiutil")
+                hdiutil.arguments = ["create", "-ov", "-srcfolder", folder.path, "-volname", "RetroArch", "-format", "UDZO", image.path]
+                try hdiutil.run()
+                hdiutil.waitUntilExit()
+                if hdiutil.terminationStatus == 0 { return try Data(contentsOf: image) }
+                if attempt == 3 {
+                    throw NSError(domain: "FixtureDiskImage", code: Int(hdiutil.terminationStatus),
+                                  userInfo: [NSLocalizedDescriptionKey: "hdiutil could not create the official-release test image"])
+                }
+                Thread.sleep(forTimeInterval: 0.2)
+            }
+            throw CocoaError(.fileNoSuchFile)
         }
 
         // The included build: fake-retroarch, which has MCP

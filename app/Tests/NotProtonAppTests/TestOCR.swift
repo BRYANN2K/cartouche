@@ -17,10 +17,10 @@ func testOCR(_ image: CGImage) throws -> [String] {
             throw CocoaError(.fileWriteUnknown)
         }
         try png.write(to: file)
-        func read(_ extra: [String]) throws -> [String] {
+        func read(_ extra: [String], pageSegmentation: String = "11") throws -> [String] {
             let process = Process()
             process.executableURL = URL(fileURLWithPath: binary)
-            process.arguments = [file.path, "stdout", "--psm", "11", "--dpi", "144", "-l", "eng"] + extra
+            process.arguments = [file.path, "stdout", "--psm", pageSegmentation, "--dpi", "144", "-l", "eng"] + extra
             let output = Pipe()
             process.standardOutput = output
             process.standardError = FileHandle.nullDevice
@@ -45,7 +45,13 @@ func testOCR(_ image: CGImage) throws -> [String] {
         if (try? VNImageRequestHandler(cgImage: image).perform([request])) != nil {
             texts = mergeOCR(texts, (request.results ?? []).compactMap { $0.topCandidates(1).first?.string })
         }
-        return texts
+        // Block segmentation retains disabled filled-button labels. It also
+        // joins neighboring controls into lines; exclude lines containing a
+        // control already read so they cannot inflate occurrence assertions.
+        let block = try read([], pageSegmentation: "6").filter { candidate in
+            !texts.contains { $0 != candidate && $0.count >= 5 && candidate.contains($0) }
+        }
+        return mergeOCR(texts, block)
     }
     let request = VNRecognizeTextRequest()
     request.recognitionLevel = .accurate
