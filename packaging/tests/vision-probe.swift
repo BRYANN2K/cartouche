@@ -14,18 +14,23 @@ NSBezierPath(rect: NSRect(x: 0, y: 0, width: 600, height: 120)).fill()
 NSGraphicsContext.restoreGraphicsState()
 for revision in [VNRecognizeTextRequestRevision1, VNRecognizeTextRequestRevision2, VNRecognizeTextRequestRevision3] {
     for cpu in [true, false] {
+      for level in [VNRequestTextRecognitionLevel.fast, .accurate] {
+       for fromData in [false, true] {
         let request = VNRecognizeTextRequest()
         request.revision = revision
-        request.recognitionLevel = .accurate
+        request.recognitionLevel = level
         request.usesLanguageCorrection = false
         request.recognitionLanguages = ["en-US"]
         request.usesCPUOnly = cpu
         do {
-            try VNImageRequestHandler(cgImage: bitmap.cgImage!).perform([request])
-            print("revision=\(revision) cpu=\(cpu): \(request.results?.compactMap { $0.topCandidates(1).first?.string } ?? [])")
+            let handler = fromData ? VNImageRequestHandler(data: bitmap.representation(using: .png, properties: [:])!) : VNImageRequestHandler(cgImage: bitmap.cgImage!)
+            try handler.perform([request])
+            print("revision=\(revision) cpu=\(cpu) level=\(level.rawValue) data=\(fromData): \(request.results?.compactMap { $0.topCandidates(1).first?.string } ?? [])")
         } catch {
             let detail = error as NSError
-            print("revision=\(revision) cpu=\(cpu): \(detail.domain) \(detail.code) \(detail.userInfo)")
+            print("revision=\(revision) cpu=\(cpu) level=\(level.rawValue) data=\(fromData): \(detail.domain) \(detail.code) \(detail.userInfo)")
         }
     }
+       }
+      }
 }
