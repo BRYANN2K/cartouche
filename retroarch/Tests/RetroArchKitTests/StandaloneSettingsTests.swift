@@ -80,12 +80,22 @@ struct StandaloneSettingsTests {
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
         request.usesLanguageCorrection = false
+        request.usesCPUOnly = true
+        request.recognitionLanguages = ["en-US"]
         try VNImageRequestHandler(cgImage: image).perform([request])
         return (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
     }
 
     private func snapshot(_ view: some View, scheme: ColorScheme) throws -> Data {
         let hosting = host(view, scheme: scheme)
+        let window = NSWindow(contentRect: hosting.frame, styleMask: .borderless, backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.alphaValue = 0
+        window.ignoresMouseEvents = true
+        window.contentView = hosting
+        window.orderFrontRegardless()
+        defer { window.close() }
+        hosting.layoutSubtreeIfNeeded()
         let rep = try #require(hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds))
         hosting.cacheDisplay(in: hosting.bounds, to: rep)
         return try #require(rep.representation(using: .png, properties: [:]))

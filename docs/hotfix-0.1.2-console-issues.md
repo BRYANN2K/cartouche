@@ -26,7 +26,7 @@ Upstream evidence checked:
 
 ## Validation
 
-- RetroArchKit targeted tests: **52 passed**, covering BIOS policy, malformed OpenBIOS, renamed OpenBIOS, alternate firmware, session errors and process cleanup. Real-runtime tests were skipped because no RetroArch executable was available locally.
+- RetroArchKit: **174 tests in 28 suites passed** with the real RetroArch app produced by CI and a test core. The two independent CI builds name the pinned commit. A local embed/signature check and two explicit real-runtime launch/stop tests pass too.
 - App build and **3 integration tests passed**: the missing-runtime error-4 path for Game Boy/DS, selected-core and netplay BIOS rules, and propagation of command errors with log location.
 - RetroArchKit translations: **92 strings** checked in French, Italian and Simplified Chinese.
 - App translations: **1720 strings** checked in those three languages.
@@ -35,4 +35,4 @@ Upstream evidence checked:
 - The existing `check-retroarch.sh` rejects the downloaded public bundle because the RetroArch executable is missing, as expected.
 - `git diff --check` passes.
 
-The complete RetroArchKit suite was interrupted after a sample showed it blocked in the existing AppKit render test `ConsolesSettingsTests.thePaneShowsNeedsTheIncludedRetroArch`, inside `renderedTexts`; the targeted suites above complete successfully. Visual rendering, a complete signed release build, and real Chrono Cross / Chrono Trigger / Tetris sessions are not validated by the mock and synthetic-image tests.
+The initial complete suite exposed inherited UI capture failures and a stale Switch-emulator expectation. Captures now use an attached invisible window and CPU text recognition; the expectation follows the existing Eden default. All 174 tests then passed. The isolated embed workflow uses a minimal host fixture; the app workflow checks the complete product. Named app/lint gates match the existing protected-branch requirements without weakening them. A complete signed release build and real Chrono Cross / Chrono Trigger / Tetris sessions remain separate validation steps.
