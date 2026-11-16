@@ -73,6 +73,12 @@ steps:
     commands:
       - |
         cache="$${CARTOUCHE_CI_CACHE:-$HOME/Library/Caches/woodpecker-cartouche}"
+        bundle="$cache/release-bundles/$CI_COMMIT_SHA"
+        if [ -f "$bundle/Cartouche.zip" ]; then
+          python3 packaging/promote-ci-bundle.py "$bundle" "$CI_COMMIT_SHA" out/Cartouche.app
+          touch .release/prebuilt
+          exit 0
+        fi
         [ -f "$cache/wine/key" ] || { echo "The Mac build cache $cache is empty; seed it before a release (infra runbook)." >&2; exit 1; }
       - sh .woodpecker/cache.sh restore $ARTIFACTS
 
@@ -80,6 +86,7 @@ steps:
     image: bash
     environment: *env
     commands:
+      - if [ -f .release/prebuilt ]; then echo "Using the checked CI app for this exact commit"; exit 0; fi
       - git clone -q --no-checkout https://github.com/jmpews/Dobby.git vendor/dobby
       - git -C vendor/dobby checkout -q "$DOBBY_COMMIT"
       - test -f build/dobby/libdobby.a || make dobby
@@ -114,6 +121,8 @@ steps:
       - test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$plist")" = "$bundle_version"
       - test -n "$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' "$plist")"
       - make -s mincheck APP_BUNDLE=work/Cartouche.app
+      - pinned=$(git ls-tree HEAD vendor/RetroArch | awk '{ print $3 }')
+      - sh retroarch/scripts/check-retroarch.sh work/Cartouche.app/Contents/Helpers/RetroArch.app "$pinned"
       # QA mode is compiled into debug builds only: a release build must ignore it
       - |
         CARTOUCHE_QA_BASE_URL=http://127.0.0.1:9 work/Cartouche.app/Contents/MacOS/Cartouche &
