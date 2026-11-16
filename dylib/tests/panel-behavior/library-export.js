@@ -112,6 +112,7 @@ function page(opts) {
   }
   const self = { m_cm: { steamid: { ConvertTo64BitString: () => SID } } };
   const SteamClient = {
+    Downloads: { RegisterForDownloadItems() {}, RegisterForDownloadOverview() {} },
     WebUITransport: { GetTransportInfo: async () => opts.info === undefined
         ? { portClientdll: 4242, authKeyClientdll: 'AUTHK', nMaximumMsgSizeBytes: 4194304 }
         : opts.info },

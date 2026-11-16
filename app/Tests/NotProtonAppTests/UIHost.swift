@@ -65,12 +65,7 @@ final class UIHost {
             try? rep.representation(using: .png, properties: [:])?.write(to: url)
         }
         let image = try #require(rep.cgImage)
-        let request = VNRecognizeTextRequest()
-        // The accurate Vision model is unavailable on hosted Mac VMs.
-        request.recognitionLevel = .fast
-        request.usesLanguageCorrection = false
-        try VNImageRequestHandler(cgImage: image).perform([request])
-        return (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
+        return try testOCR(image)
     }
 
     // Waits until the drawn text shows this, up to a limit

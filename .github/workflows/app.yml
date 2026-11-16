@@ -143,8 +143,12 @@ jobs:
             scratch/wine-build-arm64
           key: wine-xcode-27-${{ hashFiles('bridge/setup-wine-tree.sh', 'bridge/register-components.diff') }}
 
-      # fonts/build.sh skips the build when build/fonts.stamp matches fonts/;
-      # the workflow hash covers the pinned FONT_TOOLS
+      # Font inputs and tool versions determine this cache, independently of
+      # unrelated workflow or test changes.
+      - name: Fingerprint font tools
+        id: font-tools
+        run: echo "key=$(printf '%s' "$FONT_TOOLS" | shasum -a 256 | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+
       - name: Restore fonts build cache
         id: fonts-cache
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
@@ -152,7 +156,7 @@ jobs:
           path: |
             build/fonts
             build/fonts.stamp
-          key: fonts-${{ hashFiles('fonts/**') }}-${{ hashFiles('.github/workflows/app.yml') }}
+          key: fonts-${{ hashFiles('fonts/**') }}-${{ steps.font-tools.outputs.key }}
 
       - name: Install font tools
         if: steps.fonts-cache.outputs.cache-hit != 'true'
@@ -172,7 +176,7 @@ jobs:
           path: |
             build/fonts
             build/fonts.stamp
-          key: fonts-${{ hashFiles('fonts/**') }}-${{ hashFiles('.github/workflows/app.yml') }}
+          key: fonts-${{ hashFiles('fonts/**') }}-${{ steps.font-tools.outputs.key }}
 
       - name: Stage the app payload
         run: make app-payload
@@ -217,7 +221,9 @@ jobs:
           make -s packagingcheck
 
       - name: Run the Swift tests
-        run: make -s app-tests
+        run: |
+          brew install tesseract
+          make -s app-tests
 
       - name: Run the InstallerKit tests
         run: make -s installer-tests
