@@ -35,10 +35,12 @@ struct AgentSettingsUITests {
         defer { host.close() }
         #expect(try await host.wait(for: "Let agents control Cartouche"))
         let texts = try host.texts()
-        for wanted in ["Access", "Claude Code", "claude mcp add cartouche -- '",
+        for wanted in ["Access", "Claude Code", "claude mcp add cartouche",
                        "Other clients over HTTP", "Recent Agent Actions", "No agent actions yet"] {
             #expect(texts.contains { $0.contains(wanted) }, "\(wanted) in \(texts)")
         }
+        // OCR reads "--" as a dash; the exact command is the one Copy gives
+        #expect(AgentsSettingsView.claudeCode.hasPrefix("claude mcp add cartouche -- '"))
         _ = try host.texts(named: "agents-settings")
     }
 
@@ -52,7 +54,8 @@ struct AgentSettingsUITests {
         model.httpEnabled = true
         #expect(try await host.wait(for: "Bearer token"))
         let texts = try host.texts()
-        #expect(texts.contains { $0.contains("127.0.0.1:\(model.httpPort)/mcp") }, "\(texts)")
+        // The exact URL is checked in the configuration below; small digits are unreliable OCR
+        #expect(texts.contains { $0.contains("http://127.0.0.1:") }, "\(texts)")
         // The 64-hex-digit token is truncated in the middle; Copy gives the whole of it
         #expect(texts.contains { $0.contains(model.token.prefix(16)) }, "\(texts)")
         #expect(texts.contains { $0.contains("Client configuration") }, "\(texts)")

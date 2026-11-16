@@ -38,8 +38,14 @@ struct LocalPerformanceSessionTests {
         try GameLauncher.addFrameCounter(to: folder)
         #expect(try String(contentsOf: folder.launcher, encoding: .utf8) == migrated)
 
+        // A loadable library: with SIP off, dyld really inserts it into /bin/sh
         let counter = work.appending(path: "counter.dylib")
-        try Data().write(to: counter)
+        let source = work.appending(path: "counter.c")
+        try Data("void cartouche_test_counter(void) {}\n".utf8).write(to: source)
+        let built = try await Task.detached {
+            try Shell.run("/usr/bin/xcrun", ["clang", "-dynamiclib", "-o", counter.path, source.path])
+        }.value
+        try #require(built.succeeded)
         let store = PerformanceStore(folder: work.appending(path: "performance"))
         let start = Date(timeIntervalSince1970: 1_790_000_000)
         let session = try #require(try LocalPerformanceSession.begin(appID: record.appID, record: record,

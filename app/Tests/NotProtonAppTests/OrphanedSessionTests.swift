@@ -106,7 +106,10 @@ struct OrphanedSessionTests {
         #expect(scene.center.sessions.read() != nil, "the record is kept while the game runs")
 
         // The heartbeat goes on while the picked-up session is tracked
-        try await Task.sleep(for: .milliseconds(120))
+        let beat = Date().addingTimeInterval(5)
+        while (scene.center.sessions.read()?.heartbeat ?? .distantPast) <= written.heartbeat, Date() < beat {
+            try await Task.sleep(for: .milliseconds(40))
+        }
         #expect(try #require(scene.center.sessions.read()).heartbeat > written.heartbeat)
 
         // The process ends on its own

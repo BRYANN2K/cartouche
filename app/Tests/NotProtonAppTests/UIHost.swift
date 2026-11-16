@@ -11,7 +11,7 @@ final class UIHost {
     let window: NSWindow
 
     init<V: View>(_ view: V, size: CGSize, dark: Bool = false) {
-        window = NSWindow(contentRect: CGRect(origin: .zero, size: size), styleMask: [.titled, .fullSizeContentView],
+        window = TestWindow(contentRect: CGRect(origin: .zero, size: size), styleMask: [.titled, .fullSizeContentView],
                           backing: .buffered, defer: false)
         window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
         window.isReleasedWhenClosed = false
@@ -84,6 +84,20 @@ final class UIHost {
         window.close()
     }
 }
+
+// AppKit shrinks a titled window to the screen; hosted Mac VMs have a 1024x768 one
+final class TestWindow: NSWindow {
+    override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect { frameRect }
+}
+
+let onVirtualMac: Bool = {
+    var present: Int32 = 0
+    var size = MemoryLayout<Int32>.size
+    return sysctlbyname("kern.hv_vmm_present", &present, &size, nil, 0) == 0 && present == 1
+}()
+
+// Display budgets are a physical-Mac check; a VM's CPU-only OCR alone takes seconds
+func displayBudget(_ limit: Duration) -> Duration { onVirtualMac ? limit * 4 : limit }
 
 // A fixed Retina-scale capture keeps OCR independent of the runner display.
 @MainActor

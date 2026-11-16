@@ -261,7 +261,7 @@ final class ConsoleScene {
 @MainActor
 func renderedTexts<V: View>(_ view: V, size: CGSize, named name: String? = nil, dark: Bool = false,
                             settle: Double = 0.4) async throws -> [String] {
-    let window = NSWindow(contentRect: CGRect(origin: .zero, size: size), styleMask: [.titled, .fullSizeContentView],
+    let window = TestWindow(contentRect: CGRect(origin: .zero, size: size), styleMask: [.titled, .fullSizeContentView],
                           backing: .buffered, defer: false)
     window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
     window.isReleasedWhenClosed = false

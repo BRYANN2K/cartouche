@@ -34,12 +34,12 @@ struct ConsoleImportTests {
         await host.settle()
         let asked = ContinuousClock.now
         scene.center.importFlow.start([files[0]])
-        #expect(try await host.wait(for: "1 game identified", within: .seconds(2)))
+        #expect(try await host.wait(for: "1 game identified", within: displayBudget(.seconds(2))))
         let took = ContinuousClock.now - asked
         let texts = try host.texts(named: "import-known")
         #expect(seen(texts, "Cartouche Homebrew"))
         #expect(seen(texts, "Super Nintendo, checksum match"))
-        #expect(took < .seconds(2))
+        #expect(took < displayBudget(.seconds(2)))
         print("evidence: dropped my_dump.sfc, listed \(texts.filter { $0.contains("Homebrew") || $0.contains("checksum") }) after \(took)")
     }
 

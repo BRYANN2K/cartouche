@@ -221,9 +221,20 @@ jobs:
           make -s packagingcheck
 
       - name: Run the Swift tests
+        env:
+          CARTOUCHE_SNAPSHOTS: ${{ runner.temp }}/snapshots
         run: |
           brew install tesseract
           make -s app-tests
+
+      - name: Upload the UI test captures
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ui-test-captures
+          path: ${{ runner.temp }}/snapshots
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Run the InstallerKit tests
         run: make -s installer-tests

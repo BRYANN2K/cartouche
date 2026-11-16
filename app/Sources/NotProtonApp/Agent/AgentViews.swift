@@ -6,7 +6,7 @@ import CartoucheMCP
 struct AgentsSettingsView: View {
     @Bindable var model: AgentControlModel
 
-    private static var claudeCode: String {
+    static var claudeCode: String {
         let helper = MCPSocketServer.bundledHelper()
         return "claude mcp add cartouche -- '\(helper.replacingOccurrences(of: "'", with: "'\\''"))'"
     }
