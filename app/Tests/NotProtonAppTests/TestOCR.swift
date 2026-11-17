@@ -1,4 +1,5 @@
 import AppKit
+import CoreImage
 import Foundation
 import Vision
 
@@ -36,6 +37,14 @@ func testOCR(_ image: CGImage) throws -> [String] {
         var texts = try read([])
         // Local thresholding also retains the pale labels of disabled controls.
         texts = mergeOCR(texts, try read(["-c", "thresholding_method=2", "-c", "thresholding_kfactor=0.05"]))
+        // Dark mode, dim captions and white-on-accent labels read as dark text in this one
+        if let contrasted = contrastedForOCR(image),
+           let data = NSBitmapImageRep(cgImage: contrasted).representation(using: .png, properties: [:]) {
+            try data.write(to: file)
+            texts = mergeOCR(texts, try read([]))
+            texts = mergeOCR(texts, try read(["-c", "thresholding_method=2", "-c", "thresholding_kfactor=0.05"]))
+            try png.write(to: file)
+        }
         // Sparse-page OCR can miss text on filled buttons. Vision's fast
         // reader sees those; merge by maximum occurrence count so two readers
         // cannot make one control look like two controls.
@@ -59,6 +68,25 @@ func testOCR(_ image: CGImage) throws -> [String] {
     request.usesCPUOnly = true
     try VNImageRequestHandler(cgImage: image).perform([request])
     return (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
+}
+
+// The red channel keeps white labels apart from the blue accent; dark captures are inverted
+private func contrastedForOCR(_ image: CGImage) -> CGImage? {
+    let context = CIContext()
+    let source = CIImage(cgImage: image)
+    func lightness(_ image: CIImage) -> CGFloat {
+        let average = image.applyingFilter("CIAreaAverage", parameters: [kCIInputExtentKey: CIVector(cgRect: image.extent)])
+        var pixel = [UInt8](repeating: 0, count: 4)
+        context.render(average, toBitmap: &pixel, rowBytes: 4, bounds: CGRect(x: 0, y: 0, width: 1, height: 1),
+                       format: .RGBA8, colorSpace: nil)
+        return CGFloat(pixel[0]) / 255
+    }
+    let red = CIVector(x: 1, y: 0, z: 0, w: 0)
+    var output = source.composited(over: CIImage(color: lightness(source) < 0.5 ? .black : .white).cropped(to: source.extent))
+        .applyingFilter("CIColorMatrix", parameters: ["inputRVector": red, "inputGVector": red, "inputBVector": red])
+    if lightness(output) < 0.5 { output = output.applyingFilter("CIColorInvert") }
+    output = output.applyingFilter("CIGammaAdjust", parameters: ["inputPower": 3.0])
+    return context.createCGImage(output, from: source.extent)
 }
 
 private func mergeOCR(_ primary: [String], _ alternate: [String]) -> [String] {

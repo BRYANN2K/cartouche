@@ -295,5 +295,9 @@ func seen(_ texts: [String], _ wanted: String) -> Bool {
         "А": "A", "В": "B", "Е": "E", "К": "K", "М": "M", "Н": "H", "О": "O", "Р": "P", "С": "C", "Т": "T",
         "Х": "X", "а": "a", "е": "e", "о": "o", "р": "p", "с": "c", "у": "y", "х": "x",
     ]
-    return texts.contains { String($0.map { lookAlikes[$0] ?? $0 }).contains(wanted) }
+    // Spaces come and go, and I, l, |, 1, i and ! swap in small type
+    func read(_ text: String) -> String {
+        String(text.filter { !$0.isWhitespace }.map { "Il|1i!".contains($0) ? "l" : lookAlikes[$0] ?? $0 })
+    }
+    return texts.contains { read($0).contains(read(wanted)) }
 }

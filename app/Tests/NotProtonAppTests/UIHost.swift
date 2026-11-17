@@ -68,11 +68,15 @@ final class UIHost {
         return try testOCR(image)
     }
 
+    // When the capture that first showed the text was taken, OCR time aside
+    private(set) var lastCapture = ContinuousClock.now
+
     // Waits until the drawn text shows this, up to a limit
     func wait(for text: String, within limit: Duration = .seconds(5)) async throws -> Bool {
         let end = ContinuousClock.now + limit
         while ContinuousClock.now < end {
-            if seen(try texts(), text) { return true }
+            let capture = ContinuousClock.now
+            if seen(try texts(), text) { lastCapture = capture; return true }
             try? await Task.sleep(for: .milliseconds(50))
         }
         return false
