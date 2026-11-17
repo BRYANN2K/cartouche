@@ -14,6 +14,7 @@ actor FakeRunner: ConsoleRunning {
     private var started: ContinuousClock.Instant?
     private var exitedByItself = false
     private var fakePlayed: Duration?
+    private var playError: RetroArchSessionError?
     let states: URL
     let picture: Data
     // The process the session record watches for; nil unless the test gives one
@@ -29,8 +30,11 @@ actor FakeRunner: ConsoleRunning {
 
     func play(_ request: PlayRequest) async throws {
         requests.append(request)
+        if let playError { throw playError }
         started = .now
     }
+
+    func failPlay(with error: RetroArchSessionError) { playError = error }
 
     func setLook(_ look: ConsoleLook) async throws { looks.append(look) }
     func setLowerInputLag(_ on: Bool) async throws { inputLag.append(on) }

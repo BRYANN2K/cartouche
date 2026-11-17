@@ -117,6 +117,28 @@
         }
       }
     },
+    "%@ is not the expected file (expected MD5: %@)." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ n’est pas le fichier attendu (MD5 attendu : %@)."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ non è il file previsto (MD5 previsto: %@)."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 不是预期的文件（预期 MD5：%@）。"
+          }
+        }
+      }
+    },
     "%@ plays in" : {
       "localizations" : {
         "fr" : {
@@ -163,6 +185,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ 立即退出了（退出代码 %2$d）。"
+          }
+        }
+      }
+    },
+    "A RetroArch session is already running." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une session RetroArch est déjà en cours."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una sessione RetroArch è già in esecuzione."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已有一个 RetroArch 会话正在运行。"
           }
         }
       }
@@ -1144,6 +1188,28 @@
         }
       }
     },
+    "RetroArch is not running. Check the RetroArch selection in Settings > Consoles." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroArch ne fonctionne pas. Vérifiez le choix de RetroArch dans Réglages > Consoles."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroArch non è in esecuzione. Controlla la scelta di RetroArch in Impostazioni > Console."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroArch 未运行。请在设置 > 游戏主机中检查所选的 RetroArch。"
+          }
+        }
+      }
+    },
     "RetroArch is not there." : {
       "localizations" : {
         "fr" : {
@@ -1162,6 +1228,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "找不到 RetroArch。"
+          }
+        }
+      }
+    },
+    "RetroArch quit before it was ready (exit status: %@)." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroArch a quitté avant de démarrer (code de sortie : %@)."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroArch si è chiuso prima di essere pronto (codice di uscita: %@)."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroArch 在准备就绪之前退出（退出状态：%@）。"
+          }
+        }
+      }
+    },
+    "RetroArch refused %@: %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroArch a refusé %@ : %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroArch ha rifiutato %@: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroArch 拒绝了 %@：%@"
+          }
+        }
+      }
+    },
+    "RetroArch returned an unexpected reply: %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroArch a renvoyé une réponse inattendue : %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroArch ha restituito una risposta inattesa: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RetroArch 返回了意外回复：%@"
           }
         }
       }
@@ -1602,6 +1734,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法打开下载的 RetroArch。"
+          }
+        }
+      }
+    },
+    "This RetroArch build does not provide the %@ command." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette version de RetroArch ne propose pas la commande %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questa versione di RetroArch non offre il comando %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此 RetroArch 版本不提供 %@ 命令。"
+          }
+        }
+      }
+    },
+    "This RetroArch build does not support MCP control." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette version de RetroArch ne prend pas en charge le contrôle MCP."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questa versione di RetroArch non supporta il controllo MCP."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此 RetroArch 版本不支持 MCP 控制。"
           }
         }
       }

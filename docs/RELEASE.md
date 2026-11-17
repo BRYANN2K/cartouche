@@ -141,6 +141,8 @@ GitHub Actions is paused (billing), so `.woodpecker/release.yaml` publishes on t
 - Woodpecker secrets, all limited to the `tag` event: `github_release_token` (fine-grained, this repository, Contents read and write), `sparkle_private_key`, `signing_cert_p12`, `signing_cert_password`. The cask commit to `main` uses `github_release_token` too.
 - To publish a tag again after a failure, delete its release if one was created, then restart the tag's pipeline in Woodpecker.
 
+The signing agent can promote the app already checked by CI instead of rebuilding it. After the full CI run for the exact `main` commit succeeds, download its `Cartouche` artifact into `$CARTOUCHE_CI_CACHE/release-bundles/<commit>/`. Beside `Cartouche.zip`, write `provenance.json` with `head_sha`, `conclusion: "success"`, the archive's `sha256`, and the source `run_id`. This cache is maintainer-controlled, like the build cache. The release pipeline refuses a different commit or checksum, verifies the existing bundle signature and the embedded RetroArch, then performs the usual version, signing, redistribution, appcast and publication checks. Without a staged bundle it uses the source build path.
+
 While this repository is private, Sparkle, `install.sh` and Homebrew cannot download the feed or the archives anonymously. A tag still publishes, which is a useful dry run; users get updates once the repository is public.
 
 ## Publishing a release

@@ -75,6 +75,9 @@ struct ConsolePanelContent {
 
     var biosWarning: (title: String, detail: String)? {
         guard biosMissing, let bios else { return nil }
+        if console.id == "ps1", core == "swanstation" {
+            return (bios.message, String(localized: "Put a BIOS dumped from your PlayStation or a 512 KiB OpenBIOS image in the BIOS folder. OpenBIOS does not need to be renamed."))
+        }
         return (bios.message, String(localized: "Dump it from your own console, then put it in the BIOS folder."))
     }
 

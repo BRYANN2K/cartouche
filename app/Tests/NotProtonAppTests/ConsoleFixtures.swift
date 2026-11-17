@@ -261,7 +261,7 @@ final class ConsoleScene {
 @MainActor
 func renderedTexts<V: View>(_ view: V, size: CGSize, named name: String? = nil, dark: Bool = false,
                             settle: Double = 0.4) async throws -> [String] {
-    let window = NSWindow(contentRect: CGRect(origin: .zero, size: size), styleMask: [.titled, .fullSizeContentView],
+    let window = TestWindow(contentRect: CGRect(origin: .zero, size: size), styleMask: [.titled, .fullSizeContentView],
                           backing: .buffered, defer: false)
     window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
     window.isReleasedWhenClosed = false
@@ -274,7 +274,7 @@ func renderedTexts<V: View>(_ view: V, size: CGSize, named name: String? = nil, 
     let end = Date().addingTimeInterval(settle)
     while Date() < end { try? await Task.sleep(for: .milliseconds(20)) }
     let frame = window.contentView?.superview ?? window.contentView!
-    let rep = try #require(frame.bitmapImageRepForCachingDisplay(in: frame.bounds))
+    let rep = try ocrBitmap(frame)
     frame.cacheDisplay(in: frame.bounds, to: rep)
     window.contentViewController = nil
     window.orderOut(nil)
@@ -285,11 +285,7 @@ func renderedTexts<V: View>(_ view: V, size: CGSize, named name: String? = nil, 
         try? rep.representation(using: .png, properties: [:])?.write(to: url)
     }
     let image = try #require(rep.cgImage)
-    let request = VNRecognizeTextRequest()
-    request.recognitionLevel = .accurate
-    request.usesLanguageCorrection = false
-    try VNImageRequestHandler(cgImage: image).perform([request])
-    return (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
+    return try testOCR(image)
 }
 
 // Text recognition reads a glyph as a bullet and some Latin letters as their
@@ -299,5 +295,9 @@ func seen(_ texts: [String], _ wanted: String) -> Bool {
         "А": "A", "В": "B", "Е": "E", "К": "K", "М": "M", "Н": "H", "О": "O", "Р": "P", "С": "C", "Т": "T",
         "Х": "X", "а": "a", "е": "e", "о": "o", "р": "p", "с": "c", "у": "y", "х": "x",
     ]
-    return texts.contains { String($0.map { lookAlikes[$0] ?? $0 }).contains(wanted) }
+    // Spaces come and go, and I, l, |, 1, i and ! swap in small type
+    func read(_ text: String) -> String {
+        String(text.filter { !$0.isWhitespace }.map { "Il|1i!".contains($0) ? "l" : lookAlikes[$0] ?? $0 })
+    }
+    return texts.contains { read($0).contains(read(wanted)) }
 }

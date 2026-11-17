@@ -84,6 +84,8 @@ steps:
   - name: app-bundle
     image: bash
     commands:
+      - git submodule update --init --recursive --depth 1 vendor/RetroArch
+      - xcrun metal --version >/dev/null 2>&1 || xcodebuild -downloadComponent MetalToolchain
       - make app
       - codesign --verify --strict --deep --verbose=2 out/Cartouche.app
       - make -s mincheck

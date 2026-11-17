@@ -107,9 +107,11 @@ struct ControlsUITests {
         let connected = ContinuousClock.now
         scene.source.connect(FakeControllerSource.dualSense)
         await settings.settle(0.1)
+        let reading = ContinuousClock.now
         let listed = try settings.texts()
         let shown = try panel.texts()
-        let took = ContinuousClock.now - connected
+        // The budget is for the app; the OCR's own time is not counted
+        let took = reading - connected
         #expect(listed.contains { $0.contains("DualSense Wireless Controller") }, "\(listed)")
         #expect(listed.contains { $0.contains("80%") }, "\(listed)")
         #expect(shown.contains { $0.contains("DualSense") }, "\(shown)")

@@ -101,6 +101,12 @@ mkdir -p "$np_support/runners/gptk-8.8/lib/external"
 inplace="$work/in-place-lib"
 mkdir -p "$inplace/external" "$np_support/runners/gptk-9.9"
 : > "$inplace/external/libd3dshared.dylib"
+# A usable toolkit also ships the Windows DLLs selected by the launch script.
+for lib in "$inplace" "$np_support/runners/gptk-8.8/lib"; do
+  mkdir -p "$lib/wine/x86_64-windows"
+  : > "$lib/wine/x86_64-windows/d3d11.dll"
+  : > "$lib/wine/x86_64-windows/dxgi.dll"
+done
 printf '{"version":"9.9","origin":"x","files":{},"inPlace":"%s"}\n' "$inplace" \
   > "$np_support/runners/gptk-9.9/.cartouche-runner.json"
 np_gptk=""; np_backend_from=""; np_backend_missing=""

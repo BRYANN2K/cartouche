@@ -243,7 +243,7 @@ final class StubBuildbot: URLProtocol, @unchecked Sendable {
 @discardableResult
 func sheetSnapshot<V: View>(_ view: V, named name: String, size: CGSize = CGSize(width: 660, height: 620),
                             dark: Bool = false, settle: Double = 0.4) async -> CGSize {
-    let window = NSWindow(contentRect: CGRect(origin: .zero, size: size),
+    let window = TestWindow(contentRect: CGRect(origin: .zero, size: size),
                           styleMask: [.titled, .closable, .fullSizeContentView], backing: .buffered, defer: false)
     window.animationBehavior = .none
     window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)

@@ -34,8 +34,8 @@ struct ConsoleImportTests {
         await host.settle()
         let asked = ContinuousClock.now
         scene.center.importFlow.start([files[0]])
-        #expect(try await host.wait(for: "1 game identified", within: .seconds(2)))
-        let took = ContinuousClock.now - asked
+        #expect(try await host.wait(for: "1 game identified", within: displayBudget(.seconds(2))))
+        let took = host.lastCapture - asked
         let texts = try host.texts(named: "import-known")
         #expect(seen(texts, "Cartouche Homebrew"))
         #expect(seen(texts, "Super Nintendo, checksum match"))

@@ -147,9 +147,18 @@ struct PerformanceSharingTests {
         #expect(fps["low_1_percent"] as? Double == 58)
         #expect(fps["measured_seconds"] as? Int == 300)
         let text = String(decoding: body, as: UTF8.self)
-        for forbidden in ["player42", "/Users", "/", SteamFixture.steamID, NSUserName(), NSHomeDirectory()] {
+        for forbidden in ["player42", "/Users", "/", SteamFixture.steamID, NSHomeDirectory()] {
             #expect(!text.contains(forbidden), "the body carries \(forbidden)")
         }
+        // Hosted runners log in as "runner", one of the body's keys: only values are checked
+        func values(_ object: Any) -> [String] {
+            switch object {
+            case let map as [String: Any]: map.values.flatMap(values)
+            case let list as [Any]: list.flatMap(values)
+            default: ["\(object)"]
+            }
+        }
+        #expect(!values(json).contains { $0.contains(NSUserName()) }, "the body carries \(NSUserName())")
         // Sent once: a second refresh has no new session
         RequestCapture.start()
         await model.refresh()

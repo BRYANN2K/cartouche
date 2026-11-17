@@ -6,6 +6,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-11-16
+
+- Console games: release bundles now include RetroArch. A missing RetroArch installation is explained instead of reporting `RetroArchSessionError error 4`; command failures include RetroArch's reason and log location.
+- PlayStation: SwanStation accepts OpenBIOS, including an image renamed to a Sony BIOS filename. BIOS checks follow the selected core, accept the other firmware listed by that core, and allow PCSX ReARMed's built-in BIOS. The game panel explains OpenBIOS and reports the expected MD5 when a BIOS does not match.
+
 ## [0.1.2] - 2026-10-25
 
 - Installing a Steam game from Cartouche: Accept and Install now goes through when Steam no longer serves the license it just showed ("No eula for app").

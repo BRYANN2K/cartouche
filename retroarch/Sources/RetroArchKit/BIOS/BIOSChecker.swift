@@ -35,7 +35,12 @@ public struct BIOSStatus: Sendable, Equatable {
         case .notNeeded: String(localized: "No BIOS needed", bundle: .module)
         case .found: String(localized: "BIOS found", bundle: .module)
         case .missing(let name): String(localized: "\(name) is missing", bundle: .module)
-        case .wrongFile(let name): String(localized: "\(name) is not the expected file", bundle: .module)
+        case .wrongFile(let name):
+            if let md5 = files.first(where: { $0.name == name })?.md5 {
+                String(localized: "\(name) is not the expected file (expected MD5: \(md5)).", bundle: .module)
+            } else {
+                String(localized: "\(name) is not the expected file", bundle: .module)
+            }
         }
     }
 
@@ -48,12 +53,23 @@ public struct BIOSChecker: Sendable {
 
     public init(paths: RetroArchPaths) { self.paths = paths }
 
-    public func status(for console: Console) -> BIOSStatus {
-        let info = CoreInfo.load(paths.coreInfo.appending(path: "\(console.core)_libretro.info"))
+    public func status(for console: Console, core: String? = nil) -> BIOSStatus {
+        let core = core ?? console.core
+        let info = CoreInfo.load(paths.coreInfo.appending(path: "\(core)_libretro.info"))
         let accepted: [String]
         switch console.bios {
         case .none: accepted = []
-        case .oneOf(let names): accepted = names
+        case .oneOf(let names):
+            // PCSX ReARMed can run with its built-in HLE BIOS. Other PS1 cores
+            // still need a BIOS, using the filenames their own info advertises.
+            if console.id == "ps1", core == "pcsx_rearmed" {
+                accepted = []
+            } else if console.id == "ps1", let firmware = info?.firmware, !firmware.isEmpty {
+                let listed = firmware.map(\.path)
+                accepted = names.filter { listed.contains($0) } + listed.filter { !names.contains($0) }
+            } else {
+                accepted = names
+            }
         }
 
         var files = (info?.firmware ?? []).map { firmware in
@@ -66,7 +82,30 @@ public struct BIOSChecker: Sendable {
             files.append(BIOSFile(name: name, description: name, md5: nil, needed: true, state: state(of: name, md5: nil)))
         }
 
+        // SwanStation detects OpenBIOS by this header rather than a fixed MD5,
+        // and searches every file in system_directory (including renamed BIOSes).
+        if console.id == "ps1", core == "swanstation" {
+            let candidates = (try? FileManager.default.contentsOfDirectory(
+                at: paths.bios, includingPropertiesForKeys: [.isRegularFileKey, .fileSizeKey])) ?? []
+            for url in candidates.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }) where Self.isOpenBIOS(url) {
+                let name = url.lastPathComponent
+                files.removeAll { $0.name == name }
+                files.append(BIOSFile(name: name, description: "OpenBIOS", md5: nil, needed: true, state: .found))
+                return BIOSStatus(console: console, summary: .found, files: files)
+            }
+        }
         return BIOSStatus(console: console, summary: summary(files, accepted: accepted), files: files)
+    }
+
+    private static func isOpenBIOS(_ url: URL) -> Bool {
+        guard let values = try? url.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey]),
+              values.isRegularFile == true, values.fileSize == 512 * 1024,
+              let handle = try? FileHandle(forReadingFrom: url) else { return false }
+        defer { try? handle.close() }
+        do {
+            try handle.seek(toOffset: 0x78)
+            return try handle.read(upToCount: 8) == Data("OpenBIOS".utf8)
+        } catch { return false }
     }
 
     private func summary(_ files: [BIOSFile], accepted: [String]) -> BIOSStatus.Summary {

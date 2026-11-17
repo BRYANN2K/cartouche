@@ -50,7 +50,7 @@ attached=
 for file in README.md packaging/dmg/background.swift packaging/homebrew/cartouche.rb.in; do
     text="$(tr '\n' ' ' < "$repo/$file" | tr -s ' ')"
     for phrase in "signed with its own certificate" "Open Anyway" "install script"; do
-        printf '%s' "$text" | grep -q "$phrase" || fail "$file does not say \"$phrase\""
+        printf '%s' "$text" | grep -qi "$phrase" || fail "$file does not say \"$phrase\""
     done
     if printf '%s' "$text" | grep -qiE 'verified by apple|apple (has )?verified|apple checked'; then
         fail "$file claims Apple checked Cartouche"

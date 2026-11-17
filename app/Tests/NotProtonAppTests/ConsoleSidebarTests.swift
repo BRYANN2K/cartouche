@@ -61,8 +61,10 @@ struct ConsoleSidebarTests {
         #expect(seen(texts, "Game Boy"))
         #expect(!seen(texts, "PlayStation"))
 
-        let again = try await renderedTexts(AddConsolesSheet(center: scene.center), size: CGSize(width: 660, height: 560))
-        #expect(again.filter { $0 == "Added" }.count == 2)
+        #expect(scene.center.isAdded("nes") && scene.center.isAdded("gb"))
+        let again = try await renderedTexts(AddConsolesSheet(center: scene.center), size: CGSize(width: 660, height: 560),
+                                            named: "add-consoles-again")
+        #expect(again.filter { $0 == "Added" }.count == 2, "\(again)")
     }
 
     @Test("Remove a console: right-click PlayStation, Remove; it leaves the sidebar, its core goes, its games stay on disk")

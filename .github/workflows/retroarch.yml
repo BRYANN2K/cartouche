@@ -166,10 +166,15 @@ jobs:
           name: RetroArch-run-1
           path: scratch/retroarch-artifact
 
-      # The Wine payload is app.yml's job; an app without it is enough to
-      # show where RetroArch goes and that the bundle signs
-      - name: Build Cartouche.app without the payload
-        run: make -o app-payload app
+      # app.yml checks the complete product. This fixture isolates the embed
+      # script and signature check from the Wine payload and app build.
+      - name: Create a host app for the embed check
+        run: |
+          mkdir -p out/Cartouche.app/Contents/MacOS
+          cp app/Info.plist out/Cartouche.app/Contents/Info.plist
+          printf 'int main(void) { return 0; }\n' > scratch/embed-host.c
+          clang -arch arm64 -mmacosx-version-min=15.0 scratch/embed-host.c \
+            -o out/Cartouche.app/Contents/MacOS/Cartouche
 
       - name: Embed RetroArch and sign the bundle
         run: |

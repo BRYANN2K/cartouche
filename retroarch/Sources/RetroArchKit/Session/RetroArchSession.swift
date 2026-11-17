@@ -1,6 +1,6 @@
 import Foundation
 
-public enum RetroArchSessionError: Error, Equatable, Sendable {
+public enum RetroArchSessionError: Error, Equatable, Sendable, LocalizedError {
     case notRunning
     case alreadyRunning
     case needsMCP
@@ -8,6 +8,25 @@ public enum RetroArchSessionError: Error, Equatable, Sendable {
     case toolFailed(tool: String, reason: String)
     case exitedEarly(status: Int32?)
     case unexpectedReply(String)
+
+    public var errorDescription: String? {
+        switch self {
+        case .notRunning:
+            String(localized: "RetroArch is not running. Check the RetroArch selection in Settings > Consoles.", bundle: .module)
+        case .alreadyRunning:
+            String(localized: "A RetroArch session is already running.", bundle: .module)
+        case .needsMCP:
+            String(localized: "This RetroArch build does not support MCP control.", bundle: .module)
+        case .toolUnavailable(let tool):
+            String(localized: "This RetroArch build does not provide the \(tool) command.", bundle: .module)
+        case .toolFailed(let tool, let reason):
+            String(localized: "RetroArch refused \(tool): \(reason)", bundle: .module)
+        case .exitedEarly(let status):
+            String(localized: "RetroArch quit before it was ready (exit status: \(status.map(String.init) ?? "unknown")).", bundle: .module)
+        case .unexpectedReply(let reply):
+            String(localized: "RetroArch returned an unexpected reply: \(reply)", bundle: .module)
+        }
+    }
 }
 
 public struct RetroArchLaunch: Sendable {

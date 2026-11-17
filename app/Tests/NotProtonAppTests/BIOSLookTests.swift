@@ -11,6 +11,65 @@ import Testing
 @MainActor
 struct BIOSLookTests {
 
+    @Test func missingIncludedRetroArchExplainsThePublishedErrorFour() async throws {
+        let scene = try await ConsoleScene("missing-included-retroarch")
+        defer { scene.remove() }
+        #expect((RetroArchSessionError.notRunning as NSError).code == 4)
+        for (console, ext) in [("gb", "gb"), ("nds", "nds")] {
+            let game = try await scene.addGame(console: console, name: "Test \(console)", ext: ext)
+            await scene.center.play(game.id, reduceMotion: true)
+            #expect(scene.settings.build == .notFound)
+            #expect(scene.center.runner == nil)
+            let problem = try #require(scene.center.problem)
+            #expect(problem.contains("Settings > Consoles"))
+            #expect(!problem.contains("error 4"))
+            #expect(scene.center.playing == nil)
+        }
+    }
+
+    @Test func selectedCoreAndJoinOverrideUseTheirOwnBIOSRules() async throws {
+        let scene = try await ConsoleScene("bios-core")
+        defer { scene.remove() }
+        let runner = scene.useFakeRunner(picture: Data())
+        let game = try await scene.addGame(console: "ps1", name: "Test Disc", ext: "cue")
+        scene.center.resolveCore = { scene.paths.cores.appending(path: "\($0)_libretro.dylib") }
+        #expect(await scene.center.bios(for: game)?.isReady == false)
+        await scene.center.setSetup(game.id) { $0.core = "pcsx_rearmed" }
+        let updated = try #require(scene.center.game(game.id))
+        #expect(await scene.center.bios(for: updated)?.isReady == true)
+        await scene.center.play(game.id, reduceMotion: true)
+        #expect(await runner.requests.count == 1)
+        await scene.center.quit()
+        await scene.center.play(game.id, reduceMotion: true, core: "swanstation")
+        #expect(await runner.requests.count == 1)
+        #expect(scene.center.problem == "scph5501.bin is missing")
+        var image = Data(repeating: 0, count: 512 * 1024)
+        image.replaceSubrange(0x78..<0x80, with: Data("OpenBIOS".utf8))
+        try image.write(to: scene.paths.bios.appending(path: "openbios.bin"))
+        await scene.center.play(game.id, reduceMotion: true, core: "swanstation")
+        #expect(await runner.requests.count == 2)
+        #expect(scene.center.problem == nil)
+        await scene.center.quit()
+    }
+
+    @Test func failedConsoleLaunchShowsRetroArchReasonAndLog() async throws {
+        let scene = try await ConsoleScene("launch-diagnostic")
+        defer { scene.remove() }
+        let runner = scene.useFakeRunner(picture: Data())
+        await runner.failPlay(with: .toolFailed(tool: "LOAD_CONTENT", reason: "core failed to load"))
+        for (console, ext) in [("gb", "gb"), ("nds", "nds")] {
+            let game = try await scene.addGame(console: console, name: "Test \(console)", ext: ext)
+            await scene.center.play(game.id, reduceMotion: true)
+            let problem = try #require(scene.center.problem)
+            #expect(problem.contains("LOAD_CONTENT"))
+            #expect(problem.contains("core failed to load"))
+            #expect(problem.contains(scene.paths.logs.appending(path: "retroarch.log").path(percentEncoded: false)))
+            #expect(!problem.contains("error 4"))
+            #expect(scene.center.playing == nil)
+            #expect(scene.center.powerOn == nil)
+        }
+    }
+
     private func panel(_ scene: ConsoleScene, _ id: String, compat: CompatibilityModel) throws -> some View {
         GamePanel(game: try #require(scene.library.game(id)), model: scene.library, compat: compat,
                   actions: GameActionRunner(model: scene.library, open: { _ in }))
@@ -28,7 +87,7 @@ struct BIOSLookTests {
         let system = try #require(scene.center.console(of: game))
         let content = ConsolePanelContent(game: game, console: system, states: [], bios: await scene.center.bios(for: game), playing: nil)
         #expect(content.biosWarning?.title == "scph5501.bin is missing")
-        #expect(content.biosWarning?.detail == "Dump it from your own console, then put it in the BIOS folder.")
+        #expect(content.biosWarning?.detail.contains("OpenBIOS") == true)
         #expect(!content.canPlay)
 
         var texts: [String] = []
@@ -37,7 +96,7 @@ struct BIOSLookTests {
                                             named: "console-panel-bios-missing", dark: dark)
         }
         #expect(seen(texts, "scph5501.bin is missing"))
-        #expect(seen(texts, "Dump it from your own console"))
+        #expect(seen(texts, "OpenBIOS"))
         #expect(!texts.contains { $0.contains("http") || $0.lowercased().contains("download") })
 
         // Play does nothing without it

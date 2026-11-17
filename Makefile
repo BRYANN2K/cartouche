@@ -813,8 +813,10 @@ define BUNDLE_APP
 	@echo "==> Built $(2) ($(APP_VERSION), $(1))"
 endef
 
-app: app-payload $(ICON_CAR)
+app: app-payload $(ICON_CAR) retroarch
 	$(call BUNDLE_APP,release,$(APP_BUNDLE))
+	sh retroarch/scripts/embed-retroarch.sh "$(RETROARCH_OUT)/RetroArch.app" "$(APP_BUNDLE)" "$(APP_SIGN_ID)"
+	sh retroarch/scripts/check-retroarch.sh "$(APP_BUNDLE)/Contents/Helpers/RetroArch.app" "$$(git ls-tree HEAD vendor/RetroArch | awk '{ print $$3 }')"
 
 # The QA app is a debug build on purpose: QAEnvironment honours
 # CARTOUCHE_QA_BASE_URL only when DEBUG is defined, so the release app ignores
@@ -849,7 +851,7 @@ app qa-app: $(LIBARCHIVE)
 app: $(INNOEXTRACT)
 
 installer-tests:
-	@cd installer && swift test
+	@cd installer && swift test --no-parallel
 
 # Release tooling in packaging/
 .PHONY: redistscan packagingcheck

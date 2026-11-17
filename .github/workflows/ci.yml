@@ -25,6 +25,28 @@ jobs:
   lint:
     uses: ./.github/workflows/lint.yml
 
+  app-gate:
+    name: app
+    if: always()
+    needs: app
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the full app build passed
+        env:
+          RESULT: ${{ needs.app.result }}
+        run: test "$RESULT" = success
+
+  lint-gate:
+    name: lint
+    if: always()
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check shell lint passed
+        env:
+          RESULT: ${{ needs.lint.result }}
+        run: test "$RESULT" = success
+
   openspec:
     name: openspec validate
     runs-on: ubuntu-latest
@@ -59,7 +81,7 @@ jobs:
   required:
     name: required
     if: always()
-    needs: [app, lint, openspec, redistribution]
+    needs: [app-gate, lint-gate, openspec, redistribution]
     runs-on: ubuntu-latest
     steps:
       # A skipped or cancelled job must block the merge too

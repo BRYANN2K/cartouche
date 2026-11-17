@@ -283,7 +283,7 @@ func fixtureCompat(_ work: URL, defaults: ScratchDefaults, macReports: Bool = tr
 @discardableResult
 func windowSnapshot<V: View>(_ view: V, named name: String, size: CGSize = CGSize(width: 1280, height: 800),
                              dark: Bool = false, settle: Double = 0.4) async -> CGSize {
-    let window = NSWindow(contentRect: CGRect(origin: .zero, size: size),
+    let window = TestWindow(contentRect: CGRect(origin: .zero, size: size),
                           styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                           backing: .buffered, defer: false)
     // No window animation: each animated order-out left a thread stuck in the test process,

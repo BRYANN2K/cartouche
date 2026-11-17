@@ -72,7 +72,7 @@ struct GamePanel: View {
                 await consoles.refreshEmulators(for: system)
             }
         }
-        .task(id: game.console.map { "\($0.id)#\(consoles?.statesChanged ?? 0)" } ?? "") {
+        .task(id: game.console.map { "\($0.id)#\($0.setup.core ?? "")#\(consoles?.statesChanged ?? 0)" } ?? "") {
             guard let console = game.console, let consoles else { return }
             async let states = consoles.states(for: console)
             async let bios = consoles.bios(for: console)

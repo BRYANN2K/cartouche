@@ -59,12 +59,22 @@ struct ConsolesSettingsTests {
             """.write(to: script, atomically: true, encoding: .utf8)
             try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: script.path)
             let image = work.appending(path: "RetroArch_Metal.dmg")
-            let hdiutil = Process()
-            hdiutil.executableURL = URL(fileURLWithPath: "/usr/bin/hdiutil")
-            hdiutil.arguments = ["create", "-quiet", "-srcfolder", folder.path, "-volname", "RetroArch", "-format", "UDZO", image.path]
-            try hdiutil.run()
-            hdiutil.waitUntilExit()
-            return try Data(contentsOf: image)
+            // Disk-image services can briefly refuse a create on hosted Macs.
+            // Retry only fixture creation; installation assertions still run once.
+            for attempt in 1...3 {
+                let hdiutil = Process()
+                hdiutil.executableURL = URL(fileURLWithPath: "/usr/bin/hdiutil")
+                hdiutil.arguments = ["create", "-ov", "-srcfolder", folder.path, "-volname", "RetroArch", "-format", "UDZO", image.path]
+                try hdiutil.run()
+                hdiutil.waitUntilExit()
+                if hdiutil.terminationStatus == 0 { return try Data(contentsOf: image) }
+                if attempt == 3 {
+                    throw NSError(domain: "FixtureDiskImage", code: Int(hdiutil.terminationStatus),
+                                  userInfo: [NSLocalizedDescriptionKey: "hdiutil could not create the official-release test image"])
+                }
+                Thread.sleep(forTimeInterval: 0.2)
+            }
+            throw CocoaError(.fileNoSuchFile)
         }
 
         // The included build: fake-retroarch, which has MCP
@@ -248,15 +258,29 @@ struct ConsolesSettingsTests {
         let png = try snapshot(view, scheme: .light)
         let image = try #require(NSBitmapImageRep(data: png)?.cgImage)
         let request = VNRecognizeTextRequest()
-        request.recognitionLevel = .accurate
+        // The accurate Vision model is unavailable on hosted Mac VMs.
+        request.recognitionLevel = .fast
         request.usesLanguageCorrection = false
+        request.recognitionLanguages = ["en-US"]
         try VNImageRequestHandler(cgImage: image).perform([request])
         return (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
     }
 
     private func snapshot(_ view: some View, scheme: ColorScheme) throws -> Data {
         let hosting = host(view, scheme: scheme)
-        let rep = try #require(hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds))
+        let window = NSWindow(contentRect: hosting.frame, styleMask: .borderless, backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.alphaValue = 0
+        window.ignoresMouseEvents = true
+        window.contentView = hosting
+        window.orderFrontRegardless()
+        defer { window.close() }
+        hosting.layoutSubtreeIfNeeded()
+        let rep = try #require(NSBitmapImageRep(
+            bitmapDataPlanes: nil, pixelsWide: Int(hosting.bounds.width * 2), pixelsHigh: Int(hosting.bounds.height * 2),
+            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+            colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
+        rep.size = hosting.bounds.size
         hosting.cacheDisplay(in: hosting.bounds, to: rep)
         return try #require(rep.representation(using: .png, properties: [:]))
     }

@@ -78,15 +78,29 @@ struct StandaloneSettingsTests {
         let png = try snapshot(view, scheme: .light)
         let image = try #require(NSBitmapImageRep(data: png)?.cgImage)
         let request = VNRecognizeTextRequest()
-        request.recognitionLevel = .accurate
+        // The accurate Vision model is unavailable on hosted Mac VMs.
+        request.recognitionLevel = .fast
         request.usesLanguageCorrection = false
+        request.recognitionLanguages = ["en-US"]
         try VNImageRequestHandler(cgImage: image).perform([request])
         return (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
     }
 
     private func snapshot(_ view: some View, scheme: ColorScheme) throws -> Data {
         let hosting = host(view, scheme: scheme)
-        let rep = try #require(hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds))
+        let window = NSWindow(contentRect: hosting.frame, styleMask: .borderless, backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.alphaValue = 0
+        window.ignoresMouseEvents = true
+        window.contentView = hosting
+        window.orderFrontRegardless()
+        defer { window.close() }
+        hosting.layoutSubtreeIfNeeded()
+        let rep = try #require(NSBitmapImageRep(
+            bitmapDataPlanes: nil, pixelsWide: Int(hosting.bounds.width * 2), pixelsHigh: Int(hosting.bounds.height * 2),
+            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+            colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
+        rep.size = hosting.bounds.size
         hosting.cacheDisplay(in: hosting.bounds, to: rep)
         return try #require(rep.representation(using: .png, properties: [:]))
     }
