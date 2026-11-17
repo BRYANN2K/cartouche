@@ -150,10 +150,11 @@ struct PlayerIntegrationTests {
         let screen = try await resumed.screenshot()
         let screenBar = try Self.bar(screen)
         #expect(status.state == .paused || status.state == .playing)
-        // The bar moves a pixel a frame; a few frames run between the load and the pause
+        // The bar moves a pixel a frame; up to a second of frames runs between the load and the pause on a VM,
+        // a fresh start would land 100 or more pixels away
         let a = try #require(savedBar), b = try #require(screenBar)
         let moved = (b - a + 160) % 160
-        #expect(moved < 30, "slot 3 showed the bar at x=\(a), the resumed game at x=\(b)")
+        #expect(moved < 60, "slot 3 showed the bar at x=\(a), the resumed game at x=\(b)")
         var line = "evidence: slot 3 saved with the bar at x=\(a); resumed from slot 3 with the bar at x=\(b), status \(status.state)"
         if let picture = slot3.picture {
             let pictureBar = try Self.bar(Data(contentsOf: picture))

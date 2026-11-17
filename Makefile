@@ -851,7 +851,7 @@ app qa-app: $(LIBARCHIVE)
 app: $(INNOEXTRACT)
 
 installer-tests:
-	@cd installer && swift test
+	@cd installer && swift test --no-parallel
 
 # Release tooling in packaging/
 .PHONY: redistscan packagingcheck
